@@ -32,8 +32,10 @@ Svelte/Vite y TypeScript para la PWA; C/C++ y Emscripten para núcleos WASM inde
 
 El primer incremento será una ruta NES completa con un juego de prueba autorizado, teclado/mando, guardado exportable y reapertura offline. No hay comandos de instalación o prueba todavía: se añadirán con el código real.
 
-## Licencia: decisión pendiente
+## Licencia
 
-El archivo [LICENSE](LICENSE) actual contiene **LGPL-2.1**. La intención de producto discutida es restringir redistribución del código propio, lo que requiere resolver esta discrepancia antes de publicar. Esta documentación no sustituye ni modifica la licencia existente.
+**Cartivo: PolyForm Noncommercial 1.0.0** para el código original del proyecto cuyos derechos controle el titular, conforme al [LICENSE](LICENSE). Permite utilizar, estudiar, modificar y redistribuir el software para los fines no comerciales definidos por la licencia; los usos comerciales requieren autorización adicional del titular. La licencia es *source-available*, no una licencia open source reconocida por OSI.
 
-Las licencias de emuladores y recursos de terceros se evalúan por separado. Separar un núcleo en un Worker o descargarlo bajo demanda no permite ignorar sus condiciones. Véase [ADR-005](docs/adr/005-licensing.md).
+La licencia anterior de la revisión inicial era LGPL-2.1: el cambio no revoca retroactivamente los permisos válidamente concedidos a destinatarios de copias anteriores. No se relicencia código ajeno ni se afirman derechos sobre contribuciones de terceros.
+
+Los núcleos, librerías, herramientas y recursos externos mantienen sus propias licencias; toda integración y distribución requiere revisión por build. No se distribuyen núcleos GPL incompatibles dentro de un conjunto sujeto a restricciones no comerciales sin autorización suficiente o una solución jurídicamente válida. Worker, iframe y descarga diferida no crean excepciones. Véase [ADR-005](docs/adr/005-licensing.md).
