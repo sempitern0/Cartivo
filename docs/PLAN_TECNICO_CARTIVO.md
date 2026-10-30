@@ -581,7 +581,7 @@ H0 se ejecuta por sistema: su salida mínima **H0-NES** habilita H1 con candidat
 
 ### Orden de las primeras tareas
 
-1. Resolver ADR-005: LGPL existente frente al objetivo propietario y derechos de los candidatos. Elegir ruta de producto antes de reutilizar código copyleft incompatible con la decisión.
+1. Aplicar ADR-005: PolyForm Noncommercial 1.0.0 para código propio; auditar derechos y compatibilidad de cada núcleo antes de integrar o distribuir código copyleft o sujeto a condiciones distintas. La decisión de licencia propia no aprueba automáticamente ningún núcleo.
 2. Aceptar o modificar ADR-001 a ADR-004. Fijar Node/pnpm/Emscripten y navegador/equipo de referencia; documentar versiones concretas al ejecutar, no inventarlas en el plan.
 3. Inicializar Svelte/Vite + TS estricto + pnpm, formatter/lint, Vitest y Playwright. CI de shell separada de builds nativos.
 4. Definir schemas y adaptador simulado: handshake, estados, input, fallo, stop y dispose. No renderizar frames simulados como prueba de emulación.
@@ -669,7 +669,7 @@ Se inspeccionaron fuentes primarias mediante GitHub el 30-10-2026. Esto confirma
 
 | Fuente primaria inspeccionada | Evidencia útil | Lo que sigue pendiente |
 |---|---|---|
-| [Cartivo LICENSE](https://github.com/sempitern0/Cartivo/blob/2004f79f38d7a5196886b40136241a3e42fa39b6/LICENSE) | LGPL-2.1 y discrepancia con intención propietaria | Decisión del titular; no se ha cambiado la licencia |
+| [Cartivo LICENSE](../LICENSE) | PolyForm Noncommercial 1.0.0 para código propio (LGPL-2.1 era la licencia inicial) | Decisión propia registrada en ADR-005; licencias de terceros y derechos previos se preservan |
 | [PPSSPP README](https://github.com/hrydgard/ppsspp/blob/master/README.md) | GPL-2.0-or-later y HLE sin BIOS obligatoria | Port web, build concreta, rendimiento y obligaciones de integración |
 | [Play! README](https://github.com/jpd002/Play-/blob/master/README.md) | BIOS HLE integrada y navegador experimental | Persistencia, memoria, input y compatibilidad web |
 | [mGBA README](https://github.com/mgba-emu/mgba/blob/master/README.md) | GB/GBC/GBA, BIOS integrada y tipos de save | Compilación y capacidades efectivas del port elegido |
