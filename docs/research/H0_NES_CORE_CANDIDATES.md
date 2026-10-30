@@ -16,9 +16,11 @@ Este documento se añade de forma independiente desde `main`, sin cambiar el she
 | Candidato | Tecnología y orientación | Licencia declarada / cuestión | Decisión preliminar |
 |---|---|---|---|
 | [TetaNES](https://github.com/lukexor/tetanes) | Rust, soporte web/WASM, frontend separado | MIT o Apache-2.0 según proyecto; confirmar árbol de dependencias, assets y artefactos concretos | **Investigar primero**: alternativa permisiva para evaluar |
-| [JSNES](https://github.com/bfirsh/jsnes) | NES en JavaScript, frontend web | Licencia MIT declarada; validar versión y capacidades | **Comparador útil** de integración y fidelidad, no asumir compatibilidad completa |
+| [JSNES](https://github.com/bfirsh/jsnes) | NES en JavaScript, frontend web | **Apache-2.0**, confirmado en LICENSE y package.json upstream; validar commit, dependencias y capacidades | **Comparador útil** de integración y fidelidad, no asumir compatibilidad completa |
 | [FCEUmm](https://github.com/libretro/libretro-fceumm) | Núcleo Libretro clásico C/C++ | GPLv2 (comprobar copia y versión exacta) | **Condicionado**: estudiar solo como referencia hasta resolver integración jurídica |
 | [Nestopia UE](https://github.com/libretro/nestopia) | Núcleo de emulación NES Libretro | GPLv2 declarada, confirmar condiciones por componente | **Condicionado** por copyleft; no integrar automáticamente |
+
+La atribución Apache-2.0 de JSNES se ha contrastado con [su LICENSE](https://github.com/bfirsh/jsnes/blob/master/LICENSE) y [package.json](https://github.com/bfirsh/jsnes/blob/master/package.json) a fecha de investigación. Las condiciones del artefacto final todavía requieren auditoría.
 
 Estas licencias son **indicativas**; la aprobación requiere archivar la evidencia textual de la licencia y sus dependencias en el commit fijado. PolyForm y GPL no deben mezclarse como si fueran automáticamente compatibles.
 
