@@ -6,6 +6,8 @@ Leer `docs/PLAN_TECNICO_CARTIVO.md`, ADRs y evidencia de compatibilidad antes de
 
 V1: NES, SNES, GB, GBC, GBA, SMS, Mega Drive, N64, PS1 y PSP. Las tres últimas dependen de aceptación individual; PS2 es laboratorio independiente. No añadir sistemas ni accesorios fuera de alcance sin una decisión de producto registrada.
 
+Para ejecutar H0/H1, seguir `docs/GUIA_EJECUCION_H0_H1.md`. La investigación NES habilita el primer incremento; los spikes 3D pendientes no bloquean el shell. Un bloqueo de licencia no impide avanzar en tareas independientes autorizadas, pero impide declarar completo el núcleo afectado.
+
 ## Ingeniería
 
 - Implementar H0/H1 incrementalmente. No construir todos los adaptadores a la vez.
