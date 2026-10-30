@@ -1,29 +1,37 @@
 # ADR-005 — Modelo de licencia y distribución de núcleos
 
-Estado: decisión pendiente; bloquea publicación incompatible. Fecha: 2026-10-30.
+Estado: **aceptado para el código propio**; integración y distribución de núcleos externos condicionadas a auditoría. Fecha: 2026-10-30.
 
-## Hechos observados
+## Decisión del titular
 
-El commit inicial de Cartivo contiene LGPL-2.1 en `LICENSE`. La intención expresada por el titular es publicar la aplicación restringiendo libre uso/redistribución del código propio. No son equivalentes. Esta revisión no sustituye la licencia ni intenta retirar derechos ya concedidos.
+Cartivo adopta **PolyForm Noncommercial License 1.0.0** para el código original cuyo copyright posee o puede licenciar el titular. El texto oficial figura en [LICENSE](../../LICENSE), con un aviso de copyright del titular. Autoriza los usos definidos como no comerciales y permite estudiar, modificar y redistribuir bajo sus condiciones. Los usos comerciales requieren licencia o permiso separado. Es una licencia *source-available*, no OSI open source.
 
-Fuentes primarias inspeccionadas: README de EmulatorJS declara GPLv3; PPSSPP declara GPL-2.0-or-later; LICENSE de Genesis Plus GX restringe uso comercial e impone condiciones de fuentes y avisos. Revalidar todos los componentes, dependencias y variantes en el commit que se pretenda distribuir.
+La LGPL-2.1 constaba en el commit inicial. La sustitución del archivo para versiones futuras **no revoca retroactivamente** los derechos válidamente concedidos sobre copias anteriores; tampoco autoriza relicenciar contribuciones de terceros sin permisos suficientes. El titular debe verificar titularidad y procedencia de aportaciones futuras.
 
-## Opciones a resolver
+## Alcance y límites
 
-| Ruta | Consecuencia |
-|---|---|
-| Mantener LGPL actual y distribuir componentes conforme a sus licencias | Puede servir a un producto público, pero no satisface una prohibición general de redistribución; revisar integración y licencias copyleft adicionales |
-| Código propio propietario con dependencias compatibles o permisos específicos | Exige decidir alcance de derechos, revisar licencias de terceros e integración y posiblemente cambiar núcleo/catálogo |
-| Reemplazar o desarrollar partes sin alternativa compatible | Aumenta sustancialmente coste y puede impedir PSP/N64/PS1 en V1; no equivale a disponer de un emulador listo |
+- **Código original de Cartivo:** PolyForm Noncommercial 1.0.0; consultar texto íntegro, no una paráfrasis.
+- **Núcleos de emulación, librerías, fuentes, metadatos y arte de terceros:** conservan sus licencias y avisos originales. No se incluyen automáticamente en la licencia de Cartivo.
+- **GPL/LGPL y otras licencias recíprocas:** evaluar cómo se combina o distribuye el trabajo. No presuponer que Worker, iframe, host separado, WASM dinámico o packs descargables independizan jurídicamente el conjunto.
+- **Licencias permisivas:** cumplir avisos de copyright, atribución y otras condiciones; verificar compatibilidad del caso concreto.
+- **Marcas y logotipos:** sin concesión implícita de derechos de marca.
 
-## Recomendación técnica
+El cambio **no bloquea** la implementación independiente de UI, dominio, PWA, almacenamiento, contratos, pruebas o adaptadores originales. La integración, vinculación y distribución pública de cada núcleo queda sujeta a licencia compatible o permisos expresos suficientes. En caso de conflicto, seleccionar otro núcleo, solicitar licencia comercial/excepción o modificar la arquitectura con revisión jurídica; no ocultar obligaciones ni relajar silenciosamente la licencia.
 
-Resolver esta elección antes de reutilizar una plataforma completa o comprometer el catálogo público. Mantener contratos y recetas separadas ayuda a cambiar componentes, pero no prueba independencia jurídica. Worker, iframe, dominio separado, carga bajo demanda o app gratuita no son una excepción automática a copyleft o restricciones comerciales.
+## Evidencia inicial
 
-Una PWA entrega JS/WASM al dispositivo: no prometer ocultación de binarios ni tratar todo como ejecución interna del servidor. Las restricciones propias no pueden anular los derechos de los componentes ajenos. Términos del producto, marcas, código propio y arte requieren alcance claro; no crear una EULA incompatible con los componentes.
+README de EmulatorJS declara GPLv3; PPSSPP declara GPL-2.0-or-later; Genesis Plus GX contiene condiciones particulares y restricciones comerciales. La evidencia upstream no sustituye revisión del commit/build exacto. No se ha aprobado ni distribuido ningún núcleo en esta PR.
 
-## Expediente obligatorio por build antes de publicación
+## Expediente obligatorio por build antes de publicar
 
-Repositorio y commit; archivos de licencia y copyright; submódulos; licencia SPDX/LicenseRef; cambios y flags; toolchain; artefactos y hashes; dependencias vinculadas; fuentes correspondientes y scripts exigidos; avisos; permiso comercial cuando proceda; conclusión aplicable a integración/distribución concreta.
+Registrar repositorio y commit, titularidad, licencia SPDX/LicenseRef, submódulos y dependencias, archivos de copyright, toolchain, parches, tipo de integración/vinculación, binarios y hashes, fuentes correspondientes y scripts exigidos, avisos, permisos adicionales, compatibilidad con PolyForm y decisión final **accepted / blocked**.
 
-Las fuentes se consultaron para detectar bloqueos, no para certificar cumplimiento integral. El responsable del producto debe registrar la decisión y revisión correspondiente; mientras tanto, solo investigación y componentes con condiciones compatibles con el trabajo autorizado, sin publicar packs bloqueados.
+Mantener inventario y avisos separados para cada tercero; no añadir textos incompatibles en un único LICENSE general. El responsable del producto conserva la decisión de distribución, sometida a la revisión jurídica aplicable.
+
+## Alternativas descartadas
+
+- Mantener LGPL-2.1 como licencia general futura: permite usos comerciales bajo sus condiciones y no responde a la intención actual.
+- Licencia cerrada sin permiso de modificaciones no comerciales: restringiría más la colaboración comunitaria deseada.
+- Aplicar PolyForm indiscriminadamente a núcleos GPL: incompatible sin derechos adicionales o una combinación que satisfaga realmente ambas licencias.
+
+**Estado de implementación:** solo decisión y documentación; sin certificación jurídica de núcleos, builds ni releases.
