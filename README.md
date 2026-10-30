@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: planificación técnica.** El repositorio contiene la especificación; todavía no hay una PWA ejecutable ni núcleos integrados. No se distribuyen juegos ni BIOS propietarias.
+**Estado: primer incremento de H1-A, shell y sesión de diagnóstico implementados.** Hay una aplicación Svelte arrancable; todavía no hay núcleo NES, instalación PWA ni offline. No se distribuyen juegos ni BIOS propietarias.
 
 ## Catálogo inicial propuesto
 
@@ -30,7 +30,7 @@ La documentación define el arranque de implementación; H0-NES y H1 todavía es
 
 Svelte/Vite y TypeScript para la PWA; C/C++ y Emscripten para núcleos WASM independientes; Workers y adaptadores tipados para sesiones; IndexedDB/OPFS para datos locales. Hosting estático con cabeceras de aislamiento, packs de núcleos bajo demanda y gateway opcional de metadatos.
 
-El primer incremento será una ruta NES completa con un juego de prueba autorizado, teclado/mando, guardado exportable y reapertura offline. No hay comandos de instalación o prueba todavía: se añadirán con el código real.
+El primer incremento será una ruta NES completa con un juego de prueba autorizado, teclado/mando, guardado exportable y reapertura offline. Consulta [las pruebas del incremento](docs/compatibility/H1-A-FOUNDATION.md) para arrancar y validar la base.
 
 ## Licencia
 
@@ -39,3 +39,14 @@ El primer incremento será una ruta NES completa con un juego de prueba autoriza
 La licencia anterior de la revisión inicial era LGPL-2.1: el cambio no revoca retroactivamente los permisos válidamente concedidos a destinatarios de copias anteriores. No se relicencia código ajeno ni se afirman derechos sobre contribuciones de terceros.
 
 Los núcleos, librerías, herramientas y recursos externos mantienen sus propias licencias; toda integración y distribución requiere revisión por build. No se distribuyen núcleos GPL incompatibles dentro de un conjunto sujeto a restricciones no comerciales sin autorización suficiente o una solución jurídicamente válida. Worker, iframe y descarga diferida no crean excepciones. Véase [ADR-005](docs/adr/005-licensing.md).
+
+## Ejecutar la base
+
+Node 24.22.1 y pnpm 11.25.0:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs.
