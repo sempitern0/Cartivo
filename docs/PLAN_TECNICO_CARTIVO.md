@@ -577,6 +577,8 @@ No se prometen fechas antes de medir los ports y resolver licencias. Las líneas
 | Laboratorio PS2 | Play!.js tras aprobar el gate técnico/legal | Opt-in, compatibilidad por juego, sin prometer paridad con V1 ni soporte móvil general |
 | V1.1 y posteriores | DS, Game Gear y evaluación de Dreamcast solo tras priorización nueva | ADR de alcance, firmware/UX/viabilidad, sin arrastrar extras al primer release |
 
+H0 se ejecuta por sistema: su salida mínima **H0-NES** habilita H1 con candidato y firmware revisados, build/spike reproducible y decisiones técnicas necesarias. Los demás expedientes H0 siguen pendientes independientemente. Los presupuestos de promoción a estable no son requisitos para iniciar el shell; véase el contrato de arranque de la guía H0/H1.
+
 ### Orden de las primeras tareas
 
 1. Resolver ADR-005: LGPL existente frente al objetivo propietario y derechos de los candidatos. Elegir ruta de producto antes de reutilizar código copyleft incompatible con la decisión.
@@ -625,7 +627,7 @@ No se prometen fechas antes de medir los ports y resolver licencias. Las líneas
 
 Una historia se considera terminada solo si:
 
-- Tiene tests unitarios/integración y, si afecta a UX, E2E representativos.
+- Tiene verificación proporcional al cambio: para código, pruebas unitarias/integración de comportamiento y E2E de flujos críticos afectados; para documentación, coherencia y enlaces. No se exigen tests que solo reflejen la implementación.
 - Respeta TypeScript estricto y esquemas versionados; no se crean APIs globales ad hoc.
 - No bloquea el hilo principal con procesamiento intensivo.
 - Tiene fallback ante ausencia de API web, error de permisos o limitación del navegador.
