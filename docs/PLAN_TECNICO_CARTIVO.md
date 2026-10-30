@@ -639,6 +639,8 @@ Una historia se considera terminada solo si:
 
 ## 15. Instrucciones listas para Astra / agente avanzado
 
+La [guía de ejecución H0/H1](GUIA_EJECUCION_H0_H1.md) concreta este encargo en tareas, entregables y evidencias. Sustituye las referencias del prompt antiguo al adjunto y a Fase 0/Fase 1 por el plan mantenido y los hitos H0/H1. La investigación NES habilita el primer incremento; el resto de spikes H0 conserva su estado pendiente sin bloquear tareas independientes.
+
 > **Rol:** actúa como *principal engineer* especializado en WebAssembly, videojuegos, arquitectura de producto, seguridad web y accesibilidad. Este documento es la fuente de verdad del proyecto. No asumas que un core nativo funciona en navegador ni que cualquier núcleo es redistribuible.
 >
 > **Objetivo:** diseñar e implementar incrementalmente una PWA local-first para el catálogo V1 acordado, con PS2 en laboratorio independiente, con experiencia de cinco pasos, identificación regional de juegos y configuraciones por núcleo/juego, sin BIOS externas obligatorias.
