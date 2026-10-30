@@ -19,6 +19,7 @@ La aplicación procesa archivos aportados por el usuario en su dispositivo. Cat�
 ## Documentación
 
 - [Plan técnico maestro](docs/PLAN_TECNICO_CARTIVO.md): arquitectura, contratos, catálogo, UX, almacenamiento, seguridad, QA y roadmap.
+- [Guía de ejecución H0/H1](docs/GUIA_EJECUCION_H0_H1.md): prompt de implementación y evidencias de aceptación del primer incremento NES.
 - [ADRs](docs/adr/README.md): decisiones propuestas y bloqueo de licencias.
 - [Estado de compatibilidad](docs/compatibility/README.md): qué está probado y qué falta demostrar.
 - [Reglas de desarrollo](AGENTS.md): límites y evidencias exigidas durante la implementación.
