@@ -18,7 +18,7 @@ Objetivo inmediato: completar la investigación necesaria de H0 para NES y const
 - Verifica versiones compatibles de Node, pnpm, Svelte/Vite, TypeScript y Emscripten; fija las elegidas en configuración, lockfile y recetas. No actualizar a la última versión por inercia.
 - Compara un conjunto pequeño de candidatos NES por licencia, firmware, port web, mappers, input, audio y save data. Documenta selección o bloqueo con evidencia.
 - Respeta la política sin BIOS propietarias externas. Revisa también firmware de modos especiales.
-- Resuelve el expediente del núcleo antes de integrarlo o distribuirlo. ADR-005 registra el conflicto entre LGPL existente e intención propietaria; no cambies LICENSE ni supongas una elección del titular.
+- Resuelve el expediente del núcleo antes de integrarlo o distribuirlo. ADR-005 registra la elección del titular de PolyForm Noncommercial 1.0.0 para código propio. No extenderla a terceros ni asumir que cualquier núcleo GPL es integrable; verifica la compatibilidad por build.
 - Si esa decisión bloquea un candidato, continúa con contratos, shell, almacenamiento, mocks y pruebas independientes que sí estén autorizados. No declares H1 completado sin núcleo real aceptado.
 - Registra los spikes del resto de sistemas como pendientes: no bloquear la primera ruta NES por terminar toda la investigación 3D.
 
@@ -58,7 +58,7 @@ Prioriza una ruta completa y fiable: importar → jugar → guardar → cerrar �
 
 ## Contrato de arranque después del merge
 
-La documentación puede fusionarse con ADR-005 pendiente: ese merge no aprueba una licencia propietaria ni distribuye un núcleo. Se puede iniciar shell, contratos y persistencia; integrar el núcleo requiere resolver su compatibilidad con el modelo aplicable.
+La documentación puede fusionarse con la licencia del código propio decidida en ADR-005: ese merge no aprueba la integración ni la distribución de ningún núcleo externo. Se puede iniciar shell, contratos y persistencia; integrar el núcleo requiere resolver su compatibilidad con el modelo aplicable.
 
 | Paso | Módulos mínimos con consumidor real | Resultado comprobable |
 |---|---|---|
