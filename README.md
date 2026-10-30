@@ -24,6 +24,8 @@ La aplicación procesa archivos aportados por el usuario en su dispositivo. Cat�
 - [Estado de compatibilidad](docs/compatibility/README.md): qué está probado y qué falta demostrar.
 - [Reglas de desarrollo](AGENTS.md): límites y evidencias exigidas durante la implementación.
 
+La documentación define el arranque de implementación; H0-NES y H1 todavía están pendientes. El merge documental permite comenzar shell, contratos y almacenamiento. La selección e integración de un núcleo requiere su expediente de licencia y viabilidad; el funcionamiento se acreditará con las pruebas de la guía.
+
 ## Arquitectura prevista
 
 Svelte/Vite y TypeScript para la PWA; C/C++ y Emscripten para núcleos WASM independientes; Workers y adaptadores tipados para sesiones; IndexedDB/OPFS para datos locales. Hosting estático con cabeceras de aislamiento, packs de núcleos bajo demanda y gateway opcional de metadatos.
