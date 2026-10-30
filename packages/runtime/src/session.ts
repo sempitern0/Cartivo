@@ -13,7 +13,8 @@ export function parseMessage(value: unknown): Message {
     typeof v.sessionId !== "string" ||
     !v.sessionId ||
     v.sessionId.length > 128 ||
-    !["start", "pause", "resume", "stop"].includes(String(v.command))
+    typeof v.command !== "string" ||
+    !["start", "pause", "resume", "stop"].includes(v.command)
   )
     throw new Error("Protocolo inválido");
   return { version: 1, sessionId: v.sessionId, command: v.command as Command };

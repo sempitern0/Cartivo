@@ -1,23 +1,33 @@
 <script lang="ts">
-import { Session, type Command, type State } from '../../../packages/runtime/src/session.ts';
-let session = new Session('diagnostic');
-let sessionState = $state<State>('idle');
-let error = $state('');
-function send(command: Command) {
-  try { sessionState=session.dispatch({version:1,sessionId:session.id,command}); error=''; }
-  catch(e) { error=e instanceof Error ? e.message : 'Error desconocido'; }
+import { onDestroy } from 'svelte';
+import { WorkerSession } from '../../../packages/runtime/src/worker-client.ts';
+import type { Command, State } from '../../../packages/runtime/src/session.ts';
+import './theme.css';
+let session: WorkerSession | undefined;
+let sessionState=$state<State>('idle');
+let error=$state('');
+let busy=$state(false);
+let generation=0;
+const labels:Record<State,string>={idle:'Preparada',running:'En marcha',paused:'En pausa',stopped:'Finalizada'};
+function restart(){generation++;session?.dispose();session=undefined;sessionState='idle';error='';busy=false;}
+async function send(command:Command){
+ const token=generation;busy=true;error='';
+ try {
+   session ??= new WorkerSession(new Worker(new URL('./diagnostic.worker.ts',import.meta.url),{type:'module'}),crypto.randomUUID());
+   const next=await session.request(command);
+   if(token===generation)sessionState=next;
+ } catch(e){if(token===generation)error=e instanceof Error?e.message:'No se pudo continuar';}
+ finally{if(token===generation)busy=false;}
 }
-function restart() { session.dispose(); session=new Session(crypto.randomUUID()); sessionState=session.state; error=''; }
+onDestroy(()=>{generation++;session?.dispose();});
 </script>
-<svelte:head><meta name="description" content="Cartivo: tu colección retro, en tu dispositivo." /></svelte:head>
+<svelte:head><meta name="description" content="Tu colección retro, sin complicaciones." /></svelte:head>
 <main>
-<header><span class="brand">CARTIVO<span class="dot">●</span></span><span>Laboratorio · H1-A</span></header>
-<section><p class="eyebrow">TU PRÓXIMA PARTIDA EMPIEZA AQUÍ</p><h1>Un lugar para<br />volver a jugar.</h1><p class="intro">Tu colección, tus controles, tu pantalla. Estamos construyendo la primera experiencia NES.</p></section>
-<div class="grid"><article><span class="tag">PRIMER SISTEMA</span><h2>Nintendo Entertainment System</h2><p>Integración del núcleo pendiente. Los juegos todavía no se pueden ejecutar.</p><button disabled>Jugar · próximamente</button></article>
-<article><span class="tag">DIAGNÓSTICO · SIN EMULACIÓN</span><h2>Control de sesión</h2><p>Comprueba el ciclo de vida de la aplicación con una sesión simulada.</p><p role="status">Estado: <strong>{sessionState}</strong></p><div class="controls"><button onclick={()=>send('start')} disabled={sessionState!=='idle'}>Iniciar</button><button onclick={()=>send(sessionState==='paused'?'resume':'pause')} disabled={sessionState!=='running' && sessionState!=='paused'}>{sessionState==='paused'?'Reanudar':'Pausar'}</button><button onclick={()=>send('stop')} disabled={sessionState==='stopped'}>Detener</button><button onclick={restart}>Nueva sesión</button></div>{#if error}<p role="alert">{error}</p>{/if}</article></div>
-<footer>Archivos locales · Sin juegos incluidos · Núcleo NES, guardados y modo offline pendientes</footer>
+<header><span class="brand">cartivo<span class="palette" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span><span class="phase">En desarrollo</span></header>
+<section class="welcome"><p class="eyebrow">TUS JUEGOS. TU MOMENTO.</p><h1>Vuelve a jugar.</h1><p class="intro">Elige un juego. Nosotros nos encargamos del resto.</p><button class="primary" disabled>Elegir juego</button><p class="availability">Estamos preparando NES. La emulación aún no está disponible.</p></section>
+<details><summary>Laboratorio <span>Prueba de sesión</span></summary><div class="lab"><h2>Diagnóstico sin emulación</h2><p>Esta prueba ejecuta el control de sesión en segundo plano. No carga juegos ni guarda partidas.</p><p role="status" aria-live="polite">{busy?'Un momento…':labels[sessionState]}</p><div class="controls"><button onclick={()=>send('start')} disabled={busy||sessionState!=='idle'}>Iniciar prueba</button><button onclick={()=>send(sessionState==='paused'?'resume':'pause')} disabled={busy||(sessionState!=='running'&&sessionState!=='paused')}>{sessionState==='paused'?'Reanudar':'Pausar'}</button><button onclick={()=>send('stop')} disabled={busy||sessionState==='stopped'}>Finalizar</button><button onclick={restart}>{busy?'Cancelar':'Nueva sesión'}</button></div>{#if error}<p role="alert" class="error">{error}</p>{/if}</div></details>
+<footer>Tu colección permanece en tu dispositivo.</footer>
 </main>
 <style>
-:global(body){margin:0;background:#101713;color:#eff6ed;font-family:system-ui,sans-serif}:global(*){box-sizing:border-box}main{max-width:1100px;margin:auto;padding:32px}header{display:flex;justify-content:space-between;gap:16px;color:#aebbad}.brand{font-size:24px;font-weight:800;letter-spacing:3px;color:#eff6ed}.dot{color:#c2f970;padding-left:10px}section{padding:70px 0 40px}.eyebrow,.tag{font-size:12px;letter-spacing:2px;color:#c2f970}h1{font-size:clamp(40px,7vw,76px);line-height:1.05;margin:20px 0}.intro{max-width:520px;font-size:19px;color:#bcc8ba;line-height:1.7}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}article{background:#1a241d;border:1px solid #344336;padding:28px;border-radius:20px}article p{line-height:1.6;color:#bcc8ba}button{background:#c2f970;color:#152011;border:0;border-radius:9px;padding:12px 16px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}button:focus-visible{outline:3px solid white;outline-offset:4px}.controls{display:flex;gap:10px;flex-wrap:wrap}footer{padding:36px 0;color:#aebbad;font-size:13px}@media(max-width:700px){main{padding:20px}.grid{grid-template-columns:1fr}header{flex-wrap:wrap}section{padding-top:40px}}
+main{max-width:960px;margin:auto;padding:36px 28px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}.brand{font-size:28px;font-weight:750;letter-spacing:-1px;display:flex;align-items:center;gap:14px}.palette{display:flex;gap:4px}.palette i{width:6px;height:18px;border-radius:3px;background:var(--coral)}.palette i:nth-child(2){background:var(--blue)}.palette i:nth-child(3){background:var(--teal)}.palette i:nth-child(4){background:var(--gold)}.phase,footer{color:var(--muted);font-size:13px}.welcome{text-align:center;padding:100px 0 90px}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--teal)}h1{font-size:clamp(40px,7vw,70px);letter-spacing:-3px;margin:20px 0}.intro{color:var(--muted);font-size:18px;line-height:1.6;margin-bottom:32px}.availability{font-size:13px;color:var(--muted);margin:18px auto 0;max-width:340px;line-height:1.6}details{border-top:1px solid var(--border);border-bottom:1px solid var(--border)}summary{padding:22px 4px;cursor:pointer;color:var(--muted);min-height:44px}summary span{font-size:12px;margin-left:12px}.lab{padding:0 4px 28px}.lab p{color:var(--muted);max-width:580px;line-height:1.6}h2{font-size:20px}.controls{display:flex;gap:10px;flex-wrap:wrap}.lab .error{color:var(--coral)}footer{text-align:center;padding:30px 0}@media(max-width:500px){main{padding:24px 20px}.welcome{padding:72px 0}h1{letter-spacing:-2px}.phase{max-width:90px;text-align:right}}
 </style>
-

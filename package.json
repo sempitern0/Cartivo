@@ -8,9 +8,11 @@
     "build": "vite build apps/web",
     "check": "svelte-check --workspace apps/web --tsconfig ../../tsconfig.json",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "lint": "prettier --check packages/runtime/src/session.ts tests/session.test.ts"
+    "lint": "prettier --check \"packages/runtime/src/*.ts\" \"tests/*.ts\"",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "prettier": "3.6.2",
     "svelte": "5.57.3",

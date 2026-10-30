@@ -76,6 +76,10 @@ La política de propiedad intelectual puede bloquear el alcance: EmulatorJS decl
 
 ## 2. Experiencia del usuario: cinco decisiones, cero complejidad innecesaria
 
+### Dirección de producto actualizada
+
+Aplicar [la guía visual](DESIGN.md): colores propios cercanos a coral, azul, turquesa y dorado sobre neutros; interfaz minimalista y opciones de alto nivel. Los cinco pasos siguientes describen decisiones cubiertas, no cinco pantallas obligatorias. Autodetectar consola/mando y usar configuración Automático; ofrecer corrección manual y ajustes avanzados cuando se necesiten. Una acción principal por pantalla, laboratorio separado y plegado. No reproducir la marca PSX ni su paleta exacta.
+
 ### Recorrido principal
 
 ```text

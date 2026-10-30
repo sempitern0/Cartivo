@@ -46,3 +46,7 @@ Seguir el contrato de arranque de la guía H0/H1. Verificar la rama base actuali
 H0 tiene una salida mínima para NES y expedientes independientes para otros sistemas. H1 solo depende de esa salida NES y de los servicios que consume; no de terminar todos los spikes 3D. No crear módulos, gateway ni backends sin consumidor en el primer incremento.
 
 No confundir preparación documental, shell con mock, H1 jugable y release estable. Registrar por criterio el commit/build, prueba y resultado; un requisito pendiente conserva ese estado aunque el resto del incremento pase.
+
+## Dirección visual y experiencia
+
+Seguir `docs/DESIGN.md` y los tokens de `apps/web/src/theme.css`. Paleta propia inspirada en tonos PSX, sin reproducir el logo ni sus valores exactos. Interfaz minimalista: una acción principal, valores automáticos, detección fiable y corrección manual accesible. Los cinco pasos del plan son decisiones cubiertas, no pantallas obligatorias. Mantener laboratorio plegado y separado del juego; detalles de núcleos y diagnóstico solo en opciones avanzadas. Respetar foco, contraste y navegación con teclado/mando.

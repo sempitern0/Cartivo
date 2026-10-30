@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: primer incremento de H1-A, shell y sesión de diagnóstico implementados.** Hay una aplicación Svelte arrancable; todavía no hay núcleo NES, instalación PWA ni offline. No se distribuyen juegos ni BIOS propietarias.
+**Estado: segunda iteración de H1-A, shell minimalista y diagnóstico en Worker.** Hay una aplicación Svelte arrancable; todavía no hay núcleo NES, instalación PWA ni offline. No se distribuyen juegos ni BIOS propietarias.
 
 ## Catálogo inicial propuesto
 
@@ -22,6 +22,7 @@ La aplicación procesa archivos aportados por el usuario en su dispositivo. Cat�
 - [Guía de ejecución H0/H1](docs/GUIA_EJECUCION_H0_H1.md): prompt de implementación y evidencias de aceptación del primer incremento NES.
 - [ADRs](docs/adr/README.md): decisiones propuestas y bloqueo de licencias.
 - [Estado de compatibilidad](docs/compatibility/README.md): qué está probado y qué falta demostrar.
+- [Diseño y UX](docs/DESIGN.md): paleta propia, una acción principal y configuración automática.
 - [Reglas de desarrollo](AGENTS.md): límites y evidencias exigidas durante la implementación.
 
 La documentación define el arranque de implementación; H0-NES y H1 todavía están pendientes. El merge documental permite comenzar shell, contratos y almacenamiento. La selección e integración de un núcleo requiere su expediente de licencia y viabilidad; el funcionamiento se acreditará con las pruebas de la guía.
