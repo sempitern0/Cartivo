@@ -29,7 +29,7 @@ Para ejecutar H0/H1, seguir `docs/GUIA_EJECUCION_H0_H1.md`. La investigación NE
 
 ## Licencias y fuentes
 
-`LICENSE` contiene LGPL-2.1. No sustituirlo silenciosamente ni asumir que el objetivo propietario ya está aprobado. Registrar cualquier decisión en ADR-005. No integrar/publicar un núcleo cuyo expediente legal siga bloqueado; puede investigarse su viabilidad sin redistribuirlo.
+El código original de Cartivo cuyos derechos controle el titular se publica bajo **PolyForm Noncommercial 1.0.0** (véase `LICENSE` y ADR-005). No aplicar esta licencia a núcleos, bibliotecas o archivos de terceros, ni afirmar que anula derechos otorgados con la LGPL-2.1 anterior. Los permisos comerciales del código propio requieren autorización adicional. No integrar/publicar un núcleo cuyo expediente legal siga bloqueado; puede investigarse su viabilidad sin redistribuirlo.
 
 Consultar fuentes primarias, fijar commit/toolchain y registrar licencia, dependencias, parches, fuentes y avisos de cada build. Un iframe/Worker/origen separado no exime obligaciones. No inventar permisos, benchmarks ni compatibilidad web a partir de una versión nativa.
 
