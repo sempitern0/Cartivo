@@ -109,6 +109,7 @@ test("WASD aliases coexist with arrows and respect remapping collisions", async 
   assert.equal(sample(undefined, undefined, new Set(["KeyA"])).left, true);
   assert.equal(sample(undefined, undefined, new Set(["KeyS"])).down, true);
   assert.equal(sample(undefined, undefined, new Set(["KeyD"])).right, true);
+  assert.equal(sample(undefined, undefined, new Set(["ArrowDown"])).down, true);
   const custom = { ...defaultKeyboard, a: "KeyW" };
   const state = sample(undefined, undefined, new Set(["KeyW"]), 0.25, custom);
   assert.equal(state.a, true);
@@ -116,7 +117,7 @@ test("WASD aliases coexist with arrows and respect remapping collisions", async 
   assert.equal(
     sample(undefined, undefined, new Set(["KeyD"]), 0.25, {
       ...defaultKeyboard,
-      right: "KeyL",
+      right: "KeyJ",
     }).right,
     false,
   );
