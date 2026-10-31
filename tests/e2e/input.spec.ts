@@ -28,21 +28,21 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.goto("/");
-  await page.getByRole("link", { name: "Controles", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
 });
 test("keyboard scope, release and Tab escape", async ({ page }) => {
   const a = page.locator("[data-action=a]");
-  await page.keyboard.press("KeyX");
+  await page.keyboard.press("KeyK");
   await expect(a).toHaveText("ALibre");
   await page.getByRole("button", { name: "Activar prueba" }).click();
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyX");
+  await page.keyboard.down("KeyK");
   await expect(a).toHaveText("APulsado");
   await page.keyboard.press("Tab");
   await expect(a).toHaveText("ALibre");
-  await page.keyboard.up("KeyX");
+  await page.keyboard.up("KeyK");
   await expect(page.getByTestId("input-status")).toContainText("pausada");
 });
 test("standard pad, disconnect and reused slot require reactivation", async ({
@@ -102,7 +102,7 @@ test("manual profile persists and requires explicit restore", async ({
     page.getByRole("button", { name: "Aplicar perfil guardado" }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("link", { name: "Controles", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await page.evaluate(() => {
     (window as any).testPad.mapping = "";
   });
@@ -137,9 +137,9 @@ test("blocked Gamepad API retains keyboard fallback", async ({ page }) => {
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyX");
+  await page.keyboard.down("KeyK");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
-  await page.keyboard.up("KeyX");
+  await page.keyboard.up("KeyK");
 });
 
 test("auto selects a controller exposed after opening and preserves explicit keyboard choice", async ({
@@ -165,14 +165,14 @@ test("auto selects a controller exposed after opening and preserves explicit key
 test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Asignar tecla A", exact: true }),
-  ).toHaveText("A = X");
+  ).toHaveText("A = K");
   await expect(
     page.getByRole("button", { name: "Asignar tecla B", exact: true }),
-  ).toHaveText("B = Z");
+  ).toHaveText("B = L");
   await page
     .getByRole("button", { name: "Asignar tecla A", exact: true })
     .click();
-  await page.keyboard.press("KeyZ");
+  await page.keyboard.press("KeyL");
   await expect(page.getByTestId("input-status")).toContainText(
     "ya está asignada",
   );
@@ -184,21 +184,21 @@ test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyX");
+  await page.keyboard.down("KeyK");
   await expect(page.locator("[data-action=a]")).toHaveText("ALibre");
-  await page.keyboard.up("KeyX");
+  await page.keyboard.up("KeyK");
   await page.keyboard.down("KeyC");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
   await page.keyboard.up("KeyC");
   await page.reload();
-  await page.getByRole("link", { name: "Controles", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Asignar tecla A", exact: true }),
   ).toHaveText("A = C");
   await page.getByRole("button", { name: "Restablecer teclado" }).click();
   await expect(
     page.getByRole("button", { name: "Asignar tecla A", exact: true }),
-  ).toHaveText("A = X");
+  ).toHaveText("A = K");
 });
 
 test("initially hidden USB controller appears on browser exposure event", async ({
@@ -210,7 +210,7 @@ test("initially hidden USB controller appears on browser exposure event", async 
   await page.evaluate(() => {
     (window as any).testPad.connected = false;
   });
-  await page.getByRole("link", { name: "Controles", exact: true }).click();
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("-1");
   await expect(page.getByTestId("connection-status")).toContainText(
     "pulsa un botón",
