@@ -35,7 +35,7 @@ export function readKeyboard(): KeyboardProfile {
     if (!saved) return { ...defaultKeyboard };
     // Migrate only the former untouched X/Z defaults; keep custom bindings.
     if (saved.a === "KeyX" && saved.b === "KeyZ") {
-      const migrated = { ...saved, a: "KeyK", b: "KeyL" };
+      const migrated = { ...saved, a: "KeyL", b: "KeyK" };
       if (parseKeyboard(migrated)) {
         localStorage.setItem("cartivo:keyboard:v1", JSON.stringify(migrated));
         return migrated;
