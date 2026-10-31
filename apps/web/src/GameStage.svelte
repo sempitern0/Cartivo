@@ -1,0 +1,37 @@
+<script lang="ts">
+  import { onMount } from "svelte";
+  import { displayLayout, NES_VIDEO, type ScaleMode, type AspectMode } from "../../../packages/media/src/display-scaler.ts";
+  let { scaleMode = "fit", aspectMode = "corrected", frames = 0, screen = $bindable() }: {
+    scaleMode?: ScaleMode; aspectMode?: AspectMode; frames?: number; screen: HTMLCanvasElement | undefined;
+  } = $props();
+  let container: HTMLDivElement;
+  let width = $state(0);
+  let height = $state(0);
+  let calculated = $derived(displayLayout(width, height, NES_VIDEO, scaleMode, aspectMode));
+  onMount(() => {
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect) { width = rect.width; height = rect.height; }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  });
+</script>
+
+<div class="stage" bind:this={container} data-testid="game-stage">
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
+  <canvas bind:this={screen} width="256" height="240" tabindex="0"
+    aria-label="Pantalla del juego NES. Escape para pausar."
+    data-frames={frames}
+    style:width={calculated.width + "px"}
+    style:height={calculated.height + "px"}
+    data-actual-scale={calculated.actualMode}
+    data-scale-fallback={String(calculated.fallback)}
+  ></canvas>
+</div>
+
+<style>
+.stage { position: relative; width: 100%; height: 100%; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #050507; }
+canvas { display: block; max-width: 100%; max-height: 100%; flex: none; background: #000; image-rendering: pixelated; border: 0; }
+canvas:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
+</style>
