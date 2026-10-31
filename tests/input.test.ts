@@ -20,7 +20,7 @@ test("standard input merges keyboard, deadzone and neutralizes opposite directio
   const p = pad();
   p.buttons[0].pressed = true;
   p.axes = [0.24, -0.8];
-  const state = sample(p, standard, new Set(["KeyL", "ArrowDown"]));
+  const state = sample(p, standard, new Set(["KeyK", "ArrowDown"]));
   assert.equal(state.a, true);
   assert.equal(state.b, true);
   assert.equal(state.up, false);
@@ -29,7 +29,7 @@ test("standard input merges keyboard, deadzone and neutralizes opposite directio
   p.axes = [0.8, 0];
   assert.equal(sample(p, standard, new Set()).right, true);
   assert.equal(sample(p, standard, new Set(["ArrowLeft"])).right, false);
-  assert.equal(sample(undefined, undefined, new Set(["KeyK"])).a, true);
+  assert.equal(sample(undefined, undefined, new Set(["KeyL"])).a, true);
   p.connected = false;
   assert.equal(sample(p, standard, new Set()).a, false);
 });
@@ -96,7 +96,7 @@ test("custom keyboard profiles validate complete unique safe bindings", async ()
     true,
   );
   assert.equal(
-    sample(undefined, undefined, new Set(["KeyK"]), 0.25, custom).a,
+    sample(undefined, undefined, new Set(["KeyL"]), 0.25, custom).a,
     false,
   );
 });
