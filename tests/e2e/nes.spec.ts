@@ -410,3 +410,18 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   const fitted = await canvas.boundingBox();
   expect(Math.abs(fitted!.width / fitted!.height - 4 / 3)).toBeLessThan(0.02);
 });
+
+test("Focus is accessible using mouse controls without depending on Vimium shortcuts", async ({ page }) => {
+  await start(page);
+  const before = Number(await page.locator("canvas").getAttribute("data-frames"));
+  await page.getByRole("button", { name: "Modo Focus" }).click();
+  await expect(page.locator(".player")).toHaveClass(/focus-mode/);
+  await expect(page.getByRole("button", { name: "Salir del modo Focus" })).toBeAttached();
+  await page.getByRole("button", { name: "Salir del modo Focus" }).hover();
+  await page.getByRole("button", { name: "Salir del modo Focus" }).click();
+  await expect(page.locator(".player")).not.toHaveClass(/focus-mode/);
+  await expect.poll(async () =>
+    Number(await page.locator("canvas").getAttribute("data-frames"))
+  ).toBeGreaterThan(before + 3);
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+});
