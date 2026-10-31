@@ -1,5 +1,7 @@
 # Primer incremento H1-A — base de sesión
 
+**Estado actual:** ya existe una ruta NES NROM experimental con audio y SRAM; ver [H1-B NES](H1-B-NES.md). Las notas sin núcleo de abajo describen incrementos anteriores.
+
 Estado: shell y controlador síncrono de diagnóstico implementados. H1-A completo y H0-NES siguen pendientes. No hay emulador, audio, guardados, PWA instalable ni offline todavía. La segunda iteración incorpora Worker de diagnóstico.
 
 ## Cómo probar

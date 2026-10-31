@@ -57,3 +57,7 @@ Consultar `docs/research/` antes de seleccionar un núcleo; no repetir la matriz
 
 
 La configuración y prueba de entrada es una utilidad permanente del jugador: `#controles` y `ControlsPanel.svelte`. Mantenerla fuera del laboratorio técnico y reutilizar el panel en futuros ajustes; al integrarlo durante una partida, conectar pausa/neutralización con el gestor de sesión antes de aceptar entradas.
+
+## Incremento NES experimental
+
+Seguir ADR-007 y `docs/compatibility/H1-B-NES.md`. El adaptador JSNES 2.1.0 ejecuta solo NROM NTSC, es JavaScript en Worker y no cierra el gate WASM. Antes de build ejecutar `pnpm verify:core`; no editar fuentes de node_modules ni ampliar mappers sin prueba/expediente. La fixture propia está en packages/fixtures; preservar hash/licencia/oráculo. UI no accede al ABI SRAM. Probar dev y preview cuando cambien Worker, audio o assets. Hardware/suspensión/offline no se acreditan con gamepads sintéticos.

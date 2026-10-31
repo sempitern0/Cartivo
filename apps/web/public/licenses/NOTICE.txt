@@ -1,0 +1,13 @@
+Cartivo third-party runtime notices
+
+JSNES 2.1.0 — Copyright 2020 Ben Firshman; Apache License 2.0.
+Source: https://github.com/bfirsh/jsnes/tree/cbad9f1db57dfb275b90ffa26f9c479c355d8d5c
+License: jsnes-Apache-2.0.txt (adjacent file).
+JSNES credits James Sanders' vNES and Matt Wescott's JSSpeccy in its README.
+Cartivo imports unchanged JavaScript sources, bundled by Vite. No upstream ROMs,
+frontend assets, BIOS or prebuilt WASM are distributed.
+
+Svelte 5.57.3 — MIT. Full copyright and license: svelte-MIT.txt.
+
+Cartivo's original code: PolyForm Noncommercial 1.0.0. That restriction is not
+applied to these third-party components, which retain their own licenses.

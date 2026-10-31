@@ -33,3 +33,11 @@
 - Pantalla Controles accesible desde la cabecera y URL #controles, independiente del laboratorio técnico.
 - Panel reutilizable para prueba y remapeo; limpieza de entrada al salir sin borrar perfiles guardados.
 - Navegación Atrás/Volver con foco en el título y prueba E2E de reapertura neutral y pantalla móvil.
+
+### Primera ruta NES real (experimental)
+
+- JSNES 2.1.0 fijado y verificado contra 51 archivos upstream; Apache-2.0 y avisos incluidos. JavaScript en Worker; WASM pendiente explícito en ADR-007.
+- Demo NROM original generada desde fuente, teclado/mando/remapeo aplicados al juego, vídeo 4:3 y audio AudioWorklet tras gesto del usuario.
+- Importación local estricta NROM NTSC; pausa/foco/desconexión, cancelación y salida. Otros formatos se rechazan.
+- SRAM real con escritor único, dos generaciones SHA-256 en transacción IndexedDB, export/import por identidad y recuperación de corrupción.
+- E2E del núcleo y almacenamiento real en dev y preview; integridad del núcleo añadida a CI. Sin declarar PWA offline, compatibilidad general ni hardware probado.

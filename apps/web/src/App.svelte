@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount, tick } from "svelte";
+  import Player from "./Player.svelte";
   import ControlsPanel from "./ControlsPanel.svelte";
   import { WorkerSession } from "../../../packages/runtime/src/worker-client.ts";
   import type {
@@ -9,6 +10,14 @@
   import "./theme.css";
   let session: WorkerSession | undefined;
   let controlsPage = $state(false);
+  let game = $state<{ file?: File }>();
+  let fileInput = $state.raw<HTMLInputElement>();
+  function chooseGame(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) game = { file };
+  }
   let pageHeading = $state.raw<HTMLHeadingElement>();
   onMount(() => {
     const sync = async () => {
@@ -86,20 +95,39 @@
   </header>
   {#if controlsPage}
     <section class="controls-page">
-      <a class="back" href="#inicio">← Volver al inicio</a>
+      <a class="back" href="#inicio"
+        >← {game ? "Volver al juego" : "Volver al inicio"}</a
+      >
       <p class="eyebrow">A TU MANERA</p>
       <h1 bind:this={pageHeading} tabindex="-1">Controles</h1>
       <p class="intro">Prepara tu próxima partida.</p>
       <ControlsPanel />
     </section>
-  {:else}
+  {:else if !game}
     <section class="welcome">
       <p class="eyebrow">TUS JUEGOS. TU MOMENTO.</p>
       <h1 id="inicio" bind:this={pageHeading} tabindex="-1">Vuelve a jugar.</h1>
       <p class="intro">Elige un juego. Nosotros nos encargamos del resto.</p>
-      <button class="primary" disabled>Elegir juego</button>
+      <button class="primary" onclick={() => fileInput?.click()}
+        >Elegir juego</button
+      >
+      <input
+        bind:this={fileInput}
+        type="file"
+        accept=".nes"
+        onchange={chooseGame}
+        hidden
+      />
+      <p>
+        <button
+          onclick={() => {
+            game = {};
+          }}>Probar demo NES</button
+        >
+      </p>
       <p class="availability">
-        Estamos preparando NES. La emulación aún no está disponible.
+        NES experimental: cartuchos NROM NTSC. Prueba la demo sin aportar ningún
+        juego.
       </p>
     </section>
     <details>
@@ -133,6 +161,15 @@
       </div>
     </details>
   {/if}
+  {#if game}<div hidden={controlsPage}>
+      <Player
+        file={game.file}
+        visible={!controlsPage}
+        onclose={() => {
+          game = undefined;
+        }}
+      />
+    </div>{/if}
   <footer>Tu colección permanece en tu dispositivo.</footer>
 </main>
 

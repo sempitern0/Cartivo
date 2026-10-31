@@ -1,6 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import {
+    selectPad,
+    getPadPreference,
+  } from "../../../packages/input/src/preferences.ts";
+  import {
     actions,
     defaultKeyboard,
     parseKeyboard,
@@ -110,6 +114,7 @@
     last = snapshot(pads.find((p) => p.index === selected));
     profile = last?.mapping === "standard" ? standard : undefined;
     refreshSaved(last);
+    selectPad(last, profile, deadzone);
   }
   function activate() {
     held.clear();
@@ -169,6 +174,7 @@
       const parsed = parseProfile(value, last);
       if (!parsed) throw Error();
       profile = parsed;
+      selectPad(last, profile, deadzone);
       pause(
         "Perfil local aplicado. Comprueba los ocho controles antes de jugar.",
       );
@@ -187,6 +193,7 @@
       removed = false;
     }
     profile = last.mapping === "standard" ? standard : undefined;
+    selectPad(last, profile, deadzone);
     refreshSaved(last);
     pause(
       removed
@@ -195,6 +202,14 @@
     );
   }
   onMount(() => {
+    const sessionPreference = getPadPreference();
+    let firstScan = true;
+    if (sessionPreference.mode === "keyboard") {
+      autoSelect = false;
+      selected = -1;
+    } else if (sessionPreference.mode === "pad") {
+      selected = sessionPreference.index;
+    }
     try {
       const saved = localStorage.getItem(keyboardStore);
       if (saved) {
@@ -256,6 +271,7 @@
             : pads.length
               ? `${pads.length} mando(s) detectado(s).`
               : "Ningún mando visible para el navegador. Conecta por USB y pulsa un botón del mando con esta pestaña activa.";
+      if (!pads.length) selected = -1;
       if (
         autoSelect &&
         pads.length &&
@@ -275,9 +291,23 @@
       }
       if (pad && !last) {
         last = snapshot(pad);
-        profile = pad.mapping === "standard" ? standard : undefined;
+        profile =
+          firstScan &&
+          sessionPreference.mode === "pad" &&
+          sessionPreference.id === pad.id
+            ? sessionPreference.profile
+            : pad.mapping === "standard"
+              ? standard
+              : undefined;
+        if (
+          firstScan &&
+          sessionPreference.mode === "pad" &&
+          sessionPreference.id === pad.id
+        )
+          deadzone = sessionPreference.deadzone;
         refreshSaved(pad);
       }
+      firstScan = false;
       if (pad) {
         const pressed = pressedBindings(pad);
         raw =
@@ -304,6 +334,7 @@
                 waitingRelease = true;
               } else {
                 profile = parseProfile(draft, pad);
+                selectPad(pad, profile, deadzone);
                 capture = undefined;
                 message =
                   "Asignación lista. Activa la prueba para comprobarla.";
@@ -390,6 +421,7 @@
         max="0.6"
         step="0.05"
         bind:value={deadzone}
+        oninput={(e) => selectPad(last, profile, Number(e.currentTarget.value))}
       /></label
     >
   {/if}

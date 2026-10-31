@@ -21,7 +21,7 @@ Una acción principal por pantalla. Elegir juego y, cuando exista una partida, C
 
 El recorrido de cinco decisiones del plan se conserva como capacidades, no cinco pantallas obligatorias. Mostrar detalles técnicos y ajustes por núcleo solo en opciones avanzadas. El laboratorio permanece plegado y separado del flujo de jugar. Ninguna simulación se presenta como emulación funcional.
 
-Estado actual: Elegir juego deshabilitado porque no existe núcleo integrado. La sección de laboratorio permite probar un Worker real con sesión simulada. No hay importación, partidas, audio ni offline todavía.
+Estado actual: Elegir juego admite NROM NTSC experimental y Probar demo NES ejecuta una fixture propia. La sección de laboratorio permite probar un Worker real con sesión simulada. La ruta real tiene importación local, audio y SRAM; instalación/offline siguen pendientes.
 
 ## Zona permanente de controles
 
@@ -29,4 +29,4 @@ Estado actual: Elegir juego deshabilitado porque no existe núcleo integrado. La
 
 `ControlsPanel.svelte` contiene la configuración/prueba y consume `packages/input`; no conoce el Worker de diagnóstico. Puede reutilizarse desde los ajustes de la interfaz final. Actualmente el único perfil es NES P1, sin anunciar otros sistemas. Al salir se desmontan sondeo y listeners; al volver no hay controles pulsados ni prueba activa. Los perfiles guardados se conservan. Volver al inicio y Atrás del navegador funcionan; se traslada el foco al título de la pantalla.
 
-Cuando exista emulación, el gestor de sesión deberá pausar y neutralizar la entrada antes de abrir controles durante una partida, y aplicar el perfil al volver. Esa integración sigue pendiente; no se inventa un flujo de partida en el shell actual.
+Durante la emulación NES, abrir Controles pausa y neutraliza la entrada; volver conserva el frame y exige Reanudar, aplicando las asignaciones actuales.

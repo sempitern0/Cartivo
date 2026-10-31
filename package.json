@@ -9,7 +9,10 @@
     "check": "svelte-check --workspace apps/web --tsconfig ../../tsconfig.json",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "lint": "prettier --check \"packages/*/src/*.ts\" \"tests/*.ts\"",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "preview": "vite preview apps/web --host 127.0.0.1 --port 4173",
+    "test:e2e:preview": "playwright test --config playwright.preview.config.ts",
+    "verify:core": "node tools/verify-jsnes.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
@@ -22,5 +25,8 @@
   },
   "engines": {
     "node": ">=24.22.1 <25"
+  },
+  "dependencies": {
+    "jsnes": "2.1.0"
   }
 }

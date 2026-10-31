@@ -1,5 +1,7 @@
 # H1-B — primer incremento de entrada
 
+**Estado actual:** ya existe una ruta NES NROM experimental con audio y SRAM; ver [H1-B NES](H1-B-NES.md). Las notas sin núcleo de abajo describen incrementos anteriores.
+
 Fecha: 2026-10-31. Estado: **laboratorio de entrada implementado; H1 jugable pendiente**.
 
 ## Base integrada y decisión NES

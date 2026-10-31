@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: H1-A con diagnóstico en Worker y primer incremento de entrada H1-B.** Hay una aplicación Svelte arrancable; todavía no hay núcleo NES, instalación PWA ni offline. No se distribuyen juegos ni BIOS propietarias.
+**Estado: primera emulación NES experimental (NROM NTSC) con JSNES 2.1.0 en Worker.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo de este incremento es JavaScript, no WASM; instalación PWA y offline siguen pendientes. No se distribuyen juegos ni BIOS propietarias de terceros.
 
 ## Catálogo inicial propuesto
 
@@ -25,13 +25,13 @@ La aplicación procesa archivos aportados por el usuario en su dispositivo. Cat�
 - [Diseño y UX](docs/DESIGN.md): paleta propia, una acción principal y configuración automática.
 - [Reglas de desarrollo](AGENTS.md): límites y evidencias exigidas durante la implementación.
 
-La documentación define el arranque de implementación; H0-NES y H1 todavía están pendientes. El merge documental permite comenzar shell, contratos y almacenamiento. La selección e integración de un núcleo requiere su expediente de licencia y viabilidad; el funcionamiento se acreditará con las pruebas de la guía.
+La ruta experimental está documentada y probada en [H1-B NES](docs/compatibility/H1-B-NES.md). H0-WASM y H1 completo siguen abiertos: no se anuncia soporte general NES ni producción.
 
 ## Arquitectura prevista
 
 Svelte/Vite y TypeScript para la PWA; C/C++ y Emscripten para núcleos WASM independientes; Workers y adaptadores tipados para sesiones; IndexedDB/OPFS para datos locales. Hosting estático con cabeceras de aislamiento, packs de núcleos bajo demanda y gateway opcional de metadatos.
 
-El primer incremento será una ruta NES completa con un juego de prueba autorizado, teclado/mando, guardado exportable y reapertura offline. Consulta [las pruebas del incremento](docs/compatibility/H1-A-FOUNDATION.md) para arrancar y validar la base.
+La primera ruta real usa una demo original NROM, controles configurables, audio y SRAM recuperable/exportable. Consulta [las pruebas del incremento](docs/compatibility/H1-B-NES.md); la reapertura offline todavía no está implementada.
 
 ## Licencia
 
@@ -56,6 +56,8 @@ pnpm dev
 
 El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible con la serie 24. CI emplea la versión fijada en `.node-version`.
 
-Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs. La zona **Controles**, accesible desde la cabecera o `/#controles`, permite probar teclado y mando mediante Gamepad API, reasignar controles y guardar perfiles locales. El laboratorio contiene únicamente diagnóstico técnico. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
+Abrir http://127.0.0.1:5173 → **Probar demo NES → Jugar**. Flechas/cruceta mueven el cuadrado; A (X por defecto) cambia el color y escribe progreso; B (Z) emite un tono. En pausa puedes exportar/importar la partida. Elegir juego acepta solamente cartuchos propios/autorizados iNES NTSC mapper 0. La zona **Controles**, accesible desde la cabecera o `/#controles`, permite probar teclado y mando mediante Gamepad API, reasignar controles y guardar perfiles locales. El laboratorio contiene únicamente diagnóstico técnico. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
 
 
+
+La demo y el reproductor ejecutan el núcleo real. El laboratorio técnico de sesión continúa siendo un diagnóstico sin emulación. [Avisos de terceros](LICENSES.md) y [decisión del adaptador](docs/adr/007-nes-experimental-js.md).
