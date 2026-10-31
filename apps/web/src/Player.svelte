@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import GameStage from "./GameStage.svelte";
+  import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
   import { NesClient } from "../../../packages/runtime/src/nes-client.ts";
   import audioWorkletUrl from "./audio.worklet.ts?worker&url";
   import { GameAudio } from "../../../packages/media/src/audio.ts";
@@ -35,6 +37,10 @@
   let viewport = $state.raw<HTMLElement>();
   let fullscreen = $state(false);
   let fullscreenAvailable = $state(false);
+  let focusMode = $state(false);
+  let scaleMode = $state<ScaleMode>("fit");
+  let aspectMode = $state<AspectMode>("corrected");
+  let graphicsOpen = $state(false);
   let resumeButton = $state.raw<HTMLButtonElement>();
   let screen = $state.raw<HTMLCanvasElement>();
   let importInput = $state.raw<HTMLInputElement>();
@@ -261,6 +267,12 @@
   }
   function keydown(e: KeyboardEvent) {
     if (phase !== "running" || !visible) return;
+    if (e.code === "KeyF" && !e.repeat) {
+      e.preventDefault();
+      e.stopPropagation();
+      focusMode = !focusMode;
+      return;
+    }
     if (e.code === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -278,7 +290,10 @@
     try {
       if (document.fullscreenElement === viewport)
         await document.exitFullscreen();
-      else await viewport?.requestFullscreen();
+      else {
+        focusMode = true;
+        await viewport?.requestFullscreen();
+      }
     } catch (e) {
       problem =
         "No se pudo activar pantalla completa. Puedes seguir jugando en esta ventana.";
@@ -428,9 +443,10 @@
   bind:this={viewport}
   class="player"
   class:playing={phase === "running"}
+  class:focus-mode={focusMode && phase === "running"}
   aria-label="Reproductor NES"
 >
-  <div class="heading">
+  <div class="heading" data-player-chrome>
     <div>
       <p class="badge">NES · EXPERIMENTAL</p>
       <h1>{file?.name ?? "Demo de controles"}</h1>
@@ -439,17 +455,17 @@
       >{phase === "loading" ? "Cancelar carga" : "Cerrar juego"}</button
     >
   </div>
-  {#if !file}<p class="demo-info">
+  {#if !file}<p class="demo-info" data-player-chrome>
       Cruceta, flechas o WASD: mueve el cuadrado. A: cambia el color y guarda
       ese progreso. B: emite un tono. Usa tus asignaciones de Controles.
     </p>{/if}
-  {#if phase === "ready"}<p>
+  {#if phase === "ready"}<p data-player-chrome>
       El archivo permanece en tu dispositivo. Esta primera versión ejecuta
       cartuchos iNES NTSC (mappers 0–4).
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
-  <div class="buttons">
+  <div class="buttons player-actions" data-player-chrome>
     {#if phase === "running"}<button data-player-action onclick={() => pause()}
         >Pausar juego</button
       >{/if}
@@ -468,6 +484,8 @@
         }}>{muted ? "Activar sonido" : "Silenciar"}</button
       >{/if}
     <a data-player-action href="#controles">Configurar controles</a>
+    <button data-player-action onclick={() => { focusMode = !focusMode; }} aria-pressed={focusMode}>Modo Focus</button>
+    <button data-player-action onclick={() => { graphicsOpen = !graphicsOpen; }} aria-expanded={graphicsOpen}>Gráficos</button>
     {#if fullscreenAvailable}<button
         data-player-action
         onclick={toggleFullscreen}
@@ -476,7 +494,12 @@
           : "Pantalla completa"}</button
       >{/if}
   </div>
-  <p data-testid="player-phase">
+  {#if graphicsOpen && phase !== "running"}<fieldset class="graphics-menu">
+    <legend>Presentación de vídeo</legend>
+    <label>Escalado <select bind:value={scaleMode}><option value="fit">Ajustar</option><option value="integer">Píxel entero</option><option value="corrected-integer">4:3 entero (NES)</option></select></label>
+    <label>Aspecto <select bind:value={aspectMode}><option value="corrected">4:3 corregido</option><option value="native">Píxeles originales</option></select></label>
+  </fieldset>{/if}
+  <p data-testid="player-phase" data-player-chrome>
     {phase === "running"
       ? "Jugando"
       : phase === "paused"
@@ -485,12 +508,12 @@
           ? "No se pudo continuar"
           : ""}
   </p>
-  <p class="secondary">
+  <p class="secondary" data-player-chrome>
     {phase === "running"
       ? "Controles capturados · Escape para pausar y liberar el foco."
       : padStatus}
   </p>
-  <p data-testid="save-status">{saveStatus}</p>
+  <p data-testid="save-status" data-player-chrome>{saveStatus}</p>
   {#if problem}<div
       bind:this={notice}
       class="notice"
@@ -501,14 +524,7 @@
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
-  <canvas
-    bind:this={screen}
-    width="256"
-    height="240"
-    tabindex="0"
-    aria-label="Pantalla del juego NES. Escape para pausar."
-    data-frames={frames}
-  ></canvas>
+  <div class="game-stage-wrapper"><GameStage bind:screen {frames} {scaleMode} {aspectMode} /></div>
   {#if battery && (phase === "paused" || phase === "error")}<details>
       <summary>Copias de partida</summary>
       <p>
@@ -559,6 +575,12 @@
     margin: 12px 0;
     overflow-wrap: anywhere;
   }
+  :global(body:has(.player.focus-mode)) { overflow: hidden; }
+  :global(body:has(.player.focus-mode) header), :global(body:has(.player.focus-mode) footer) { visibility: hidden; }
+  .player.focus-mode { position: fixed; inset: 0; z-index: 1000; margin: 0; max-width: none; width: 100%; height: 100dvh; padding: 0; background: #050507; display: flex; flex-direction: column; overflow: hidden; }
+  .player.focus-mode [data-player-chrome], .player.focus-mode > details { display: none; }
+  .game-stage-wrapper { width: 100%; height: min(65vh, 660px); min-height: 200px; margin: 20px auto; }
+  .player.focus-mode .game-stage-wrapper { flex: 1; height: auto; min-height: 0; margin: 0; }
   .player:fullscreen {
     background: var(--bg);
     width: 100%;
@@ -586,14 +608,7 @@
   .player.playing:fullscreen > details {
     display: none;
   }
-  .player:fullscreen canvas {
-    min-height: 0;
-    flex: none;
-    aspect-ratio: 4/3;
-    width: min(100%, max(160px, calc((100dvh - 240px) * 4 / 3)));
-    height: auto;
-    margin: 12px auto;
-  }
+  .player:fullscreen .game-stage-wrapper { flex: 1; min-height: 0; height: auto; margin: 0; }
   .player:fullscreen > details {
     flex: none;
   }
@@ -621,20 +636,9 @@
   p {
     line-height: 1.6;
   }
-  canvas {
-    display: block;
-    width: 100%;
-    aspect-ratio: 4/3;
-    height: auto;
-    background: #000;
-    image-rendering: pixelated;
-    border-radius: 8px;
-    margin: 24px 0;
-  }
-  canvas:focus-visible {
-    outline: 3px solid var(--gold);
-    outline-offset: 4px;
-  }
+  .graphics-menu { display: flex; flex-wrap: wrap; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .graphics-menu label { display: flex; gap: 8px; align-items: center; }
+  .graphics-menu select { background: var(--surface); color: var(--text); padding: 9px; border-radius: 8px; border: 1px solid var(--border); }
   .buttons {
     display: flex;
     gap: 12px;
