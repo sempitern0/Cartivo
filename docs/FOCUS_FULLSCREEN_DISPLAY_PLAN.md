@@ -195,3 +195,15 @@ Se eliminaron los ocho selectores obsoletos de `App.svelte` tras retirar footer 
 - **Cobertura:** pruebas unitarias comprueban la igualdad de entrada WASD y flechas en las cuatro direcciones; E2E comprueba clic de Focus y estado accesible. Falta certificación manual con ROMs del usuario, Vimium y mando físico.
 
 **CI:** comprobar los checks del último SHA antes de mergear; un job sin pasos/logs no acredita fallo en TypeScript o tests y necesita diagnóstico de infraestructura.
+
+
+## Corrección de controles NES y reinicio seguro (31-10-2026)
+
+- **WASD y flechas:** `nes-input.ts` permite ambos esquemas, incluido un perfil guardado que aún usa flechas, sin modificar el protocolo NES ni el adaptador JSNES. Las personalizaciones explícitas prevalecen.
+- **Select:** Q es la tecla predeterminada. ShiftRight continúa reconocido para perfiles previos, y `readKeyboard()` migra ese predeterminado a Q cuando puede hacerlo sin colisión.
+- **Start:** Enter. Ambos controles tienen además botones visibles en la interfaz del reproductor para evitar problemas de enfoque/teclado en los navegadores.
+- **Volver al título:** Select NO reinicia Contra. Se añade la operación `reset` al protocolo Worker; en pausa se puede pulsar «Reiniciar consola». El Worker guarda previamente SRAM y recrea el núcleo de la misma ROM con la memoria preservada. La acción permanece bloqueada si el guardado no está confirmado.
+- **Foco:** no interceptar la activación nativa de botones, enlaces y formularios con el capturador de teclado del juego. Limpiar pulsaciones virtuales en pausa/salida para evitar Select o Start atascados.
+- **Regresión:** unit tests para Start, Select y perfiles heredados; E2E para los botones, reset y conservación de SRAM en la demo autorizada. No afirmar resultados sobre Contra (USA) sin ejecutar la ROM del usuario ni compatibilidad inter-navegador sin QA real.
+
+Siguiente incremento arquitectónico: separar `GameInputCapture` y `PlayerToolbar` de `Player.svelte`, después ofrecer restablecimiento de perfiles por consola y diagnóstico visual de teclas recibidas (`KeyboardEvent.code`) con alcance local. Mantener la PR Draft hasta CI y QA manual.
