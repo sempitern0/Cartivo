@@ -30,9 +30,13 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
   await expect(
     page.getByRole("heading", { name: "Diagnóstico sin emulación" }),
   ).toBeVisible();
+  // Input lab remains usable in Settings; diagnostic session has separate actions.
   await expect(
     page.getByRole("button", { name: "Activar prueba" }),
-  ).toHaveCount(0);
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Iniciar prueba" }),
+  ).toBeVisible();
   await page.goBack();
   await page.goBack();
   await expect(
