@@ -614,7 +614,7 @@
   :global(body:has(.player.focus-mode) header), :global(body:has(.player.focus-mode) footer) { visibility: hidden; }
   .player.focus-mode { position: fixed; inset: 0; z-index: 1000; margin: 0; max-width: none; width: 100%; height: 100dvh; padding: 0; background: #050507; display: flex; flex-direction: column; overflow: hidden; }
   .player.focus-mode:fullscreen { height: 100%; padding: 0; overflow: hidden; }
-  .focus-exit { position: absolute; z-index: 3; top: 16px; right: 16px; opacity: 0; min-height: 44px; background: #181b25f0; border: 1px solid #656b7b; }
+  .focus-exit { position: absolute; z-index: 3; top: 16px; right: 16px; opacity: .65; min-height: 44px; background: #181b25f0; border: 1px solid #656b7b; }
   .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
   @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
   .player.focus-mode [data-player-chrome], .player.focus-mode > details { display: none; }
