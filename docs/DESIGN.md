@@ -45,7 +45,7 @@ El flujo visible comienza en el escenario central NES con **Añadir juego** y un
 
 La cabecera conserva únicamente el logotipo Cartivo y **Ajustes**; el footer desaparece. Laboratorio de sesión y asignación de controles están bajo Ajustes, no en el recorrido de juego. Mensajes operativos y errores críticos usan regiones accesibles; información sobre el núcleo y detalles avanzados permanecen plegados o solo para lector de pantalla cuando no aportan valor visual.
 
-Controles por defecto: WASD/flechas, **K = A** y **L = B**. Los perfiles locales anteriormente predeterminados X/Z se migran a K/L sin reemplazar remapeos deliberados; el usuario siempre puede restaurar o cambiar la asignación. `F` permanece reservado a Focus. La migración no identifica dispositivos por índices persistentes.
+Controles por defecto: WASD/flechas, **L = A** y **K = B**. Los perfiles locales anteriormente predeterminados X/Z se migran respectivamente a L/K sin reemplazar remapeos deliberados; el usuario siempre puede restaurar o cambiar la asignación. `F` permanece reservado a Focus. La migración no identifica dispositivos por índices persistentes.
 
 **Audio web:** el lanzamiento automático nunca espera a que un navegador desbloquee AudioContext. Si no se puede activar automáticamente, se ofrece **Activar sonido** como acción voluntaria, sin impedir juego ni SRAM.
 
