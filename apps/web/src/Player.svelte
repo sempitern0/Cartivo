@@ -267,7 +267,7 @@
   }
   function keydown(e: KeyboardEvent) {
     if (phase !== "running" || !visible) return;
-    if (e.code === "KeyF" && !e.repeat) {
+    if (e.code === "KeyF" && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();
       e.stopPropagation();
       focusMode = !focusMode;
@@ -402,20 +402,23 @@
       fullscreen = document.fullscreenElement === viewport;
       if (was && !fullscreen) void pause();
     };
+    // Explicit player controls are real interactive elements. Do not steal
+    // their pointer/focus events, or click activation can fail in Firefox.
+    const isPlayerAction = (target: EventTarget | null) =>
+      target instanceof Element && !!target.closest("[data-player-action]");
     const focus = (e: FocusEvent) => {
-      if (phase === "running" && visible && e.target !== screen)
-        screen?.focus({ preventScroll: true });
+      if (
+        phase === "running" && visible && e.target !== screen &&
+        !isPlayerAction(e.target)
+      ) screen?.focus({ preventScroll: true });
     };
     const pointer = (e: PointerEvent) => {
       if (phase !== "running" || !visible || e.target === screen) return;
+      if (isPlayerAction(e.target)) return;
+      // Keep the game captured when clicking outside the player; never
+      // cancel the button events belonging to the player itself.
       e.preventDefault();
-      if (
-        !(
-          e.target instanceof Element &&
-          e.target.closest("[data-player-action]")
-        )
-      )
-        e.stopImmediatePropagation();
+      e.stopImmediatePropagation();
       screen?.focus({ preventScroll: true });
     };
     const wheel = (e: WheelEvent) => {
@@ -466,6 +469,19 @@
   class:focus-mode={focusMode && phase === "running"}
   aria-label="Reproductor NES"
 >
+  {#if focusMode && phase === "running"}
+    <button
+      type="button"
+      class="focus-exit"
+      data-player-action
+      aria-label="Salir del modo Focus"
+      onclick={() => {
+        focusMode = false;
+        if (document.fullscreenElement === viewport)
+          void document.exitFullscreen().catch(() => {});
+      }}>Salir de Focus</button
+    >
+  {/if}
   <div class="heading" data-player-chrome>
     <div>
       <p class="badge">NES</p>
@@ -597,6 +613,10 @@
   :global(body:has(.player.focus-mode)) { overflow: hidden; }
   :global(body:has(.player.focus-mode) header), :global(body:has(.player.focus-mode) footer) { visibility: hidden; }
   .player.focus-mode { position: fixed; inset: 0; z-index: 1000; margin: 0; max-width: none; width: 100%; height: 100dvh; padding: 0; background: #050507; display: flex; flex-direction: column; overflow: hidden; }
+  .player.focus-mode:fullscreen { height: 100%; padding: 0; overflow: hidden; }
+  .focus-exit { position: absolute; z-index: 3; top: 16px; right: 16px; opacity: 0; min-height: 44px; background: #181b25f0; border: 1px solid #656b7b; }
+  .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
+  @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
   .player.focus-mode [data-player-chrome], .player.focus-mode > details { display: none; }
   .game-stage-wrapper { width: 100%; height: min(62vh, 580px); min-height: 200px; margin: 20px auto; opacity: .35; }
   .game-stage-wrapper.presenting { opacity: 1; }
