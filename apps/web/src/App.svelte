@@ -89,8 +89,8 @@
     >
     <nav aria-label="Principal">
       <a href="#controles" aria-current={controlsPage ? "page" : undefined}
-        >Controles</a
-      ><span class="phase">En desarrollo</span>
+        >Ajustes</a
+      >
     </nav>
   </header>
   {#if controlsPage}
@@ -98,19 +98,48 @@
       <a class="back" href="#inicio"
         >← {game ? "Volver al juego" : "Volver al inicio"}</a
       >
-      <p class="eyebrow">A TU MANERA</p>
       <h1 bind:this={pageHeading} tabindex="-1">Controles</h1>
-      <p class="intro">Prepara tu próxima partida.</p>
       <ControlsPanel />
+          <details>
+            <summary>Laboratorio <span>Prueba de sesión</span></summary>
+            <div class="lab">
+              <h2>Diagnóstico sin emulación</h2>
+              <p>
+                Esta prueba ejecuta el control de sesión en segundo plano. No carga
+                juegos ni guarda partidas.
+              </p>
+              <p role="status" aria-live="polite">
+                {busy ? "Un momento…" : labels[sessionState]}
+              </p>
+              <div class="controls">
+                <button
+                  onclick={() => send("start")}
+                  disabled={busy || sessionState !== "idle"}>Iniciar prueba</button
+                ><button
+                  onclick={() => send(sessionState === "paused" ? "resume" : "pause")}
+                  disabled={busy ||
+                    (sessionState !== "running" && sessionState !== "paused")}
+                  >{sessionState === "paused" ? "Reanudar" : "Pausar"}</button
+                ><button
+                  onclick={() => send("stop")}
+                  disabled={busy || sessionState === "stopped"}>Finalizar</button
+                ><button onclick={restart}
+                  >{busy ? "Cancelar" : "Nueva sesión"}</button
+                >
+              </div>
+              {#if error}<p role="alert" class="error">{error}</p>{/if}
+            </div>
+          </details>
+      
     </section>
   {:else if !game}
     <section class="welcome">
-      <p class="eyebrow">TUS JUEGOS. TU MOMENTO.</p>
-      <h1 id="inicio" bind:this={pageHeading} tabindex="-1">Vuelve a jugar.</h1>
-      <p class="intro">Elige un juego. Nosotros nos encargamos del resto.</p>
-      <button class="primary" onclick={() => fileInput?.click()}
-        >Elegir juego</button
-      >
+      <h1 id="inicio" bind:this={pageHeading} tabindex="-1" class="sr-only">Cartivo · NES</h1>
+      <div class="empty-stage" aria-label="Pantalla de juego vacía">
+        <span class="system-label">NES</span>
+        <button class="primary" onclick={() => fileInput?.click()}>Añadir juego</button>
+        <button class="demo-link" onclick={() => { game = {}; }}>Probar demo</button>
+      </div>
       <input
         bind:this={fileInput}
         type="file"
@@ -118,59 +147,18 @@
         onchange={chooseGame}
         hidden
       />
-      <p>
-        <button
-          onclick={() => {
-            game = {};
-          }}>Probar demo NES</button
-        >
-      </p>
-      <p class="availability">
-        NES experimental: iNES NTSC, mappers 0–4. Prueba la demo sin aportar
-        ningún juego.
-      </p>
     </section>
-    <details>
-      <summary>Laboratorio <span>Prueba de sesión</span></summary>
-      <div class="lab">
-        <h2>Diagnóstico sin emulación</h2>
-        <p>
-          Esta prueba ejecuta el control de sesión en segundo plano. No carga
-          juegos ni guarda partidas.
-        </p>
-        <p role="status" aria-live="polite">
-          {busy ? "Un momento…" : labels[sessionState]}
-        </p>
-        <div class="controls">
-          <button
-            onclick={() => send("start")}
-            disabled={busy || sessionState !== "idle"}>Iniciar prueba</button
-          ><button
-            onclick={() => send(sessionState === "paused" ? "resume" : "pause")}
-            disabled={busy ||
-              (sessionState !== "running" && sessionState !== "paused")}
-            >{sessionState === "paused" ? "Reanudar" : "Pausar"}</button
-          ><button
-            onclick={() => send("stop")}
-            disabled={busy || sessionState === "stopped"}>Finalizar</button
-          ><button onclick={restart}
-            >{busy ? "Cancelar" : "Nueva sesión"}</button
-          >
-        </div>
-        {#if error}<p role="alert" class="error">{error}</p>{/if}
-      </div>
-    </details>
   {/if}
   {#if game}<div hidden={controlsPage}>
       <Player
         file={game.file}
         visible={!controlsPage}
+        autostart
         onclose={() => {
           game = undefined;
         }}
       />
     </div>{/if}
-  <footer>Tu colección permanece en tu dispositivo.</footer>
 </main>
 
 <style>
@@ -317,6 +305,11 @@
     text-align: center;
     padding: 30px 0;
   }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .empty-stage { min-height: min(62vh, 580px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #08090e; border-radius: 8px; }
+  .system-label { font-size: clamp(48px, 12vw, 110px); font-weight: 800; letter-spacing: -0.08em; opacity: .18; }
+  .demo-link { background: transparent; border: 0; font-size: 13px; color: var(--muted); }
+  .welcome { padding: 36px 0; }
   @media (max-width: 500px) {
     main {
       padding: 24px 20px;
