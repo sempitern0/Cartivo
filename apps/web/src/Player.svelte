@@ -288,6 +288,12 @@
       return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // Never block native activation of game toolbar controls or form fields.
+    // Only gameplay focus (canvas/body) is captured.
+    if (
+      e.target instanceof Element &&
+      e.target.closest("button, a, input, select, textarea, summary, [role=button]")
+    ) return;
     e.preventDefault();
     e.stopPropagation();
     if (keyboardAction(e.code, keyboard) && !e.repeat) held.add(e.code);
