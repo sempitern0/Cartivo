@@ -25,13 +25,15 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
   await expect(
     page.getByRole("button", { name: "Activar prueba" }),
   ).toHaveCount(0);
-  await page.getByText("Laboratorio", { exact: false }).click();
+  await page.getByRole("link", { name: "Ajustes" }).click();
+  await page.locator("summary").filter({ hasText: "Laboratorio" }).click();
   await expect(
     page.getByRole("heading", { name: "Diagnóstico sin emulación" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Activar prueba" }),
   ).toHaveCount(0);
+  await page.goBack();
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: "Controles", exact: true }),
