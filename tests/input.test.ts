@@ -136,3 +136,16 @@ test("NES direction input is identical for WASD and arrow menus", () => {
     assert.deepEqual(viaWASD, viaArrow);
   }
 });
+
+test("Select, Start and the legacy right Shift binding are normalized", async () => {
+  const { defaultKeyboard, keyboardAction } = await import(
+    "../packages/input/src/nes-input.ts"
+  );
+  assert.equal(keyboardAction("KeyQ", defaultKeyboard), "select");
+  assert.equal(keyboardAction("ShiftRight", defaultKeyboard), "select");
+  assert.equal(keyboardAction("Enter", defaultKeyboard), "start");
+  const legacy = { ...defaultKeyboard, select: "ShiftRight" };
+  assert.equal(keyboardAction("ShiftRight", legacy), "select");
+  assert.equal(keyboardAction("KeyS", legacy), "down");
+  assert.equal(keyboardAction("ArrowDown", legacy), "down");
+});
