@@ -367,12 +367,8 @@ test("fullscreen includes toolbar and returns safely to paused window", async ({
   await expect
     .poll(() => page.evaluate(() => !!document.fullscreenElement))
     .toBe(true);
-  await expect(
-    page.getByRole("button", {
-      name: "Salir de pantalla completa",
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(page.locator(".player")).toHaveClass(/focus-mode/);
+  await expect(page.locator(".player .heading")).toBeHidden();
   const box = await page.locator("canvas").boundingBox();
   expect(box!.width / box!.height).toBeCloseTo(4 / 3, 1);
   expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
@@ -385,4 +381,37 @@ test("fullscreen includes toolbar and returns safely to paused window", async ({
   await expect
     .poll(() => page.evaluate(() => !!document.fullscreenElement))
     .toBe(false);
+});
+
+test("Focus preserves the emulated session and hides external chrome", async ({ page }) => {
+  await start(page);
+  const canvas = page.locator("canvas");
+  const before = Number(await canvas.getAttribute("data-frames"));
+  await page.keyboard.press("KeyF");
+  await expect(page.locator(".player")).toHaveClass(/focus-mode/);
+  await expect(page.locator("header")).toBeHidden();
+  await expect(page.locator("footer")).toBeHidden();
+  await expect.poll(async () => Number(await canvas.getAttribute("data-frames"))).toBeGreaterThan(before + 3);
+  await page.keyboard.press("KeyF");
+  await expect(page.locator(".player")).not.toHaveClass(/focus-mode/);
+  await expect(page.getByRole("button", { name: "Pausar juego" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+});
+
+test("video aspect and integer scaling switch without resetting the canvas", async ({ page }) => {
+  await start(page);
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  const canvas = page.locator("canvas");
+  await page.getByRole("button", { name: "Gráficos" }).click();
+  await page.getByLabel("Escalado").selectOption("integer");
+  await page.getByLabel("Aspecto").selectOption("native");
+  await expect(canvas).toHaveAttribute("data-actual-scale", "integer");
+  const size = await canvas.boundingBox();
+  expect(Math.abs(size!.width / size!.height - 256 / 240)).toBeLessThan(0.02);
+  await page.getByLabel("Escalado").selectOption("fit");
+  await page.getByLabel("Aspecto").selectOption("corrected");
+  await expect(canvas).toHaveAttribute("data-actual-scale", "fit");
+  const fitted = await canvas.boundingBox();
+  expect(Math.abs(fitted!.width / fitted!.height - 4 / 3)).toBeLessThan(0.02);
 });
