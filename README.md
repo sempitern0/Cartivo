@@ -43,12 +43,18 @@ Los núcleos, librerías, herramientas y recursos externos mantienen sus propias
 
 ## Ejecutar la base
 
-Node 24.22.1 y pnpm 11.25.0:
+**Requisitos:** Node.js **>=24.22.1 <25** (versión recomendada en [`.node-version`](.node-version): `24.22.1`) y pnpm `11.25.0`.
+
+En Windows, si `pnpm` muestra `Unsupported engine` con Node `24.20.0`, instala [Node.js 24.22.1 LTS desde su distribución oficial](https://nodejs.org/en/blog/release/v24.22.1/) y **abre una terminal nueva**. Es una actualización de seguridad; no conviene rebajar `engines.node` para ocultar el aviso. Si sigue apareciendo una versión antigua, ejecuta `where.exe node` para localizar otras instalaciones en `PATH`.
 
 ```sh
+node --version
+pnpm --version
 pnpm install --frozen-lockfile
 pnpm dev
 ```
+
+El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible con la serie 24. CI emplea la versión fijada en `.node-version`.
 
 Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs. El laboratorio incluye una prueba de teclado y mando real mediante Gamepad API, con asignación manual y perfiles locales. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
 
