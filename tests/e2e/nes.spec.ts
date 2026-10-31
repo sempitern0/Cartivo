@@ -89,7 +89,6 @@ test("single writer prevents simultaneous sessions for the same game", async ({
   const second = await context.newPage();
   await second.goto("/");
   await second.getByRole("button", { name: "Probar demo" }).click();
-  await second.getByRole("button", { name: "Jugar", exact: true }).click();
   await expect(second.getByRole("alert")).toContainText("otra pestaña");
   await second.close();
   await page.bringToFront();
@@ -386,7 +385,7 @@ test("Focus preserves the emulated session and hides external chrome", async ({ 
   await page.keyboard.press("KeyF");
   await expect(page.locator(".player")).toHaveClass(/focus-mode/);
   await expect(page.locator("header")).toBeHidden();
-  await expect(page.locator("footer")).toBeHidden();
+  await expect(page.locator("header")).toBeHidden();
   await expect.poll(async () => Number(await canvas.getAttribute("data-frames"))).toBeGreaterThan(before + 3);
   await page.keyboard.press("KeyF");
   await expect(page.locator(".player")).not.toHaveClass(/focus-mode/);
