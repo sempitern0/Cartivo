@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
 async function start(page: import("@playwright/test").Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo NES" }).click();
-  await page.getByRole("button", { name: "Jugar", exact: true }).click();
+  await page.getByRole("button", { name: "Probar demo" }).click();
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await expect
     .poll(async () =>
@@ -24,9 +23,9 @@ test("real NES in Worker, pause on controls, SRAM backup and reload", async ({
       Number(await page.locator("canvas").getAttribute("data-frames")),
     )
     .toBeGreaterThan(frameBefore + 3);
-  await page.keyboard.down("KeyX");
+  await page.keyboard.down("KeyK");
   await page.waitForTimeout(150);
-  await page.keyboard.up("KeyX");
+  await page.keyboard.up("KeyK");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await expect(page.getByTestId("save-status")).toContainText(
     "Partida guardada",
@@ -71,14 +70,13 @@ test("unsupported local ROM produces a recoverable error", async ({ page }) => {
     mimeType: "application/octet-stream",
     buffer: Buffer.from("not a ROM"),
   });
-  await page.getByRole("button", { name: "Jugar", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("inválido");
   const errorBox = await page.getByRole("alert").boundingBox();
   const canvasBox = await page.locator("canvas").boundingBox();
   expect(errorBox!.y).toBeLessThan(canvasBox!.y);
   await page.getByRole("button", { name: "Cerrar juego" }).click();
   await expect(
-    page.getByRole("button", { name: "Elegir juego" }),
+    page.getByRole("button", { name: "Añadir juego" }),
   ).toBeVisible();
 });
 
@@ -90,7 +88,7 @@ test("single writer prevents simultaneous sessions for the same game", async ({
   await page.getByRole("button", { name: "Pausar juego" }).click();
   const second = await context.newPage();
   await second.goto("/");
-  await second.getByRole("button", { name: "Probar demo NES" }).click();
+  await second.getByRole("button", { name: "Probar demo" }).click();
   await second.getByRole("button", { name: "Jugar", exact: true }).click();
   await expect(second.getByRole("alert")).toContainText("otra pestaña");
   await second.close();
@@ -165,9 +163,9 @@ test("corrupt current SRAM recovers previous verified generation", async ({
       Number(await page.locator("canvas").getAttribute("data-frames")),
     )
     .toBeGreaterThan(frameBefore + 3);
-  await page.keyboard.down("KeyX");
+  await page.keyboard.down("KeyK");
   await page.waitForTimeout(150);
-  await page.keyboard.up("KeyX");
+  await page.keyboard.up("KeyK");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await expect(page.getByTestId("save-status")).toContainText(
     "Partida guardada",
@@ -296,11 +294,10 @@ test("cancel loading destroys the session without late navigation", async ({
     await route.continue().catch(() => {});
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo NES" }).click();
-  await page.getByRole("button", { name: "Jugar", exact: true }).click();
+  await page.getByRole("button", { name: "Probar demo" }).click();
   await page.getByRole("button", { name: "Cancelar carga" }).click();
   await expect(
-    page.getByRole("button", { name: "Elegir juego" }),
+    page.getByRole("button", { name: "Añadir juego" }),
   ).toBeVisible();
   release();
   await expect(page.getByTestId("player-phase")).toHaveCount(0);
@@ -326,7 +323,6 @@ test("local MMC1 cartridge larger than old NROM cap loads in real worker", async
     mimeType: "application/octet-stream",
     buffer: Buffer.from(rom),
   });
-  await page.getByRole("button", { name: "Jugar", exact: true }).click();
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await expect
     .poll(async () =>
