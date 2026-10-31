@@ -438,3 +438,19 @@ test("visible NES Start/Select buttons and safe reset preserve the session", asy
   await page.getByRole("button", { name: "Reanudar juego" }).click();
   await expect.poll(async () => Number(await page.locator("canvas").getAttribute("data-frames"))).toBeGreaterThan(5);
 });
+
+test("console reset keeps verified cartridge SRAM before returning to title", async ({ page }) => {
+  await start(page);
+  await page.keyboard.down("KeyL");
+  await page.waitForTimeout(160);
+  await page.keyboard.up("KeyL");
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  await page.getByRole("button", { name: "Reiniciar consola" }).click();
+  await page.getByText("Copias de partida", { exact: true }).click();
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportar partida" }).click();
+  const stream = await (await downloading).createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
+  expect(JSON.parse(Buffer.concat(chunks).toString()).bytes[0]).toBe(1);
+});
