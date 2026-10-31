@@ -1,5 +1,5 @@
 import { actions, type InputState } from "../../input/src/nes-input.ts";
-export type NesCommand = "load" | "advance" | "pause" | "save" | "import";
+export type NesCommand = "load" | "advance" | "pause" | "save" | "import" | "reset";
 export type NesRequest = {
   v: 1;
   session: string;
@@ -21,7 +21,7 @@ export function parseNesRequest(value: unknown): NesRequest {
     r.session.length > 128 ||
     !Number.isSafeInteger(r.id) ||
     r.id < 1 ||
-    !["load", "advance", "pause", "save", "import"].includes(r.command)
+    !["load", "advance", "pause", "save", "import", "reset"].includes(r.command)
   )
     throw Error("Protocolo NES inválido");
   if (
