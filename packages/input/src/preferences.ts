@@ -29,11 +29,19 @@ export function selectPad(
 }
 export function readKeyboard(): KeyboardProfile {
   try {
-    return (
-      parseKeyboard(
-        JSON.parse(localStorage.getItem("cartivo:keyboard:v1") ?? "null"),
-      ) ?? { ...defaultKeyboard }
+    const saved = parseKeyboard(
+      JSON.parse(localStorage.getItem("cartivo:keyboard:v1") ?? "null"),
     );
+    if (!saved) return { ...defaultKeyboard };
+    // Migrate only the former untouched X/Z defaults; keep custom bindings.
+    if (saved.a === "KeyX" && saved.b === "KeyZ") {
+      const migrated = { ...saved, a: "KeyK", b: "KeyL" };
+      if (parseKeyboard(migrated)) {
+        localStorage.setItem("cartivo:keyboard:v1", JSON.stringify(migrated));
+        return migrated;
+      }
+    }
+    return saved;
   } catch {
     return { ...defaultKeyboard };
   }
