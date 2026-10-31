@@ -187,9 +187,6 @@
     font-size: 44px;
     letter-spacing: -2px;
   }
-  .controls-page .intro {
-    margin-bottom: 20px;
-  }
   .back {
     display: inline-block;
     margin-bottom: 36px;
@@ -236,37 +233,14 @@
   .palette i:nth-child(4) {
     background: var(--gold);
   }
-  .phase,
-  footer {
-    color: var(--muted);
-    font-size: 13px;
-  }
   .welcome {
     text-align: center;
     padding: 24px 0;
-  }
-  .eyebrow {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--teal);
   }
   h1 {
     font-size: clamp(40px, 7vw, 70px);
     letter-spacing: -3px;
     margin: 20px 0;
-  }
-  .intro {
-    color: var(--muted);
-    font-size: 18px;
-    line-height: 1.6;
-    margin-bottom: 32px;
-  }
-  .availability {
-    font-size: 13px;
-    color: var(--muted);
-    margin: 18px auto 0;
-    max-width: 340px;
-    line-height: 1.6;
   }
   details {
     border-top: 1px solid var(--border);
@@ -301,10 +275,6 @@
   .lab .error {
     color: var(--coral);
   }
-  footer {
-    text-align: center;
-    padding: 30px 0;
-  }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .empty-stage { min-height: min(62vh, 580px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #08090e; border-radius: 8px; }
   .system-label { font-size: clamp(48px, 12vw, 110px); font-weight: 800; letter-spacing: -0.08em; opacity: .18; }
@@ -326,10 +296,6 @@
     }
     h1 {
       letter-spacing: -2px;
-    }
-    .phase {
-      max-width: 90px;
-      text-align: right;
     }
   }
 </style>
