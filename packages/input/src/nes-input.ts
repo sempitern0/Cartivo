@@ -32,7 +32,7 @@ export const keys: Record<string, Action> = {
   KeyD: "right",
   KeyL: "a",
   KeyK: "b",
-  ShiftRight: "select",
+  KeyQ: "select",
   Enter: "start",
 };
 export const standard: Profile = {
@@ -194,6 +194,21 @@ const movementAliases: Record<string, Action> = {
   ArrowDown: "down",
   ArrowLeft: "left",
   ArrowRight: "right",
+  // Older releases used arrows as primary and WASD as secondary.
+  KeyW: "up",
+  KeyS: "down",
+  KeyA: "left",
+  KeyD: "right",
+  // A browser may report ShiftRight normally, but it is difficult to
+  // discover and can conflict with accessibility/browser shortcuts.
+  ShiftRight: "select",
+};
+const legacyDirection: Partial<Record<Action, string>> = {
+  up: "ArrowUp",
+  down: "ArrowDown",
+  left: "ArrowLeft",
+  right: "ArrowRight",
+  select: "ShiftRight",
 };
 export function keyboardAction(
   code: string,
@@ -202,7 +217,9 @@ export function keyboardAction(
   const primary = actions.find((a) => keyboard[a] === code);
   if (primary) return primary;
   const alias = movementAliases[code];
-  return alias && keyboard[alias] === defaultKeyboard[alias]
+  return alias &&
+    (keyboard[alias] === defaultKeyboard[alias] ||
+      keyboard[alias] === legacyDirection[alias])
     ? alias
     : undefined;
 }
