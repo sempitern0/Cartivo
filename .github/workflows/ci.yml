@@ -16,6 +16,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify:core
+      - run: pnpm exec prettier tests/display-scaler.test.ts | diff -u tests/display-scaler.test.ts - || true
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test
