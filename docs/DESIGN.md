@@ -38,3 +38,15 @@ Durante la ejecución, el reproductor captura las teclas de la página (incluido
 Pantalla completa incluye reproductor, acciones y avisos; salir pausa. Se detecta Fullscreen API y los rechazos se muestran junto al vídeo. El canvas conserva 4:3. Información técnica/copias queda en desplegables, estado/acciones encima del vídeo y errores en un aviso superior que se desplaza a la vista al aparecer.
 
 Probar: jugar y pulsar Tab/Shift+Tab/espacio/flechas, girar rueda; no debe moverse el foco ni la página. Escape debe pausar y enfocar Reanudar. Entrar/salir de pantalla completa; comprobar relación 4:3 y acciones visibles. Cargar archivo inválido: el error debe aparecer antes del vídeo. La prueba automatizada de fullscreen es Chromium; otros navegadores y dispositivos físicos siguen pendientes.
+
+## Selector central y arranque directo (31-10-2026)
+
+El flujo visible comienza en el escenario central NES con **Añadir juego** y un enlace secundario **Probar demo**. Al seleccionar un archivo `.nes` o elegir la demo original, `App.svelte` monta `Player.svelte` con `autostart`, sin paso adicional «Jugar». La ejecución comienza en el mismo espacio visual; un archivo inválido deja visible el error y ofrece volver sin conservar una sesión rota. Se mantiene una sola sesión y los guardados SRAM existentes.
+
+La cabecera conserva únicamente el logotipo Cartivo y **Ajustes**; el footer desaparece. Laboratorio de sesión y asignación de controles están bajo Ajustes, no en el recorrido de juego. Mensajes operativos y errores críticos usan regiones accesibles; información sobre el núcleo y detalles avanzados permanecen plegados o solo para lector de pantalla cuando no aportan valor visual.
+
+Controles por defecto: WASD/flechas, **K = A** y **L = B**. Los perfiles locales anteriormente predeterminados X/Z se migran a K/L sin reemplazar remapeos deliberados; el usuario siempre puede restaurar o cambiar la asignación. `F` permanece reservado a Focus. La migración no identifica dispositivos por índices persistentes.
+
+**Audio web:** el lanzamiento automático nunca espera a que un navegador desbloquee AudioContext. Si no se puede activar automáticamente, se ofrece **Activar sonido** como acción voluntaria, sin impedir juego ni SRAM.
+
+Este cambio es de UX e input; **no** demuestra por sí mismo soporte adicional de ROMs, sistemas o firmware. Las transiciones no desmontarán/reiniciarán el núcleo al cambiar Focus, pantalla completa o Ajustes. Respetar `prefers-reduced-motion` en animaciones futuras.
