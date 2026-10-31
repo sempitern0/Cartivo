@@ -172,3 +172,15 @@ Cuando está corriendo: **sin UI persistente** en Focus. La vista normal puede m
 - [MDN — image-rendering](https://developer.mozilla.org/en-US/docs/Web/CSS/image-rendering)
 
 **Instrucción de continuidad:** ejecutar F0-F5 sobre la rama abierta sin reemplazar la emulación existente ni crear otra PR. Cada commit debe declarar alcance, pruebas ejecutadas, resultados, bloqueos y siguiente paso.
+
+
+## Revisión de arquitectura y corrección Focus (31-10-2026)
+
+La incidencia real de interacción se ha aislado en los listeners globales de `Player.svelte`: el antiguo `pointerdown` usaba `preventDefault` incluso en acciones explícitas, y `focusin` forzaba el canvas. Se ha modificado para **permitir clic y foco nativos** en controles con `data-player-action`. Se añade un control flotante «Salir de Focus», visible con hover o foco de teclado, para que no dependa del atajo `F` (que Vimium u otras extensiones pueden interceptar). Se mantiene `Escape` para pausar y un botón accesible para Focus.
+
+Se eliminaron los ocho selectores obsoletos de `App.svelte` tras retirar footer y textos. `DiagnosticLab.svelte` encapsula ahora su propio `WorkerSession`, gestión de estado, controles y limpieza; `App.svelte` limita su responsabilidad a navegación, selector y montaje del jugador. `GameStage.svelte` y `display-scaler.ts` siguen aislando layout/renderizado de la emulación y no alteran el framebuffer.
+
+**Siguiente separación de responsabilidad (pendiente, sin alterar contratos):** convertir `Player.svelte` en coordinador del ciclo de sesión y extraer en incrementos medibles `PlayerToolbar.svelte` (UI de controles/panel), `GameInputCapture` (evento teclado/foco/mandos con scope y cleanup), `NesSessionController` (ciclo Worker/audio, protección SRAM), y `SaveManager` (import/export validado). Evitar una reescritura única de más de 600 líneas: preservar pruebas de escrituras SRAM, foco, audio y recuperación entre extracciones.
+
+**Gates:** `pnpm lint/check/test/build`; E2E con clic real «Modo Focus» → «Salir de Focus», foco de canvas y continuidad de frames; recorrido de laboratorio tras separar componente; Firefox con Vimium habilitado/deshabilitado de forma manual. La extensión puede consumir teclas antes de Cartivo: no se promete capturar F, y el acceso con ratón es obligatorio. Mantener esta PR en Draft hasta verificar CI final, UX de pausa y controles.
+
