@@ -476,7 +476,7 @@
     >
   </div>
   {#if !file && phase !== "running"}<p class="demo-info" data-player-chrome>
-      WASD o flechas para moverte · K/L para A/B.
+      WASD o flechas para moverte · L = A · K = B.
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
       El archivo permanece en tu dispositivo. Esta primera versión ejecuta
