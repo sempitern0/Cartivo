@@ -69,17 +69,19 @@
     phase = "loading";
     problem = "";
     audio = new GameAudio();
-    // Resume is invoked directly by the user's Jugar gesture, before awaiting the worker.
-    void audio
+    // Audio is optional: the ROM must start even if autoplay is blocked.
+    const pendingAudio = audio;
+    void pendingAudio
       .open(new URL(audioWorkletUrl, location.href))
       .then(() => {
-        audioReady = true;
+        if (active && audio === pendingAudio) audioReady = true;
       })
       .catch(() => {
-        audio?.close();
-        audio = undefined;
-        audioReady = false;
-        problem = "Audio no disponible. Puedes continuar sin sonido.";
+        pendingAudio.close();
+        if (audio === pendingAudio) {
+          audio = undefined;
+          audioReady = false;
+        }
       });
     client = new NesClient(
       new Worker(new URL("./nes.worker.ts", import.meta.url), {
@@ -104,11 +106,10 @@
   }
   async function resume() {
     if (phase !== "paused" || busy || !visible) return;
-    try {
-      await audio?.resume();
-    } catch {
-      problem = "No se pudo reactivar el sonido.";
-    }
+    // Audio unlock can remain pending until a user gesture; never await it.
+    void audio?.resume().catch(() => {
+      audioReady = false;
+    });
     if (!active || !visible) return;
     keyboard = readKeyboard();
     held.clear();
@@ -306,6 +307,25 @@
       document.documentElement.style.overflow = old;
     };
   });
+  async function enableSound() {
+    if (audioReady) return;
+    audio?.close();
+    const next = new GameAudio();
+    audio = next;
+    try {
+      await next.open(new URL(audioWorkletUrl, location.href));
+      if (!active || audio !== next) {
+        next.close();
+        return;
+      }
+      audioReady = true;
+      if (phase === "running") void next.resume();
+    } catch {
+      next.close();
+      if (audio === next) audio = undefined;
+      problem = "El navegador no ha podido activar el sonido.";
+    }
+  }
   async function exportSave() {
     if ((phase !== "paused" && phase !== "error") || busy) return;
     busy = true;
@@ -474,6 +494,9 @@
         onclick={resume}
         disabled={busy}>Reanudar juego</button
       >{/if}
+    {#if !audioReady && phase === "running"}<button
+        data-player-action
+        onclick={enableSound}>Activar sonido</button>{/if}
     {#if audioReady}<button
         data-player-action
         aria-pressed={muted}
