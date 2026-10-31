@@ -5,7 +5,7 @@ test('minimal home and real worker lifecycle',async({page})=>{
  await expect(page.getByRole('button',{name:'Añadir juego'})).toBeEnabled();
  await expect(page.getByRole('button',{name:'Iniciar prueba'})).not.toBeVisible();
  await page.getByRole('link',{name:'Ajustes'}).click();
- await page.locator('summary').click();
+ await page.locator('summary').filter({hasText:'Laboratorio'}).click();
  await page.getByRole('button',{name:'Iniciar prueba'}).click();
  await expect(page.getByRole('status')).toHaveText('En marcha');
  await page.getByRole('button',{name:'Pausar',exact:true}).click();
