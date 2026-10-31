@@ -97,3 +97,11 @@ Durante la ejecución, el reproductor captura las teclas de la página (incluido
 Pantalla completa incluye reproductor, acciones y avisos; salir pausa. Se detecta Fullscreen API y los rechazos se muestran junto al vídeo. El canvas conserva 4:3. Información técnica/copias queda en desplegables, estado/acciones encima del vídeo y errores en un aviso superior que se desplaza a la vista al aparecer.
 
 Probar: jugar y pulsar Tab/Shift+Tab/espacio/flechas, girar rueda; no debe moverse el foco ni la página. Escape debe pausar y enfocar Reanudar. Entrar/salir de pantalla completa; comprobar relación 4:3 y acciones visibles. Cargar archivo inválido: el error debe aparecer antes del vídeo. La prueba automatizada de fullscreen es Chromium; otros navegadores y dispositivos físicos siguen pendientes.
+
+## UX actual: carga directa y atajos (31-10-2026)
+
+El selector inicial de la PWA es ahora un **escenario vacío** con «Añadir juego» y «Probar demo». Elegir archivo `.nes` o la demo monta el reproductor e inicia la emulación **sin segundo clic en «Jugar»**. El laboratorio de diagnóstico está plegado bajo **Ajustes**, junto al área de controles; la cabecera solo muestra marca y Ajustes, sin footer. Las instrucciones históricas de arriba describen incrementos anteriores.
+
+El teclado predeterminado conserva WASD/flechas y cambia **Z → K (B)**, **X → L (A)**. Los perfiles locales de teclado con las dos asignaciones antiguas intactas se migran, respetando remapeos personalizados; F está reservado a Focus. `Escape` pausa y permite recuperar la navegación. El audio no puede bloquear la ejecución si el navegador exige otro gesto; «Activar sonido» permanece disponible cuando se necesita. La demo sigue escribiendo SRAM mediante A.
+
+Validación requerida para cerrar este incremento: `pnpm lint`, `pnpm check`, `pnpm test`, `pnpm build` y E2E tanto dev como preview del build, más revisión visual móvil y escritorio; no sustituir pruebas de mando físico ni Firefox/Safari por Chromium sintético. La compatibilidad de núcleos, offline y otras consolas no cambia.
