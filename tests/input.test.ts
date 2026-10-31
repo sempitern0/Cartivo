@@ -122,3 +122,17 @@ test("WASD aliases coexist with arrows and respect remapping collisions", async 
     false,
   );
 });
+
+test("NES direction input is identical for WASD and arrow menus", () => {
+  for (const [letter, arrow, direction] of [
+    ["KeyW", "ArrowUp", "up"],
+    ["KeyS", "ArrowDown", "down"],
+    ["KeyA", "ArrowLeft", "left"],
+    ["KeyD", "ArrowRight", "right"],
+  ] as const) {
+    const viaWASD = sample(undefined, undefined, new Set([letter]));
+    const viaArrow = sample(undefined, undefined, new Set([arrow]));
+    assert.equal(viaWASD[direction], true);
+    assert.deepEqual(viaWASD, viaArrow);
+  }
+});
