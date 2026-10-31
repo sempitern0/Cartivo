@@ -3,6 +3,7 @@
   import {
     selectPad,
     getPadPreference,
+    readKeyboard,
   } from "../../../packages/input/src/preferences.ts";
   import {
     actions,
@@ -209,19 +210,7 @@
     } else if (sessionPreference.mode === "pad") {
       selected = sessionPreference.index;
     }
-    try {
-      const saved = localStorage.getItem(keyboardStore);
-      if (saved) {
-        const parsed = parseKeyboard(JSON.parse(saved));
-        if (parsed) keyboard = parsed;
-        else
-          message =
-            "Perfil de teclado inválido; se usan las teclas predeterminadas.";
-      }
-    } catch {
-      message =
-        "No se pudo recuperar el teclado guardado; se usan las teclas predeterminadas.";
-    }
+    keyboard = readKeyboard();
 
     const disconnect = (event: GamepadEvent) => {
       if (event.gamepad.index === selected) {
@@ -384,10 +373,7 @@
 
 <section aria-labelledby="input-title">
   <h2 id="input-title">Prueba y asignación</h2>
-  <p>
-    Comprueba tu teclado o mando antes de jugar. Prueba los botones y cambia las
-    asignaciones a tu gusto. Perfil actual: NES · jugador 1.
-  </p>
+  <p class="compact-label">NES · Jugador 1</p>
   <p data-testid="connection-status" aria-live="polite">{connection}</p>
   <label for="input-pad">Mando</label><select
     id="input-pad"
@@ -424,10 +410,7 @@
       /></label
     >
   {/if}
-  <p>
-    Movimiento predeterminado: flechas o WASD. Las asignaciones personalizadas
-    tienen prioridad.
-  </p>
+  <p class="compact-label">WASD o flechas · K = A · L = B</p>
   <fieldset>
     <legend>Teclado · pulsa una asignación para cambiarla</legend>
     <div class="buttons">
@@ -482,14 +465,16 @@
       >{/each}
   </button>
   <p data-testid="input-status" aria-live="polite">{message}</p>
-  <p class="note">
-    El navegador puede ocultar mandos hasta que pulses un botón. Los perfiles se
-    guardan solo aquí y requieren aplicación explícita al reconectar. No se
-    envían identificadores.
-  </p>
+  <details class="input-help">
+    <summary>Ayuda de controles</summary>
+    <p class="note">Algunos navegadores no detectan el mando hasta pulsar un botón.
+    Los perfiles permanecen en este dispositivo y se aplican tras confirmarlos.</p>
+  </details>
 </section>
 
 <style>
+  .compact-label { font-size: 13px; }
+  .input-help { margin-top: 20px; }
   fieldset {
     border: 1px solid var(--border);
     border-radius: 12px;
