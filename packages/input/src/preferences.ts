@@ -46,6 +46,8 @@ export function readKeyboard(): KeyboardProfile {
       if (migrated[action as keyof KeyboardProfile] === oldCode)
         migrated[action as keyof KeyboardProfile] = newCode;
     }
+    if (saved.select === "ShiftRight" && !Object.values(migrated).includes("KeyQ"))
+      migrated.select = "KeyQ";
     if (saved.a === "KeyX" && saved.b === "KeyZ") {
       migrated.a = "KeyL";
       migrated.b = "KeyK";
