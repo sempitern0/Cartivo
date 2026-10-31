@@ -35,16 +35,38 @@ export function displayLayout(
   mode: ScaleMode = "fit",
   aspect: AspectMode = "corrected",
 ): DisplayLayout {
-  const W = Math.max(0, Math.floor(Number.isFinite(containerWidth) ? containerWidth : 0));
-  const H = Math.max(0, Math.floor(Number.isFinite(containerHeight) ? containerHeight : 0));
+  const W = Math.max(
+    0,
+    Math.floor(Number.isFinite(containerWidth) ? containerWidth : 0),
+  );
+  const H = Math.max(
+    0,
+    Math.floor(Number.isFinite(containerHeight) ? containerHeight : 0),
+  );
   const sw = video.sourceWidth;
   const sh = video.sourceHeight;
-  if (!Number.isFinite(sw) || !Number.isFinite(sh) || sw <= 0 || sh <= 0 ||
-      !Number.isFinite(video.displayAspect) || video.displayAspect <= 0 || !W || !H) {
-    return { width: 0, height: 0, offsetX: 0, offsetY: 0, actualMode: "fit", fallback: mode !== "fit" };
+  if (
+    !Number.isFinite(sw) ||
+    !Number.isFinite(sh) ||
+    sw <= 0 ||
+    sh <= 0 ||
+    !Number.isFinite(video.displayAspect) ||
+    video.displayAspect <= 0 ||
+    !W ||
+    !H
+  ) {
+    return {
+      width: 0,
+      height: 0,
+      offsetX: 0,
+      offsetY: 0,
+      actualMode: "fit",
+      fallback: mode !== "fit",
+    };
   }
   const dar = aspect === "native" ? sw / sh : video.displayAspect;
-  let width = 0, height = 0;
+  let width = 0;
+  let height = 0;
   let actualMode: DisplayLayout["actualMode"] = "fit";
   if (mode === "integer") {
     const factor = Math.floor(Math.min(W / sw, H / sh));
@@ -53,8 +75,13 @@ export function displayLayout(
       height = sh * factor;
       actualMode = "integer";
     }
-  } else if (mode === "corrected-integer" && aspect === "corrected" &&
-             sw === 256 && sh === 240 && Math.abs(dar - 4 / 3) < 1e-6) {
+  } else if (
+    mode === "corrected-integer" &&
+    aspect === "corrected" &&
+    sw === 256 &&
+    sh === 240 &&
+    Math.abs(dar - 4 / 3) < 1e-6
+  ) {
     // Square output pixel grid with 5 horizontal and 4 vertical CSS pixels
     // per source pixel (and integer multiples thereof).
     const factor = Math.floor(Math.min(W / (sw * 5), H / (sh * 4)));
@@ -76,9 +103,11 @@ export function displayLayout(
     actualMode = "fit";
   }
   return {
-    width, height,
+    width,
+    height,
     offsetX: Math.floor((W - width) / 2),
     offsetY: Math.floor((H - height) / 2),
-    actualMode, fallback: mode !== actualMode,
+    actualMode,
+    fallback: mode !== actualMode,
   };
 }
