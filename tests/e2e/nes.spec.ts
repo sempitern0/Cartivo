@@ -426,3 +426,15 @@ test("Focus is accessible using mouse controls without depending on Vimium short
   ).toBeGreaterThan(before + 3);
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
 });
+
+test("visible NES Start/Select buttons and safe reset preserve the session", async ({ page }) => {
+  await start(page);
+  await page.getByRole("button", { name: "Select · Q" }).click();
+  await page.getByRole("button", { name: "Start · Enter" }).click();
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  await page.getByRole("button", { name: "Reiniciar consola" }).click();
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await page.getByRole("button", { name: "Reanudar juego" }).click();
+  await expect.poll(async () => Number(await page.locator("canvas").getAttribute("data-frames"))).toBeGreaterThan(5);
+});
