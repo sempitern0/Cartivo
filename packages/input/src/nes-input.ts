@@ -30,8 +30,8 @@ export const keys: Record<string, Action> = {
   ArrowDown: "down",
   ArrowLeft: "left",
   ArrowRight: "right",
-  KeyK: "a",
-  KeyL: "b",
+  KeyL: "a",
+  KeyK: "b",
   ShiftRight: "select",
   Enter: "start",
 };
