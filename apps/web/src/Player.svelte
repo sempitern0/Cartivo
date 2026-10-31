@@ -475,7 +475,7 @@
       >{phase === "loading" ? "Cancelar carga" : "Cerrar juego"}</button
     >
   </div>
-  {#if !file}<p class="demo-info" data-player-chrome>
+  {#if !file && phase !== "running"}<p class="demo-info" data-player-chrome>
       WASD o flechas para moverte · K/L para A/B.
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
@@ -542,7 +542,7 @@
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
   <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
-  <div class="game-stage-wrapper"><GameStage bind:screen {frames} {scaleMode} {aspectMode} /></div>
+  <div class="game-stage-wrapper" class:presenting={frames > 0}><GameStage bind:screen {frames} {scaleMode} {aspectMode} /></div>
   {#if battery && (phase === "paused" || phase === "error")}<details>
       <summary>Copias de partida</summary>
       <p>
@@ -598,7 +598,16 @@
   :global(body:has(.player.focus-mode) header), :global(body:has(.player.focus-mode) footer) { visibility: hidden; }
   .player.focus-mode { position: fixed; inset: 0; z-index: 1000; margin: 0; max-width: none; width: 100%; height: 100dvh; padding: 0; background: #050507; display: flex; flex-direction: column; overflow: hidden; }
   .player.focus-mode [data-player-chrome], .player.focus-mode > details { display: none; }
-  .game-stage-wrapper { width: 100%; height: min(65vh, 660px); min-height: 200px; margin: 20px auto; }
+  .game-stage-wrapper { width: 100%; height: min(62vh, 580px); min-height: 200px; margin: 20px auto; opacity: .35; }
+  .game-stage-wrapper.presenting { opacity: 1; }
+  @media (prefers-reduced-motion: no-preference) {
+    .game-stage-wrapper { transition: opacity 180ms ease-out; }
+    .player:not(.focus-mode) { animation: player-enter 180ms ease-out both; }
+  }
+  @keyframes player-enter {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .player.focus-mode .game-stage-wrapper { flex: 1; height: auto; min-height: 0; margin: 0; }
   .player:fullscreen {
     background: var(--bg);
@@ -633,8 +642,8 @@
   }
 
   .player {
-    margin: 40px auto;
-    max-width: 780px;
+    margin: 24px auto;
+    max-width: 960px;
   }
   .heading {
     display: flex;
