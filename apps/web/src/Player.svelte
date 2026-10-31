@@ -12,6 +12,7 @@
     standard,
     sameDevice,
     type Pad,
+    type Action,
   } from "../../../packages/input/src/nes-input.ts";
   import {
     getPadPreference,
@@ -56,6 +57,8 @@
   let chosenIndex: number | undefined;
   let selectedOnce = false;
   const held = new Set<string>();
+  const virtual = new Set<Action>();
+  let virtualRelease = 0;
   let keyboard = readKeyboard();
   function fail(e: unknown) {
     phase = "error";
@@ -130,6 +133,8 @@
     phase = "paused";
     cancelAnimationFrame(loop);
     held.clear();
+    virtual.clear();
+    clearTimeout(virtualRelease);
     armed = false;
     audio?.pause();
     busy = true;
@@ -219,6 +224,7 @@
       pref.mode === "pad" ? pref.deadzone : 0.25,
       keyboard,
     );
+    for (const action of virtual) input[action] = true;
     if (!armed) {
       if (!Object.values(input).some(Boolean)) armed = true;
       time = now;
@@ -285,6 +291,30 @@
     e.preventDefault();
     e.stopPropagation();
     if (keyboardAction(e.code, keyboard) && !e.repeat) held.add(e.code);
+  }
+  function tapControl(action: "start" | "select") {
+    if (phase !== "running") return;
+    virtual.add(action);
+    clearTimeout(virtualRelease);
+    virtualRelease = window.setTimeout(() => virtual.delete(action), 180);
+  }
+  async function resetConsole() {
+    if (phase === "running") await pause();
+    if (phase !== "paused" || busy || saveStatus === "Guardado sin confirmar.")
+      return;
+    busy = true;
+    try {
+      const result = await client!.request("reset");
+      frames = result.frames ?? 0;
+      virtual.clear();
+      held.clear();
+      saveStatus = result.saved ? "Partida guardada antes de reiniciar." : saveStatus;
+      problem = "";
+    } catch (error) {
+      problem = error instanceof Error ? error.message : "No se pudo reiniciar la consola";
+    } finally {
+      busy = false;
+    }
   }
   async function toggleFullscreen() {
     try {
@@ -446,6 +476,8 @@
       active = false;
       cancelAnimationFrame(loop);
       held.clear();
+      virtual.clear();
+      clearTimeout(virtualRelease);
       audio?.close();
       client?.dispose();
       document.removeEventListener("keydown", keydown, true);
@@ -501,10 +533,12 @@
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
   <div class="buttons player-actions" data-player-chrome>
-    {#if phase === "running"}<button data-player-action onclick={() => pause()}
+    {#if phase === "running"}<button data-player-action onclick={() => tapControl("select")}>Select · Q</button>
+      <button data-player-action onclick={() => tapControl("start")}>Start · Enter</button>
+      <button data-player-action onclick={() => pause()}
         >Pausar juego</button
       >{/if}
-    {#if phase === "paused"}<button
+    {#if phase === "paused"}<button data-player-action onclick={resetConsole} disabled={busy}>Reiniciar consola</button><button
         bind:this={resumeButton}
         class="primary"
         onclick={resume}
