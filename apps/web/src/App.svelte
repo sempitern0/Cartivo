@@ -243,7 +243,7 @@
   }
   .welcome {
     text-align: center;
-    padding: 100px 0 90px;
+    padding: 24px 0;
   }
   .eyebrow {
     font-size: 11px;
@@ -309,7 +309,14 @@
   .empty-stage { min-height: min(62vh, 580px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #08090e; border-radius: 8px; }
   .system-label { font-size: clamp(48px, 12vw, 110px); font-weight: 800; letter-spacing: -0.08em; opacity: .18; }
   .demo-link { background: transparent; border: 0; font-size: 13px; color: var(--muted); }
-  .welcome { padding: 36px 0; }
+  .welcome { padding: 24px 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .welcome, .controls-page { animation: view-enter 180ms ease-out both; }
+  }
+  @keyframes view-enter {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   @media (max-width: 500px) {
     main {
       padding: 24px 20px;
