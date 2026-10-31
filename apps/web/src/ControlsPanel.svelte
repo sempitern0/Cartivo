@@ -410,7 +410,7 @@
       /></label
     >
   {/if}
-  <p class="compact-label">WASD o flechas · K = A · L = B</p>
+  <p class="compact-label">WASD o flechas · L = A · K = B</p>
   <fieldset>
     <legend>Teclado · pulsa una asignación para cambiarla</legend>
     <div class="buttons">
