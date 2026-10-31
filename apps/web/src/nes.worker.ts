@@ -50,6 +50,15 @@ async function run(r: NesRequest): Promise<NesResult> {
   }
   if (!core || session !== r.session)
     throw Error("Sesión obsoleta o no cargada");
+  if (r.command === "reset") {
+    // Flush the previous session before replacing the CPU/PPU/APU instance.
+    // A reset must not erase battery-backed SRAM or its previous generation.
+    const saved = await flush();
+    const previousSave = core.battery ? core.save() : undefined;
+    core = new NesAdapter(rom, previousSave);
+    lastSaveFrame = 0;
+    return { saved, frames: 0 };
+  }
   if (r.command === "advance") {
     core.input(r.input!);
     const result = core.advance(r.count!);
