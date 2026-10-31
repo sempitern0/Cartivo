@@ -300,9 +300,10 @@
   }
   function tapControl(action: "start" | "select") {
     if (phase !== "running") return;
-    virtual.add(action);
     clearTimeout(virtualRelease);
-    virtualRelease = window.setTimeout(() => virtual.delete(action), 180);
+    virtual.clear();
+    virtual.add(action);
+    virtualRelease = window.setTimeout(() => virtual.clear(), 180);
   }
   async function resetConsole() {
     if (phase === "running") await pause();
