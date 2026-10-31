@@ -1,9 +1,11 @@
 <script lang="ts">
 import { onDestroy } from 'svelte';
+import InputLab from './InputLab.svelte';
 import { WorkerSession } from '../../../packages/runtime/src/worker-client.ts';
 import type { Command, State } from '../../../packages/runtime/src/session.ts';
 import './theme.css';
 let session: WorkerSession | undefined;
+let labOpen=$state(false);
 let sessionState=$state<State>('idle');
 let error=$state('');
 let busy=$state(false);
@@ -25,7 +27,7 @@ onDestroy(()=>{generation++;session?.dispose();});
 <main>
 <header><span class="brand">cartivo<span class="palette" aria-hidden="true"><i></i><i></i><i></i><i></i></span></span><span class="phase">En desarrollo</span></header>
 <section class="welcome"><p class="eyebrow">TUS JUEGOS. TU MOMENTO.</p><h1>Vuelve a jugar.</h1><p class="intro">Elige un juego. Nosotros nos encargamos del resto.</p><button class="primary" disabled>Elegir juego</button><p class="availability">Estamos preparando NES. La emulación aún no está disponible.</p></section>
-<details><summary>Laboratorio <span>Prueba de sesión</span></summary><div class="lab"><h2>Diagnóstico sin emulación</h2><p>Esta prueba ejecuta el control de sesión en segundo plano. No carga juegos ni guarda partidas.</p><p role="status" aria-live="polite">{busy?'Un momento…':labels[sessionState]}</p><div class="controls"><button onclick={()=>send('start')} disabled={busy||sessionState!=='idle'}>Iniciar prueba</button><button onclick={()=>send(sessionState==='paused'?'resume':'pause')} disabled={busy||(sessionState!=='running'&&sessionState!=='paused')}>{sessionState==='paused'?'Reanudar':'Pausar'}</button><button onclick={()=>send('stop')} disabled={busy||sessionState==='stopped'}>Finalizar</button><button onclick={restart}>{busy?'Cancelar':'Nueva sesión'}</button></div>{#if error}<p role="alert" class="error">{error}</p>{/if}</div></details>
+<details bind:open={labOpen}><summary>Laboratorio <span>Prueba de sesión</span></summary><div class="lab"><h2>Diagnóstico sin emulación</h2><p>Esta prueba ejecuta el control de sesión en segundo plano. No carga juegos ni guarda partidas.</p><p role="status" aria-live="polite">{busy?'Un momento…':labels[sessionState]}</p><div class="controls"><button onclick={()=>send('start')} disabled={busy||sessionState!=='idle'}>Iniciar prueba</button><button onclick={()=>send(sessionState==='paused'?'resume':'pause')} disabled={busy||(sessionState!=='running'&&sessionState!=='paused')}>{sessionState==='paused'?'Reanudar':'Pausar'}</button><button onclick={()=>send('stop')} disabled={busy||sessionState==='stopped'}>Finalizar</button><button onclick={restart}>{busy?'Cancelar':'Nueva sesión'}</button></div>{#if error}<p role="alert" class="error">{error}</p>{/if}{#if labOpen}<InputLab />{/if}</div></details>
 <footer>Tu colección permanece en tu dispositivo.</footer>
 </main>
 <style>

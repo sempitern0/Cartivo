@@ -13,3 +13,10 @@
 - Laboratorio plegado y separado del flujo de juego.
 - Worker de diagnóstico con correlación, timeout, cancelación y limpieza.
 - Pruebas de transporte y test Chromium del Worker real, añadido a CI.
+
+### H1-B: entrada, después de integrar main
+
+- Merge de main conservando la implementación; investigación existente como base para la selección NES aún pendiente.
+- Prueba de teclado y mando P1 con estado visible, zona muerta, asignación manual y perfiles locales explícitos.
+- Neutralización al perder foco/desconectar; reactivación y liberación obligatoria antes de aceptar nuevas entradas.
+- Validación de perfiles y E2E con Gamepad API sintética; guía de prueba Windows y gates de hardware pendientes.

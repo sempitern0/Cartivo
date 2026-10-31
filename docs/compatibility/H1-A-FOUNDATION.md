@@ -36,7 +36,7 @@ Pendiente: prueba visual en navegador, E2E, hardware y ejecución de CI remota. 
 
 binjnes documenta compilación WASM y battery saves en https://github.com/binji/binjnes/blob/main/README.md y licencia MIT en https://github.com/binji/binjnes/blob/main/LICENSE (consultados 2026-10-30). Es candidato, no núcleo aceptado. Las referencias son mutables; fijar commit, auditar submódulos y compilar antes de aceptación. Emscripten no estaba instalado en este entorno; no se ha realizado build del núcleo.
 
-Siguiente gate: expediente y spike binjnes, fixture autorizado que escriba save data, protocolo asíncrono en Worker con timeout/cancelación y pruebas de respuestas tardías. Después: input, media y persistencia. No cerrar H1 jugable hasta probar importar → jugar → guardar → cerrar → reabrir.
+Prioridad provisional histórica: binjnes. Tras integrar main el 31-10-2026, se sigue el orden TetaNES/JSNES de docs/research/H0_NES_CORE_CANDIDATES.md; ninguno está aceptado. El Worker con timeout/cancelación ya está implementado. La continuación y los resultados actuales están en [H1-B entrada](H1-B-INPUT.md). No cerrar H1 jugable hasta probar importar → jugar → guardar → cerrar → reabrir.
 
 ## Segunda iteración: Worker y diseño minimalista
 
@@ -49,3 +49,7 @@ Validar manualmente: laboratorio cerrado al entrar; una acción principal; foco 
 Pruebas: `pnpm test`, `pnpm check`, `pnpm lint`, `pnpm build`; para navegador, `pnpm exec playwright install chromium` y `pnpm test:e2e`. Gamepads y Safari/Firefox reales siguen pendientes.
 
 Resultado local de segunda iteración: 8 tests unitarios aprobados y tipos sin errores. La descarga de Chromium devolvió archivos truncados; E2E y revisión visual quedan pendientes, no se declaran aprobados.
+
+## Actualización tras integrar main
+
+El primer incremento de [entrada H1-B](H1-B-INPUT.md) añade prueba de teclado/mando y remapeo. La limitación anterior de E2E local se resolvió con un Chromium temporal: cinco E2E aprobados y captura móvil revisada. El mando físico y la emulación continúan pendientes.

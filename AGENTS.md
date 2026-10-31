@@ -50,3 +50,8 @@ No confundir preparación documental, shell con mock, H1 jugable y release estab
 ## Dirección visual y experiencia
 
 Seguir `docs/DESIGN.md` y los tokens de `apps/web/src/theme.css`. Paleta propia inspirada en tonos PSX, sin reproducir el logo ni sus valores exactos. Interfaz minimalista: una acción principal, valores automáticos, detección fiable y corrección manual accesible. Los cinco pasos del plan son decisiones cubiertas, no pantallas obligatorias. Mantener laboratorio plegado y separado del juego; detalles de núcleos y diagnóstico solo en opciones avanzadas. Respetar foco, contraste y navegación con teclado/mando.
+
+## Continuidad H1 de entrada
+
+Consultar `docs/research/` antes de seleccionar un núcleo; no repetir la matriz preliminar como sustituto de los spikes pendientes. Estado actual y QA de entrada: `docs/compatibility/H1-B-INPUT.md`. Reutilizar `packages/input` para normalizar entrada; integrar neutralización/pausa con el runtime al conectar el núcleo. Los tests de Gamepad API sintética no cierran el gate de mando físico.
+

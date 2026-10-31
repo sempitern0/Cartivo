@@ -8,7 +8,7 @@
     "build": "vite build apps/web",
     "check": "svelte-check --workspace apps/web --tsconfig ../../tsconfig.json",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "lint": "prettier --check \"packages/runtime/src/*.ts\" \"tests/*.ts\"",
+    "lint": "prettier --check \"packages/*/src/*.ts\" \"tests/*.ts\"",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

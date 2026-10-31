@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: segunda iteración de H1-A, shell minimalista y diagnóstico en Worker.** Hay una aplicación Svelte arrancable; todavía no hay núcleo NES, instalación PWA ni offline. No se distribuyen juegos ni BIOS propietarias.
+**Estado: H1-A con diagnóstico en Worker y primer incremento de entrada H1-B.** Hay una aplicación Svelte arrancable; todavía no hay núcleo NES, instalación PWA ni offline. No se distribuyen juegos ni BIOS propietarias.
 
 ## Catálogo inicial propuesto
 
@@ -50,4 +50,5 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs.
+Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs. El laboratorio incluye una prueba de teclado y mando real mediante Gamepad API, con asignación manual y perfiles locales. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
+
