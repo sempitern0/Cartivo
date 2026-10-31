@@ -13,19 +13,19 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyX");
+  await page.keyboard.down("KeyK");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
   await page
     .getByRole("link", { name: "Volver al inicio", exact: false })
     .click();
-  await page.keyboard.up("KeyX");
+  await page.keyboard.up("KeyK");
   await expect(
-    page.getByRole("heading", { name: "Vuelve a jugar." }),
+    page.getByRole("heading", { name: "Cartivo · NES" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Activar prueba" }),
   ).toHaveCount(0);
-  await page.locator("summary").click();
+  await page.getByText("Laboratorio", { exact: false }).click();
   await expect(
     page.getByRole("heading", { name: "Diagnóstico sin emulación" }),
   ).toBeVisible();
