@@ -1,5 +1,7 @@
 # Plan de integración — Focus, pantalla completa y escalado de vídeo (PR #2)
 
+> **Avance 2026-10-31 (incremento en esta PR):** se han añadido `packages/media/src/display-scaler.ts`, `tests/display-scaler.test.ts`, `apps/web/src/GameStage.svelte` y la integración inicial de Focus, fullscreen y selección de escalado en `Player.svelte`, con cobertura E2E adicional. **F1 y base de F2/F3 implementadas, no validadas por ejecución local**: el entorno disponible utiliza Node 22 y no dispone de pnpm, mientras que Cartivo exige Node >=24.22.1 y pnpm 11.25.0. F0-F5 todavía tienen gates pendientes; la PR debe permanecer Draft. El menú de pausa integral, preferencias y QA físico no están terminados.
+
 **Estado:** planificación; **no implementado todavía**. Actualizado: 2026-10-31.
 **Rama de ejecución:** `feat/h1-session-foundation`, PR #2, sin PR adicional.
 **Base revisada:** `Player.svelte`, `App.svelte`, `theme.css`, `docs/DESIGN.md`, `H1-B-NES.md`; head observado `9be20b74c5de80b01b1685ba5f55e97b297ec288`. Releer antes de cada incremento: la rama sigue activa.
