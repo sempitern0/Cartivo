@@ -23,9 +23,9 @@ test("real NES in Worker, pause on controls, SRAM backup and reload", async ({
       Number(await page.locator("canvas").getAttribute("data-frames")),
     )
     .toBeGreaterThan(frameBefore + 3);
-  await page.keyboard.down("KeyK");
+  await page.keyboard.down("KeyL");
   await page.waitForTimeout(150);
-  await page.keyboard.up("KeyK");
+  await page.keyboard.up("KeyL");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await expect(page.getByTestId("save-status")).toContainText(
     "Partida guardada",
@@ -162,9 +162,9 @@ test("corrupt current SRAM recovers previous verified generation", async ({
       Number(await page.locator("canvas").getAttribute("data-frames")),
     )
     .toBeGreaterThan(frameBefore + 3);
-  await page.keyboard.down("KeyK");
+  await page.keyboard.down("KeyL");
   await page.waitForTimeout(150);
-  await page.keyboard.up("KeyK");
+  await page.keyboard.up("KeyL");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await expect(page.getByTestId("save-status")).toContainText(
     "Partida guardada",
