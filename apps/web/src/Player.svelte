@@ -522,7 +522,7 @@
         }}>{muted ? "Activar sonido" : "Silenciar"}</button
       >{/if}
     <a data-player-action href="#controles">Configurar controles</a>
-    <button data-player-action onclick={() => { focusMode = !focusMode; }} aria-pressed={focusMode}>Modo Focus</button>
+    <button data-player-action class:focus-selected={focusMode} onclick={() => { focusMode = !focusMode; }} aria-pressed={focusMode} aria-label={focusMode ? "Desactivar Focus" : "Activar Focus"}>{focusMode ? "Focus activado" : "Activar Focus"}</button>
     <button data-player-action onclick={() => { graphicsOpen = !graphicsOpen; }} aria-expanded={graphicsOpen}>Gráficos</button>
     {#if fullscreenAvailable}<button
         data-player-action
@@ -687,6 +687,7 @@
   .graphics-menu { display: flex; flex-wrap: wrap; gap: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
   .graphics-menu label { display: flex; gap: 8px; align-items: center; }
   .graphics-menu select { background: var(--surface); color: var(--text); padding: 9px; border-radius: 8px; border: 1px solid var(--border); }
+  .focus-selected { border-color: var(--teal); color: var(--teal); background: #17312e; }
   .buttons {
     display: flex;
     gap: 12px;
