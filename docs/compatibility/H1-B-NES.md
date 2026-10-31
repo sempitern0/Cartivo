@@ -89,3 +89,11 @@ El límite inicial de ~40 KB rechazaba cartuchos NTSC mayores antes de informar 
 22 pruebas unitarias/integración incluyen fixtures originales derivadas en mappers 1–4; E2E adicional carga un MMC1 local de 64 KB PRG y comprueba frames reales. No son pruebas exhaustivas de banking/IRQ ni garantía de compatibilidad con una ROM concreta. No se ha recibido ni distribuido el archivo del usuario.
 
 Movimiento predeterminado: flechas **y WASD**, disponible tanto en Controles como en la partida. Las asignaciones personalizadas prevalecen y no se sobrescriben perfiles guardados. Probar W/A/S/D por separado, soltar cada tecla y comprobar diagonales y neutralización de opuestos.
+
+## Foco de juego y pantalla completa
+
+Durante la ejecución, el reproductor captura las teclas de la página (incluidos Tab/espacio/flechas), mantiene el foco en el canvas y bloquea scroll por rueda. Escape pausa, neutraliza entradas y devuelve el foco a Reanudar; libera la navegación normal. Los atajos con Ctrl/Meta/Alt del navegador/SO y la pérdida de ventana no se bloquean: perder ventana/visibilidad sigue pausando. Las acciones explícitas del reproductor permanecen disponibles con ratón; el fondo de la página no captura clics de juego.
+
+Pantalla completa incluye reproductor, acciones y avisos; salir pausa. Se detecta Fullscreen API y los rechazos se muestran junto al vídeo. El canvas conserva 4:3. Información técnica/copias queda en desplegables, estado/acciones encima del vídeo y errores en un aviso superior que se desplaza a la vista al aparecer.
+
+Probar: jugar y pulsar Tab/Shift+Tab/espacio/flechas, girar rueda; no debe moverse el foco ni la página. Escape debe pausar y enfocar Reanudar. Entrar/salir de pantalla completa; comprobar relación 4:3 y acciones visibles. Cargar archivo inválido: el error debe aparecer antes del vídeo. La prueba automatizada de fullscreen es Chromium; otros navegadores y dispositivos físicos siguen pendientes.

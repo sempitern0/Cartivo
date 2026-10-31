@@ -30,3 +30,11 @@ Estado actual: Elegir juego admite NROM NTSC experimental y Probar demo NES ejec
 `ControlsPanel.svelte` contiene la configuración/prueba y consume `packages/input`; no conoce el Worker de diagnóstico. Puede reutilizarse desde los ajustes de la interfaz final. Actualmente el único perfil es NES P1, sin anunciar otros sistemas. Al salir se desmontan sondeo y listeners; al volver no hay controles pulsados ni prueba activa. Los perfiles guardados se conservan. Volver al inicio y Atrás del navegador funcionan; se traslada el foco al título de la pantalla.
 
 Durante la emulación NES, abrir Controles pausa y neutraliza la entrada; volver conserva el frame y exige Reanudar, aplicando las asignaciones actuales.
+
+## Foco de juego y pantalla completa
+
+Durante la ejecución, el reproductor captura las teclas de la página (incluidos Tab/espacio/flechas), mantiene el foco en el canvas y bloquea scroll por rueda. Escape pausa, neutraliza entradas y devuelve el foco a Reanudar; libera la navegación normal. Los atajos con Ctrl/Meta/Alt del navegador/SO y la pérdida de ventana no se bloquean: perder ventana/visibilidad sigue pausando. Las acciones explícitas del reproductor permanecen disponibles con ratón; el fondo de la página no captura clics de juego.
+
+Pantalla completa incluye reproductor, acciones y avisos; salir pausa. Se detecta Fullscreen API y los rechazos se muestran junto al vídeo. El canvas conserva 4:3. Información técnica/copias queda en desplegables, estado/acciones encima del vídeo y errores en un aviso superior que se desplaza a la vista al aparecer.
+
+Probar: jugar y pulsar Tab/Shift+Tab/espacio/flechas, girar rueda; no debe moverse el foco ni la página. Escape debe pausar y enfocar Reanudar. Entrar/salir de pantalla completa; comprobar relación 4:3 y acciones visibles. Cargar archivo inválido: el error debe aparecer antes del vídeo. La prueba automatizada de fullscreen es Chromium; otros navegadores y dispositivos físicos siguen pendientes.

@@ -23,6 +23,7 @@
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
   );
+  let notice = $state.raw<HTMLDivElement>();
   let problem = $state("");
   let saveStatus = $state("");
   let battery = $state(false);
@@ -31,6 +32,10 @@
   let frames = $state(0);
   let padStatus = $state("Teclado disponible");
   let busy = $state(false);
+  let viewport = $state.raw<HTMLElement>();
+  let fullscreen = $state(false);
+  let fullscreenAvailable = $state(false);
+  let resumeButton = $state.raw<HTMLButtonElement>();
   let screen = $state.raw<HTMLCanvasElement>();
   let importInput = $state.raw<HTMLInputElement>();
   let client: NesClient | undefined;
@@ -110,7 +115,8 @@
     remainder = 0;
     phase = "running";
     await tick();
-    screen?.focus();
+    screen?.scrollIntoView({ block: "center" });
+    screen?.focus({ preventScroll: true });
     loop = requestAnimationFrame(pump);
   }
   async function pause() {
@@ -132,10 +138,20 @@
       saveStatus = "Guardado sin confirmar.";
     } finally {
       busy = false;
+      await tick();
+      if (visible) resumeButton?.focus({ preventScroll: true });
     }
   }
   $effect(() => {
     if (!visible && phase === "running") void pause();
+  });
+  $effect(() => {
+    const message = problem;
+    if (message && visible)
+      void tick().then(() => {
+        if (active && visible && problem === message)
+          notice?.scrollIntoView({ block: "nearest" });
+      });
   });
   async function pump(now: number) {
     if (phase !== "running" || !visible || !active) return;
@@ -244,16 +260,38 @@
     if (phase === "running") loop = requestAnimationFrame(pump);
   }
   function keydown(e: KeyboardEvent) {
+    if (phase !== "running" || !visible) return;
     if (e.code === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
+      if (document.fullscreenElement === viewport)
+        void document.exitFullscreen().catch(() => {});
       void pause();
       return;
     }
-    if (phase === "running" && keyboardAction(e.code, keyboard)) {
-      e.preventDefault();
-      if (!e.repeat) held.add(e.code);
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (keyboardAction(e.code, keyboard) && !e.repeat) held.add(e.code);
+  }
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement === viewport)
+        await document.exitFullscreen();
+      else await viewport?.requestFullscreen();
+    } catch (e) {
+      problem =
+        "No se pudo activar pantalla completa. Puedes seguir jugando en esta ventana.";
     }
   }
+  $effect(() => {
+    if (phase !== "running" || !visible) return;
+    const old = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = old;
+    };
+  });
   async function exportSave() {
     if ((phase !== "paused" && phase !== "error") || busy) return;
     busy = true;
@@ -323,6 +361,39 @@
     onclose();
   }
   onMount(() => {
+    fullscreenAvailable = !!document.fullscreenEnabled;
+    const fullscreenChange = () => {
+      const was = fullscreen;
+      fullscreen = document.fullscreenElement === viewport;
+      if (was && !fullscreen) void pause();
+    };
+    const focus = (e: FocusEvent) => {
+      if (phase === "running" && visible && e.target !== screen)
+        screen?.focus({ preventScroll: true });
+    };
+    const pointer = (e: PointerEvent) => {
+      if (phase !== "running" || !visible || e.target === screen) return;
+      e.preventDefault();
+      if (
+        !(
+          e.target instanceof Element &&
+          e.target.closest("[data-player-action]")
+        )
+      )
+        e.stopImmediatePropagation();
+      screen?.focus({ preventScroll: true });
+    };
+    const wheel = (e: WheelEvent) => {
+      if (phase === "running" && visible && !e.ctrlKey) e.preventDefault();
+    };
+    document.addEventListener("keydown", keydown, true);
+    document.addEventListener("focusin", focus, true);
+    document.addEventListener("pointerdown", pointer, true);
+    document.addEventListener("wheel", wheel, {
+      passive: false,
+      capture: true,
+    });
+    document.addEventListener("fullscreenchange", fullscreenChange);
     const blur = () => {
       void pause();
     };
@@ -339,6 +410,13 @@
       held.clear();
       audio?.close();
       client?.dispose();
+      document.removeEventListener("keydown", keydown, true);
+      document.removeEventListener("focusin", focus, true);
+      document.removeEventListener("pointerdown", pointer, true);
+      document.removeEventListener("wheel", wheel, true);
+      document.removeEventListener("fullscreenchange", fullscreenChange);
+      if (document.fullscreenElement === viewport)
+        void document.exitFullscreen().catch(() => {});
       window.removeEventListener("blur", blur);
       document.removeEventListener("visibilitychange", hide);
       window.removeEventListener("keyup", up);
@@ -346,17 +424,22 @@
   });
 </script>
 
-<section class="player" aria-label="Reproductor NES">
+<section
+  bind:this={viewport}
+  class="player"
+  class:playing={phase === "running"}
+  aria-label="Reproductor NES"
+>
   <div class="heading">
     <div>
       <p class="badge">NES · EXPERIMENTAL</p>
       <h1>{file?.name ?? "Demo de controles"}</h1>
     </div>
-    <button onclick={close} disabled={busy}
+    <button data-player-action onclick={close} disabled={busy}
       >{phase === "loading" ? "Cancelar carga" : "Cerrar juego"}</button
     >
   </div>
-  {#if !file}<p>
+  {#if !file}<p class="demo-info">
       Cruceta, flechas o WASD: mueve el cuadrado. A: cambia el color y guarda
       ese progreso. B: emite un tono. Usa tus asignaciones de Controles.
     </p>{/if}
@@ -366,37 +449,32 @@
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
-  <!-- Canvas is a focused keyboard-controlled game surface; Tab exits normally. -->
-  <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
-  <canvas
-    bind:this={screen}
-    width="256"
-    height="240"
-    tabindex="0"
-    aria-label="Pantalla del juego NES. Escape para pausar."
-    onkeydown={keydown}
-    onblur={() => {
-      void pause();
-    }}
-    data-frames={frames}
-  ></canvas>
   <div class="buttons">
-    {#if phase === "running"}<button onclick={() => pause()}
+    {#if phase === "running"}<button data-player-action onclick={() => pause()}
         >Pausar juego</button
       >{/if}
     {#if phase === "paused"}<button
+        bind:this={resumeButton}
         class="primary"
         onclick={resume}
         disabled={busy}>Reanudar juego</button
       >{/if}
     {#if audioReady}<button
+        data-player-action
         aria-pressed={muted}
         onclick={() => {
           muted = !muted;
           audio?.mute(muted);
         }}>{muted ? "Activar sonido" : "Silenciar"}</button
       >{/if}
-    <a href="#controles">Configurar controles</a>
+    <a data-player-action href="#controles">Configurar controles</a>
+    {#if fullscreenAvailable}<button
+        data-player-action
+        onclick={toggleFullscreen}
+        >{fullscreen
+          ? "Salir de pantalla completa"
+          : "Pantalla completa"}</button
+      >{/if}
   </div>
   <p data-testid="player-phase">
     {phase === "running"
@@ -407,8 +485,30 @@
           ? "No se pudo continuar"
           : ""}
   </p>
-  <p class="secondary">{padStatus}</p>
+  <p class="secondary">
+    {phase === "running"
+      ? "Controles capturados · Escape para pausar y liberar el foco."
+      : padStatus}
+  </p>
   <p data-testid="save-status">{saveStatus}</p>
+  {#if problem}<div
+      bind:this={notice}
+      class="notice"
+      role="alert"
+      tabindex="-1"
+    >
+      {problem}
+    </div>{/if}
+  <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
+  <canvas
+    bind:this={screen}
+    width="256"
+    height="240"
+    tabindex="0"
+    aria-label="Pantalla del juego NES. Escape para pausar."
+    data-frames={frames}
+  ></canvas>
   {#if battery && (phase === "paused" || phase === "error")}<details>
       <summary>Copias de partida</summary>
       <p>
@@ -430,7 +530,7 @@
         hidden
       />
     </details>{/if}
-  {#if problem}<p role="alert">{problem}</p>{/if}
+
   {#if saveStatus === "Guardado sin confirmar."}<button
       onclick={() => {
         client?.dispose();
@@ -451,6 +551,53 @@
 </section>
 
 <style>
+  .notice {
+    background: #34202a;
+    border: 1px solid var(--coral);
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin: 12px 0;
+    overflow-wrap: anywhere;
+  }
+  .player:fullscreen {
+    background: var(--bg);
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    padding: 16px 24px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .player:fullscreen p {
+    margin: 4px 0;
+    font-size: 12px;
+  }
+  .player:fullscreen h1 {
+    font-size: 20px;
+    margin: 8px 0;
+    max-width: 70vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player.playing:fullscreen .demo-info,
+  .player.playing:fullscreen > details {
+    display: none;
+  }
+  .player:fullscreen canvas {
+    min-height: 0;
+    flex: none;
+    aspect-ratio: 4/3;
+    width: min(100%, max(160px, calc((100dvh - 240px) * 4 / 3)));
+    height: auto;
+    margin: 12px auto;
+  }
+  .player:fullscreen > details {
+    flex: none;
+  }
+
   .player {
     margin: 40px auto;
     max-width: 780px;

@@ -47,3 +47,10 @@
 - Ampliación experimental iNES NTSC a MMC1/UxROM/CNROM/MMC3; límites por board y mensajes con mapper/tamaño en lugar del rechazo NROM genérico.
 - Fixtures originales de arranque/entrada/SRAM por mapper y carga E2E de MMC1 mayor que el antiguo límite.
 - WASD junto a flechas en Controles y juego, respetando asignaciones personalizadas y colisiones.
+
+### Foco y presentación del reproductor
+
+- Captura de teclado/foco y bloqueo de scroll mientras se juega; Escape pausa y libera navegación, con foco en Reanudar.
+- Fullscreen API con acciones dentro del reproductor, aspecto 4:3 y pausa al salir; rechazo visible si falla.
+- Barra de acciones/estado antes del vídeo y errores destacados que se llevan a la vista.
+- E2E de foco, scroll, Escape, pantalla completa y posición del aviso de error.

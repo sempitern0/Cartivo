@@ -73,6 +73,9 @@ test("unsupported local ROM produces a recoverable error", async ({ page }) => {
   });
   await page.getByRole("button", { name: "Jugar", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("inválido");
+  const errorBox = await page.getByRole("alert").boundingBox();
+  const canvasBox = await page.locator("canvas").boundingBox();
+  expect(errorBox!.y).toBeLessThan(canvasBox!.y);
   await page.getByRole("button", { name: "Cerrar juego" }).click();
   await expect(
     page.getByRole("button", { name: "Elegir juego" }),
@@ -318,13 +321,11 @@ test("local MMC1 cartridge larger than old NROM cap loads in real worker", async
     rom.set(demo.subarray(16, 16 + 16384), 16 + bank * 16384);
   rom.set(demo.subarray(16 + 16384), 16 + 65536);
   await page.goto("/");
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "original-mmc1-test.nes",
-      mimeType: "application/octet-stream",
-      buffer: Buffer.from(rom),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "original-mmc1-test.nes",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(rom),
+  });
   await page.getByRole("button", { name: "Jugar", exact: true }).click();
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await expect
@@ -332,4 +333,56 @@ test("local MMC1 cartridge larger than old NROM cap loads in real worker", async
       Number(await page.locator("canvas").getAttribute("data-frames")),
     )
     .toBeGreaterThan(10);
+});
+
+test("running game captures navigation keys and scroll until Escape", async ({
+  page,
+}) => {
+  await start(page);
+  await expect(page.locator("canvas")).toBeFocused();
+  const initial = await page.evaluate(() => scrollY);
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Space");
+  await page.keyboard.press("ArrowDown");
+  await page.mouse.wheel(0, 500);
+  await expect(page.locator("canvas")).toBeFocused();
+  expect(await page.evaluate(() => scrollY)).toBe(initial);
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await expect(
+    page.getByRole("button", { name: "Reanudar juego" }),
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.locator("canvas")).not.toBeFocused();
+});
+test("fullscreen includes toolbar and returns safely to paused window", async ({
+  page,
+}) => {
+  await start(page);
+  await page
+    .getByRole("button", { name: "Pantalla completa", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => !!document.fullscreenElement))
+    .toBe(true);
+  await expect(
+    page.getByRole("button", {
+      name: "Salir de pantalla completa",
+      exact: true,
+    }),
+  ).toBeVisible();
+  const box = await page.locator("canvas").boundingBox();
+  expect(box!.width / box!.height).toBeCloseTo(4 / 3, 1);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await page.screenshot({
+    path: "test-results/nes-fullscreen.png",
+    fullPage: true,
+  });
+  await page.evaluate(() => document.exitFullscreen());
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await expect
+    .poll(() => page.evaluate(() => !!document.fullscreenElement))
+    .toBe(false);
 });
