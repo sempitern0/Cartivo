@@ -56,5 +56,6 @@ pnpm dev
 
 El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible con la serie 24. CI emplea la versión fijada en `.node-version`.
 
-Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs. El laboratorio incluye una prueba de teclado y mando real mediante Gamepad API, con asignación manual y perfiles locales. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
+Abrir http://127.0.0.1:5173. La sesión de diagnóstico es simulada; no ejecuta ROMs. La zona **Controles**, accesible desde la cabecera o `/#controles`, permite probar teclado y mando mediante Gamepad API, reasignar controles y guardar perfiles locales. El laboratorio contiene únicamente diagnóstico técnico. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
+
 

@@ -28,7 +28,7 @@ test.beforeEach(async ({ page }) => {
     });
   });
   await page.goto("/");
-  await page.locator("summary").click();
+  await page.getByRole("link", { name: "Controles", exact: true }).click();
 });
 test("keyboard scope, release and Tab escape", async ({ page }) => {
   const a = page.locator("[data-action=a]");
@@ -102,7 +102,7 @@ test("manual profile persists and requires explicit restore", async ({
     page.getByRole("button", { name: "Aplicar perfil guardado" }),
   ).toBeVisible();
   await page.reload();
-  await page.locator("summary").click();
+  await page.getByRole("link", { name: "Controles", exact: true }).click();
   await page.evaluate(() => {
     (window as any).testPad.mapping = "";
   });
@@ -191,7 +191,7 @@ test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
   await page.keyboard.up("KeyC");
   await page.reload();
-  await page.locator("summary").click();
+  await page.getByRole("link", { name: "Controles", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Asignar tecla A", exact: true }),
   ).toHaveText("A = C");
@@ -204,11 +204,13 @@ test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
 test("initially hidden USB controller appears on browser exposure event", async ({
   page,
 }) => {
-  await page.locator("summary").click();
+  await page
+    .getByRole("link", { name: "Volver al inicio", exact: false })
+    .click();
   await page.evaluate(() => {
     (window as any).testPad.connected = false;
   });
-  await page.locator("summary").click();
+  await page.getByRole("link", { name: "Controles", exact: true }).click();
   await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("-1");
   await expect(page.getByTestId("connection-status")).toContainText(
     "pulsa un botón",

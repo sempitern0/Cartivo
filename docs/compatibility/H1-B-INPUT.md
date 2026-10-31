@@ -39,7 +39,7 @@ pnpm.cmd install --frozen-lockfile
 pnpm.cmd dev
 ```
 
-Abrir http://127.0.0.1:5173 → Laboratorio → Prueba de controles.
+Abrir http://127.0.0.1:5173 → Controles en la cabecera (o /#controles).
 
 1. Teclado: Activar prueba; flechas, X=A, Z=B, Mayús derecha=Select, Enter=Start. Cada pulsación debe aparecer y liberarse. Tab o Escape detienen la entrada; volver a Activar prueba para continuar.
 2. Conectar mando USB/Bluetooth y pulsar un botón. Elegirlo en Mando. Activar prueba; verificar cruceta/stick izquierdo, botón inferior=A, derecho=B, Select y Start si el navegador declara layout standard.
@@ -73,4 +73,14 @@ Teclado: botones visibles `A = X`, `B = Z` y las otras seis asignaciones. Pulsar
 
 Validación: 14 tests unitarios y 8 E2E en el Chromium/Linux ya indicado; tipos sin errores/advertencias, lint y build aprobados. Las pruebas nuevas cubren autodetección, exposición tardía/evento, preferencia explícita de teclado y remapeo/persistencia. Mando físico del usuario aún pendiente.
 
-Validación manual: actualizar la rama, abrir el laboratorio, conectar USB y pulsar un botón con la página activa. Debe aparecer el nombre del mando y seleccionarse. Activar prueba y soltar controles; comprobar pulsaciones. Cambiar `A = X` por C, probar C, recargar y confirmar persistencia. Si no aparece ningún mando, comprobar Windows con `Win+R` → `joy.cpl` y registrar modelo, navegador y el mensaje de conexión que muestra Cartivo.
+Validación manual: actualizar la rama, abrir Controles, conectar USB y pulsar un botón con la página activa. Debe aparecer el nombre del mando y seleccionarse. Activar prueba y soltar controles; comprobar pulsaciones. Cambiar `A = X` por C, probar C, recargar y confirmar persistencia. Si no aparece ningún mando, comprobar Windows con `Win+R` → `joy.cpl` y registrar modelo, navegador y el mensaje de conexión que muestra Cartivo.
+
+## Zona de controles independiente (31-10-2026)
+
+Acceso actual: cabecera → **Controles**, o `http://127.0.0.1:5173/#controles`. Sustituye las instrucciones históricas que situaban la prueba de entrada en el laboratorio. El laboratorio conserva solo el diagnóstico del Worker.
+
+Panel reutilizable `ControlsPanel.svelte`, separado de navegación y núcleo. Al salir se desmonta y limpia la entrada; los perfiles permanecen guardados. Al volver la prueba está detenida. La integración con pausa/perfiles de una partida real sigue pendiente del núcleo.
+
+Comprobar: abrir Controles sin desplegar el laboratorio; probar/remapear; volver al inicio; usar Atrás del navegador; recargar la URL directa. Las asignaciones guardadas deben mantenerse y todas las entradas quedar libres. La pantalla debe funcionar a 360 px sin desbordamiento.
+
+Validación local: 14 tests unitarios, 9 E2E, tipos sin errores/advertencias, lint y build aprobados. E2E cubre separación de diagnóstico, URL directa, navegación/foco, salida con tecla pulsada y reapertura neutral. Mandos físicos y navegación completa con mando siguen fuera de la evidencia automatizada.

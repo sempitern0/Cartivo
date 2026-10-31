@@ -27,3 +27,9 @@
 - Estados de conexión útiles: permisos/API/contexto seguro o mando no expuesto; instrucciones para la interacción inicial exigida por el navegador.
 - Teclas A=X y B=Z visibles, reasignación de las ocho acciones, rechazo de colisiones, persistencia local y restablecimiento.
 - Regresiones de conexión tardía, preferencia de teclado y remapeo con recarga.
+
+### Zona de controles del jugador
+
+- Pantalla Controles accesible desde la cabecera y URL #controles, independiente del laboratorio técnico.
+- Panel reutilizable para prueba y remapeo; limpieza de entrada al salir sin borrar perfiles guardados.
+- Navegación Atrás/Volver con foco en el título y prueba E2E de reapertura neutral y pantalla móvil.

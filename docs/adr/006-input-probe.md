@@ -25,3 +25,7 @@ La sesión de emulación incorporará neutralización, pausa y limpieza al integ
 El primer mando expuesto se selecciona automáticamente, respetando la elección explícita de Solo teclado. Se escucha conexión y se mantiene sondeo. La exposición depende del navegador; no se promete detección USB anterior al gesto requerido por Firefox.
 
 Se añade perfil local versionado de teclado con las ocho acciones, captura por tecla física, validación de colisiones, etiquetas visibles y restauración. Tab/Escape quedan reservados para navegación/cancelación. No cambia la política de perfiles de mando: su aplicación sigue siendo explícita.
+
+## Revisión: utilidad del jugador
+
+El panel de entrada pasa a `ControlsPanel.svelte` y a una pantalla propia `#controles`, accesible antes de jugar. El laboratorio plegable conserva únicamente diagnóstico técnico. El panel se monta al entrar y se desmonta al salir; navegación y foco pertenecen al shell, normalización a `packages/input`. No añadir un router externo para dos destinos locales. La integración durante una partida requiere pausa/neutralización del runtime cuando exista el núcleo.

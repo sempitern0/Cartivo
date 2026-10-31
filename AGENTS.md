@@ -55,3 +55,5 @@ Seguir `docs/DESIGN.md` y los tokens de `apps/web/src/theme.css`. Paleta propia 
 
 Consultar `docs/research/` antes de seleccionar un núcleo; no repetir la matriz preliminar como sustituto de los spikes pendientes. Estado actual y QA de entrada: `docs/compatibility/H1-B-INPUT.md`. Reutilizar `packages/input` para normalizar entrada; integrar neutralización/pausa con el runtime al conectar el núcleo. Los tests de Gamepad API sintética no cierran el gate de mando físico.
 
+
+La configuración y prueba de entrada es una utilidad permanente del jugador: `#controles` y `ControlsPanel.svelte`. Mantenerla fuera del laboratorio técnico y reutilizar el panel en futuros ajustes; al integrarlo durante una partida, conectar pausa/neutralización con el gestor de sesión antes de aceptar entradas.

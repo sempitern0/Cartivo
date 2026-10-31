@@ -241,6 +241,8 @@
       } catch {
         gamepadBlocked = true;
         pads = [];
+        last = undefined;
+        profile = undefined;
         pause(
           "El navegador ha bloqueado el acceso al mando. Puedes probar el teclado.",
         );
@@ -351,10 +353,10 @@
 </script>
 
 <section aria-labelledby="input-title">
-  <h2 id="input-title">Prueba de controles</h2>
+  <h2 id="input-title">Prueba y asignación</h2>
   <p>
-    Comprueba tu teclado o un mando para el jugador 1. Esta prueba todavía no
-    ejecuta un juego.
+    Comprueba tu teclado o mando antes de jugar. Prueba los botones y cambia las
+    asignaciones a tu gusto. Perfil actual: NES · jugador 1.
   </p>
   <p data-testid="connection-status" aria-live="polite">{connection}</p>
   <label for="input-pad">Mando</label><select
