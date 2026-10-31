@@ -202,6 +202,7 @@ const movementAliases: Record<string, Action> = {
   // A browser may report ShiftRight normally, but it is difficult to
   // discover and can conflict with accessibility/browser shortcuts.
   ShiftRight: "select",
+  KeyQ: "select",
 };
 const legacyDirection: Partial<Record<Action, string>> = {
   up: "ArrowUp",
