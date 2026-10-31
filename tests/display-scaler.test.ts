@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { displayLayout, NES_VIDEO } from "../packages/media/src/display-scaler.ts";
+import {
+  displayLayout,
+  NES_VIDEO,
+} from "../packages/media/src/display-scaler.ts";
 
 test("NES 4:3 fit uses full vertical area without clipping", () => {
   assert.deepEqual(displayLayout(1920, 1080, NES_VIDEO), {
