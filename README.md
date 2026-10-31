@@ -65,3 +65,8 @@ El núcleo JSNES experimental acepta actualmente iNES NTSC, mappers 0–4 dentro
 
 
 La demo y el reproductor ejecutan el núcleo real. El laboratorio técnico de sesión continúa siendo un diagnóstico sin emulación. [Avisos de terceros](LICENSES.md) y [decisión del adaptador](docs/adr/007-nes-experimental-js.md).
+
+
+### Controles NES en menús de juegos
+
+WASD o flechas = cruceta; **L = A**, **K = B**, **Q = Select**, **Enter = Start**. En la partida, los botones visibles `Select · Q` y `Start · Enter` evitan depender del teclado. Para regresar al menú inicial de una ROM como Contra, pausa con Escape y utiliza **Reiniciar consola**: Select solo cambia la selección de jugadores cuando el propio juego muestra esa pantalla. Reiniciar guarda la SRAM antes de restablecer el núcleo y no debe confundirse con recuperar una partida guardada. `ShiftRight` sigue admitido para perfiles anteriores; se recomienda Q por accesibilidad en navegadores modernos.
