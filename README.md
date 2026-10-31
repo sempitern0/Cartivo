@@ -58,7 +58,7 @@ El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible
 
 Abrir http://127.0.0.1:5173. **Añadir juego** abre una ROM `.nes` local y la ejecuta directamente en el escenario central; **Probar demo** arranca la prueba original sin un segundo botón «Jugar». El área de juego y su ajuste de aspecto comparten el mismo espacio visual. En la cabecera permanecen el logotipo Cartivo y **Ajustes**, donde se encuentran los controles y el laboratorio técnico.
 
-**Teclado NES predeterminado:** WASD o flechas para mover, **K = A**, **L = B**, Mayús derecha = Select y Enter = Start. **F** activa Focus y **Escape** pausa. Los mandos se detectan con Gamepad API; las asignaciones son editables. Cuando el navegador impide el audio automático, puede activarse desde el reproductor.
+**Teclado NES predeterminado:** WASD o flechas para mover, **L = A**, **K = B**, Mayús derecha = Select y Enter = Start. **F** activa Focus y **Escape** pausa. Los mandos se detectan con Gamepad API; las asignaciones son editables. Cuando el navegador impide el audio automático, puede activarse desde el reproductor.
 
 El núcleo JSNES experimental acepta actualmente iNES NTSC, mappers 0–4 dentro de los límites documentados. Los guardados SRAM y su importación/exportación funcionan en los juegos compatibles. Véanse [H1-B NES](docs/compatibility/H1-B-NES.md) y [Ajustes/controles](docs/compatibility/H1-B-INPUT.md).
 
