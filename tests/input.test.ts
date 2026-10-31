@@ -81,3 +81,22 @@ test("slot reuse does not establish controller identity", () => {
   ])
     assert.equal(sameDevice(p, replacement), false);
 });
+
+test("custom keyboard profiles validate complete unique safe bindings", async () => {
+  const { defaultKeyboard, parseKeyboard } = await import(
+    "../packages/input/src/nes-input.ts"
+  );
+  const custom = { ...defaultKeyboard, a: "KeyC" };
+  assert.deepEqual(parseKeyboard(custom), custom);
+  assert.equal(parseKeyboard({ ...custom, b: "KeyC" }), undefined);
+  assert.equal(parseKeyboard({ ...custom, a: "Tab" }), undefined);
+  assert.equal(parseKeyboard({}), undefined);
+  assert.equal(
+    sample(undefined, undefined, new Set(["KeyC"]), 0.25, custom).a,
+    true,
+  );
+  assert.equal(
+    sample(undefined, undefined, new Set(["KeyX"]), 0.25, custom).a,
+    false,
+  );
+});

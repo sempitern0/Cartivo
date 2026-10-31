@@ -63,10 +63,11 @@ export function sample(
   profile: Profile | undefined,
   held: ReadonlySet<string>,
   deadzone = 0.25,
+  keyboard: KeyboardProfile = defaultKeyboard,
 ): InputState {
   const state = neutral();
   for (const code of held) {
-    const action = keys[code];
+    const action = actions.find((action) => keyboard[action] === code);
     if (action) state[action] = true;
   }
   if (pad?.connected && profile) {
@@ -143,5 +144,42 @@ export function sameDevice(a: Pad | undefined, b: Pad | undefined): boolean {
     a.mapping === b.mapping &&
     a.buttons.length === b.buttons.length &&
     a.axes.length === b.axes.length
+  );
+}
+
+export type KeyboardProfile = Record<Action, string>;
+export const defaultKeyboard = Object.fromEntries(
+  Object.entries(keys).map(([code, action]) => [action, code]),
+) as KeyboardProfile;
+export function allowedKey(code: string): boolean {
+  return /^(Key[A-Z]|Digit[0-9]|Arrow(Up|Down|Left|Right)|Space|Enter|Shift(Left|Right)|Numpad[0-9])$/.test(
+    code,
+  );
+}
+export function parseKeyboard(value: unknown): KeyboardProfile | undefined {
+  if (!value || typeof value !== "object") return;
+  const result = {} as KeyboardProfile;
+  for (const action of actions) {
+    const code = (value as Record<string, unknown>)[action];
+    if (typeof code !== "string" || !allowedKey(code)) return;
+    result[action] = code;
+  }
+  return new Set(Object.values(result)).size === actions.length
+    ? result
+    : undefined;
+}
+export function keyLabel(code: string): string {
+  const names: Record<string, string> = {
+    ArrowUp: "↑",
+    ArrowDown: "↓",
+    ArrowLeft: "←",
+    ArrowRight: "→",
+    ShiftRight: "Mayús derecha",
+    ShiftLeft: "Mayús izquierda",
+    Enter: "Enter",
+    Space: "Espacio",
+  };
+  return (
+    names[code] ?? code.replace(/^Key|^Digit/, "").replace(/^Numpad/, "Num ")
   );
 }

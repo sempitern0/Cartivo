@@ -2,7 +2,10 @@
   import { onMount } from "svelte";
   import {
     actions,
-    keys,
+    defaultKeyboard,
+    parseKeyboard,
+    allowedKey,
+    keyLabel,
     neutral,
     sample,
     standard,
@@ -12,6 +15,7 @@
     parseProfile,
   } from "../../../packages/input/src/nes-input.ts";
   import type {
+    KeyboardProfile,
     Action,
     InputState,
     Pad,
@@ -47,6 +51,28 @@
   let gamepadBlocked = false;
   let savedAvailable = $state(false);
   let raw = $state("");
+  let autoSelect = true;
+  let keyboard = $state<KeyboardProfile>({ ...defaultKeyboard });
+  let keyCapture = $state<Action>();
+  let connection = $state("Buscando mando…");
+  const keyboardStore = "cartivo:keyboard:v1";
+  function saveKeyboard() {
+    try {
+      localStorage.setItem(keyboardStore, JSON.stringify(keyboard));
+    } catch {
+      message += " No se pudo guardar: la asignación solo durará esta sesión.";
+    }
+  }
+  function assignKey(action: Action) {
+    pause("Pulsa una tecla para " + labels[action] + ". Escape cancela.");
+    keyCapture = action;
+    target.focus();
+  }
+  function resetKeyboard() {
+    pause("Teclado restablecido.");
+    keyboard = { ...defaultKeyboard };
+    saveKeyboard();
+  }
   function snapshot(p: Pad | undefined): Pad | undefined {
     return p
       ? {
@@ -62,6 +88,7 @@
   function pause(reason: string) {
     active = false;
     capture = undefined;
+    keyCapture = undefined;
     held.clear();
     inputState = neutral();
     armed = false;
@@ -77,7 +104,8 @@
       savedAvailable = false;
     }
   }
-  function choose() {
+  function choose(manual = true) {
+    if (manual) autoSelect = selected !== -1;
     pause("Mando seleccionado. Activa la prueba cuando estés listo.");
     last = snapshot(pads.find((p) => p.index === selected));
     profile = last?.mapping === "standard" ? standard : undefined;
@@ -92,13 +120,39 @@
     target.focus();
   }
   function keydown(event: KeyboardEvent) {
-    if (!active || capture || !keys[event.code]) return;
+    if (keyCapture) {
+      if (event.code === "Tab" || event.code === "Escape") return;
+      event.preventDefault();
+      if (event.repeat) return;
+      if (
+        !allowedKey(event.code) ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.metaKey
+      ) {
+        message =
+          "Elige una letra, número, flecha, espacio, Enter o Mayús. Tab y Escape se reservan para salir.";
+        return;
+      }
+      if (actions.some((a) => a !== keyCapture && keyboard[a] === event.code)) {
+        message = "Esa tecla ya está asignada. Elige otra.";
+        return;
+      }
+      keyboard = { ...keyboard, [keyCapture]: event.code };
+      keyCapture = undefined;
+      message = "Tecla asignada. Activa la prueba para comprobarla.";
+      saveKeyboard();
+      return;
+    }
+    if (!active || capture || !Object.values(keyboard).includes(event.code))
+      return;
     event.preventDefault();
     if (!event.repeat) held.add(event.code);
   }
   function keyup(event: KeyboardEvent) {
     held.delete(event.code);
-    if (active && keys[event.code]) event.preventDefault();
+    if (active && Object.values(keyboard).includes(event.code))
+      event.preventDefault();
   }
   function beginMapping() {
     if (!last) return;
@@ -141,6 +195,20 @@
     );
   }
   onMount(() => {
+    try {
+      const saved = localStorage.getItem(keyboardStore);
+      if (saved) {
+        const parsed = parseKeyboard(JSON.parse(saved));
+        if (parsed) keyboard = parsed;
+        else
+          message =
+            "Perfil de teclado inválido; se usan las teclas predeterminadas.";
+      }
+    } catch {
+      message =
+        "No se pudo recuperar el teclado guardado; se usan las teclas predeterminadas.";
+    }
+
     const disconnect = (event: GamepadEvent) => {
       if (event.gamepad.index === selected) {
         pause("Mando desconectado. Reconecta y activa la prueba de nuevo.");
@@ -162,7 +230,7 @@
     document.addEventListener("visibilitychange", visibility);
     window.addEventListener("keydown", escape);
     window.addEventListener("keyup", keyup);
-    function poll() {
+    function scan() {
       try {
         pads =
           !gamepadBlocked && typeof navigator.getGamepads === "function"
@@ -176,6 +244,24 @@
         pause(
           "El navegador ha bloqueado el acceso al mando. Puedes probar el teclado.",
         );
+      }
+      connection = !window.isSecureContext
+        ? "Usa HTTPS o localhost para acceder al mando."
+        : gamepadBlocked
+          ? "El navegador ha bloqueado Gamepad API. Revisa los permisos y recarga."
+          : typeof navigator.getGamepads !== "function"
+            ? "Este navegador no ofrece Gamepad API."
+            : pads.length
+              ? `${pads.length} mando(s) detectado(s).`
+              : "Ningún mando visible para el navegador. Conecta por USB y pulsa un botón del mando con esta pestaña activa.";
+      if (
+        autoSelect &&
+        pads.length &&
+        !pads.some((p) => p.index === selected)
+      ) {
+        selected = pads[0].index;
+        choose(false);
+        message = "Mando detectado y seleccionado. Activa la prueba.";
       }
       const pad = pads.find((p) => p.index === selected);
       if (last && !sameDevice(last, pad)) {
@@ -239,15 +325,21 @@
           ) {
             armed = true;
             message =
-              "Prueba activa. Flechas · X / Z · Mayús derecha / Enter. Escape para salir.";
+              "Prueba activa. Usa las teclas indicadas en Teclado. Escape para salir.";
           }
-        } else inputState = sample(pad, profile, held, deadzone);
+        } else inputState = sample(pad, profile, held, deadzone, keyboard);
       }
+    }
+    function poll() {
+      scan();
       frame = requestAnimationFrame(poll);
     }
+    window.addEventListener("gamepadconnected", scan);
+    scan();
     frame = requestAnimationFrame(poll);
     return () => {
       cancelAnimationFrame(frame);
+      window.removeEventListener("gamepadconnected", scan);
       window.removeEventListener("gamepaddisconnected", disconnect);
       window.removeEventListener("blur", blur);
       document.removeEventListener("visibilitychange", visibility);
@@ -264,10 +356,11 @@
     Comprueba tu teclado o un mando para el jugador 1. Esta prueba todavía no
     ejecuta un juego.
   </p>
+  <p data-testid="connection-status" aria-live="polite">{connection}</p>
   <label for="input-pad">Mando</label><select
     id="input-pad"
     bind:value={selected}
-    onchange={choose}
+    onchange={() => choose()}
     ><option value={-1}>Solo teclado</option>{#each pads as pad}<option
         value={pad.index}
         >{pad.id} ({pad.mapping === "standard"
@@ -298,16 +391,33 @@
       /></label
     >
   {/if}
+  <fieldset>
+    <legend>Teclado · pulsa una asignación para cambiarla</legend>
+    <div class="buttons">
+      {#each actions as action}<button
+          aria-label={"Asignar tecla " + labels[action]}
+          onclick={() => assignKey(action)}
+          >{labels[action]} = {keyLabel(keyboard[action])}</button
+        >{/each}
+    </div>
+    <button onclick={resetKeyboard}>Restablecer teclado</button>
+  </fieldset>
+  {#if keyCapture}<p class="capture">
+      Pulsa la nueva tecla para <strong>{labels[keyCapture]}</strong>. Escape
+      cancela.
+    </p>{/if}
   {#if capture}<p class="capture">
       {waitingRelease ? "Suelta todos los controles. " : ""}Pulsa el control
       para: <strong>{labels[capture]}</strong>
     </p>{/if}
   <div class="buttons">
-    <button class="primary" onclick={activate} disabled={!!capture}
-      >Activar prueba</button
+    <button
+      class="primary"
+      onclick={activate}
+      disabled={!!capture || !!keyCapture}>Activar prueba</button
     ><button
       onclick={() => pause("Prueba detenida.")}
-      disabled={!active && !capture}>Detener prueba</button
+      disabled={!active && !capture && !keyCapture}>Detener prueba</button
     >
   </div>
   <!-- A focused region separates emulator input from UI navigation. Tab always remains available. -->
@@ -315,14 +425,15 @@
     type="button"
     class="pad"
     onclick={() => {
-      if (!active && !capture) activate();
+      if (!active && !capture && !keyCapture) activate();
     }}
     aria-label="Zona de prueba de controles"
     tabindex="0"
     bind:this={target}
     onkeydown={keydown}
     onblur={() => {
-      if (active || capture) pause("Prueba pausada. Actívala para continuar.");
+      if (active || capture || keyCapture)
+        pause("Prueba pausada. Actívala para continuar.");
     }}
   >
     {#each actions as action}<span
@@ -342,6 +453,20 @@
 </section>
 
 <style>
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 20px 0;
+    padding: 16px;
+    min-width: 0;
+  }
+  legend {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  fieldset > button {
+    margin-top: 12px;
+  }
   section {
     margin-top: 32px;
     padding-top: 16px;

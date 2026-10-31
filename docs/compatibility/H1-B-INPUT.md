@@ -62,3 +62,15 @@ pnpm.cmd test:e2e
 ## Gates abiertos
 
 No hay emulación, audio, save data, instalación/offline ni pruebas de mando físico. No se afirma H0-NES ni H1 completos. Falta integrar este estado de entrada con el núcleo aceptado, navegación de la aplicación con mando, QA de lectores de pantalla, Firefox/Safari y hardware real. La zona muerta se ajusta en la sesión de prueba; no se persiste con el perfil. Solo un jugador, sin rumble.
+
+## Corrección de detección y teclado (31-10-2026)
+
+El selector permanecía en «Solo teclado» incluso con mandos disponibles. Ahora se selecciona el primer mando visible al abrir el laboratorio o al conectarse, combinando sondeo y evento `gamepadconnected`. Si se elige explícitamente Solo teclado, se respeta esa elección mientras el laboratorio permanezca abierto. Conectar/reconectar no activa entradas ni recupera un perfil manual sin confirmación.
+
+Se muestran estados distintos para API ausente, acceso bloqueado, contexto no seguro y ningún mando expuesto. La conexión física USB no garantiza exposición inmediata: [Firefox exige interacción con el mando mientras la página está visible](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API). No se solicita acceso WebUSB ni se afirma poder eludir esta restricción.
+
+Teclado: botones visibles `A = X`, `B = Z` y las otras seis asignaciones. Pulsar la asignación y después la nueva tecla; Escape cancela, Tab sale. Se rechazan colisiones y atajos reservados. Perfil validado, persistente localmente y restablecible. Las etiquetas usan posiciones físicas `KeyboardEvent.code`; layouts no QWERTY pueden tener otros caracteres impresos.
+
+Validación: 14 tests unitarios y 8 E2E en el Chromium/Linux ya indicado; tipos sin errores/advertencias, lint y build aprobados. Las pruebas nuevas cubren autodetección, exposición tardía/evento, preferencia explícita de teclado y remapeo/persistencia. Mando físico del usuario aún pendiente.
+
+Validación manual: actualizar la rama, abrir el laboratorio, conectar USB y pulsar un botón con la página activa. Debe aparecer el nombre del mando y seleccionarse. Activar prueba y soltar controles; comprobar pulsaciones. Cambiar `A = X` por C, probar C, recargar y confirmar persistencia. Si no aparece ningún mando, comprobar Windows con `Win+R` → `joy.cpl` y registrar modelo, navegador y el mensaje de conexión que muestra Cartivo.

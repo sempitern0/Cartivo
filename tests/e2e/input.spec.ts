@@ -35,7 +35,9 @@ test("keyboard scope, release and Tab escape", async ({ page }) => {
   await page.keyboard.press("KeyX");
   await expect(a).toHaveText("ALibre");
   await page.getByRole("button", { name: "Activar prueba" }).click();
-  await expect(page.getByTestId("input-status")).toContainText("Flechas");
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.keyboard.down("KeyX");
   await expect(a).toHaveText("APulsado");
   await page.keyboard.press("Tab");
@@ -48,7 +50,9 @@ test("standard pad, disconnect and reused slot require reactivation", async ({
 }) => {
   await page.getByLabel("Mando", { exact: true }).selectOption("0");
   await page.getByRole("button", { name: "Activar prueba" }).click();
-  await expect(page.getByTestId("input-status")).toContainText("Flechas");
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.evaluate(() => {
     (window as any).testPad.buttons[0].pressed = true;
   });
@@ -66,7 +70,9 @@ test("standard pad, disconnect and reused slot require reactivation", async ({
   await page.evaluate(() => {
     (window as any).testPad.buttons[0].pressed = false;
   });
-  await expect(page.getByTestId("input-status")).toContainText("Flechas");
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.evaluate(() => {
     (window as any).testPad.buttons[0].pressed = true;
   });
@@ -108,7 +114,9 @@ test("manual profile persists and requires explicit restore", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Aplicar perfil guardado" }).click();
   await page.getByRole("button", { name: "Activar prueba" }).click();
-  await expect(page.getByTestId("input-status")).toContainText("Flechas");
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.evaluate(() => {
     (window as any).testPad.buttons[4].pressed = true;
   });
@@ -126,8 +134,89 @@ test("blocked Gamepad API retains keyboard fallback", async ({ page }) => {
   });
   await expect(page.getByTestId("input-status")).toContainText("bloqueado");
   await page.getByRole("button", { name: "Activar prueba" }).click();
-  await expect(page.getByTestId("input-status")).toContainText("Flechas");
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.keyboard.down("KeyX");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
   await page.keyboard.up("KeyX");
+});
+
+test("auto selects a controller exposed after opening and preserves explicit keyboard choice", async ({
+  page,
+}) => {
+  await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("0");
+  await page.evaluate(() => {
+    (window as any).testPad.connected = false;
+  });
+  await expect(page.getByTestId("connection-status")).toContainText(
+    "Ningún mando visible",
+  );
+  await page.evaluate(() => {
+    (window as any).testPad.connected = true;
+  });
+  await expect(page.getByTestId("connection-status")).toContainText("1 mando");
+  await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("0");
+  await page.getByLabel("Mando", { exact: true }).selectOption("-1");
+  await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("-1");
+  await page.getByRole("button", { name: "Activar prueba" }).click();
+  await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("-1");
+});
+test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
+  await expect(
+    page.getByRole("button", { name: "Asignar tecla A", exact: true }),
+  ).toHaveText("A = X");
+  await expect(
+    page.getByRole("button", { name: "Asignar tecla B", exact: true }),
+  ).toHaveText("B = Z");
+  await page
+    .getByRole("button", { name: "Asignar tecla A", exact: true })
+    .click();
+  await page.keyboard.press("KeyZ");
+  await expect(page.getByTestId("input-status")).toContainText(
+    "ya está asignada",
+  );
+  await page.keyboard.press("KeyC");
+  await expect(
+    page.getByRole("button", { name: "Asignar tecla A", exact: true }),
+  ).toHaveText("A = C");
+  await page.getByRole("button", { name: "Activar prueba" }).click();
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
+  await page.keyboard.down("KeyX");
+  await expect(page.locator("[data-action=a]")).toHaveText("ALibre");
+  await page.keyboard.up("KeyX");
+  await page.keyboard.down("KeyC");
+  await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
+  await page.keyboard.up("KeyC");
+  await page.reload();
+  await page.locator("summary").click();
+  await expect(
+    page.getByRole("button", { name: "Asignar tecla A", exact: true }),
+  ).toHaveText("A = C");
+  await page.getByRole("button", { name: "Restablecer teclado" }).click();
+  await expect(
+    page.getByRole("button", { name: "Asignar tecla A", exact: true }),
+  ).toHaveText("A = X");
+});
+
+test("initially hidden USB controller appears on browser exposure event", async ({
+  page,
+}) => {
+  await page.locator("summary").click();
+  await page.evaluate(() => {
+    (window as any).testPad.connected = false;
+  });
+  await page.locator("summary").click();
+  await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("-1");
+  await expect(page.getByTestId("connection-status")).toContainText(
+    "pulsa un botón",
+  );
+  await page.evaluate(() => {
+    (window as any).testPad.connected = true;
+    window.dispatchEvent(new Event("gamepadconnected"));
+  });
+  await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("0");
+  await expect(page.getByTestId("connection-status")).toContainText("1 mando");
 });
