@@ -26,10 +26,10 @@ export interface Pad {
 export const neutral = (): InputState =>
   Object.fromEntries(actions.map((a) => [a, false])) as InputState;
 export const keys: Record<string, Action> = {
-  ArrowUp: "up",
-  ArrowDown: "down",
-  ArrowLeft: "left",
-  ArrowRight: "right",
+  KeyW: "up",
+  KeyS: "down",
+  KeyA: "left",
+  KeyD: "right",
   KeyL: "a",
   KeyK: "b",
   ShiftRight: "select",
@@ -187,11 +187,13 @@ export function keyLabel(code: string): string {
   );
 }
 
+// A second directional layout is available without occupying eight
+// remappable slots. Explicit custom bindings always win.
 const movementAliases: Record<string, Action> = {
-  KeyW: "up",
-  KeyA: "left",
-  KeyS: "down",
-  KeyD: "right",
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
 };
 export function keyboardAction(
   code: string,
