@@ -184,3 +184,14 @@ Se eliminaron los ocho selectores obsoletos de `App.svelte` tras retirar footer 
 
 **Gates:** `pnpm lint/check/test/build`; E2E con clic real «Modo Focus» → «Salir de Focus», foco de canvas y continuidad de frames; recorrido de laboratorio tras separar componente; Firefox con Vimium habilitado/deshabilitado de forma manual. La extensión puede consumir teclas antes de Cartivo: no se promete capturar F, y el acceso con ratón es obligatorio. Mantener esta PR en Draft hasta verificar CI final, UX de pausa y controles.
 
+
+
+## Revisión de entrada y Focus — 31-10-2026
+
+- **Entrada NES:** `KeyW/KeyA/KeyS/KeyD` son las direcciones principales; las flechas son alias secundarios cuando la dirección conserva su binding predeterminado. Ambos caminos llegan a la misma estructura de `InputState`, por lo que los menús de una ROM reciben la misma señal de abajo (`down`) con S o flecha abajo. Los remapeos explícitos siguen teniendo prioridad.
+- **Migración:** `readKeyboard()` convierte direcciones antiguas de flechas a WASD y el par X/Z a L/K cuando la combinación resultante valida como perfil único. No borra ni fuerza cambios si hay colisiones con remapeos deliberados.
+- **Focus:** el botón expresa estado con «Activar Focus»/«Focus activado», `aria-pressed` y color; en la superficie inmersiva permanece un botón pequeño «Salir de Focus» perceptible y enfocable. El atajo F es adicional y puede quedar interceptado por extensiones como Vimium.
+- **Separación:** `nes-input.ts` contiene normalización/mapeo; `preferences.ts` migración de perfiles; `Player.svelte` coordina la sesión y expone estado visual. Próxima extracción recomendada: controlador aislado de captura DOM/teclado que no capture controles del propio reproductor, seguido de barra de herramientas Svelte independiente.
+- **Cobertura:** pruebas unitarias comprueban la igualdad de entrada WASD y flechas en las cuatro direcciones; E2E comprueba clic de Focus y estado accesible. Falta certificación manual con ROMs del usuario, Vimium y mando físico.
+
+**CI:** comprobar los checks del último SHA antes de mergear; un job sin pasos/logs no acredita fallo en TypeScript o tests y necesita diagnóstico de infraestructura.
