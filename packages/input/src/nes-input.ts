@@ -30,8 +30,8 @@ export const keys: Record<string, Action> = {
   ArrowDown: "down",
   ArrowLeft: "left",
   ArrowRight: "right",
-  KeyX: "a",
-  KeyZ: "b",
+  KeyK: "a",
+  KeyL: "b",
   ShiftRight: "select",
   Enter: "start",
 };
@@ -152,8 +152,11 @@ export const defaultKeyboard = Object.fromEntries(
   Object.entries(keys).map(([code, action]) => [action, code]),
 ) as KeyboardProfile;
 export function allowedKey(code: string): boolean {
-  return /^(Key[A-Z]|Digit[0-9]|Arrow(Up|Down|Left|Right)|Space|Enter|Shift(Left|Right)|Numpad[0-9])$/.test(
-    code,
+  return (
+    code !== "KeyF" &&
+    /^(Key[A-Z]|Digit[0-9]|Arrow(Up|Down|Left|Right)|Space|Enter|Shift(Left|Right)|Numpad[0-9])$/.test(
+      code,
+    )
   );
 }
 export function parseKeyboard(value: unknown): KeyboardProfile | undefined {
