@@ -146,6 +146,7 @@ test("Select, Start and the legacy right Shift binding are normalized", async ()
   assert.equal(keyboardAction("Enter", defaultKeyboard), "start");
   const legacy = { ...defaultKeyboard, select: "ShiftRight" };
   assert.equal(keyboardAction("ShiftRight", legacy), "select");
+  assert.equal(keyboardAction("KeyQ", legacy), "select");
   assert.equal(keyboardAction("KeyS", legacy), "down");
   assert.equal(keyboardAction("ArrowDown", legacy), "down");
 });
