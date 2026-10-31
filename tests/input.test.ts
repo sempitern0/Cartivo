@@ -100,3 +100,24 @@ test("custom keyboard profiles validate complete unique safe bindings", async ()
     false,
   );
 });
+
+test("WASD aliases coexist with arrows and respect remapping collisions", async () => {
+  const { defaultKeyboard } = await import(
+    "../packages/input/src/nes-input.ts"
+  );
+  assert.equal(sample(undefined, undefined, new Set(["KeyW"])).up, true);
+  assert.equal(sample(undefined, undefined, new Set(["KeyA"])).left, true);
+  assert.equal(sample(undefined, undefined, new Set(["KeyS"])).down, true);
+  assert.equal(sample(undefined, undefined, new Set(["KeyD"])).right, true);
+  const custom = { ...defaultKeyboard, a: "KeyW" };
+  const state = sample(undefined, undefined, new Set(["KeyW"]), 0.25, custom);
+  assert.equal(state.a, true);
+  assert.equal(state.up, false);
+  assert.equal(
+    sample(undefined, undefined, new Set(["KeyD"]), 0.25, {
+      ...defaultKeyboard,
+      right: "KeyL",
+    }).right,
+    false,
+  );
+});

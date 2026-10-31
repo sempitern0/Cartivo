@@ -126,8 +126,8 @@
         >
       </p>
       <p class="availability">
-        NES experimental: cartuchos NROM NTSC. Prueba la demo sin aportar ningún
-        juego.
+        NES experimental: iNES NTSC, mappers 0–4. Prueba la demo sin aportar
+        ningún juego.
       </p>
     </section>
     <details>

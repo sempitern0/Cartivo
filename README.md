@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: primera emulación NES experimental (NROM NTSC) con JSNES 2.1.0 en Worker.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo de este incremento es JavaScript, no WASM; instalación PWA y offline siguen pendientes. No se distribuyen juegos ni BIOS propietarias de terceros.
+**Estado: emulación NES experimental (iNES NTSC, mappers 0–4) con JSNES 2.1.0 en Worker.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo de este incremento es JavaScript, no WASM; instalación PWA y offline siguen pendientes. No se distribuyen juegos ni BIOS propietarias de terceros.
 
 ## Catálogo inicial propuesto
 
@@ -56,7 +56,7 @@ pnpm dev
 
 El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible con la serie 24. CI emplea la versión fijada en `.node-version`.
 
-Abrir http://127.0.0.1:5173 → **Probar demo NES → Jugar**. Flechas/cruceta mueven el cuadrado; A (X por defecto) cambia el color y escribe progreso; B (Z) emite un tono. En pausa puedes exportar/importar la partida. Elegir juego acepta solamente cartuchos propios/autorizados iNES NTSC mapper 0. La zona **Controles**, accesible desde la cabecera o `/#controles`, permite probar teclado y mando mediante Gamepad API, reasignar controles y guardar perfiles locales. El laboratorio contiene únicamente diagnóstico técnico. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
+Abrir http://127.0.0.1:5173 → **Probar demo NES → Jugar**. Flechas/WASD/cruceta mueven el cuadrado; A (X por defecto) cambia el color y escribe progreso; B (Z) emite un tono. En pausa puedes exportar/importar la partida. Elegir juego acepta solamente cartuchos propios/autorizados iNES NTSC mappers 0–4, con límites por board documentados. La zona **Controles**, accesible desde la cabecera o `/#controles`, permite probar teclado y mando mediante Gamepad API, reasignar controles y guardar perfiles locales. El laboratorio contiene únicamente diagnóstico técnico. Consulta [H1-B entrada](docs/compatibility/H1-B-INPUT.md) para probarla y conocer los límites.
 
 
 

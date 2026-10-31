@@ -41,3 +41,9 @@
 - Importación local estricta NROM NTSC; pausa/foco/desconexión, cancelación y salida. Otros formatos se rechazan.
 - SRAM real con escritor único, dos generaciones SHA-256 en transacción IndexedDB, export/import por identidad y recuperación de corrupción.
 - E2E del núcleo y almacenamiento real en dev y preview; integridad del núcleo añadida a CI. Sin declarar PWA offline, compatibilidad general ni hardware probado.
+
+### Carga de cartuchos y movimiento predeterminado
+
+- Ampliación experimental iNES NTSC a MMC1/UxROM/CNROM/MMC3; límites por board y mensajes con mapper/tamaño en lugar del rechazo NROM genérico.
+- Fixtures originales de arranque/entrada/SRAM por mapper y carga E2E de MMC1 mayor que el antiguo límite.
+- WASD junto a flechas en Controles y juego, respetando asignaciones personalizadas y colisiones.

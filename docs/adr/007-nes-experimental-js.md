@@ -29,3 +29,11 @@ El acceso a `cpu.mem[$6000..$7fff]` es ABI privada de JSNES fijada por commit, c
 ## Evidencia y promoción
 
 [Expediente de núcleo y pruebas](../compatibility/H1-B-NES.md). La fixture demuestra CPU/PPU/entrada/APU y escritura/recuperación SRAM. E2E ejecuta Worker real, AudioWorklet y almacenamiento en Chromium, tanto en dev como en el build estático. Gamepad sintético etiquetado como tal; escucha física, mandos reales en juego, Firefox/Safari, cuotas reales, suspensión móvil, 100 ciclos, presupuestos y catálogo de regresión ampliado siguen pendientes. No anunciar H1 completo ni compatibilidad general NES.
+
+## Revisión: cartuchos iNES comunes y WASD
+
+Se amplía el gate experimental a mappers 1 (MMC1), 2 (UxROM), 3 (CNROM) y 4 (MMC3), ya incluidos sin parches en las mismas fuentes verificadas de JSNES. Topes PRG/CHR en KB por mapper: 0=32/8, 1=256/128, 2=256/8, 3=32/256, 4=512/256. Se mantienen iNES NTSC sin trainer, NES2, VS, extensiones ni SRAM superior a 8 KB. No se habilitan variantes de RAM bancaria o boards mayores.
+
+Pruebas originales derivadas de la demo, generadas en memoria, verifican arranque, imagen, input y SRAM/restauración en los cuatro mappers; un E2E carga un archivo MMC1 de más de 40 KB. Son pruebas de integración inicial: no validan cambios de banco exhaustivos, IRQ MMC3 ni compatibilidad de títulos comerciales. No cambian licencia, dependencia ni toolchain; el manifiesto actualiza la lista admitida.
+
+WASD actúa como alias de movimiento junto a las flechas predeterminadas. Las asignaciones primarias del usuario tienen prioridad; al remapear una dirección su alias deja de aplicarse. Se comparten las mismas reglas entre Controles y el reproductor.

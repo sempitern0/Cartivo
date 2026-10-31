@@ -1,6 +1,6 @@
 # H1-B — primera emulación NES real
 
-Fecha: 2026-10-31. **Experimental: NROM NTSC con JSNES en Worker.** Sustituye como estado actual las notas históricas «sin núcleo» de H1-A/H1-B-INPUT. No es todavía la PWA instalable/offline ni la build WASM del plan.
+Fecha: 2026-10-31. **Experimental: iNES NTSC, mappers 0–4, con JSNES en Worker.** Sustituye como estado actual las notas históricas «sin núcleo» de H1-A/H1-B-INPUT. No es todavía la PWA instalable/offline ni la build WASM del plan.
 
 ## Expediente de distribución
 
@@ -81,3 +81,11 @@ Abrir http://127.0.0.1:4173. Puertos 5173 y 4173 son orígenes distintos: no com
 ## Gates que siguen abiertos
 
 **H1 completo no está cerrado:** instalación/SW/offline, actualización protegida, WASM reproducible, QA físico del emulador con audio/mando, Firefox/Safari, suspensión móvil, tests de cuota/interrupción más amplios, 100 ciclos de resistencia y presupuestos reales. Solo NES NROM, un jugador, audio mono; sin fullscreen dedicado, touch controls ni save states. Las demás consolas siguen en planificación.
+
+## Corrección de límite de ROM y WASD
+
+El límite inicial de ~40 KB rechazaba cartuchos NTSC mayores antes de informar su mapper. Ahora se lee y valida la cabecera y se admiten experimentalmente mappers 0, 1, 2, 3 y 4 con los límites por board de ADR-007. Un error muestra el mapper o el tamaño declarado/real. NTSC es región/timing, no formato de cartucho. Las restricciones NROM descritas arriba corresponden al incremento anterior.
+
+22 pruebas unitarias/integración incluyen fixtures originales derivadas en mappers 1–4; E2E adicional carga un MMC1 local de 64 KB PRG y comprueba frames reales. No son pruebas exhaustivas de banking/IRQ ni garantía de compatibilidad con una ROM concreta. No se ha recibido ni distribuido el archivo del usuario.
+
+Movimiento predeterminado: flechas **y WASD**, disponible tanto en Controles como en la partida. Las asignaciones personalizadas prevalecen y no se sobrescriben perfiles guardados. Probar W/A/S/D por separado, soltar cada tecla y comprobar diagonales y neutralización de opuestos.

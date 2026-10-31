@@ -67,7 +67,7 @@ export function sample(
 ): InputState {
   const state = neutral();
   for (const code of held) {
-    const action = actions.find((action) => keyboard[action] === code);
+    const action = keyboardAction(code, keyboard);
     if (action) state[action] = true;
   }
   if (pad?.connected && profile) {
@@ -182,4 +182,22 @@ export function keyLabel(code: string): string {
   return (
     names[code] ?? code.replace(/^Key|^Digit/, "").replace(/^Numpad/, "Num ")
   );
+}
+
+const movementAliases: Record<string, Action> = {
+  KeyW: "up",
+  KeyA: "left",
+  KeyS: "down",
+  KeyD: "right",
+};
+export function keyboardAction(
+  code: string,
+  keyboard: KeyboardProfile,
+): Action | undefined {
+  const primary = actions.find((a) => keyboard[a] === code);
+  if (primary) return primary;
+  const alias = movementAliases[code];
+  return alias && keyboard[alias] === defaultKeyboard[alias]
+    ? alias
+    : undefined;
 }

@@ -222,3 +222,25 @@ test("initially hidden USB controller appears on browser exposure event", async 
   await expect(page.getByLabel("Mando", { exact: true })).toHaveValue("0");
   await expect(page.getByTestId("connection-status")).toContainText("1 mando");
 });
+
+test("WASD movements appear alongside arrow defaults", async ({ page }) => {
+  await page.getByRole("button", { name: "Activar prueba" }).click();
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
+  for (const [code, action] of [
+    ["KeyW", "up"],
+    ["KeyA", "left"],
+    ["KeyS", "down"],
+    ["KeyD", "right"],
+  ]) {
+    await page.keyboard.down(code);
+    await expect(page.locator(`[data-action=${action}]`)).toContainText(
+      "Pulsado",
+    );
+    await page.keyboard.up(code);
+    await expect(page.locator(`[data-action=${action}]`)).toContainText(
+      "Libre",
+    );
+  }
+});

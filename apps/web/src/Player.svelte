@@ -6,6 +6,7 @@
   import {
     neutral,
     sample,
+    keyboardAction,
     standard,
     sameDevice,
     type Pad,
@@ -248,7 +249,7 @@
       void pause();
       return;
     }
-    if (phase === "running" && Object.values(keyboard).includes(e.code)) {
+    if (phase === "running" && keyboardAction(e.code, keyboard)) {
       e.preventDefault();
       if (!e.repeat) held.add(e.code);
     }
@@ -356,12 +357,12 @@
     >
   </div>
   {#if !file}<p>
-      Cruceta o flechas: mueve el cuadrado. A: cambia el color y guarda ese
-      progreso. B: emite un tono. Usa tus asignaciones de Controles.
+      Cruceta, flechas o WASD: mueve el cuadrado. A: cambia el color y guarda
+      ese progreso. B: emite un tono. Usa tus asignaciones de Controles.
     </p>{/if}
   {#if phase === "ready"}<p>
       El archivo permanece en tu dispositivo. Esta primera versión ejecuta
-      cartuchos NROM NTSC.
+      cartuchos iNES NTSC (mappers 0–4).
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}

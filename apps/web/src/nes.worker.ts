@@ -32,7 +32,7 @@ async function run(r: NesRequest): Promise<NesResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
     if (r.file && r.file.size > MAX_ROM_BYTES)
-      throw Error("Este incremento admite solo NROM de hasta 32 KB PRG.");
+      throw Error("Archivo demasiado grande: límite experimental de 512 KB PRG y 256 KB CHR.");
     rom = r.demo ? controlDemo() : new Uint8Array(await r.file!.arrayBuffer());
     hash = await digest(rom);
     core = new NesAdapter(rom);

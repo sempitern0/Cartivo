@@ -302,3 +302,34 @@ test("cancel loading destroys the session without late navigation", async ({
   release();
   await expect(page.getByTestId("player-phase")).toHaveCount(0);
 });
+
+test("local MMC1 cartridge larger than old NROM cap loads in real worker", async ({
+  page,
+}) => {
+  const { controlDemo } = await import(
+    "../../packages/fixtures/src/control-demo.ts"
+  );
+  const demo = controlDemo();
+  const rom = new Uint8Array(16 + 65536 + 8192);
+  rom.set(demo.subarray(0, 16));
+  rom[4] = 4;
+  rom[6] = 0x12;
+  for (let bank = 0; bank < 4; bank++)
+    rom.set(demo.subarray(16, 16 + 16384), 16 + bank * 16384);
+  rom.set(demo.subarray(16 + 16384), 16 + 65536);
+  await page.goto("/");
+  await page
+    .locator("input[type=file]")
+    .setInputFiles({
+      name: "original-mmc1-test.nes",
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(rom),
+    });
+  await page.getByRole("button", { name: "Jugar", exact: true }).click();
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+  await expect
+    .poll(async () =>
+      Number(await page.locator("canvas").getAttribute("data-frames")),
+    )
+    .toBeGreaterThan(10);
+});

@@ -12,6 +12,7 @@
     keyLabel,
     neutral,
     sample,
+    keyboardAction,
     standard,
     pressedBindings,
     sameBinding,
@@ -149,15 +150,13 @@
       saveKeyboard();
       return;
     }
-    if (!active || capture || !Object.values(keyboard).includes(event.code))
-      return;
+    if (!active || capture || !keyboardAction(event.code, keyboard)) return;
     event.preventDefault();
     if (!event.repeat) held.add(event.code);
   }
   function keyup(event: KeyboardEvent) {
     held.delete(event.code);
-    if (active && Object.values(keyboard).includes(event.code))
-      event.preventDefault();
+    if (active && keyboardAction(event.code, keyboard)) event.preventDefault();
   }
   function beginMapping() {
     if (!last) return;
@@ -425,6 +424,10 @@
       /></label
     >
   {/if}
+  <p>
+    Movimiento predeterminado: flechas o WASD. Las asignaciones personalizadas
+    tienen prioridad.
+  </p>
   <fieldset>
     <legend>Teclado · pulsa una asignación para cambiarla</legend>
     <div class="buttons">
