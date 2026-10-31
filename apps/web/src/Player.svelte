@@ -20,8 +20,9 @@
   let {
     file,
     visible = true,
+    autostart = false,
     onclose,
-  }: { file?: File; visible?: boolean; onclose: () => void } = $props();
+  }: { file?: File; visible?: boolean; autostart?: boolean; onclose: () => void } = $props();
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
   );
@@ -69,7 +70,7 @@
     problem = "";
     audio = new GameAudio();
     // Resume is invoked directly by the user's Jugar gesture, before awaiting the worker.
-    const audioLoad = audio
+    void audio
       .open(new URL(audioWorkletUrl, location.href))
       .then(() => {
         audioReady = true;
@@ -87,7 +88,6 @@
     );
     try {
       const r = await client.request("load", file ? { file } : { demo: true });
-      await audioLoad;
       if (!active) return;
       battery = !!r.battery;
       saveStatus = r.recovered
@@ -98,7 +98,6 @@
       phase = "paused";
       await resume();
     } catch (e) {
-      await audioLoad;
       client?.dispose();
       if (active) fail(e);
     }
@@ -377,6 +376,7 @@
   }
   onMount(() => {
     fullscreenAvailable = !!document.fullscreenEnabled;
+    if (autostart) void start();
     const fullscreenChange = () => {
       const was = fullscreen;
       fullscreen = document.fullscreenElement === viewport;
@@ -448,7 +448,7 @@
 >
   <div class="heading" data-player-chrome>
     <div>
-      <p class="badge">NES · EXPERIMENTAL</p>
+      <p class="badge">NES</p>
       <h1>{file?.name ?? "Demo de controles"}</h1>
     </div>
     <button data-player-action onclick={close} disabled={busy}
@@ -456,10 +456,9 @@
     >
   </div>
   {#if !file}<p class="demo-info" data-player-chrome>
-      Cruceta, flechas o WASD: mueve el cuadrado. A: cambia el color y guarda
-      ese progreso. B: emite un tono. Usa tus asignaciones de Controles.
+      WASD o flechas para moverte · K/L para A/B.
     </p>{/if}
-  {#if phase === "ready"}<p data-player-chrome>
+  {#if phase === "ready" && !autostart}<p data-player-chrome>
       El archivo permanece en tu dispositivo. Esta primera versión ejecuta
       cartuchos iNES NTSC (mappers 0–4).
     </p>
@@ -499,7 +498,7 @@
     <label>Escalado <select bind:value={scaleMode}><option value="fit">Ajustar</option><option value="integer">Píxel entero</option><option value="corrected-integer">4:3 entero (NES)</option></select></label>
     <label>Aspecto <select bind:value={aspectMode}><option value="corrected">4:3 corregido</option><option value="native">Píxeles originales</option></select></label>
   </fieldset>{/if}
-  <p data-testid="player-phase" data-player-chrome>
+  <p data-testid="player-phase" class="visually-hidden" aria-live="polite">
     {phase === "running"
       ? "Jugando"
       : phase === "paused"
@@ -508,12 +507,8 @@
           ? "No se pudo continuar"
           : ""}
   </p>
-  <p class="secondary" data-player-chrome>
-    {phase === "running"
-      ? "Controles capturados · Escape para pausar y liberar el foco."
-      : padStatus}
-  </p>
-  <p data-testid="save-status" data-player-chrome>{saveStatus}</p>
+
+  <p data-testid="save-status" class="visually-hidden" aria-live="polite">{saveStatus}</p>
   {#if problem}<div
       bind:this={notice}
       class="notice"
@@ -567,6 +562,7 @@
 </section>
 
 <style>
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   .notice {
     background: #34202a;
     border: 1px solid var(--coral);
