@@ -13,12 +13,12 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyK");
+  await page.keyboard.down("KeyL");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
   await page
     .getByRole("link", { name: "Volver al inicio", exact: false })
     .click();
-  await page.keyboard.up("KeyK");
+  await page.keyboard.up("KeyL");
   await expect(
     page.getByRole("heading", { name: "Cartivo · NES" }),
   ).toBeVisible();
