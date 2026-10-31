@@ -32,17 +32,17 @@ test.beforeEach(async ({ page }) => {
 });
 test("keyboard scope, release and Tab escape", async ({ page }) => {
   const a = page.locator("[data-action=a]");
-  await page.keyboard.press("KeyK");
+  await page.keyboard.press("KeyL");
   await expect(a).toHaveText("ALibre");
   await page.getByRole("button", { name: "Activar prueba" }).click();
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyK");
+  await page.keyboard.down("KeyL");
   await expect(a).toHaveText("APulsado");
   await page.keyboard.press("Tab");
   await expect(a).toHaveText("ALibre");
-  await page.keyboard.up("KeyK");
+  await page.keyboard.up("KeyL");
   await expect(page.getByTestId("input-status")).toContainText("pausada");
 });
 test("standard pad, disconnect and reused slot require reactivation", async ({
@@ -137,9 +137,9 @@ test("blocked Gamepad API retains keyboard fallback", async ({ page }) => {
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyK");
+  await page.keyboard.down("KeyL");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
-  await page.keyboard.up("KeyK");
+  await page.keyboard.up("KeyL");
 });
 
 test("auto selects a controller exposed after opening and preserves explicit keyboard choice", async ({
@@ -165,14 +165,14 @@ test("auto selects a controller exposed after opening and preserves explicit key
 test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: "Asignar tecla A", exact: true }),
-  ).toHaveText("A = K");
+  ).toHaveText("A = L");
   await expect(
     page.getByRole("button", { name: "Asignar tecla B", exact: true }),
-  ).toHaveText("B = L");
+  ).toHaveText("B = K");
   await page
     .getByRole("button", { name: "Asignar tecla A", exact: true })
     .click();
-  await page.keyboard.press("KeyL");
+  await page.keyboard.press("KeyK");
   await expect(page.getByTestId("input-status")).toContainText(
     "ya está asignada",
   );
@@ -184,9 +184,9 @@ test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
   );
-  await page.keyboard.down("KeyK");
+  await page.keyboard.down("KeyL");
   await expect(page.locator("[data-action=a]")).toHaveText("ALibre");
-  await page.keyboard.up("KeyK");
+  await page.keyboard.up("KeyL");
   await page.keyboard.down("KeyC");
   await expect(page.locator("[data-action=a]")).toHaveText("APulsado");
   await page.keyboard.up("KeyC");
@@ -198,7 +198,7 @@ test("keyboard labels, remapping, collisions and reload", async ({ page }) => {
   await page.getByRole("button", { name: "Restablecer teclado" }).click();
   await expect(
     page.getByRole("button", { name: "Asignar tecla A", exact: true }),
-  ).toHaveText("A = K");
+  ).toHaveText("A = L");
 });
 
 test("initially hidden USB controller appears on browser exposure event", async ({
