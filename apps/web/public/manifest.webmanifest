@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "Cartivo",
+  "short_name": "Cartivo",
+  "description": "Tu colección retro, sin complicaciones.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111218",
+  "theme_color": "#111218",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": { "application/x-nes-rom": [".nes"] }
+    }
+  ],
+  "launch_handler": { "client_mode": "focus-existing" }
+}
