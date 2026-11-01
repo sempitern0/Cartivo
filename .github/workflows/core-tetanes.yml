@@ -1,0 +1,86 @@
+name: Core TetaNES
+# Builds the TetaNES WebAssembly core, applies the licence gate and commits
+# dist/ + manifest + SBOM to the branch, so local development needs no Rust.
+# mode=verify rebuilds on a fresh runner and compares with what is committed.
+on:
+  push:
+    paths:
+      - "cores/tetanes/Cargo.toml"
+      - "cores/tetanes/src/**"
+      - "cores/tetanes/rust-toolchain.toml"
+      - "cores/tetanes/.cargo/**"
+      - "cores/tetanes/deny.toml"
+      - "tools/build-tetanes.mjs"
+      - ".github/workflows/core-tetanes.yml"
+  pull_request:
+    paths:
+      - "cores/tetanes/**"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "build (commit artefacts) or verify (reproducibility)"
+        default: build
+        type: choice
+        options: [build, verify]
+permissions:
+  contents: read
+concurrency:
+  group: core-tetanes-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    env:
+      MODE: ${{ github.event_name == 'pull_request' && 'verify' || inputs.mode || 'build' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Rust toolchain (rust-toolchain.toml)
+        working-directory: cores/tetanes
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            cores/tetanes/target
+          key: tetanes-${{ hashFiles('cores/tetanes/Cargo.toml', 'cores/tetanes/Cargo.lock', 'cores/tetanes/rust-toolchain.toml') }}
+          restore-keys: tetanes-
+      - name: Resolve dependencies
+        working-directory: cores/tetanes
+        run: |
+          if [ ! -f Cargo.lock ]; then
+            test "$MODE" = build || { echo "Cargo.lock missing"; exit 1; }
+            cargo generate-lockfile
+          fi
+          cargo fetch --locked --target wasm32-unknown-unknown
+      - name: Licence and source gate (CORE-LEGAL-01)
+        run: |
+          command -v cargo-deny >/dev/null || cargo install cargo-deny --version "~0.18" --locked
+          cargo deny --manifest-path cores/tetanes/Cargo.toml check licenses sources
+      - name: Build
+        run: node tools/build-tetanes.mjs ${{ env.MODE == 'verify' && '--verify' || '' }}
+      - name: Commit artefacts
+        if: env.MODE == 'build'
+        run: |
+          git config user.name "cartivo-core-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cores/tetanes/Cargo.lock cores/tetanes/dist cores/tetanes/manifest.json cores/tetanes/sbom.json
+          if git diff --cached --quiet; then echo "Artefacts unchanged"; exit 0; fi
+          HASH=$(sha256sum cores/tetanes/dist/tetanes_bg.wasm | cut -c1-12)
+          git commit -m "chore(core): build TetaNES WASM ${HASH}"
+          git push
+          # Commits pushed with GITHUB_TOKEN do not trigger workflows; ask for
+          # the main CI and an independent reproducibility build explicitly.
+          gh workflow run ci.yml --ref "${GITHUB_REF_NAME}"
+          gh workflow run core-tetanes.yml --ref "${GITHUB_REF_NAME}" -f mode=verify
+        env:
+          GH_TOKEN: ${{ github.token }}

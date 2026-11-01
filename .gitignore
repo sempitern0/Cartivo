@@ -28,3 +28,4 @@ playwright-report/
 *.state
 !packages/fixtures/**
 screenshots/
+cores/tetanes/target/

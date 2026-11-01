@@ -1,0 +1,27 @@
+[package]
+name = "cartivo-tetanes"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Cartivo wasm-bindgen wrapper around tetanes-core (NES)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pinned exactly: any change goes through the CORE-LEGAL-01 gate again.
+tetanes-core = "=0.17.0"
+wasm-bindgen = "0.2"
+# tetanes-core uses `rand` for random power-on RAM; on wasm32 getrandom
+# needs its JS backend even though Cartivo boots with zeroed RAM.
+getrandom = { version = "0.4", features = ["wasm_js"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+debug = false
+strip = true
