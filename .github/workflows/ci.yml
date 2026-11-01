@@ -30,6 +30,25 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm verify:core
+      # Cheap guard (no Rust): a PR that changes a core's sources, Cargo.toml
+      # or toolchain must also bring the rebuilt dist/ and manifest.json.
+      - name: Core sources come with rebuilt artefacts
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch -q --depth=1 origin "$BASE"
+          status=0
+          for dir in cores/*/; do
+            changed=$(git diff --name-only FETCH_HEAD HEAD -- "$dir")
+            sources=$(printf '%s\n' "$changed" | grep -E '/(src/|Cargo\.toml$|rust-toolchain\.toml$|build\.rs$)' || true)
+            if [ -n "$sources" ] && ! printf '%s\n' "$changed" | grep -q '/manifest\.json$'; then
+              echo "::error::$dir changed without rebuilt artefacts (run its core workflow once):"
+              echo "$sources"
+              status=1
+            fi
+          done
+          exit $status
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test
