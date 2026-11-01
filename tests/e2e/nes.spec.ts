@@ -417,7 +417,10 @@ test("Focus is accessible using mouse controls without depending on Vimium short
   await page.getByRole("button", { name: "Activar Focus" }).click();
   await expect(page.locator(".player")).toHaveClass(/focus-mode/);
   await expect(page.getByRole("button", { name: "Salir del modo Focus" })).toBeAttached();
-  await expect(page.getByRole("button", { name: "Desactivar Focus" })).toHaveAttribute("aria-pressed", "true");
+  // The toolbar is hidden in Focus mode; the visible exit button replaces it.
+  await expect(
+    page.getByRole("button", { name: "Desactivar Focus", includeHidden: true }),
+  ).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Salir del modo Focus" }).hover();
   await page.getByRole("button", { name: "Salir del modo Focus" }).click();
   await expect(page.locator(".player")).not.toHaveClass(/focus-mode/);
