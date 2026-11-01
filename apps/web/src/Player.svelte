@@ -68,6 +68,9 @@
   let padStatus = $state("Sin mando");
   let padConnected = $state(false);
   let romInput = $state.raw<HTMLInputElement>();
+  // The player is remounted for each game ({#key} in App), so the system
+  // is fixed for its lifetime and reading its initial value is intended.
+  // svelte-ignore state_referenced_locally
   let coreChoice = $state<string>(readCore(system));
   // «Partidas»: full-console snapshots (ADR-009).
   let saves = $state.raw<StateMeta[]>([]);
@@ -177,6 +180,7 @@
   let fullscreen = $state(false);
   let fullscreenAvailable = $state(false);
   let focusMode = $state(false);
+  // svelte-ignore state_referenced_locally
   const savedDisplay = readDisplay(system.id);
   let scaleMode = $state<ScaleMode>(savedDisplay.scale);
   let aspectMode = $state<AspectMode>(savedDisplay.aspect);
