@@ -899,8 +899,8 @@
             checked={coreChoice === id}
             onchange={() => chooseCore(id)}
           />
-          {coreNames[id]}{#if runningCore === id}<span class="secondary">
-              · en uso</span
+          {coreNames[id]}{#if runningCore === id}<span class="secondary"
+              >{" · en uso"}</span
             >{/if}</label
         >{/each}
       {#if runningCore && coreChoice !== runningCore}<p

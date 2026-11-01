@@ -473,3 +473,27 @@ test("console reset keeps verified cartridge SRAM before returning to title", as
   for await (const chunk of stream!) chunks.push(Buffer.from(chunk));
   expect(JSON.parse(Buffer.concat(chunks).toString()).bytes[0]).toBe(1);
 });
+
+test("TetaNES runs by default and JSNES can be chosen for the next game", async ({
+  page,
+}) => {
+  await start(page);
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  await page.getByText("Acerca de esta prueba").click();
+  const tetanes = page.getByRole("radio", { name: /TetaNES/ });
+  const jsnes = page.getByRole("radio", { name: /JSNES/ });
+  await expect(tetanes).toBeChecked();
+  await expect(page.locator(".core-choice")).toContainText(
+    "TetaNES · WebAssembly · en uso",
+  );
+  await jsnes.check();
+  await expect(page.getByTestId("core-pending")).toBeVisible();
+  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await start(page);
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  await page.getByText("Acerca de esta prueba").click();
+  await expect(page.locator(".core-choice")).toContainText(
+    "JSNES · JavaScript · en uso",
+  );
+  await page.getByRole("radio", { name: /TetaNES/ }).check();
+});
