@@ -15,7 +15,7 @@ async function startOver(page: import("@playwright/test").Page) {
 }
 async function start(page: import("@playwright/test").Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await startOver(page);
   await expect
     .poll(async () =>
@@ -90,7 +90,7 @@ test("unsupported local ROM produces a recoverable error", async ({ page }) => {
   expect(errorBox!.y).toBeLessThan(canvasBox!.y);
   await page.getByRole("button", { name: "Salir", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Jugar", exact: true }),
+    page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
 });
 
@@ -102,7 +102,7 @@ test("single writer prevents simultaneous sessions for the same game", async ({
   await page.getByRole("button", { name: "Pausar juego" }).click();
   const second = await context.newPage();
   await second.goto("/");
-  await second.getByRole("button", { name: "Probar demo" }).click();
+  await second.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await expect(second.getByRole("alert")).toContainText("otra pestaña");
   await second.close();
   await page.bringToFront();
@@ -307,10 +307,10 @@ test("cancel loading destroys the session without late navigation", async ({
     await route.continue().catch(() => {});
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await page.getByRole("button", { name: "Cancelar carga" }).click();
   await expect(
-    page.getByRole("button", { name: "Jugar", exact: true }),
+    page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
   release();
   await expect(page.getByTestId("player-phase")).toHaveCount(0);
@@ -423,7 +423,7 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   await expect(canvas).toHaveClass(/smooth/);
   // Choices persist for NES on this device.
   await page.reload();
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await startOver(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByRole("button", { name: "Gráficos" }).click();

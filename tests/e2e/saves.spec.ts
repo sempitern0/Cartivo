@@ -65,7 +65,7 @@ test("leaving saves automatically and reopening offers to continue", async ({
   await running(page);
   await page.getByRole("button", { name: "Salir", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Jugar", exact: true }),
+    page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
   await open(page);
   const offer = page.getByRole("dialog", {
@@ -79,7 +79,7 @@ test("leaving saves automatically and reopening offers to continue", async ({
   // Starting over is also possible.
   await page.getByRole("button", { name: "Salir", exact: true }).click();
   await expect(
-    page.getByRole("button", { name: "Jugar", exact: true }),
+    page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
   await open(page);
   await page.getByRole("button", { name: "Empezar de nuevo" }).click();
@@ -166,7 +166,7 @@ test("leaving right after a quick save loses nothing and leaks no workers", asyn
     await page.keyboard.press("F5");
     await page.getByRole("button", { name: "Salir", exact: true }).click();
     await expect(
-      page.getByRole("button", { name: "Jugar", exact: true }),
+      page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
     ).toBeVisible();
   }
   await expect.poll(() => page.workers().length).toBe(0);

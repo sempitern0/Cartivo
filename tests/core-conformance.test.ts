@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { initSync } from "../cores/tetanes/dist/tetanes.js";
 import { coreModules } from "../packages/adapters/src/registry.ts";
+import { provideSameBoyBinary } from "../packages/adapters/src/sameboy.ts";
 import { neutral } from "../packages/input/src/nes-input.ts";
 
 // Node cannot fetch file URLs: instantiate wasm cores up front so their
@@ -15,6 +16,9 @@ initSync({
     new URL("../cores/tetanes/dist/tetanes_bg.wasm", import.meta.url),
   ),
 });
+provideSameBoyBinary(
+  readFileSync(new URL("../cores/sameboy/dist/sameboy.wasm", import.meta.url)),
+);
 
 const hash = (b: Uint8ClampedArray) =>
   createHash("sha256").update(b).digest("hex");
@@ -32,9 +36,10 @@ for (const module of coreModules) {
     const core = module.create(rom);
     const { width, height } = module.video;
 
-    // Boots and presents frames of the declared size.
+    // Boots (Game Boy Color's boot ROM takes about 4 s) and presents
+    // frames of the declared size.
     let frame = core.advance(3);
-    for (let i = 0; i < 19; i++) frame = core.advance(3);
+    for (let i = 0; i < 99; i++) frame = core.advance(3);
     assert.equal(frame.pixels.length, width * height * 4);
     assert.ok(new Set(new Uint32Array(frame.pixels.buffer)).size >= 2);
     assert.equal(frame.frames, core.frames);

@@ -93,7 +93,7 @@ test("installed shell reopens offline and plays the demo", async ({
   await context.setOffline(true);
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Probar demo" }),
+    page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }),
     problems.join("\n"),
   )
     .toBeVisible({ timeout: 10000 })
@@ -101,7 +101,7 @@ test("installed shell reopens offline and plays the demo", async ({
       const html = (await page.content()).slice(0, 800);
       throw new Error(`${e.message}\n${problems.join("\n")}\n${html}`);
     });
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await startOver(page);
   await expect
     .poll(async () =>

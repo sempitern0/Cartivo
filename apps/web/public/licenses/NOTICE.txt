@@ -18,6 +18,15 @@ option-ext 0.2.0 (dependency of dirs-sys) — Mozilla Public License 2.0:
 option-ext-MPL-2.0.txt. Unmodified; its source code is available at
 https://github.com/soc/option-ext and https://crates.io/crates/option-ext.
 
+SameBoy v1.0.4 — Copyright (c) 2015-2026 Lior Halphon; Expat (MIT) license:
+sameboy-LICENSE.txt (adjacent file). Source:
+https://github.com/LIJI32/SameBoy/tree/98da08c3117a7bf39c7329fc662c0d18cb54707d
+Its core and its own free boot ROMs (built from BootROMs/*.asm) are compiled
+unchanged to standalone WebAssembly by Cartivo's CI (cores/sameboy), with
+Emscripten 6.0.12 system libraries (MIT OR NCSA; musl MIT; compiler-rt
+Apache-2.0 WITH LLVM-exception; dlmalloc CC0-1.0): cores/sameboy/sbom.json.
+No Nintendo boot ROM, BIOS or game is distributed.
+
 Svelte 5.57.3 — MIT. Full copyright and license: svelte-MIT.txt.
 
 Cartivo's original code: PolyForm Noncommercial 1.0.0. That restriction is not

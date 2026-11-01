@@ -142,7 +142,7 @@
           >{@html icons.back}</a
         >
         <div class="titles">
-          <p class="kicker">NES · Experimental</p>
+          <p class="kicker">Mando y teclado</p>
           <h1 bind:this={pageHeading} tabindex="-1">Configurar controles</h1>
         </div>
       </div>

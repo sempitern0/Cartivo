@@ -24,7 +24,11 @@
   "file_handlers": [
     {
       "action": "/",
-      "accept": { "application/x-nes-rom": [".nes"] }
+      "accept": {
+        "application/x-nes-rom": [".nes"],
+        "application/x-gameboy-rom": [".gb"],
+        "application/x-gameboy-color-rom": [".gbc"]
+      }
     }
   ],
   "launch_handler": { "client_mode": "focus-existing" }

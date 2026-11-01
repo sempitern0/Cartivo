@@ -2,6 +2,7 @@
 // Worker side resolves cores through packages/adapters/src/registry.ts.
 // Adding a console: docs/ADDING_A_SYSTEM.md.
 import {
+  GB_VIDEO,
   NES_VIDEO,
   type VideoDescriptor,
 } from "../../media/src/display-scaler.ts";
@@ -23,6 +24,8 @@ export type SystemInfo = {
   /** Lower-case file extensions including the dot. */
   extensions: string[];
   video: VideoDescriptor;
+  /** Frames per second the player advances (original hardware rate). */
+  frameRate: number;
   cores: CoreInfo[];
   defaultCore: string;
   /** Formats the current build accepts, in user terms. */
@@ -40,6 +43,8 @@ export const systems: readonly SystemInfo[] = [
     longName: "Nintendo Entertainment System",
     extensions: [".nes"],
     video: NES_VIDEO,
+    // NTSC is 60.0988 Hz; kept at 60 as shipped (no audible drift yet).
+    frameRate: 60,
     cores: [
       {
         id: "tetanes",
@@ -66,7 +71,44 @@ export const systems: readonly SystemInfo[] = [
     demo: true,
     available: true,
   },
+  gameBoy({
+    id: "gb",
+    name: "Game Boy",
+    longName: "Nintendo Game Boy",
+    extensions: [".gb"],
+  }),
+  gameBoy({
+    id: "gbc",
+    name: "Game Boy Color",
+    longName: "Nintendo Game Boy Color",
+    extensions: [".gbc"],
+  }),
 ];
+
+/** GB and GBC share SameBoy; the cartridge header picks the hardware. */
+function gameBoy(
+  info: Pick<SystemInfo, "id" | "name" | "longName" | "extensions">,
+): SystemInfo {
+  return {
+    ...info,
+    video: GB_VIDEO,
+    frameRate: 4194304 / 70224,
+    cores: [
+      {
+        id: "sameboy",
+        label: "SameBoy · WebAssembly",
+        version: "1.0.4",
+        licenses: [
+          { name: "Licencia SameBoy", href: "/licenses/sameboy-LICENSE.txt" },
+        ],
+      },
+    ],
+    defaultCore: "sameboy",
+    formatNote: "cartuchos sin mapper, MBC1, MBC2, MBC3 (con reloj) y MBC5",
+    demo: true,
+    available: true,
+  };
+}
 
 export function system(id: string): SystemInfo | undefined {
   return systems.find((s) => s.id === id);
