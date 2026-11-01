@@ -83,7 +83,7 @@ test("Cargar ROM replaces the game with a single session", async ({ page }) => {
   const { controlDemo } =
     await import("../../packages/fixtures/src/control-demo.ts");
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await playing(page);
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Cargar ROM" }).click();
@@ -123,7 +123,7 @@ test("status footer reports keyboard and a connected pad", async ({
   });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await playing(page);
   await expect(page.getByTestId("keyboard-status")).toHaveText(
     "Teclado conectado",
@@ -155,7 +155,7 @@ test("home, controls and player fit a 375px phone", async ({
     fullPage: true,
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await playing(page);
   await noHorizontalScroll(page);
   await page.screenshot({

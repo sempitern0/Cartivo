@@ -28,6 +28,15 @@ export const NES_VIDEO: VideoDescriptor = {
   dynamicResolution: false,
 };
 
+/** Game Boy and Game Boy Color: square pixels, 10:9. */
+export const GB_VIDEO: VideoDescriptor = {
+  sourceWidth: 160,
+  sourceHeight: 144,
+  displayAspect: 10 / 9,
+  pixelArt: true,
+  dynamicResolution: false,
+};
+
 export function displayLayout(
   containerWidth: number,
   containerHeight: number,

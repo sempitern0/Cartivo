@@ -25,7 +25,7 @@ Cada port requiere trabajo propio. WASM no universaliza gráficos, JIT ni filesy
 
 ## Implementación (2026-11-01)
 
-- **Contrato** `packages/adapters/src/contract.ts`: `EmulatorCore` (entrada, frames, SRAM, instantáneas, `dispose`) y `CoreModule` (sistema, versión, vídeo, tamaño de SRAM, validación, demo, preparación y creación).
+- **Contrato** `packages/adapters/src/contract.ts`: `EmulatorCore` (entrada, frames, SRAM, instantáneas, `dispose`) y `CoreModule` (sistema, versión, vídeo, validación, demo, preparación y creación). Desde ADR-010, el tamaño de la SRAM lo da cada núcleo para su cartucho (`EmulatorCore.saveBytes`) y el ritmo de frames, el sistema (`SystemInfo.frameRate`).
 - **Registros:** `packages/adapters/src/registry.ts` (lado Worker, módulos de núcleo) y `packages/runtime/src/systems.ts` (lado UI, sin código de núcleos).
 - **Protocolo v1 genérico** `packages/runtime/src/protocol.ts` con `system` y `core`, cliente `EmulatorClient` y un único `apps/web/src/emulator.worker.ts`.
 - **Pruebas:** `tests/core-conformance.test.ts` se aplica a cada módulo registrado.

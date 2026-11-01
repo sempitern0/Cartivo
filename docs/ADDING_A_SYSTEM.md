@@ -20,10 +20,10 @@ Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un siste
 - Añadir `tools/verify-<id>.mjs` a `pnpm verify:core`. La CI rechaza una PR que cambie `cores/<id>/src`, `Cargo.toml` o la toolchain sin traer `manifest.json` y `dist/` regenerados.
 
 ## 3. Módulo del núcleo
-- Adaptador `packages/adapters/src/<id>.ts` que implemente `EmulatorCore`: `input`, `advance` (1–3 frames, RGBA del tamaño declarado, audio mono a 48 kHz ≤ 1 s), `save` (SRAM del tamaño de `sramBytes`), `snapshot`/`restore` (errores legibles), `lastFrame` y `dispose` (liberar memoria WASM).
+- Adaptador `packages/adapters/src/<id>.ts` que implemente `EmulatorCore`: `input`, `advance` (1–3 frames, RGBA del tamaño declarado, audio mono a 48 kHz ≤ 1 s), `saveBytes` (tamaño de la SRAM de ese cartucho; 0 si no tiene) y `save` (SRAM de ese tamaño), `snapshot`/`restore` (errores legibles), `lastFrame` y `dispose` (liberar memoria WASM).
 - Validador de formato del sistema (como `packages/adapters/src/ines.ts`): cabecera, tamaños y variantes admitidas, con mensajes en español.
 - Fixture **original** en `packages/fixtures/` (nunca ROMs comerciales ni de terceros) con hash, licencia y oráculo.
-- Registrar un `CoreModule` en `packages/adapters/src/registry.ts` con `system`, `id`, `version` exacta, `video`, `sramBytes`, `maxRomBytes`, `validate`, `demo`, `prepare` y `create`.
+- Registrar un `CoreModule` en `packages/adapters/src/registry.ts` con `system`, `id`, `version` exacta, `video`, `maxRomBytes`, `validate`, `demo`, `prepare` y `create`.
 
 ## 4. Sistema en la interfaz
 - Añadir la entrada en `packages/runtime/src/systems.ts`:
@@ -39,21 +39,21 @@ Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un siste
 - `tests/systems.test.ts` comprueba que la UI y el Worker coinciden (ids, versiones y vídeo).
 - Añadir pruebas específicas del formato y E2E del flujo (abrir archivo, jugar, Partidas) en dev y preview.
 
-## Mapa para GB/GBC (próximo sistema)
-Archivos que debería tocar el incremento, según el estado de la PR #2:
+## Lo que tocó GB/GBC (H2-GB, ADR-010)
+Primera prueba real de este checklist con SameBoy. Además de los archivos del núcleo (`cores/sameboy`, workflow, build, verify), el adaptador, el validador, la fixture, `registry.ts`, `systems.ts`, el manifest y la documentación, hicieron falta tres cambios de base, que ya sirven para los siguientes sistemas:
 
-| Tocar | Para qué |
-|---|---|
-| `cores/<id>/`, `.github/workflows/core-<id>.yml`, `tools/build-<id>.mjs`, `tools/verify-<id>.mjs` | Build WASM reproducible |
-| `packages/adapters/src/<id>.ts`, validador de cabecera GB, `registry.ts` | Módulo del núcleo |
-| `packages/fixtures/` | ROM original de prueba |
-| `packages/runtime/src/systems.ts`, `apps/web/public/manifest.webmanifest` | Tarjeta, extensiones `.gb`/`.gbc`, vídeo 160×144 a 10:9 |
-| `tests/core-conformance.test.ts` (fixture), pruebas de formato y E2E | Conformidad |
-| Docs del apartado 6 | Expediente |
+- **`EmulatorCore.saveBytes`:** el tamaño de la SRAM depende del cartucho, no del módulo.
+- **`SystemInfo.frameRate`:** el reproductor avanza al ritmo del hardware. Con 60 Hz fijos, un núcleo a 59,73 Hz produce más audio del que se consume y acaba cortándose.
+- **Gráficos:** oculta las opciones de proporción cuando el píxel es cuadrado.
 
-**No deberían cambiar:** `App.svelte`, `Player.svelte`, `PlayerToolbar.svelte`, `GraphicsPanel.svelte`, `SavePanel.svelte`, `GameStage.svelte`, `emulator.worker.ts`, `protocol.ts`, `client.ts` ni `packages/storage`. La SRAM se guarda como `gb-sram-v1:<hash>` y las copias como `cartivo-gb-sram-v1` (`packages/storage/src/formats.ts`); las Partidas ya son por hash y núcleo. `tests/systems.test.ts` falla si la interfaz incluye ids de sistema escritos a mano o si el manifest y `systems.ts` no coinciden.
+Por lo demás, `App`, `Player` (salvo `frameRate`), `PlayerToolbar`, `SavePanel`, `GameStage`, el Worker (salvo `saveBytes`), el protocolo y `packages/storage` no cambiaron. Para cargar núcleos solo al usarlos, `prepare()` hace `import()` del adaptador (Workers como módulos ES).
 
-**Límites conocidos (posmerge):** el bucle del reproductor avanza a 60 Hz fijos (GB va a 59,73 Hz: deriva inapreciable, sin corrección de A/V por núcleo); los controles y su página siguen siendo los 8 botones NES (válidos para GB/GBC); el vídeo del núcleo es de tamaño fijo (sin cambios de resolución en caliente).
+**Plantilla C/C++ (Emscripten):**
+- Copiar `tools/build-sameboy.mjs`, `cores/sameboy/toolchain.json` y `core-sameboy.yml`.
+- `STANDALONE_WASM` sin JS de Emscripten y un adaptador TS que aporte los imports de sistema (ver `packages/adapters/src/sameboy.ts`).
+- Probar antes el envoltorio con un arnés nativo (gcc): cada compilación en CI cuesta minutos.
+
+**Límites conocidos:** los controles siguen siendo los 8 botones NES/GB; GBA (L/R), SNES (X/Y/L/R) y Mega Drive (C) necesitan ampliar antes `InputState`. El vídeo del núcleo es de tamaño fijo.
 
 ## 6. Documentación
 Crear `docs/compatibility/<SISTEMA>.md` y un ADR del núcleo, y actualizar README, el plan técnico (catálogo y backlog), `LICENSES.md`, `apps/web/public/licenses/` y CHANGELOG.

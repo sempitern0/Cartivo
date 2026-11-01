@@ -31,6 +31,7 @@ export function inputBits(state: InputState): number {
 export class TetanesAdapter {
   private core: Core;
   readonly battery: boolean;
+  readonly saveBytes = SRAM_BYTES;
   frames = 0;
   /** Requires the wasm module to be initialised (see core.ts). */
   constructor(rom: Uint8Array, save?: Uint8Array) {

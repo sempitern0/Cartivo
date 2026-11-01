@@ -307,7 +307,7 @@
       loop = requestAnimationFrame(pump);
       return;
     }
-    remainder += ((now - time) * 60) / 1000;
+    remainder += ((now - time) * system.frameRate) / 1000;
     time = now;
     if (remainder > 12) {
       problem =

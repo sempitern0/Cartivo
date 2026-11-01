@@ -1,0 +1,2 @@
+Bump this file only to build SameBoy once in CI (core-sameboy.yml).
+Reason: first build of SameBoy v1.0.4 for Cartivo (GB/GBC, ADR-010).

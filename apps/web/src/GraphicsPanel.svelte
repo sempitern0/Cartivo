@@ -35,10 +35,16 @@
   } = $props();
   let panel = $state.raw<HTMLElement>();
   const ratio = $derived(aspectLabel(video.displayAspect));
+  /** Square-pixel systems (Game Boy): corrected and native look the same. */
+  const squarePixels = $derived(
+    Math.abs(video.displayAspect - video.sourceWidth / video.sourceHeight) < 1e-6,
+  );
   const scaleOptions = $derived<{ value: ScaleMode; label: string; hint: string }[]>([
     { value: "fit", label: "Ajustar", hint: "Ocupa todo el espacio disponible" },
     { value: "integer", label: "Píxel entero", hint: "Píxeles idénticos; puede dejar bordes" },
-    { value: "corrected-integer", label: `${ratio} entero`, hint: "Proporción original con píxel entero" },
+    ...(squarePixels
+      ? []
+      : [{ value: "corrected-integer" as const, label: `${ratio} entero`, hint: "Proporción original con píxel entero" }]),
   ]);
   const aspectOptions = $derived<{ value: AspectMode; label: string; hint: string }[]>([
     { value: "corrected", label: `${ratio} original`, hint: "Como se veía en su pantalla" },
@@ -76,7 +82,7 @@
   </header>
   <fieldset>
     <legend>Escalado</legend>
-    <div class="options">
+    <div class="options" class:two={scaleOptions.length === 2}>
       {#each scaleOptions as option}<label
           class="option"
           class:checked={scaleMode === option.value}
@@ -99,7 +105,7 @@
         </label>{/each}
     </div>
   </fieldset>
-  <fieldset>
+  {#if !squarePixels}<fieldset>
     <legend>Proporción</legend>
     <div class="options two">
       {#each aspectOptions as option}<label
@@ -122,7 +128,7 @@
           <span class="hint">{option.hint}</span>
         </label>{/each}
     </div>
-  </fieldset>
+  </fieldset>{/if}
   <label class="switch">
     <input
       type="checkbox"

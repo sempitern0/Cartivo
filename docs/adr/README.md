@@ -13,3 +13,4 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [007](007-nes-experimental-js.md) | NES con JSNES en Worker; SRAM transaccional | Aceptado; JSNES pasa a alternativa |
 | [008](008-nes-tetanes-wasm.md) | NES con TetaNES en WebAssembly, build reproducible en CI | Aceptado; núcleo por defecto |
 | [009](009-save-states.md) | «Partidas»: instantáneas para guardar cualquier juego | Aceptado |
+| [010](010-gb-sameboy.md) | Game Boy y Game Boy Color con SameBoy en WebAssembly | Aceptado (experimental) |

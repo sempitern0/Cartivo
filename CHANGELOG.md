@@ -110,3 +110,13 @@
 - TetaNES se compila solo bajo petición explícita; la CI cotidiana verifica los artefactos versionados sin Rust.
 - Una ejecución por cambio: sin duplicados push/PR, cancelación de ejecuciones superadas, omisión de cambios solo de documentación y límite de 10 min.
 - Playwright muestra la duración de cada test.
+
+### H2-GB: Game Boy y Game Boy Color con SameBoy
+
+- Tarjetas «Game Boy» (`.gb`) y «Game Boy Color» (`.gbc`) con SameBoy 1.0.4 en WebAssembly autónomo; el modelo DMG o CGB se elige según la cabecera del cartucho (ADR-010).
+- Gate CORE-LEGAL-01 de SameBoy (Expat, boot ROMs libres compiladas desde su código); boytacean descartado por incrustar boot ROMs de Nintendo.
+- Build solo bajo petición (`core-sameboy.yml`, emsdk 6.0.12, rgbds v1.0.4), `verify-sameboy` en `verify:core` y aviso de licencia en `NOTICE.txt`.
+- Fixture original SM83 (MBC1+batería, variantes DMG y CGB) y validación de cabecera (sin mapper, MBC1/2/3/5).
+- Contrato: el tamaño de la SRAM lo da cada núcleo (`saveBytes`) y el reproductor avanza al ritmo de cada sistema (`frameRate`; GB a 59,73 Hz).
+- SameBoy se carga solo al jugar a GB/GBC (`import()` en Workers ES); Gráficos oculta las opciones de proporción cuando el píxel es cuadrado.
+- Pruebas: conformidad de `gb`/`gbc`, cabecera, sistemas y E2E de demo, SRAM, F5/F9, soltar `.gbc` y archivo dañado.

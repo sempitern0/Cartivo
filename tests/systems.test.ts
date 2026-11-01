@@ -44,8 +44,11 @@ test("every core the UI offers exists in the worker registry", () => {
 test("files are routed by extension", () => {
   assert.equal(systemForFile("Contra (USA).NES")?.id, "nes");
   assert.equal(systemForFile("notes.txt"), undefined);
-  assert.equal(acceptFor(availableSystems()), ".nes");
+  assert.equal(systemForFile("Juego.GB")?.id, "gb");
+  assert.equal(systemForFile("juego.gbc")?.id, "gbc");
+  assert.equal(acceptFor(availableSystems()), ".nes,.gb,.gbc");
   assert.equal(coreLabel("nes", "tetanes"), "TetaNES");
+  assert.equal(coreLabel("gbc", "sameboy"), "SameBoy");
 });
 
 test("the manifest opens exactly the extensions of available systems", () => {
@@ -71,4 +74,14 @@ test("the interface has no hard-coded system ids", () => {
       assert.doesNotMatch(source, new RegExp(`["'\`]${s.id}["'\`]`), file);
     assert.doesNotMatch(source, /NES_VIDEO|cartivo-nrom|nrom-sram/, file);
   }
+});
+
+test("each system runs at its own hardware frame rate", () => {
+  for (const s of systems) assert.ok(s.frameRate > 30 && s.frameRate <= 75);
+  assert.equal(systems.find((s) => s.id === "nes")?.frameRate, 60);
+  // DMG/CGB: 4 194 304 Hz clock, 70 224 cycles per frame ≈ 59.73 fps.
+  assert.ok(
+    Math.abs((systems.find((s) => s.id === "gb")?.frameRate ?? 0) - 59.7275) <
+      0.001,
+  );
 });

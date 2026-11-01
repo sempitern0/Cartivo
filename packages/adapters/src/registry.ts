@@ -6,6 +6,41 @@ import { MAX_ROM_BYTES, validateRom } from "./ines.ts";
 import { NesAdapter } from "./jsnes.ts";
 import { TetanesAdapter } from "./tetanes.ts";
 import { controlDemo } from "../../fixtures/src/control-demo.ts";
+import { gbControlDemo } from "../../fixtures/src/gb-control-demo.ts";
+import { MAX_GB_ROM_BYTES, validateGbRom } from "./gb-header.ts";
+
+// SameBoy loads on demand: NES players never download its glue or wasm.
+type SameBoy = typeof import("./sameboy.ts");
+let sameboy: SameBoy | undefined;
+let sameboyReady: Promise<void> | undefined;
+function prepareSameBoy() {
+  sameboyReady ??= import("./sameboy.ts")
+    .then(async (lib) => {
+      await lib.prepareSameBoy();
+      sameboy = lib;
+    })
+    .catch((error: unknown) => {
+      sameboyReady = undefined;
+      throw error;
+    });
+  return sameboyReady;
+}
+
+/** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
+const sameboyModule = (system: string, color: boolean): CoreModule => ({
+  system,
+  id: "sameboy",
+  version: "1.0.4",
+  video: { width: 160, height: 144 },
+  maxRomBytes: MAX_GB_ROM_BYTES,
+  validate: validateGbRom,
+  demo: () => gbControlDemo(color),
+  prepare: prepareSameBoy,
+  create(rom, save) {
+    if (!sameboy) throw Error("El núcleo SameBoy no está preparado.");
+    return new sameboy.SameBoyAdapter(rom, save);
+  },
+});
 
 let tetanesReady: Promise<void> | undefined;
 
@@ -17,7 +52,6 @@ export const coreModules: readonly CoreModule[] = [
     id: "tetanes",
     version: "0.17.0",
     video: nesVideo,
-    sramBytes: 8192,
     maxRomBytes: MAX_ROM_BYTES,
     validate: validateRom,
     demo: controlDemo,
@@ -40,13 +74,14 @@ export const coreModules: readonly CoreModule[] = [
     id: "jsnes",
     version: "2.1.0",
     video: nesVideo,
-    sramBytes: 8192,
     maxRomBytes: MAX_ROM_BYTES,
     validate: validateRom,
     demo: controlDemo,
     prepare: () => Promise.resolve(),
     create: (rom, save) => new NesAdapter(rom, save),
   },
+  sameboyModule("gb", false),
+  sameboyModule("gbc", true),
 ];
 
 export function coreModule(system: string, id: string): CoreModule {

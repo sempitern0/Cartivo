@@ -1,0 +1,87 @@
+name: Core SameBoy
+# EXPENSIVE: builds the SameBoy (Game Boy / Color) WebAssembly core with
+# Emscripten. Normal CI only checks the committed artefacts (verify:core).
+# Runs exclusively on deliberate request: a commit that changes
+# cores/sameboy/.build-request, or workflow_dispatch once this file is on
+# main. Never rebuild just because application code or a PR changed.
+on:
+  push:
+    paths:
+      - "cores/sameboy/.build-request"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "EXPLICIT ONLY: build and commit artefacts, or rebuild once to verify reproducibility"
+        default: build
+        type: choice
+        options: [build, verify]
+permissions:
+  contents: read
+concurrency:
+  group: core-sameboy-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'build' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Host tools for rgbds
+        run: sudo apt-get update -q && sudo apt-get install -y -q bison libpng-dev
+      - name: Read pinned emsdk
+        id: pins
+        run: |
+          echo "version=$(node -p "require('./cores/sameboy/toolchain.json').emsdk.version")" >> "$GITHUB_OUTPUT"
+          echo "commit=$(node -p "require('./cores/sameboy/toolchain.json').emsdk.commit")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/emsdk
+          key: emsdk-${{ steps.pins.outputs.version }}-${{ steps.pins.outputs.commit }}
+      - name: Emscripten (pinned)
+        env:
+          VERSION: ${{ steps.pins.outputs.version }}
+          COMMIT: ${{ steps.pins.outputs.commit }}
+        run: |
+          if [ ! -d ~/emsdk/.git ]; then
+            git clone https://github.com/emscripten-core/emsdk ~/emsdk
+          fi
+          git -C ~/emsdk fetch -q --depth 1 origin "$COMMIT"
+          git -C ~/emsdk -c advice.detachedHead=false checkout -q "$COMMIT"
+          ~/emsdk/emsdk install "$VERSION"
+          ~/emsdk/emsdk activate "$VERSION"
+      - name: Licence and source gate (CORE-LEGAL-01)
+        run: |
+          # Upstream licence must still be Expat (MIT) at the pinned commit.
+          node -e '
+            const p = require("./cores/sameboy/toolchain.json").sameboy;
+            if (p.spdx !== "MIT") throw Error("SameBoy spdx changed");'
+      - name: Build
+        run: |
+          source ~/emsdk/emsdk_env.sh
+          node tools/build-sameboy.mjs ${{ env.MODE == 'verify' && '--verify' || '' }}
+          if [ "$MODE" = build ]; then
+            # The committed notice must match the pinned upstream licence.
+            cmp cores/sameboy/build/sameboy/LICENSE apps/web/public/licenses/sameboy-LICENSE.txt
+            node tools/verify-sameboy.mjs
+          fi
+      - name: Commit artefacts
+        if: env.MODE == 'build'
+        run: |
+          git config user.name "cartivo-core-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cores/sameboy/dist cores/sameboy/manifest.json cores/sameboy/sbom.json
+          if git diff --cached --quiet; then echo "Artefacts unchanged"; exit 0; fi
+          HASH=$(sha256sum cores/sameboy/dist/sameboy.wasm | cut -c1-12)
+          git commit -m "chore(core): build SameBoy WASM ${HASH}"
+          git push
+          # GITHUB_TOKEN pushes do not start other workflows; the next normal
+          # push runs Foundation CI. No automatic reproducibility rebuild.
