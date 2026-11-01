@@ -1,0 +1,58 @@
+{
+  "id": "sameboy-gb-wasm",
+  "engine": "WebAssembly (standalone)",
+  "upstream": {
+    "name": "SameBoy",
+    "tag": "v1.0.4",
+    "commit": "98da08c3117a7bf39c7329fc662c0d18cb54707d",
+    "repository": "https://github.com/LIJI32/SameBoy",
+    "spdx": "MIT"
+  },
+  "toolchain": {
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)",
+    "rgbds": "v1.0.4 (f7b8207322aa9e3714ef0d98d01989f320103026)",
+    "emsdk": "6.0.12 (35ff8a6d150541276abbc6bae512ca90bcfbe220)"
+  },
+  "models": [
+    "DMG-B",
+    "CGB-E"
+  ],
+  "biosRequired": false,
+  "bootRoms": [
+    {
+      "name": "dmg_boot",
+      "source": "BootROMs/dmg_boot.asm",
+      "sha256": "6f64da4cecd7e54e2f928eb3e3ba7810a7a567d0d247cc71737d1771e073a916"
+    },
+    {
+      "name": "cgb_boot",
+      "source": "BootROMs/cgb_boot.asm",
+      "sha256": "f767b8e7e510a255f81328c89dba6e0c996b370e1bc86aebb8584a7da47a5bba"
+    }
+  ],
+  "patchedFiles": [],
+  "exports": [
+    "malloc",
+    "free",
+    "cartivo_create",
+    "cartivo_free",
+    "cartivo_reset",
+    "cartivo_save_size",
+    "cartivo_load_save",
+    "cartivo_save",
+    "cartivo_set_input",
+    "cartivo_frames",
+    "cartivo_pixels",
+    "cartivo_audio",
+    "cartivo_state_size",
+    "cartivo_save_state",
+    "cartivo_load_state"
+  ],
+  "dependencies": 6,
+  "files": [
+    {
+      "path": "dist/sameboy.wasm",
+      "sha256": "65131c5958e24727554452cf7034fe6d7ff8681275ba76e99a632408fc1da5c8"
+    }
+  ]
+}
