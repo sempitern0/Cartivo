@@ -37,6 +37,15 @@ export const GB_VIDEO: VideoDescriptor = {
   dynamicResolution: false,
 };
 
+/** Game Boy Advance: square pixels, 3:2. */
+export const GBA_VIDEO: VideoDescriptor = {
+  sourceWidth: 240,
+  sourceHeight: 160,
+  displayAspect: 3 / 2,
+  pixelArt: true,
+  dynamicResolution: false,
+};
+
 export function displayLayout(
   containerWidth: number,
   containerHeight: number,

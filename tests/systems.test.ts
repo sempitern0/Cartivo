@@ -46,7 +46,9 @@ test("files are routed by extension", () => {
   assert.equal(systemForFile("notes.txt"), undefined);
   assert.equal(systemForFile("Juego.GB")?.id, "gb");
   assert.equal(systemForFile("juego.gbc")?.id, "gbc");
-  assert.equal(acceptFor(availableSystems()), ".nes,.gb,.gbc");
+  assert.equal(systemForFile("juego.GBA")?.id, "gba");
+  assert.equal(acceptFor(availableSystems()), ".nes,.gb,.gbc,.gba");
+  assert.equal(coreLabel("gba", "mgba"), "mGBA");
   assert.equal(coreLabel("nes", "tetanes"), "TetaNES");
   assert.equal(coreLabel("gbc", "sameboy"), "SameBoy");
 });
@@ -82,6 +84,11 @@ test("each system runs at its own hardware frame rate", () => {
   // DMG/CGB: 4 194 304 Hz clock, 70 224 cycles per frame ≈ 59.73 fps.
   assert.ok(
     Math.abs((systems.find((s) => s.id === "gb")?.frameRate ?? 0) - 59.7275) <
+      0.001,
+  );
+  // GBA: 16 777 216 Hz clock, 280 896 cycles per frame, also ≈ 59.73 fps.
+  assert.ok(
+    Math.abs((systems.find((s) => s.id === "gba")?.frameRate ?? 0) - 59.7275) <
       0.001,
   );
 });
