@@ -215,7 +215,12 @@ export function keyboardAction(
   code: string,
   keyboard: KeyboardProfile,
 ): Action | undefined {
-  const primary = actions.find((a) => keyboard[a] === code);
+  // A key remapped by the player wins over a default binding that still
+  // points at the same code (for example A moved to W while Up keeps W).
+  const primary =
+    actions.find(
+      (a) => keyboard[a] === code && keyboard[a] !== defaultKeyboard[a],
+    ) ?? actions.find((a) => keyboard[a] === code);
   if (primary) return primary;
   const alias = movementAliases[code];
   return alias &&
