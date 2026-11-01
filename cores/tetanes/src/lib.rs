@@ -90,7 +90,8 @@ impl Core {
         }
         self.audio.clear();
         for _ in 0..count {
-            self.deck
+            let _clocked = self
+                .deck
                 .clock_frame()
                 .map_err(|err| JsError::new(&err.to_string()))?;
             self.audio.extend_from_slice(self.deck.audio_samples());

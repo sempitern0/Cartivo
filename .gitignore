@@ -29,3 +29,4 @@ playwright-report/
 !packages/fixtures/**
 screenshots/
 cores/tetanes/target/
+!cores/tetanes/dist/
