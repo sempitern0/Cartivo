@@ -111,7 +111,7 @@ test("SRAM import validates identity and survives reopening", async ({
   const chunks: Buffer[] = [];
   for await (const c of stream!) chunks.push(Buffer.from(c));
   const backup = JSON.parse(Buffer.concat(chunks).toString());
-  await page.locator("input[type=file]").setInputFiles({
+  await page.locator('input[type=file][accept*="json"]').setInputFiles({
     name: "wrong.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({ ...backup, game: "wrong" })),
@@ -122,7 +122,7 @@ test("SRAM import validates identity and survives reopening", async ({
   backup.sha256 = createHash("sha256")
     .update(Uint8Array.from(backup.bytes))
     .digest("hex");
-  await page.locator("input[type=file]").setInputFiles({
+  await page.locator('input[type=file][accept*="json"]').setInputFiles({
     name: "valid.json",
     mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify(backup)),

@@ -172,8 +172,8 @@
               <a
                 class="icon-button square"
                 href="#controles"
-                aria-label="Ajustes de NES"
-                title="Ajustes de NES">{@html icons.sliders}</a
+                aria-label="Controles de NES"
+                title="Controles de NES">{@html icons.sliders}</a
               >
             </div>
             <div class="console-foot">

@@ -504,7 +504,7 @@
         aria-label={"Asignar tecla " + labels[action]}
         onclick={() => assignKey(action)}
         ><span class="chip-name" data-chip={action}>{labels[action]}</span
-        ><span class="visually-hidden"> = </span><kbd
+        ><span class="visually-hidden">{" = "}</span><kbd
           >{keyLabel(keyboard[action])}</kbd
         ></button
       >{/each}
@@ -777,6 +777,8 @@
     margin-top: 28px;
   }
   .chip {
+    min-width: 0;
+    flex-wrap: wrap;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -922,7 +924,18 @@
   }
   @media (max-width: 760px) {
     .chips {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .chip {
+      gap: 8px;
+      padding: 10px 8px;
+      min-height: 64px;
+    }
+    [data-chip="start"],
+    [data-chip="select"] {
+      padding: 5px 10px;
+      letter-spacing: 0.02em;
     }
     .chip.move {
       grid-column: 1 / -1;

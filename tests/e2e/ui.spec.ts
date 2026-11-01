@@ -40,7 +40,7 @@ test("console card starts NES and its settings icon opens controls", async ({
   await page.screenshot({
     path: `${shots}/${variant(baseURL)}-home-desktop.png`,
   });
-  await page.getByRole("link", { name: "Ajustes de NES" }).click();
+  await page.getByRole("link", { name: "Controles de NES" }).click();
   await expect(
     page.getByRole("heading", { name: "Configurar controles" }),
   ).toBeFocused();
