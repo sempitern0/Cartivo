@@ -18,7 +18,7 @@ Estado: **experimental.** Un juego abierto desde archivo puede recordarse en el 
 | Prueba | Resultado |
 |---|---|
 | `tests/library.test.ts` | Validación de entradas (hash, sistema, nombre, tamaños, miniatura), orden por última partida, preferencia con almacenamiento bloqueado, protocolo `stored`/`remember`/`library-add` (una sola fuente por carga, solo archivos se recuerdan). `node --test` local: 88/88 |
-| E2E `tests/e2e/library.spec.ts` | Recordar → salir → recargar → «Continuar» juega desde «Al salir» sin selector, aviso ni pregunta; «No» no crea copias y no vuelve a preguntar; quitar conserva las Partidas; copia dañada en OPFS rechazada con mensaje; inicio a 375 px sin desbordamiento; «Continuar» sin conexión en preview. CI: pendiente de registrar |
+| E2E `tests/e2e/library.spec.ts` | Recordar → salir → recargar → «Continuar» juega desde «Al salir» sin selector, aviso ni pregunta; «No» no crea copias y no vuelve a preguntar; quitar conserva las Partidas; copia dañada en OPFS rechazada con mensaje; inicio a 375 px sin desbordamiento; «Continuar» sin conexión en preview. **CI sobre `7763c80`** (Foundation CI, run 41341756351): 5/5 en dev (la prueba sin conexión solo aplica a preview) y 6/6 en preview; suite completa 58 superados en dev y en preview, `svelte-check` sin errores ni avisos |
 
 ## Límites
 
