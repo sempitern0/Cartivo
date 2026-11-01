@@ -1,6 +1,6 @@
 # ADR-003 — Archivos, persistencia y offline
 
-Estado: propuesto. Fecha: 2026-10-30.
+Estado: propuesto. Fecha: 2026-10-30. Aceptado en parte: SRAM transaccional en IndexedDB (ADR-007) y copia de ROMs en OPFS con consentimiento ([ADR-012](012-library-continue.md)).
 
 ## Decisión propuesta
 

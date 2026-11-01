@@ -28,6 +28,8 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 ### Inicio · «Elige una consola»
 Rejilla centrada que crece con cada sistema aceptado; hoy, NES, Game Boy, Game Boy Color y Game Boy Advance. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre las extensiones de esa consola: `.nes`, `.gb`, `.gbc`, `.gba`), icono **Controles de {consola}**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida.
 
+Con juegos recordados (ADR-012), encima de la rejilla aparece la tarjeta **Continuar**: miniatura de «Al salir», nombre, consola y fecha; un clic carga el juego desde el dispositivo y sigue desde «Al salir» sin aviso. Debajo, **Tus juegos**: lista por fecha con **Jugar** y **Quitar** (confirmación en línea que recuerda que las partidas se conservan), el espacio ocupado y el interruptor «Recordar juegos nuevos en este dispositivo».
+
 ### Configurar controles (`#controles`, desde **Ajustes**)
 Tarjeta de teclado y tarjeta de mando genérico (dibujos propios) que se iluminan durante la prueba. Chips para reasignar A, B, Start, Select, L y R (estos dos solo los usa Game Boy Advance); **Mover** despliega **Avanzado** con las direcciones. Selector de mando, asignación manual y zona muerta en la tarjeta del mando. Salir desmonta el sondeo; al volver no queda ninguna tecla pulsada. Abrirla durante una partida pausa y neutraliza la entrada.
 
@@ -38,6 +40,7 @@ Tarjeta de teclado y tarjeta de mando genérico (dibujos propios) que se ilumina
 - Errores en un aviso por encima del vídeo, llevado a la vista.
 - «Copias de partida» (exportar/importar la memoria de batería) y «Acerca de esta prueba» (núcleo TetaNES/JSNES y licencias) plegados, solo en pausa o error.
 - Al reabrir un juego con partida «Al salir», un aviso sobre el vídeo ofrece **Continuar** o **Empezar de nuevo**, con miniatura y fecha.
+- La primera vez que se abre un juego desde archivo, una línea discreta bajo la barra pregunta «¿Recordar tus juegos en este dispositivo para continuar con un clic?» con **Sí, recordar** y **No**. No pausa la partida y no vuelve a aparecer.
 
 ### Panel Partidas
 Mismo estilo que Gráficos (pausa al abrir). Tarjeta «Al salir» (automática) y tres ranuras con miniatura, fecha y núcleo; **Guardar aquí**, **Cargar** (pide confirmar porque sustituye el progreso no guardado) y **Borrar**. F5 guarda en la ranura 1 y F9 la carga, con confirmación breve bajo el vídeo. Si el juego tiene batería, se aclara que su partida interna se guarda aparte.
@@ -53,4 +56,4 @@ Panel propio (pausa la partida al abrirse). Tarjetas con diagrama para **Escalad
 
 ## Pendiente
 
-Navegación completa con mando (cruceta mueve el foco, A acepta, B vuelve), tarjeta «Continuar» en inicio, biblioteca local, controles táctiles en móvil, perfiles de pantalla por sistema (proporciones portátiles) e inglés.
+Navegación completa con mando (cruceta mueve el foco, A acepta, B vuelve), controles táctiles en móvil, perfiles de pantalla por sistema (proporciones portátiles) e inglés.

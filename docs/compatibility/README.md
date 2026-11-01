@@ -8,6 +8,7 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 | NES · ruta común y JSNES | Experimental; JSNES como alternativa | [H1-B-NES](H1-B-NES.md) |
 | Entrada | Teclado y mando con perfiles; hardware pendiente | [H1-B-INPUT](H1-B-INPUT.md) |
 | PWA | Instalable y offline; QA en móviles pendiente | [H1-C-PWA](H1-C-PWA.md) |
+| Biblioteca local y «Continuar» | Experimental: ROM en OPFS con consentimiento | [H1-LIB](H1-LIB.md) |
 | QA de la base NES | Automático en CI; manual parcial | [H1-QA](H1-QA.md) |
 | GB y GBC · SameBoy (WASM) | Experimental: sin mapper, MBC1/2/3/5 | [H2-GB](H2-GB.md) |
 | GBA · mGBA (WASM) | Experimental: SRAM, Flash y EEPROM; BIOS HLE | [H2-GBA](H2-GBA.md) |

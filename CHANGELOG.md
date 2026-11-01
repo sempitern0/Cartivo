@@ -141,3 +141,11 @@
 - GBA: variantes propias de la fixture con los protocolos reales de Flash y EEPROM; el juego relee su partida tras reabrir. Prueba sin chip de guardado y coste del búfer fijo medido.
 - `wasm-host.ts`: lista explícita de imports permitidos (un import desconocido falla en `prepare()` nombrándolo) y núcleo cerrado que rechaza llamadas.
 - Backlog: descriptor de entrada por sistema y precache selectivo de núcleos antes de SNES y de núcleos pesados.
+
+### H1-LIB: biblioteca local y «Continuar»
+
+- Pregunta única al abrir el primer juego desde archivo: «¿Recordar tus juegos en este dispositivo?»; se cambia en «Tus juegos». Las demos no se recuerdan.
+- Copia de la ROM en OPFS (`roms/<sha256>`), escrita, releída y verificada en el Worker antes de registrarla en IndexedDB `cartivo-library`; sin espacio, el juego sigue y se avisa.
+- Tarjeta **Continuar** en inicio: carga el último juego desde el dispositivo y sigue desde «Al salir» sin aviso. Una copia dañada o desaparecida se rechaza con un mensaje claro.
+- **Tus juegos**: lista por fecha con Jugar y Quitar (con confirmación; las Partidas y la SRAM se conservan), espacio ocupado e interruptor.
+- Protocolo v1: `load { stored }`, `remember` y `library-add`, con validación. ADR-012 y [H1-LIB](docs/compatibility/H1-LIB.md).

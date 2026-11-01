@@ -55,6 +55,7 @@ Los WASM de TetaNES, SameBoy y mGBA están versionados en `cores/*/dist`: la CI 
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar y cargar en ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.
+- La primera vez que abres un juego, Cartivo pregunta si quieres **recordar tus juegos en este dispositivo**. Si aceptas, la tarjeta **Continuar** del inicio reanuda el último juego con un clic, sin volver a elegir el archivo, y **Tus juegos** lista los demás. La copia se guarda solo en tu navegador; quitar un juego de la lista conserva sus partidas ([ADR-012](docs/adr/012-library-continue.md)).
 - Algunos menús usan **Select** para elegir opción; por ejemplo, «1/2 PLAYERS» en Contra.
 
 ## Estructura
