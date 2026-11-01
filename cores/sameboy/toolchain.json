@@ -1,0 +1,18 @@
+{
+  "sameboy": {
+    "tag": "v1.0.4",
+    "commit": "98da08c3117a7bf39c7329fc662c0d18cb54707d",
+    "repository": "https://github.com/LIJI32/SameBoy",
+    "spdx": "MIT"
+  },
+  "rgbds": {
+    "tag": "v1.0.4",
+    "commit": "f7b8207322aa9e3714ef0d98d01989f320103026",
+    "repository": "https://github.com/gbdev/rgbds"
+  },
+  "emsdk": {
+    "version": "6.0.12",
+    "commit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+    "repository": "https://github.com/emscripten-core/emsdk"
+  }
+}
