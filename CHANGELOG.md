@@ -69,4 +69,6 @@
 - «Configurar controles» con dibujos propios de teclado y mando que se iluminan durante la prueba, chips de asignación y opciones avanzadas plegadas.
 - Reproductor con barra superior (Gráficos, Cargar ROM, Salir), marco del vídeo y pie con estado de mando y teclado; «Cargar ROM» cierra la sesión con guardado confirmado antes de abrir otra.
 - Capturas de interfaz generadas por los E2E y publicadas como artefacto del CI.
+- Panel **Gráficos** con opciones visuales de escalado y proporción, suavizado opcional, aviso cuando el escalado no cabe y preferencias recordadas por sistema.
+- Tarjeta NES centrada y arte desplazado para no tapar textos ni botones.
 

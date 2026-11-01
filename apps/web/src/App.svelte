@@ -292,7 +292,7 @@
     padding: 0;
     margin: 48px 0 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 340px));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
     justify-content: center;
     gap: 24px;
   }
@@ -313,13 +313,15 @@
   /* Original abstract art: a cartridge-label pixel field in Cartivo colours. */
   .console-art {
     position: absolute;
-    inset: auto -10px -10px auto;
-    width: 230px;
+    inset: -18px -28px auto auto;
+    width: 190px;
+    /* Fade towards the text so labels and buttons stay legible. */
+    mask-image: linear-gradient(225deg, #000 30%, transparent 78%);
     display: grid;
     grid-template-columns: repeat(8, 1fr);
     gap: 5px;
     transform: rotate(-12deg);
-    opacity: 0.55;
+    opacity: 0.7;
     pointer-events: none;
   }
   .console-art i {
@@ -353,7 +355,7 @@
     margin: 8px 0 0;
     color: var(--muted);
     font-size: 15px;
-    max-width: 14ch;
+    max-width: 18ch;
     line-height: 1.35;
   }
   .console-actions {

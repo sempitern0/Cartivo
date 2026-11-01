@@ -399,16 +399,32 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   await page.getByRole("button", { name: "Pausar juego" }).click();
   const canvas = page.locator("canvas");
   await page.getByRole("button", { name: "Gráficos" }).click();
-  await page.getByLabel("Escalado").selectOption("integer");
-  await page.getByLabel("Aspecto").selectOption("native");
+  await expect(page.getByRole("radio", { name: /^Ajustar/ })).toBeFocused();
+  await page.getByRole("radio", { name: /^Píxel entero/ }).check();
+  await page.getByRole("radio", { name: /^Píxeles cuadrados/ }).check();
   await expect(canvas).toHaveAttribute("data-actual-scale", "integer");
   const size = await canvas.boundingBox();
   expect(Math.abs(size!.width / size!.height - 256 / 240)).toBeLessThan(0.02);
-  await page.getByLabel("Escalado").selectOption("fit");
-  await page.getByLabel("Aspecto").selectOption("corrected");
-  await expect(canvas).toHaveAttribute("data-actual-scale", "fit");
-  const fitted = await canvas.boundingBox();
+  await page.getByRole("switch", { name: /Suavizado/ }).check();
+  await expect(canvas).toHaveClass(/smooth/);
+  // Choices persist for NES on this device.
+  await page.reload();
+  await page.getByRole("button", { name: "Probar demo" }).click();
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  await page.getByRole("button", { name: "Gráficos" }).click();
+  await expect(page.getByRole("radio", { name: /^Píxel entero/ })).toBeChecked();
+  await expect(page.locator("canvas")).toHaveClass(/smooth/);
+  await page.getByRole("button", { name: "Restablecer", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveAttribute("data-actual-scale", "fit");
+  await expect(page.locator("canvas")).not.toHaveClass(/smooth/);
+  const fitted = await page.locator("canvas").boundingBox();
   expect(Math.abs(fitted!.width / fitted!.height - 4 / 3)).toBeLessThan(0.02);
+  await page.getByRole("radio", { name: /^Ajustar/ }).focus();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("region", { name: "Gráficos", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Gráficos" })).toBeFocused();
 });
 
 test("Focus is accessible using mouse controls without depending on Vimium shortcuts", async ({ page }) => {

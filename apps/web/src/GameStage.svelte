@@ -1,13 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { displayLayout, NES_VIDEO, type ScaleMode, type AspectMode } from "../../../packages/media/src/display-scaler.ts";
-  let { scaleMode = "fit", aspectMode = "corrected", frames = 0, screen = $bindable() }: {
-    scaleMode?: ScaleMode; aspectMode?: AspectMode; frames?: number; screen: HTMLCanvasElement | undefined;
+  let { scaleMode = "fit", aspectMode = "corrected", smooth = false, frames = 0, screen = $bindable(), fallback = $bindable(false) }: {
+    scaleMode?: ScaleMode; aspectMode?: AspectMode; smooth?: boolean; frames?: number; screen: HTMLCanvasElement | undefined;
+    /** True when the chosen scale does not fit and "fit" is used instead. */
+    fallback?: boolean;
   } = $props();
   let container: HTMLDivElement;
   let width = $state(0);
   let height = $state(0);
   let calculated = $derived(displayLayout(width, height, NES_VIDEO, scaleMode, aspectMode));
+  $effect(() => {
+    fallback = width > 0 && calculated.fallback;
+  });
   onMount(() => {
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
@@ -27,11 +32,13 @@
     style:height={calculated.height + "px"}
     data-actual-scale={calculated.actualMode}
     data-scale-fallback={String(calculated.fallback)}
+    class:smooth
   ></canvas>
 </div>
 
 <style>
 .stage { position: relative; width: 100%; height: 100%; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #050507; }
 canvas { display: block; max-width: 100%; max-height: 100%; flex: none; background: #000; image-rendering: pixelated; border: 0; }
+canvas.smooth { image-rendering: auto; }
 canvas:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
 </style>
