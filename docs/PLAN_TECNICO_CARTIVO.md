@@ -25,10 +25,10 @@ El usuario abre una URL o la app instalada, **elige consola, elige juego y juega
 | PWA | Manifest, iconos originales, SW generado en build (`tools/pwa-plugin.mjs`), offline, actualización que espera a no tener juego activo, «Abrir con» `.nes`, arrastrar y soltar | QA de instalación en Android/iOS y despliegue HTTPS (Cloudflare Worker, decidido por el titular) |
 | NES | **TetaNES 0.17.0 en WebAssembly** por defecto (ADR-008); JSNES 2.1.0 como alternativa (ADR-007). iNES NTSC, mappers 0–4 | QA física con mando y audio; Firefox/Safari; ampliar mappers con pruebas |
 | Entrada | Teclado (WASD/flechas, L/K/Q/Enter) y Gamepad API con perfiles, remapeo, zona muerta, neutralización al perder foco | Mando físico certificado; P2 |
-| Partidas | «Partidas» para cualquier juego: instantáneas en 3 ranuras + «Al salir», «Continuar donde lo dejaste», F5/F9 (ADR-009). SRAM de batería con dos generaciones, Web Lock, export/import, compartida entre núcleos | 100 ciclos automatizados con fallos inyectados; exportar instantáneas |
-| Calidad | CI: verify:core, lint, svelte-check, tests unitarios (Node), build, E2E Playwright en dev y en build de producción, capturas de UI | Matriz de navegadores real; presupuestos de rendimiento medidos |
+| Partidas | «Partidas» para cualquier juego: instantáneas en 3 ranuras + «Al salir», «Continuar donde lo dejaste», F5/F9 (ADR-009). SRAM de batería con dos generaciones, Web Lock, export/import, compartida entre núcleos. E2E de 100 ciclos alternando núcleos y de estados dañados o de otra versión | Exportar instantáneas |
+| Calidad | CI: verify:core, lint, svelte-check, tests unitarios (Node), build, E2E Playwright en dev y en build de producción, capturas de UI. Reproductor dividido (`PlayerToolbar`, `GraphicsPanel`, `SavePanel`, `InputCapture`) | Matriz de navegadores real ([H1-QA](compatibility/H1-QA.md)); presupuestos de rendimiento medidos |
 
-Detalle y evidencias: [H1-B NES (JSNES)](compatibility/H1-B-NES.md), [H1-B Entrada](compatibility/H1-B-INPUT.md), [H1-C PWA](compatibility/H1-C-PWA.md), [H0-WASM-NES (TetaNES)](compatibility/H0-WASM-NES.md).
+Detalle y evidencias: [H1-QA](compatibility/H1-QA.md), [H1-B NES (JSNES)](compatibility/H1-B-NES.md), [H1-B Entrada](compatibility/H1-B-INPUT.md), [H1-C PWA](compatibility/H1-C-PWA.md), [H0-WASM-NES (TetaNES)](compatibility/H0-WASM-NES.md).
 
 ## 3. Catálogo V1 y núcleos candidatos
 
@@ -166,9 +166,9 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 
 ### Próximos incrementos recomendados
 
-1. **Cerrar H1:** test E2E de 100 ciclos de guardado (SRAM y Partidas) con fallos inyectados; exportar/importar Partidas; E2E en Firefox además de Chromium; checklist de QA física.
+1. **Cerrar H1:** exportar/importar Partidas; E2E en Firefox además de Chromium; completar la QA física de [H1-QA](compatibility/H1-QA.md).
 2. **Continuar + biblioteca mínima** (mayor reducción de fricción): ROM en OPFS bajo consentimiento, tarjeta «Continuar» en inicio, borrado selectivo que nunca toque partidas.
-3. **GB/GBC/GBA con mGBA** (o SameBoy para GB/GBC): build en CI con el patrón de `cores/tetanes` (Emscripten), adaptador con instantáneas para Partidas y perfiles de pantalla 10:9 y 3:2.
+3. **GB/GBC/GBA con mGBA** (o SameBoy para GB/GBC): build en CI con el patrón de `cores/tetanes` (Emscripten), adaptador con instantáneas para Partidas y perfiles de pantalla 10:9 y 3:2. Es la prueba real de extensibilidad: debe tocar solo los archivos del mapa de [ADDING_A_SYSTEM](ADDING_A_SYSTEM.md#mapa-para-gbgbc-próximo-sistema); con él llegan la carga de núcleos con `import()` dinámico en el Worker y la separación shell/núcleos del SW ([H1-C-PWA](compatibility/H1-C-PWA.md#medición-de-carga-etapa-d-de-la-pr-2)).
 4. **Despliegue en Cloudflare** con cabeceras reales y smoke test offline del dominio.
 
 ## 15. Backlog
@@ -176,10 +176,10 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 | ID | Épica | Estado | Terminado cuando |
 |---|---|---|---|
 | E-01 | Licencias y firmware | En curso | Expediente por build; decisión sobre GPL registrada |
-| E-02 | Contrato y runtime | Hecho (contrato, registros, protocolo genérico) | Ajustes de núcleo por schema y entrada por sistema |
+| E-02 | Contrato y runtime | Hecho (contrato, registros, protocolo genérico) | Ajustes de núcleo por schema; cadencia por núcleo (hoy 60 Hz fijos) y sincronía A/V; framebuffer variable; carga diferida por núcleo; `EmulatorSession` (RAF, Worker, audio) fuera de `Player` si las pruebas lo justifican |
 | E-03 | PWA y despliegue | Parcial | Instalación verificada en plataformas y dominio HTTPS con cabeceras |
-| E-04 | Persistencia | Parcial (SRAM + Partidas) | 100 ciclos con fallos inyectados; exportar Partidas; OPFS para ROMs |
-| E-05 | Entrada y foco | Parcial | UI completa con mando; P2; mando físico certificado |
+| E-04 | Persistencia | Parcial (SRAM + Partidas; 100 ciclos en E2E) | Exportar Partidas; OPFS para ROMs; cuotas y formatos de copia versionados por sistema |
+| E-05 | Entrada y foco | Parcial (`InputCapture` para el juego) | Acciones por sistema (L/R, X/Y, C) y P1–P4 con perfiles migrados; separar vista y escaneo en `ControlsPanel`; UI completa con mando; mando físico certificado |
 | E-06 | NES | Experimental | QA física y mappers ampliados con pruebas |
 | E-07 | GB/GBC/GBA | Pendiente | Gate, build reproducible y expediente |
 | E-08 | SNES, SMS, Mega Drive | Pendiente | Gate de licencia y rendimiento |
