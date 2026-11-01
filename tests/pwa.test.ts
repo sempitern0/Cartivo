@@ -49,3 +49,8 @@ test("service worker waits for an explicit update and keeps saves", () => {
   );
   assert.doesNotMatch(source, /indexedDB/);
 });
+
+test("cache lookups ignore Vary so crossorigin module requests hit offline", () => {
+  const source = buildServiceWorker(entries);
+  assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 2);
+});

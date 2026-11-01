@@ -62,14 +62,16 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       caches.open(CACHE).then(async (cache) =>
-        (await cache.match(url("index.html"))) ?? fetch(request),
+        (await cache.match(url("index.html"), { ignoreVary: true })) ?? fetch(request),
       ),
     );
     return;
   }
+  // ignoreVary: module scripts and crossorigin styles send Origin, while
+  // precached entries were stored without it ("Vary: Origin" would miss).
   event.respondWith(
     caches.open(CACHE).then(async (cache) =>
-      (await cache.match(request, { ignoreSearch: true })) ?? fetch(request),
+      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? fetch(request),
     ),
   );
 });
