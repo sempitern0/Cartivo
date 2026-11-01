@@ -1,0 +1,44 @@
+{
+  "id": "tetanes-nes-wasm",
+  "engine": "WebAssembly",
+  "upstream": {
+    "crate": "tetanes-core",
+    "version": "0.17.0",
+    "repository": "https://github.com/lukexor/tetanes",
+    "spdx": "MIT OR Apache-2.0"
+  },
+  "toolchain": {
+    "rustc": "rustc 1.90.0 (1159e78c4 2025-09-14)",
+    "cargo": "cargo 1.90.0 (840b83a10 2025-07-30)",
+    "wasmBindgen": "0.2.130",
+    "target": "wasm32-unknown-unknown"
+  },
+  "acceptedMappers": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "biosRequired": false,
+  "patchedFiles": [],
+  "dependencies": 49,
+  "files": [
+    {
+      "path": "dist/tetanes.d.ts",
+      "sha256": "b6821e57831bea95d936d93f6f7e9ae193d6dd962fb7d66b64d8cbabcfaf6a43"
+    },
+    {
+      "path": "dist/tetanes.js",
+      "sha256": "4faf95e12b10e712e077df40fb2270cd998b38d06b08cc6288b7cee4d282f0ba"
+    },
+    {
+      "path": "dist/tetanes_bg.wasm",
+      "sha256": "c61f83e51186908a022feb26bdd94b86907255ddf20ae6b1bb2ca73a42edf6af"
+    },
+    {
+      "path": "dist/tetanes_bg.wasm.d.ts",
+      "sha256": "39c8cd9f5992e89cfb8b499b43abbe62542fc2683c888b8379b51c4791fd854f"
+    }
+  ]
+}
