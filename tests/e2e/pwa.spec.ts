@@ -67,8 +67,25 @@ test("installed shell reopens offline and plays the demo", async ({
   await expect
     .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
     .toBe(true);
+  const problems: string[] = [];
+  page.on("requestfailed", (r) =>
+    problems.push(`failed ${r.url()} ${r.failure()?.errorText}`),
+  );
+  page.on("pageerror", (e) => problems.push(`pageerror ${e.message}`));
+  page.on("console", (m) => {
+    if (m.type() === "error") problems.push(`console ${m.text()}`);
+  });
   await context.setOffline(true);
   await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Probar demo" }),
+    problems.join("\n"),
+  )
+    .toBeVisible({ timeout: 10000 })
+    .catch(async (e) => {
+      const html = (await page.content()).slice(0, 800);
+      throw new Error(`${e.message}\n${problems.join("\n")}\n${html}`);
+    });
   await page.getByRole("button", { name: "Probar demo" }).click();
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await expect
