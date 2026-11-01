@@ -54,3 +54,11 @@
 - Fullscreen API con acciones dentro del reproductor, aspecto 4:3 y pausa al salir; rechazo visible si falla.
 - Barra de acciones/estado antes del vídeo y errores destacados que se llevan a la vista.
 - E2E de foco, scroll, Escape, pantalla completa y posición del aviso de error.
+
+### PWA instalable y offline
+
+- Manifiesto con iconos originales, `file_handlers` para `.nes` y botón **Instalar app** cuando el navegador lo ofrece.
+- Service worker generado en el build sin dependencias nuevas: precache completo, reapertura sin red, limpieza solo de sus cachés y actualización que espera a que no haya juego activo.
+- Arrastrar y soltar `.nes`, «Abrir con Cartivo» y cola del archivo si ya hay una partida en curso.
+- Persistencia de almacenamiento solicitada solo con la app instalada.
+- CI: formato corregido y prioridad de reasignaciones explícitas sobre teclas predeterminadas en colisión.

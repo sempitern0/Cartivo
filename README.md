@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: emulación NES experimental (iNES NTSC, mappers 0–4) con JSNES 2.1.0 en Worker.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo de este incremento es JavaScript, no WASM; instalación PWA y offline siguen pendientes. No se distribuyen juegos ni BIOS propietarias de terceros.
+**Estado: emulación NES experimental (iNES NTSC, mappers 0–4) con JSNES 2.1.0 en Worker.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo de este incremento es JavaScript, no WASM. La build de producción es **instalable como PWA y reabre sin conexión** (experimental, ver [H1-C PWA](docs/compatibility/H1-C-PWA.md)). No se distribuyen juegos ni BIOS propietarias de terceros.
 
 ## Catálogo inicial propuesto
 
@@ -31,7 +31,7 @@ La ruta experimental está documentada y probada en [H1-B NES](docs/compatibilit
 
 Svelte/Vite y TypeScript para la PWA; C/C++ y Emscripten para núcleos WASM independientes; Workers y adaptadores tipados para sesiones; IndexedDB/OPFS para datos locales. Hosting estático con cabeceras de aislamiento, packs de núcleos bajo demanda y gateway opcional de metadatos.
 
-La primera ruta real usa una demo original NROM, controles configurables, audio y SRAM recuperable/exportable. Consulta [las pruebas del incremento](docs/compatibility/H1-B-NES.md); la reapertura offline todavía no está implementada.
+La primera ruta real usa una demo original NROM, controles configurables, audio y SRAM recuperable/exportable. Consulta [las pruebas del incremento](docs/compatibility/H1-B-NES.md); la instalación y reapertura offline están en [H1-C PWA](docs/compatibility/H1-C-PWA.md).
 
 ## Licencia
 
@@ -54,9 +54,11 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
+Para probar la instalación y el modo sin conexión hay que usar la build de producción: `pnpm build && pnpm preview` y abrir http://127.0.0.1:4173. El navegador ofrece **Instalar app** en la cabecera cuando lo permite.
+
 El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible con la serie 24. CI emplea la versión fijada en `.node-version`.
 
-Abrir http://127.0.0.1:5173. **Añadir juego** abre una ROM `.nes` local y la ejecuta directamente en el escenario central; **Probar demo** arranca la prueba original sin un segundo botón «Jugar». El área de juego y su ajuste de aspecto comparten el mismo espacio visual. En la cabecera permanecen el logotipo Cartivo y **Ajustes**, donde se encuentran los controles y el laboratorio técnico.
+Abrir http://127.0.0.1:5173. **Añadir juego** (o arrastrar un `.nes` a la ventana) abre una ROM `.nes` local y la ejecuta directamente en el escenario central; **Probar demo** arranca la prueba original sin un segundo botón «Jugar». El área de juego y su ajuste de aspecto comparten el mismo espacio visual. En la cabecera permanecen el logotipo Cartivo y **Ajustes**, donde se encuentran los controles y el laboratorio técnico.
 
 **Teclado NES predeterminado:** WASD o flechas para mover, **L = A**, **K = B**, Mayús derecha = Select y Enter = Start. **F** activa Focus y **Escape** pausa. Los mandos se detectan con Gamepad API; las asignaciones son editables. Cuando el navegador impide el audio automático, puede activarse desde el reproductor.
 

@@ -80,7 +80,7 @@ Abrir http://127.0.0.1:4173. Puertos 5173 y 4173 son orígenes distintos: no com
 
 ## Gates que siguen abiertos
 
-**H1 completo no está cerrado:** instalación/SW/offline, actualización protegida, WASM reproducible, QA físico del emulador con audio/mando, Firefox/Safari, suspensión móvil, tests de cuota/interrupción más amplios, 100 ciclos de resistencia y presupuestos reales. Solo NES NROM, un jugador, audio mono; sin fullscreen dedicado, touch controls ni save states. Las demás consolas siguen en planificación.
+**H1 completo no está cerrado:** QA real de instalación/offline y actualización protegida (implementadas en [H1-C PWA](H1-C-PWA.md)), WASM reproducible, QA físico del emulador con audio/mando, Firefox/Safari, suspensión móvil, tests de cuota/interrupción más amplios, 100 ciclos de resistencia y presupuestos reales. Solo NES NROM, un jugador, audio mono; sin fullscreen dedicado, touch controls ni save states. Las demás consolas siguen en planificación.
 
 ## Corrección de límite de ROM y WASD
 

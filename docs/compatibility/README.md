@@ -1,10 +1,10 @@
 # Compatibilidad: estado y evidencia
 
-**No hay pruebas de ejecución de Cartivo todavía.** Todos los candidatos están pendientes; las etiquetas de objetivo en el plan no describen soporte logrado.
+Estado por incremento: [H1-B NES](H1-B-NES.md) (núcleo JSNES experimental), [H1-B Entrada](H1-B-INPUT.md) y [H1-C PWA](H1-C-PWA.md) (instalación y offline). Las etiquetas de objetivo del plan no describen soporte logrado.
 
 | Sistema | Estado de evaluación actual | Evidencia mínima para aceptación |
 |---|---|---|
-| NES | Pendiente | Mapper, input, audio, SRAM y reinicio offline |
+| NES | Experimental (JSNES, JS en Worker); gate WASM pendiente | Mapper, input, audio, SRAM y reinicio offline |
 | SNES | Pendiente | Chips/firmware por juego, guardado y sincronización |
 | GB / GBC | Pendiente | Mapper, RTC, paleta/color y persistencia |
 | GBA | Pendiente | BIOS libre integrada, Flash/EEPROM/SRAM y audio |

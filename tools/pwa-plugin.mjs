@@ -3,7 +3,7 @@
 // an update never reloads an active session nor deletes saves).
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 export const SW_FILE = "sw.js";
 export const CACHE_PREFIX = "cartivo-shell-";
@@ -92,7 +92,8 @@ export function cartivoPwa() {
     name: "cartivo-pwa",
     apply: "build",
     configResolved(config) {
-      outDir = config.build.outDir;
+      // outDir is relative to the Vite root (apps/web), not the cwd.
+      outDir = resolve(config.root, config.build.outDir);
     },
     closeBundle() {
       const entries = walk(outDir)
