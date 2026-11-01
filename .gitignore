@@ -4,3 +4,26 @@ dist/
 
 test-results/
 playwright-report/
+
+# ROMs, BIOS y datos de usuario (AGENTS.md: nunca en git)
+*.nes
+*.fds
+*.sfc
+*.smc
+*.gb
+*.gbc
+*.gba
+*.sms
+*.smd
+*.n64
+*.z64
+*.v64
+*.iso
+*.cue
+*.chd
+*.cso
+*.pbp
+*.srm
+*.sav
+*.state
+!packages/fixtures/**
