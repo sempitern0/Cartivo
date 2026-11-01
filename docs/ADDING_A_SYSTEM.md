@@ -15,9 +15,9 @@ Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un siste
   - Rust → `wasm-bindgen`; C/C++ → Emscripten con versión fijada.
   - Lockfile, toolchain y rutas reasignadas.
   - Gate de licencias y fuentes.
-  - Commit automático de `dist/`, `manifest.json` y `sbom.json`.
-  - Recompilación de verificación.
-- Añadir `tools/verify-<id>.mjs` a `pnpm verify:core`.
+  - Disparo **solo explícito** (`workflow_dispatch` o un archivo `.build-request`), nunca por push o PR: el binario se compila una vez por cambio del núcleo.
+  - Commit de `dist/`, `manifest.json` y `sbom.json` por el workflow; recompilación de verificación solo a mano.
+- Añadir `tools/verify-<id>.mjs` a `pnpm verify:core`. La CI rechaza una PR que cambie `cores/<id>/src`, `Cargo.toml` o la toolchain sin traer `manifest.json` y `dist/` regenerados.
 
 ## 3. Módulo del núcleo
 - Adaptador `packages/adapters/src/<id>.ts` que implemente `EmulatorCore`: `input`, `advance` (1–3 frames, RGBA del tamaño declarado, audio mono a 48 kHz ≤ 1 s), `save` (SRAM del tamaño de `sramBytes`), `snapshot`/`restore` (errores legibles), `lastFrame` y `dispose` (liberar memoria WASM).

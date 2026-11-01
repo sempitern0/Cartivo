@@ -88,8 +88,8 @@ Paquetes nuevos solo con consumidor real. Dirección de dependencias: `apps → 
 ### Ruta de un núcleo
 
 1. **Selección y gate legal** (skill `cartivo-core-gate`): versión fijada, SBOM, licencias, firmware, decisión registrada.
-2. **Build en CI**, nunca en el equipo del desarrollador: toolchain fijada, lockfile, rutas reasignadas, `cargo deny` o equivalente. Rust usa `wasm-bindgen` (TetaNES); C/C++ usará Emscripten con la misma disciplina.
-3. **Artefactos versionados** en `cores/<id>/dist` con `manifest.json` (SHA-256, toolchain) y `sbom.json`; una recompilación independiente debe dar los mismos hashes; `pnpm verify:core` los comprueba en cada CI.
+2. **Build en CI bajo petición explícita** (una vez por cambio del núcleo, nunca por commit), nunca en el equipo del desarrollador: toolchain fijada, lockfile, rutas reasignadas, `cargo deny` o equivalente. Rust usa `wasm-bindgen` (TetaNES); C/C++ usará Emscripten con la misma disciplina.
+3. **Artefactos versionados** en `cores/<id>/dist` con `manifest.json` (SHA-256, toolchain) y `sbom.json`; `pnpm verify:core` comprueba hashes y licencias en cada CI sin recompilar; la recompilación de verificación (mismos hashes) se lanza solo a mano.
 4. **Adaptador** con la superficie común (`input`, `advance`, `save`, `dispose`) y validación de formato compartida por sistema.
 5. **Pruebas:** unitarias en Node contra el WASM versionado con fixtures propias, E2E en dev y build de producción, y expediente en `docs/compatibility/`.
 
@@ -145,7 +145,7 @@ Validar cabeceras, tamaños y referencias antes de cargar; límites de descompre
 
 ## 13. QA y gates
 
-**CI actual** (`Foundation CI`): `pnpm install --frozen-lockfile`, `verify:core`, `lint`, `check`, `test`, `build`, E2E en dev y en preview, capturas de UI como artefacto. **Núcleos** (`Core TetaNES`): gate de licencias, build, commit de artefactos y recompilación de verificación.
+**CI actual** (`Foundation CI`): `pnpm install --frozen-lockfile`, `verify:core`, `lint`, `check`, `test`, `build`, E2E en dev y en preview, capturas de UI como artefacto. La CI omite cambios solo de documentación y cancela ejecuciones superadas. **Núcleos** (`Core TetaNES`): solo a petición (`workflow_dispatch` o `cores/tetanes/.build-request`): gate de licencias, build y commit de artefactos; la recompilación de verificación es otra petición manual.
 
 Gate por sistema para promover a estable: build reproducible y licencia `accepted`; arranque, entrada, audio y partida probados con fixtures autorizadas; al menos 10 casos representativos legales (incluido estrés y un caso de fallo); 100 ciclos de guardado/reinicio/import sin corrupción; offline tras 20 reinicios; QA en hardware real (mando, audio, instalación, suspensión móvil). Chromium headless no sustituye Firefox, Safari ni iOS instalado.
 

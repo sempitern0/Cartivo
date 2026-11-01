@@ -2,9 +2,9 @@
 
 Fecha: 2026-11-01. Estado de verificación de la base NES antes de fusionar la PR #2. Lo automático se ejecuta en GitHub Actions (Node 24, Chromium headless de Playwright); lo manual solo cuenta cuando alguien lo ha hecho en hardware real, y entonces se anota quién, con qué y cuándo.
 
-## Automático (CI, workflow `ci` y `core-tetanes`)
+## Automático (CI, workflow `ci`)
 
-Cada commit de la rama pasa `pnpm verify:core`, `lint`, `check`, `test`, `build`, `test:e2e` (dev, 127.0.0.1:5173) y `test:e2e:preview` (build de producción, 4173). El SHA final y su resultado se anotan en la descripción de la PR.
+Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm verify:core`, `lint`, `check`, `test`, `build`, `test:e2e` (dev, 127.0.0.1:5173) y `test:e2e:preview` (build de producción, 4173). El SHA final y su resultado se anotan en la descripción de la PR. `core-tetanes` no forma parte de esta verificación: solo se ejecuta a petición al cambiar el núcleo ([ADR-008](../adr/008-nes-tetanes-wasm.md)).
 
 | Área | Prueba | Dónde |
 |---|---|---|

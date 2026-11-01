@@ -46,7 +46,7 @@ Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligada
 | `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en dev / en la build de producción |
 | `pnpm verify:core` | Integridad de JSNES y TetaNES contra sus manifiestos |
 
-El núcleo TetaNES se compila **solo en CI** (`.github/workflows/core-tetanes.yml`), que sube `cores/tetanes/dist` a la rama y comprueba que la build es reproducible.
+El WASM de TetaNES está versionado en `cores/tetanes/dist`: la CI normal no compila Rust, solo comprueba hashes y licencias con `verify:core`. Se regenera **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml` (manual; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md)). La CI omite los cambios que solo tocan documentación.
 
 ## Jugar
 

@@ -104,3 +104,9 @@
 - Nombres de almacenamiento por sistema (`formats.ts`) con los de NES intactos; mensaje de núcleo incompatible derivado del registro; sin tamaños 256×240 por defecto fuera del núcleo.
 - Pruebas de coherencia manifest ↔ `systems.ts` y de ausencia de ids de sistema en la interfaz; mapa de archivos para GB/GBC en `ADDING_A_SYSTEM.md`.
 - Medición de carga y precache; carga diferida por núcleo pospuesta al segundo sistema (H1-C-PWA). Matriz de QA en `docs/compatibility/H1-QA.md`.
+
+### CI más ligera
+
+- TetaNES se compila solo bajo petición explícita; la CI cotidiana verifica los artefactos versionados sin Rust.
+- Una ejecución por cambio: sin duplicados push/PR, cancelación de ejecuciones superadas, omisión de cambios solo de documentación y límite de 10 min.
+- Playwright muestra la duración de cada test.
