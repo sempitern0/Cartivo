@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import GameStage from "./GameStage.svelte";
+  import PlayerToolbar from "./PlayerToolbar.svelte";
   import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
   import {
     defaultDisplay,
@@ -748,49 +749,20 @@
       }}>Salir de Focus</button
     >
   {/if}
-  <div class="heading" data-player-chrome>
-    <div class="title">
-      <p class="kicker">{system.name}</p>
-      <h1>{file?.name ?? "Demo de controles"}</h1>
-    </div>
-    <div class="toolbar" role="toolbar" aria-label="Partida">
-      <button
-        data-player-action
-        class="tool icon-button"
-        bind:this={graphicsButton}
-        onclick={toggleGraphics}
-        aria-expanded={graphicsOpen}
-        aria-controls="graphics-panel"
-        >{@html icons.monitor}<span>Gráficos</span></button
-      >
-      <button
-        data-player-action
-        class="tool icon-button"
-        bind:this={savesButton}
-        onclick={toggleSaves}
-        aria-expanded={savesOpen}
-        aria-controls="saves-panel"
-        disabled={phase === "loading" || phase === "error"}
-        >{@html icons.save}<span>Partidas</span></button
-      >
-      <button
-        data-player-action
-        class="tool icon-button"
-        onclick={chooseRom}
-        disabled={busy}>{@html icons.folder}<span>Cargar ROM</span></button
-      >
-      <span class="divider" aria-hidden="true"></span>
-      <button
-        data-player-action
-        class="tool icon-button"
-        onclick={() => close()}
-        disabled={busy}
-        >{@html icons.close}<span
-          >{phase === "loading" ? "Cancelar carga" : "Salir"}</span
-        ></button
-      >
-    </div>
-  </div>
+  <PlayerToolbar
+    systemName={system.name}
+    title={file?.name ?? "Demo de controles"}
+    {phase}
+    {busy}
+    {graphicsOpen}
+    {savesOpen}
+    bind:graphicsButton
+    bind:savesButton
+    ongraphics={toggleGraphics}
+    onsaves={toggleSaves}
+    onrom={chooseRom}
+    onexit={() => close()}
+  />
   <input
     bind:this={romInput}
     type="file"
@@ -1191,7 +1163,8 @@
   .focus-exit { position: absolute; z-index: 3; top: 16px; right: 16px; opacity: .65; min-height: 44px; background: #181b25f0; border: 1px solid #656b7b; }
   .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
   @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
-  .player.focus-mode [data-player-chrome], .player.focus-mode > details { display: none; }
+  /* Chrome may live in child components (toolbar, panels): match globally. */
+  .player.focus-mode :global([data-player-chrome]), .player.focus-mode > details { display: none; }
   .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
   .frame.presenting { opacity: 1; }
   .game-stage-wrapper { width: 100%; height: min(60vh, 560px); min-height: 200px; border-radius: 14px; overflow: hidden; }
@@ -1220,14 +1193,6 @@
     margin: 4px 0;
     font-size: 12px;
   }
-  .player:fullscreen h1 {
-    font-size: 20px;
-    margin: 8px 0;
-    max-width: 70vw;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
   .player.playing:fullscreen .demo-info,
   .player.playing:fullscreen > details {
     display: none;
@@ -1240,42 +1205,6 @@
   .player {
     margin: 28px auto;
     max-width: 1040px;
-  }
-  .heading {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px 24px;
-    flex-wrap: wrap;
-  }
-  .title {
-    min-width: 0;
-  }
-  h1 {
-    font-size: 28px;
-    margin: 6px 0 0;
-    overflow-wrap: anywhere;
-  }
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-  .tool {
-    background: transparent;
-    border-color: transparent;
-    color: var(--text);
-    padding: 10px 14px;
-  }
-  .tool:hover:not(:disabled) {
-    background: #ffffff0d;
-  }
-  .divider {
-    width: 1px;
-    height: 26px;
-    background: var(--border);
-    margin: 0 6px;
   }
   .player-actions {
     justify-content: center;
@@ -1310,14 +1239,6 @@
     color: var(--text);
   }
   @media (max-width: 640px) {
-    .tool span {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-    }
     .frame {
       padding: 6px;
       border-radius: 16px;
