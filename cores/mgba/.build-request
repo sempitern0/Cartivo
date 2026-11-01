@@ -1,0 +1,2 @@
+Bump this file only to build mGBA once in CI (core-mgba.yml).
+Reason: first build of mGBA 0.10.5 for Cartivo (GBA, ADR-011).

@@ -32,3 +32,5 @@ cores/tetanes/target/
 !cores/tetanes/dist/
 cores/sameboy/build/
 !cores/sameboy/dist/
+cores/mgba/build/
+!cores/mgba/dist/

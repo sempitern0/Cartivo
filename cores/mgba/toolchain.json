@@ -1,0 +1,13 @@
+{
+  "mgba": {
+    "tag": "0.10.5",
+    "commit": "26b7884bc25a5933960f3cdcd98bac1ae14d42e2",
+    "repository": "https://github.com/mgba-emu/mgba",
+    "spdx": "MPL-2.0"
+  },
+  "emsdk": {
+    "version": "6.0.12",
+    "commit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+    "repository": "https://github.com/emscripten-core/emsdk"
+  }
+}
