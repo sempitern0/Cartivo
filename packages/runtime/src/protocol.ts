@@ -1,4 +1,11 @@
-import { actions, type InputState } from "../../input/src/nes-input.ts";
+import {
+  actions,
+  type Action,
+  type InputState,
+} from "../../input/src/nes-input.ts";
+
+/** Buttons added after protocol v1 shipped (Game Boy Advance). */
+const optional: readonly Action[] = ["l", "r"];
 import { system as findSystem } from "./systems.ts";
 import {
   isStateSlot,
@@ -82,9 +89,15 @@ export function parseRequest(value: unknown): EmuRequest {
       r.count! < 1 ||
       r.count! > 3 ||
       !r.input ||
-      actions.some((a) => typeof r.input![a] !== "boolean"))
+      actions.some(
+        (a) =>
+          typeof r.input![a] !== "boolean" &&
+          !(optional.includes(a) && r.input![a] === undefined),
+      ))
   )
     throw Error("Entrada inválida");
+  // Protocol v1 clients from before L/R send eight buttons: L/R are released.
+  if (r.input) for (const a of optional) r.input[a] ??= false;
   return r;
 }
 export type EmuResult = {

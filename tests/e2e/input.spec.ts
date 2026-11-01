@@ -49,6 +49,9 @@ test("L and R: I/O keys and LB/RB light up and can be remapped", async ({
   page,
 }) => {
   await page.getByRole("button", { name: "Activar prueba" }).click();
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.keyboard.down("KeyI");
   await expect(page.locator("[data-action=l]")).toHaveText("LPulsado");
   await page.keyboard.up("KeyI");
@@ -57,6 +60,9 @@ test("L and R: I/O keys and LB/RB light up and can be remapped", async ({
   await page.keyboard.up("KeyO");
   await page.getByLabel("Mando", { exact: true }).selectOption("0");
   await page.getByRole("button", { name: "Activar prueba" }).click();
+  await expect(page.getByTestId("input-status")).toContainText(
+    "Prueba activa. Usa",
+  );
   await page.evaluate(() => {
     (window as any).testPad.buttons[5].pressed = true;
   });
