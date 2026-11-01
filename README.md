@@ -2,7 +2,7 @@
 
 PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
 
-**Estado: emulación NES experimental (iNES NTSC, mappers 0–4) con JSNES 2.1.0 en Worker.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo de este incremento es JavaScript, no WASM. La build de producción es **instalable como PWA y reabre sin conexión** (experimental, ver [H1-C PWA](docs/compatibility/H1-C-PWA.md)). No se distribuyen juegos ni BIOS propietarias de terceros.
+**Estado: emulación NES experimental (iNES NTSC, mappers 0–4) con TetaNES en WebAssembly (Worker); JSNES 2.1.0 disponible como alternativa.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo por defecto es TetaNES compilado a WebAssembly por el CI ([H0-WASM-NES](docs/compatibility/H0-WASM-NES.md)); no hace falta Rust para desarrollar. La build de producción es **instalable como PWA y reabre sin conexión** (experimental, ver [H1-C PWA](docs/compatibility/H1-C-PWA.md)). No se distribuyen juegos ni BIOS propietarias de terceros.
 
 ## Catálogo inicial propuesto
 

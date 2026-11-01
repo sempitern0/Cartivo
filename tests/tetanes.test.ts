@@ -47,7 +47,8 @@ test("TetaNES renders the fixture, reacts to input, plays audio and keeps SRAM",
   let frame = core.advance(3);
   for (let i = 0; i < 19; i++) frame = core.advance(3);
   assert.equal(frame.pixels.length, 256 * 240 * 4);
-  assert.ok(new Set(new Uint32Array(frame.pixels.buffer)).size >= 3);
+  // Backdrop plus the white sprite: TetaNES draws no extra border colour.
+  assert.ok(new Set(new Uint32Array(frame.pixels.buffer)).size >= 2);
   const before = hash(frame.pixels);
   core.input({ ...neutral(), a: true, b: true, right: true });
   let peak = 0;
@@ -110,7 +111,7 @@ test("mappers 1–4 run on TetaNES with the same validation gate", () => {
     let frame = core.advance(3);
     for (let n = 0; n < 19; n++) frame = core.advance(3);
     assert.ok(
-      new Set(new Uint32Array(frame.pixels.buffer)).size >= 3,
+      new Set(new Uint32Array(frame.pixels.buffer)).size >= 2,
       `mapper ${mapper} renders`,
     );
     core.input({ ...neutral(), a: true });

@@ -72,3 +72,10 @@
 - Panel **Gráficos** con opciones visuales de escalado y proporción, suavizado opcional, aviso cuando el escalado no cabe y preferencias recordadas por sistema.
 - Tarjeta NES centrada y arte desplazado para no tapar textos ni botones.
 
+### H0-WASM-NES: TetaNES en WebAssembly
+
+- Envoltorio `cores/tetanes` sobre `tetanes-core` 0.17.0 compilado a WASM en CI con toolchain fijada, `cargo deny`, manifiesto de hashes, SBOM y recompilación reproducible; los artefactos se versionan en la rama.
+- Adaptador TetaNES con la misma superficie que JSNES, validación iNES compartida, protocolo con campo `core` y preferencia por sistema (TetaNES por defecto, JSNES en Acerca de esta prueba).
+- La partida SRAM se comparte entre núcleos; pruebas unitarias del WASM y E2E de cambio de núcleo.
+- Expediente CORE-LEGAL-01 y avisos de licencia (TetaNES MIT/Apache-2.0; excepción MPL-2.0 para `option-ext` aprobada por el titular).
+

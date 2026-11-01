@@ -1,10 +1,10 @@
 # Compatibilidad: estado y evidencia
 
-Estado por incremento: [H1-B NES](H1-B-NES.md) (núcleo JSNES experimental), [H1-B Entrada](H1-B-INPUT.md) y [H1-C PWA](H1-C-PWA.md) (instalación y offline). Las etiquetas de objetivo del plan no describen soporte logrado.
+Estado por incremento: [H1-B NES](H1-B-NES.md) (núcleo JSNES experimental), [H1-B Entrada](H1-B-INPUT.md) y [H1-C PWA](H1-C-PWA.md) (instalación y offline) y [H0-WASM-NES](H0-WASM-NES.md) (núcleo TetaNES). Las etiquetas de objetivo del plan no describen soporte logrado.
 
 | Sistema | Estado de evaluación actual | Evidencia mínima para aceptación |
 |---|---|---|
-| NES | Experimental (JSNES, JS en Worker); gate WASM pendiente | Mapper, input, audio, SRAM y reinicio offline |
+| NES | Experimental: TetaNES WASM por defecto ([H0-WASM-NES](H0-WASM-NES.md)); JSNES como alternativa | Mapper, input, audio, SRAM y reinicio offline |
 | SNES | Pendiente | Chips/firmware por juego, guardado y sincronización |
 | GB / GBC | Pendiente | Mapper, RTC, paleta/color y persistencia |
 | GBA | Pendiente | BIOS libre integrada, Flash/EEPROM/SRAM y audio |

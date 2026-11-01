@@ -58,6 +58,10 @@ Consultar `docs/research/` antes de seleccionar un núcleo; no repetir la matriz
 
 La configuración y prueba de entrada es una utilidad permanente del jugador: `#controles` y `ControlsPanel.svelte`. Mantenerla fuera del laboratorio técnico y reutilizar el panel en futuros ajustes; al integrarlo durante una partida, conectar pausa/neutralización con el gestor de sesión antes de aceptar entradas.
 
+## Núcleo NES WebAssembly
+
+Seguir ADR-008 y `docs/compatibility/H0-WASM-NES.md`. TetaNES (`tetanes-core` =0.17.0) se compila solo en CI (`core-tetanes.yml`), que versiona `cores/tetanes/dist`, `manifest.json`, `sbom.json` y `Cargo.lock`; no editar esos artefactos a mano. Cambios en `cores/tetanes/src` o dependencias repiten el gate CORE-LEGAL-01 (`cargo deny`, excepción MPL-2.0 solo para `option-ext`). La validación iNES es común (`packages/adapters/src/ines.ts`); ampliar mappers exige pruebas y expediente. La UI solo conoce identificadores de núcleo (`core-ids.ts`).
+
 ## Incremento NES experimental
 
 Seguir ADR-007 y `docs/compatibility/H1-B-NES.md`. El adaptador JSNES 2.1.0 ejecuta iNES NTSC con mappers 0–4 y límites por board de la revisión ADR-007, es JavaScript en Worker y no cierra el gate WASM. Antes de build ejecutar `pnpm verify:core`; no editar fuentes de node_modules ni ampliar mappers sin prueba/expediente. La fixture propia está en packages/fixtures; preservar hash/licencia/oráculo. UI no accede al ABI SRAM. Probar dev y preview cuando cambien Worker, audio o assets. Hardware/suspensión/offline no se acreditan con gamepads sintéticos.
