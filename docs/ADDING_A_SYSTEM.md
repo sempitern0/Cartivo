@@ -48,12 +48,15 @@ Primera prueba real de este checklist con SameBoy. Además de los archivos del n
 
 Por lo demás, `App`, `Player` (salvo `frameRate`), `PlayerToolbar`, `SavePanel`, `GameStage`, el Worker (salvo `saveBytes`), el protocolo y `packages/storage` no cambiaron. Para cargar núcleos solo al usarlos, `prepare()` hace `import()` del adaptador (Workers como módulos ES).
 
-**Plantilla C/C++ (Emscripten):**
+**Plantilla C/C++ (Emscripten), consolidada con GBA (ADR-011):**
+- El envoltorio C expone la ABI `cartivo_*` común (ver `cores/sameboy/src/cartivo.c` y `cores/mgba/src/cartivo.c`). En TS, el adaptador es una subclase de `BridgeCore` (`packages/adapters/src/wasm-host.ts`) que solo aporta orden de botones, dimensiones y `cartivo_create`; ver `mgba.ts` (unas 60 líneas).
+- Si el upstream solo compila con CMake, se configura una vez en nativo, se versiona la lista de fuentes (`cores/mgba/sources.txt`) y se generan `flags.h`/`version.c` en la receta.
+- Si el tipo de guardado se detecta con el juego en marcha, se usa un búfer fijo del tamaño máximo (GBA: 128 KB) para que `saveBytes` no cambie.
 - Copiar `tools/build-sameboy.mjs`, `cores/sameboy/toolchain.json` y `core-sameboy.yml`.
 - `STANDALONE_WASM` sin JS de Emscripten y un adaptador TS que aporte los imports de sistema (ver `packages/adapters/src/sameboy.ts`).
 - Probar antes el envoltorio con un arnés nativo (gcc): cada compilación en CI cuesta minutos.
 
-**Límites conocidos:** los controles siguen siendo los 8 botones NES/GB; GBA (L/R), SNES (X/Y/L/R) y Mega Drive (C) necesitan ampliar antes `InputState`. El vídeo del núcleo es de tamaño fijo.
+**Límites conocidos:** la entrada tiene diez acciones (las ocho de NES/GB más L/R desde GBA); SNES (X/Y) y Mega Drive (C, 6 botones) necesitan ampliarla antes. El vídeo del núcleo es de tamaño fijo.
 
 ## 6. Documentación
 Crear `docs/compatibility/<SISTEMA>.md` y un ADR del núcleo, y actualizar README, el plan técnico (catálogo y backlog), `LICENSES.md`, `apps/web/public/licenses/` y CHANGELOG.

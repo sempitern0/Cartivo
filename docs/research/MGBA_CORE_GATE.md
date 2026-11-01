@@ -62,4 +62,6 @@ Arnés C nativo (gcc, mismas fuentes y definiciones) con la fixture original `pa
 
 ## 8. Decisión
 
-**accepted (uso privado).** Se integra para GBA (ADR-011). Pendiente: el hash del primer build de CI.
+**accepted (uso privado).** Se integra para GBA (ADR-011).
+
+Primer build (`core-mgba.yml`, run sobre `8caee2b`, commit del bot `122bdd6`): `dist/mgba.wasm` de 574 942 bytes, SHA-256 `a655c20f1331…` (completo en `manifest.json`). Los tres avisos de licencia coinciden con los del commit fijado y `verify-mgba` pasa sin errores. Imports del binario: `clock_time_get`, `fd_write`, `fd_close`, `environ_sizes_get`, `environ_get` y `emscripten_notify_memory_growth`, todos resueltos por `wasm-host.ts`. La reproducibilidad (`mode=verify`) queda a petición.

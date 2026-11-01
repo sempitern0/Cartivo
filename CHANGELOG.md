@@ -125,3 +125,12 @@
 
 - Acciones L y R para Game Boy Advance: I/O en teclado y LB/RB en mando estándar, con chips en Controles y hombros en el dibujo del mando; NES y Game Boy las ignoran.
 - Los perfiles de teclado y mando guardados antes de L/R se completan sin perder asignaciones.
+
+### H2-GBA: Game Boy Advance con mGBA
+
+- Tarjeta «Game Boy Advance» (`.gba`) con mGBA 0.10.5 en WebAssembly autónomo, BIOS HLE y arranque directo; L/R funcionan en el juego (ADR-011).
+- Gate CORE-LEGAL-01 de mGBA (MPL-2.0; blip_buf LGPL-2.1+, inih BSD-3-Clause): accepted para uso privado, con las obligaciones si se publicara.
+- Build solo bajo petición (`core-mgba.yml`, emsdk 6.0.12) con lista de fuentes versionada en lugar de CMake; `verify-mgba` en `verify:core`; avisos en `LICENSES.md` y `NOTICE.txt`.
+- Guardado SRAM, Flash o EEPROM en un búfer fijo de 128 KB (como libretro), así que `saveBytes` no cambia.
+- `wasm-host.ts`: carga, imports de sistema y `BridgeCore` comunes para SameBoy y mGBA.
+- Fixture original ARM (modo 3) y validación de cabecera GBA; conformidad de `gba/mgba` y E2E de demo, L/R en píxeles, SRAM, F5/F9, soltar `.gba` y archivo dañado.

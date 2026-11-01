@@ -16,7 +16,7 @@ GB/GBC es el siguiente sistema del roadmap y la primera prueba real de la base m
   - Semilla aleatoria fija: SameBoy solo la usa para el patrón de RAM al encender, así que los arranques son reproducibles.
 - **Firmware:** boot ROMs libres de SameBoy (`dmg_boot`, `cgb_boot`), ensambladas en CI con rgbds desde su código y registradas por hash. No muestran ni verifican arte de Nintendo si la cabecera no lo trae.
 - **Build:**
-  - WebAssembly autónomo (`STANDALONE_WASM`, `dist/sameboy.wasm`, ~190 KB), sin JS de Emscripten. `packages/adapters/src/sameboy.ts` lo instancia y aporta los imports de sistema: reloj, log descartado y stubs «no soportado».
+  - WebAssembly autónomo (`STANDALONE_WASM`, `dist/sameboy.wasm`, ~190 KB), sin JS de Emscripten. `packages/adapters/src/sameboy.ts` lo instancia sobre el host común `wasm-host.ts` (desde ADR-011), que aporta los imports de sistema: reloj, log descartado y stubs «no soportado».
   - Toolchain fijada en `cores/sameboy/toolchain.json`: emsdk 6.0.12 y rgbds v1.0.4.
   - `core-sameboy.yml` compila **solo bajo petición** (`cores/sameboy/.build-request` o `workflow_dispatch`); `pnpm verify:core` comprueba hashes y licencias sin compilar.
 - **Contrato:**
