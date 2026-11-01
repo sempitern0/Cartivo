@@ -101,3 +101,81 @@ test("F5 quick-saves without reloading and F9 quick-loads", async ({
   await expect(page.getByTestId("toast")).toContainText("Partida cargada");
   await running(page);
 });
+
+test("cancelling Cargar ROM keeps the current game paused and intact", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await open(page);
+  await running(page);
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Cargar ROM" }).click();
+  await (await chooser).setFiles([]);
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await expect(
+    page.getByRole("heading", { name: "sin-bateria.nes" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Reanudar juego" }).click();
+  await running(page);
+});
+
+test("hiding the tab pauses and keeps an exit snapshot", async ({ page }) => {
+  await page.goto("/");
+  await open(page);
+  await running(page);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  // Back to visible and reopen: the exit snapshot is offered.
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => false,
+    });
+  });
+  await page.getByRole("button", { name: "Partidas" }).click();
+  await expect(
+    page
+      .getByRole("region", { name: "Partidas" })
+      .locator('[data-slot="auto"]'),
+  ).toContainText("TetaNES");
+});
+
+test("leaving right after a quick save loses nothing and leaks no workers", async ({
+  page,
+}) => {
+  await page.goto("/");
+  for (let cycle = 0; cycle < 5; cycle++) {
+    await open(page);
+    const offer = page.getByRole("button", { name: "Empezar de nuevo" });
+    await expect
+      .poll(
+        async () =>
+          (await page.getByTestId("player-phase").textContent())?.includes(
+            "Jugando",
+          ) || (await offer.count()) > 0,
+      )
+      .toBe(true);
+    if (await offer.count()) await offer.click();
+    await running(page);
+    await page.keyboard.press("F5");
+    await page.getByRole("button", { name: "Salir", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Jugar", exact: true }),
+    ).toBeVisible();
+  }
+  await expect.poll(() => page.workers().length).toBe(0);
+  await open(page);
+  await expect(
+    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Partidas" }).click();
+  await expect(
+    page.getByRole("region", { name: "Partidas" }).locator('[data-slot="1"]'),
+  ).toContainText("TetaNES");
+});
