@@ -27,3 +27,4 @@ playwright-report/
 *.sav
 *.state
 !packages/fixtures/**
+screenshots/

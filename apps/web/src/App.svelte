@@ -4,9 +4,15 @@
   import ControlsPanel from "./ControlsPanel.svelte";
   import DiagnosticLab from "./DiagnosticLab.svelte";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
+  import { icons } from "./icons.ts";
   import "./theme.css";
   let controlsPage = $state(false);
-  let game = $state<{ file?: File }>();
+  // `id` remounts the player when a ROM replaces the current one.
+  let game = $state<{ file?: File; id: number }>();
+  let nextGameId = 0;
+  const startGame = (file?: File) => {
+    game = { file, id: ++nextGameId };
+  };
   let fileInput = $state.raw<HTMLInputElement>();
   /** A file opened from the OS while another game was running. */
   let pendingFile = $state.raw<File>();
@@ -17,7 +23,7 @@
     if (game) pendingFile = file;
     else {
       pendingFile = undefined;
-      game = { file };
+      startGame(file);
     }
   }
   function chooseGame(event: Event) {
@@ -94,53 +100,95 @@
           >Instalar app</button
         >
       {/if}
-      <a href="#controles" aria-current={controlsPage ? "page" : undefined}
-        >Ajustes</a
+      <a
+        class="icon-button settings-link"
+        href="#controles"
+        aria-current={controlsPage ? "page" : undefined}
+        >{@html icons.gear}<span>Ajustes</span></a
       >
     </nav>
   </header>
   {#if controlsPage}
     <section class="controls-page">
-      <a class="back" href="#inicio"
-        >← {game ? "Volver al juego" : "Volver al inicio"}</a
-      >
-      <h1 bind:this={pageHeading} tabindex="-1">Controles</h1>
+      <div class="page-head">
+        <a
+          class="back icon-button"
+          href="#inicio"
+          aria-label={game ? "Volver al juego" : "Volver al inicio"}
+          title={game ? "Volver al juego" : "Volver al inicio"}
+          >{@html icons.back}</a
+        >
+        <div class="titles">
+          <p class="kicker">NES · Experimental</p>
+          <h1 bind:this={pageHeading} tabindex="-1">Configurar controles</h1>
+        </div>
+      </div>
       <ControlsPanel />
       <DiagnosticLab />
-      
     </section>
   {:else if !game}
     <section class="welcome">
-      <h1 id="inicio" bind:this={pageHeading} tabindex="-1" class="sr-only">Cartivo · NES</h1>
+      <div class="titles">
+        <p class="kicker">Tus consolas. Tu momento.</p>
+        <h1 id="inicio" bind:this={pageHeading} tabindex="-1">
+          Elige una consola
+        </h1>
+      </div>
       {#if pwa.updateReady}
         <div class="update" role="status">
           Nueva versión de Cartivo lista.
           <button onclick={applyUpdate}>Actualizar ahora</button>
         </div>
       {/if}
-      <div
-        class="empty-stage"
-        class:dragging
-        aria-label="Pantalla de juego vacía"
-      >
-        <span class="system-label">NES</span>
-        {#if pendingFile}
-          <button class="primary" onclick={() => openFile(pendingFile!)}
-            >Jugar {pendingFile.name}</button
+      <ul class="consoles" aria-label="Consolas">
+        <li>
+          <article
+            class="console-card card"
+            class:dragging
+            aria-labelledby="console-nes"
           >
-          <button class="demo-link" onclick={() => fileInput?.click()}
-            >Elegir otro juego</button
-          >
-        {:else}
-          <button class="primary" onclick={() => fileInput?.click()}
-            >Añadir juego</button
-          >
-        {/if}
-        <button class="demo-link" onclick={() => { game = {}; }}>Probar demo</button>
-        <span class="drop-hint" aria-hidden="true"
-          >o arrastra aquí un archivo .nes</span
-        >
-      </div>
+            <div class="console-art" aria-hidden="true">
+              {#each Array(48) as _}<i></i>{/each}
+            </div>
+            <div class="console-text">
+              <h2 id="console-nes">NES</h2>
+              <p>Nintendo Entertainment System</p>
+            </div>
+            <div class="console-actions">
+              {#if pendingFile}
+                <button
+                  class="primary icon-button play"
+                  onclick={() => openFile(pendingFile!)}
+                  >{@html icons.play}<span>Jugar {pendingFile.name}</span
+                  ></button
+                >
+              {:else}
+                <button
+                  class="primary icon-button play"
+                  onclick={() => fileInput?.click()}
+                  >{@html icons.play}<span>Jugar</span></button
+                >
+              {/if}
+              <a
+                class="icon-button square"
+                href="#controles"
+                aria-label="Ajustes de NES"
+                title="Ajustes de NES">{@html icons.sliders}</a
+              >
+            </div>
+            <div class="console-foot">
+              {#if pendingFile}<button
+                  class="link"
+                  onclick={() => fileInput?.click()}>Elegir otro juego</button
+                >{/if}
+              <button class="link" onclick={() => startGame()}
+                >Probar demo</button
+              >
+              <span class="drop-hint">o arrastra un archivo .nes</span>
+            </div>
+          </article>
+        </li>
+      </ul>
       <input
         bind:this={fileInput}
         type="file"
@@ -151,65 +199,54 @@
     </section>
   {/if}
   {#if game}<div hidden={controlsPage}>
-      <Player
-        file={game.file}
-        visible={!controlsPage}
-        autostart
-        onclose={() => {
-          game = undefined;
-        }}
-      />
+      {#key game.id}
+        <Player
+          file={game.file}
+          visible={!controlsPage}
+          autostart
+          onclose={() => {
+            game = undefined;
+          }}
+          onreplace={(file: File) => {
+            pendingFile = undefined;
+            startGame(file);
+          }}
+        />
+      {/key}
     </div>{/if}
 </main>
 
 <style>
-  nav {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  nav a {
-    padding: 10px 0;
-    text-decoration: none;
-  }
-  nav a[aria-current="page"] {
-    color: var(--teal);
-  }
-  a:focus-visible {
-    outline: 3px solid var(--gold);
-    outline-offset: 5px;
-  }
-  .controls-page {
-    max-width: 720px;
-    margin: 40px auto;
-  }
-  .controls-page h1 {
-    font-size: 44px;
-    letter-spacing: -2px;
-  }
-  .back {
-    display: inline-block;
-    margin-bottom: 36px;
-  }
-  .controls-page :global(section) {
-    margin-top: 0;
-  }
   main {
-    max-width: 960px;
+    max-width: 1180px;
     margin: auto;
-    padding: 36px 28px;
+    padding: 32px 40px 48px;
   }
   header {
-    flex-wrap: wrap;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 20px;
+    flex-wrap: wrap;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .settings-link {
+    color: var(--text);
+    text-decoration: none;
+    padding: 10px 4px;
+    min-height: 44px;
+  }
+  .settings-link[aria-current="page"] {
+    color: var(--teal);
   }
   .brand {
-    font-size: 28px;
-    font-weight: 750;
+    font-size: 30px;
+    font-weight: 760;
     letter-spacing: -1px;
     display: flex;
     align-items: center;
@@ -221,7 +258,7 @@
   }
   .palette i {
     width: 6px;
-    height: 18px;
+    height: 20px;
     border-radius: 3px;
     background: var(--coral);
   }
@@ -234,41 +271,206 @@
   .palette i:nth-child(4) {
     background: var(--gold);
   }
-  .welcome {
+  .titles {
     text-align: center;
-    padding: 24px 0;
   }
   h1 {
-    font-size: clamp(40px, 7vw, 70px);
-    letter-spacing: -3px;
-    margin: 20px 0;
+    font-size: clamp(38px, 6vw, 68px);
+    font-weight: 780;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    margin: 14px 0 0;
   }
-  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-  .empty-stage { min-height: min(62vh, 580px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #08090e; border-radius: 8px; }
-  .system-label { font-size: clamp(48px, 12vw, 110px); font-weight: 800; letter-spacing: -0.08em; opacity: .18; }
-  .empty-stage.dragging { outline: 2px dashed var(--teal); outline-offset: -12px; }
-  .drop-hint { font-size: 12px; color: var(--muted); opacity: .7; }
-  .update { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; color: var(--muted); font-size: 14px; }
-  .update button, .install { min-height: 36px; padding: 6px 14px; font-size: 14px; }
-  .install { border-color: var(--teal); color: var(--teal); background: transparent; }
-  .demo-link { background: transparent; border: 0; font-size: 13px; color: var(--muted); }
-  .welcome { padding: 24px 0; }
+  h1:focus {
+    outline: none;
+  }
+  .welcome {
+    padding: 56px 0 24px;
+  }
+  .consoles {
+    list-style: none;
+    padding: 0;
+    margin: 48px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 340px));
+    justify-content: center;
+    gap: 24px;
+  }
+  .console-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+    padding: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: var(--glow);
+  }
+  .console-card.dragging {
+    outline: 2px dashed var(--teal);
+    outline-offset: -10px;
+  }
+  /* Original abstract art: a cartridge-label pixel field in Cartivo colours. */
+  .console-art {
+    position: absolute;
+    inset: auto -10px -10px auto;
+    width: 230px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+    transform: rotate(-12deg);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .console-art i {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    background: #262a39;
+  }
+  .console-art i:nth-child(7n + 1) {
+    background: var(--coral);
+  }
+  .console-art i:nth-child(11n + 4) {
+    background: var(--blue);
+  }
+  .console-art i:nth-child(13n + 6) {
+    background: var(--teal);
+  }
+  .console-art i:nth-child(17n + 3) {
+    background: var(--gold);
+  }
+  .console-text {
+    position: relative;
+  }
+  .console-text h2 {
+    margin: 0;
+    font-size: 64px;
+    font-weight: 820;
+    letter-spacing: -0.06em;
+    line-height: 1;
+  }
+  .console-text p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 14ch;
+    line-height: 1.35;
+  }
+  .console-actions {
+    position: relative;
+    margin-top: auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .play {
+    flex: 1;
+    min-width: 0;
+    font-size: 17px;
+  }
+  .play span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .square {
+    width: 52px;
+    height: 48px;
+    flex: none;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: #11131bcc;
+    color: var(--text);
+  }
+  .console-foot {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+  }
+  .link {
+    background: transparent;
+    border: 0;
+    padding: 6px 0;
+    min-height: 32px;
+    color: var(--blue);
+    font-size: 14px;
+  }
+  .drop-hint {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .update {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 28px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .update button,
+  .install {
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 14px;
+  }
+  .install {
+    border-color: var(--teal);
+    color: var(--teal);
+    background: transparent;
+  }
+  .controls-page {
+    padding: 40px 0 24px;
+  }
+  .page-head {
+    display: grid;
+    grid-template-columns: 56px 1fr 56px;
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .back {
+    width: 56px;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #151720cc;
+    color: var(--text);
+  }
   @media (prefers-reduced-motion: no-preference) {
-    .welcome, .controls-page { animation: view-enter 180ms ease-out both; }
+    .welcome,
+    .controls-page {
+      animation: view-enter 180ms ease-out both;
+    }
   }
   @keyframes view-enter {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  @media (max-width: 500px) {
+  @media (max-width: 640px) {
     main {
-      padding: 24px 20px;
+      padding: 20px 16px 32px;
     }
     .welcome {
-      padding: 72px 0;
+      padding-top: 32px;
     }
-    h1 {
-      letter-spacing: -2px;
+    .page-head {
+      grid-template-columns: 48px 1fr;
+    }
+    .back {
+      width: 48px;
+    }
+    .consoles {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>

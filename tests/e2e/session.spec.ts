@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 test('minimal home and real worker lifecycle',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('/');
- await expect(page.getByRole('button',{name:'Añadir juego'})).toBeEnabled();
+ await expect(page.getByRole('button',{name:'Jugar',exact:true})).toBeEnabled();
  await expect(page.getByRole('button',{name:'Iniciar prueba'})).not.toBeVisible();
  await page.getByRole('link',{name:'Ajustes'}).click();
  await page.locator('summary').filter({hasText:'Laboratorio'}).click();

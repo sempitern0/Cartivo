@@ -27,6 +27,7 @@
     Pad,
     Profile,
   } from "../../../packages/input/src/nes-input.ts";
+  import { icons } from "./icons.ts";
   const labels: Record<Action, string> = {
     up: "Arriba",
     down: "Abajo",
@@ -61,6 +62,10 @@
   let keyboard = $state<KeyboardProfile>({ ...defaultKeyboard });
   let keyCapture = $state<Action>();
   let connection = $state("Buscando mando…");
+  let advancedOpen = $state(false);
+  const directions = ["up", "down", "left", "right"] as const;
+  const buttonsRow = ["a", "b", "start", "select"] as const;
+  const padConnected = $derived(selected !== -1 && !!last);
   const keyboardStore = "cartivo:keyboard:v1";
   function saveKeyboard() {
     try {
@@ -371,57 +376,143 @@
   });
 </script>
 
-<section aria-labelledby="input-title">
-  <h2 id="input-title">Prueba y asignación</h2>
-  <p class="compact-label">NES · Jugador 1</p>
-  <p data-testid="connection-status" aria-live="polite">{connection}</p>
-  <label for="input-pad">Mando</label><select
-    id="input-pad"
-    bind:value={selected}
-    onchange={() => choose()}
-    ><option value={-1}>Solo teclado</option>{#each pads as pad}<option
-        value={pad.index}
-        >{pad.id} ({pad.mapping === "standard"
-          ? "estándar"
-          : "requiere asignación"})</option
-      >{/each}</select
-  >
-  {#if selected !== -1 && last}
-    <p class="raw">{raw}</p>
-    {#if !profile}<p>
-        Este mando necesita asignación manual. El teclado sigue disponible.
-      </p>{/if}
-    <div class="buttons">
-      <button onclick={beginMapping}>Asignar controles</button
-      >{#if savedAvailable}<button onclick={restore}
-          >Aplicar perfil guardado</button
-        >{/if}<button onclick={reset}>Restablecer mando</button>
-    </div>
-    <label class="deadzone"
-      >Zona muerta: {Math.round(deadzone * 100)} %
-      <input
-        aria-label="Zona muerta"
-        type="range"
-        min="0.15"
-        max="0.6"
-        step="0.05"
-        bind:value={deadzone}
-        oninput={(e) => selectPad(last, profile, Number(e.currentTarget.value))}
-      /></label
+<section class="controls" aria-labelledby="input-title">
+  <h2 id="input-title" class="visually-hidden">Prueba y asignación</h2>
+  <div class="devices">
+    <article class="device card" aria-labelledby="keyboard-title">
+      <header>
+        <span class="device-icon">{@html icons.keyboard}</span>
+        <h3 id="keyboard-title">Teclado activo</h3>
+        <span class="ok" aria-hidden="true">{@html icons.check}</span>
+      </header>
+      <div class="keyboard-art" aria-hidden="true">
+        <div class="cluster">
+          <span class="cap up" class:lit={inputState.up}
+            >{keyLabel(keyboard.up)}</span
+          >
+          <span class="cap left" class:lit={inputState.left}
+            >{keyLabel(keyboard.left)}</span
+          >
+          <span class="cap down" class:lit={inputState.down}
+            >{keyLabel(keyboard.down)}</span
+          >
+          <span class="cap right" class:lit={inputState.right}
+            >{keyLabel(keyboard.right)}</span
+          >
+        </div>
+        <div class="row">
+          {#each buttonsRow as action}<span
+              class="cap wide"
+              class:lit={inputState[action]}
+              ><small>{labels[action]}</small>{keyLabel(keyboard[action])}</span
+            >{/each}
+        </div>
+      </div>
+      <p class="hint">También funcionan las flechas para moverte.</p>
+    </article>
+    <article class="device card" aria-labelledby="pad-title">
+      <header>
+        <span class="device-icon">{@html icons.gamepad}</span>
+        <h3 id="pad-title">
+          {padConnected ? "Gamepad conectado" : "Sin mando"}
+        </h3>
+        {#if padConnected}<span class="ok" aria-hidden="true"
+            >{@html icons.check}</span
+          >{/if}
+      </header>
+      <svg
+        class="pad-art"
+        class:idle={!padConnected}
+        viewBox="0 0 320 150"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          class="shell"
+          d="M70 22h180c34 0 58 26 58 60v6c0 30-22 50-48 50-18 0-28-10-38-24l-8-10H106l-8 10c-10 14-20 24-38 24-26 0-48-20-48-50v-6c0-34 24-60 58-60z"
+        />
+        <g class="dpad">
+          <rect class:lit={inputState.up} x="64" y="44" width="22" height="24" rx="4" />
+          <rect class:lit={inputState.down} x="64" y="88" width="22" height="24" rx="4" />
+          <rect class:lit={inputState.left} x="40" y="68" width="24" height="22" rx="4" />
+          <rect class:lit={inputState.right} x="86" y="68" width="24" height="22" rx="4" />
+          <rect x="64" y="68" width="22" height="22" />
+        </g>
+        <rect class="mini" class:lit={inputState.select} x="130" y="74" width="26" height="10" rx="5" />
+        <rect class="mini" class:lit={inputState.start} x="164" y="74" width="26" height="10" rx="5" />
+        <circle class="face" class:lit={inputState.b} cx="232" cy="88" r="15" />
+        <circle class="face" class:lit={inputState.a} cx="266" cy="66" r="15" />
+        <text x="232" y="93" text-anchor="middle">B</text>
+        <text x="266" y="71" text-anchor="middle">A</text>
+      </svg>
+      <label for="input-pad" class="pad-label">Mando</label><select
+        id="input-pad"
+        bind:value={selected}
+        onchange={() => choose()}
+        ><option value={-1}>Solo teclado</option>{#each pads as pad}<option
+            value={pad.index}
+            >{pad.id} ({pad.mapping === "standard"
+              ? "estándar"
+              : "requiere asignación"})</option
+          >{/each}</select
+      >
+      <p class="hint" data-testid="connection-status" aria-live="polite">
+        {connection}
+      </p>
+      {#if selected !== -1 && last}
+        <p class="raw">{raw}</p>
+        {#if !profile}<p class="hint">
+            Este mando necesita asignación manual. El teclado sigue disponible.
+          </p>{/if}
+        <div class="buttons">
+          <button onclick={beginMapping}>Asignar controles</button
+          >{#if savedAvailable}<button onclick={restore}
+              >Aplicar perfil guardado</button
+            >{/if}<button onclick={reset}>Restablecer mando</button>
+        </div>
+        <label class="deadzone"
+          >Zona muerta: {Math.round(deadzone * 100)} %
+          <input
+            aria-label="Zona muerta"
+            type="range"
+            min="0.15"
+            max="0.6"
+            step="0.05"
+            bind:value={deadzone}
+            oninput={(e) =>
+              selectPad(last, profile, Number(e.currentTarget.value))}
+          /></label
+        >
+      {/if}
+    </article>
+  </div>
+
+  <div class="chips" role="group" aria-label="Asignaciones de teclado">
+    <button
+      class="chip move"
+      aria-expanded={advancedOpen}
+      aria-controls="advanced-controls"
+      onclick={() => (advancedOpen = !advancedOpen)}
     >
-  {/if}
-  <p class="compact-label">WASD o flechas · L = A · K = B</p>
-  <fieldset>
-    <legend>Teclado · pulsa una asignación para cambiarla</legend>
-    <div class="buttons">
-      {#each actions as action}<button
-          aria-label={"Asignar tecla " + labels[action]}
-          onclick={() => assignKey(action)}
-          >{labels[action]} = {keyLabel(keyboard[action])}</button
-        >{/each}
-    </div>
-    <button onclick={resetKeyboard}>Restablecer teclado</button>
-  </fieldset>
+      <span class="mini-dpad" aria-hidden="true"
+        ><i>▲</i><i>◀</i><i>▶</i><i>▼</i></span
+      >
+      <span class="chip-name">Mover</span>
+    </button>
+    {#each buttonsRow as action}<button
+        class="chip"
+        aria-label={"Asignar tecla " + labels[action]}
+        onclick={() => assignKey(action)}
+        ><span class="chip-name" data-chip={action}>{labels[action]}</span
+        ><span class="visually-hidden"> = </span><kbd
+          >{keyLabel(keyboard[action])}</kbd
+        ></button
+      >{/each}
+  </div>
+  <div class="row-end">
+    <button class="link" onclick={resetKeyboard}>Restablecer teclado</button>
+  </div>
+
   {#if keyCapture}<p class="capture">
       Pulsa la nueva tecla para <strong>{labels[keyCapture]}</strong>. Escape
       cancela.
@@ -430,90 +521,240 @@
       {waitingRelease ? "Suelta todos los controles. " : ""}Pulsa el control
       para: <strong>{labels[capture]}</strong>
     </p>{/if}
-  <div class="buttons">
+
+  <div class="test card">
+    <div class="buttons">
+      <button
+        class="primary"
+        onclick={activate}
+        disabled={!!capture || !!keyCapture}>Activar prueba</button
+      ><button
+        onclick={() => pause("Prueba detenida.")}
+        disabled={!active && !capture && !keyCapture}>Detener prueba</button
+      >
+    </div>
+    <!-- A focused region separates emulator input from UI navigation. Tab always remains available. -->
     <button
-      class="primary"
-      onclick={activate}
-      disabled={!!capture || !!keyCapture}>Activar prueba</button
-    ><button
-      onclick={() => pause("Prueba detenida.")}
-      disabled={!active && !capture && !keyCapture}>Detener prueba</button
+      type="button"
+      class="pad"
+      class:armed={active}
+      onclick={() => {
+        if (!active && !capture && !keyCapture) activate();
+      }}
+      aria-label="Zona de prueba de controles"
+      tabindex="0"
+      bind:this={target}
+      onkeydown={keydown}
+      onblur={() => {
+        if (active || capture || keyCapture)
+          pause("Prueba pausada. Actívala para continuar.");
+      }}
     >
+      <span class="pad-hint" aria-hidden="true"
+        >{active
+          ? "Pulsa tus controles: se iluminan arriba"
+          : "Zona de prueba"}</span
+      >
+      {#each actions as action}<span
+          class="visually-hidden"
+          data-action={action}
+          >{labels[action]}<small
+            >{inputState[action] ? "Pulsado" : "Libre"}</small
+          ></span
+        >{/each}
+    </button>
+    <p data-testid="input-status" aria-live="polite">{message}</p>
   </div>
-  <!-- A focused region separates emulator input from UI navigation. Tab always remains available. -->
-  <button
-    type="button"
-    class="pad"
-    onclick={() => {
-      if (!active && !capture && !keyCapture) activate();
-    }}
-    aria-label="Zona de prueba de controles"
-    tabindex="0"
-    bind:this={target}
-    onkeydown={keydown}
-    onblur={() => {
-      if (active || capture || keyCapture)
-        pause("Prueba pausada. Actívala para continuar.");
-    }}
-  >
-    {#each actions as action}<span
-        data-action={action}
-        class:pressed={inputState[action]}
-        >{labels[action]}<small
-          >{inputState[action] ? "Pulsado" : "Libre"}</small
-        ></span
-      >{/each}
-  </button>
-  <p data-testid="input-status" aria-live="polite">{message}</p>
-  <details class="input-help">
-    <summary>Ayuda de controles</summary>
-    <p class="note">Algunos navegadores no detectan el mando hasta pulsar un botón.
-    Los perfiles permanecen en este dispositivo y se aplican tras confirmarlos.</p>
+
+  <details class="advanced" id="advanced-controls" bind:open={advancedOpen}>
+    <summary>Avanzado</summary>
+    <fieldset>
+      <legend>Direcciones · pulsa una asignación para cambiarla</legend>
+      <div class="buttons">
+        {#each directions as action}<button
+            aria-label={"Asignar tecla " + labels[action]}
+            onclick={() => assignKey(action)}
+            >{labels[action]} = {keyLabel(keyboard[action])}</button
+          >{/each}
+      </div>
+    </fieldset>
+    <p class="note">
+      Algunos navegadores no detectan el mando hasta pulsar un botón. Los
+      perfiles permanecen en este dispositivo y se aplican tras confirmarlos.
+    </p>
   </details>
 </section>
 
 <style>
-  .compact-label { font-size: 13px; }
-  .input-help { margin-top: 20px; }
-  fieldset {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin: 20px 0;
-    padding: 16px;
-    min-width: 0;
-  }
-  legend {
-    color: var(--muted);
-    font-size: 13px;
-  }
-  fieldset > button {
-    margin-top: 12px;
-  }
-  section {
-    margin-top: 32px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   p {
     color: var(--muted);
-    line-height: 1.6;
+    line-height: 1.55;
   }
-  h2 {
-    font-size: 20px;
+  .devices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+    gap: 24px;
   }
-  label {
+  .device {
+    padding: 22px 24px;
+    min-width: 0;
+  }
+  .device header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .device h3 {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 650;
+  }
+  .device-icon {
+    display: inline-flex;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #232737;
+    color: var(--text);
+  }
+  .ok {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    background: var(--teal);
+    color: #0f1a18;
+  }
+  .ok :global(svg) {
+    width: 16px;
+    height: 16px;
+    stroke-width: 3;
+  }
+  .keyboard-art {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 28px;
+    margin: 26px 0 8px;
+  }
+  .cluster {
+    display: grid;
+    grid-template-columns: repeat(3, 52px);
+    grid-template-rows: repeat(2, 52px);
+    gap: 6px;
+  }
+  .cluster .up {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .cluster .left {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .cluster .down {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .cluster .right {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(64px, auto));
+    gap: 6px;
+  }
+  .cap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 4px 10px;
+    border-radius: 9px;
+    background: linear-gradient(180deg, #2a2e3d, #1f2230);
+    border: 1px solid #3a3f52;
+    box-shadow: 0 3px 0 #0c0d13;
+    font-weight: 700;
+    font-size: 17px;
+  }
+  .cap small {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .cap.lit {
+    background: #1d3352;
+    border-color: var(--blue);
+    color: #fff;
+    box-shadow:
+      0 1px 0 #0c0d13,
+      0 0 18px #619de580;
+    transform: translateY(2px);
+  }
+  .hint {
+    font-size: 13px;
+    margin: 10px 0 0;
+  }
+  .pad-art {
     display: block;
-    margin: 16px 0;
+    width: min(100%, 340px);
+    margin: 18px auto 10px;
+  }
+  .pad-art .shell {
+    fill: #20232f;
+    stroke: #40c2ae88;
+    stroke-width: 2;
+  }
+  .pad-art.idle .shell {
+    stroke: #393c4b;
+  }
+  .pad-art .dpad rect {
+    fill: #11131b;
+  }
+  .pad-art .mini {
+    fill: #11131b;
+  }
+  .pad-art .face {
+    fill: #11131b;
+    stroke: #3a3f52;
+    stroke-width: 2;
+  }
+  .pad-art text {
+    fill: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .pad-art .lit {
+    fill: var(--teal);
+  }
+  .pad-label {
+    display: block;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
   }
   select {
     display: block;
     width: 100%;
-    max-width: 620px;
-    margin: 8px 0 16px;
-    background: var(--surface);
+    margin: 6px 0 4px;
+    background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
-    padding: 12px;
+    padding: 11px;
     border-radius: 10px;
     font: inherit;
   }
@@ -527,32 +768,120 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .chips {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    min-height: 76px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #1a1d28, #151720);
+    border: 1px solid #2c3040;
+  }
+  .chip.move[aria-expanded="true"],
+  .chip:focus-visible {
+    box-shadow: var(--glow);
+  }
+  .chip-name {
+    font-weight: 700;
+    font-size: 18px;
+  }
+  [data-chip="a"],
+  [data-chip="b"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--teal);
+    color: var(--teal);
+  }
+  [data-chip="b"] {
+    border-color: var(--coral);
+    color: var(--coral);
+  }
+  [data-chip="start"],
+  [data-chip="select"] {
+    padding: 6px 14px;
+    border: 2px solid var(--text);
+    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  kbd {
+    font: inherit;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #2a2e3d;
+    border: 1px solid #3f4457;
+    border-left: 1px solid #3f4457;
+  }
+  .mini-dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 20px);
+    grid-template-rows: repeat(3, 20px);
+    font-size: 11px;
+  }
+  .mini-dpad i {
+    font-style: normal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid var(--text);
+    border-radius: 5px;
+  }
+  .mini-dpad i:nth-child(1) {
+    grid-area: 1 / 2;
+  }
+  .mini-dpad i:nth-child(2) {
+    grid-area: 2 / 1;
+  }
+  .mini-dpad i:nth-child(3) {
+    grid-area: 2 / 3;
+  }
+  .mini-dpad i:nth-child(4) {
+    grid-area: 3 / 2;
+  }
+  .row-end {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .link {
+    background: transparent;
+    border: 0;
+    color: var(--blue);
+    font-size: 14px;
+    padding: 8px 0;
+  }
+  .test {
+    margin-top: 20px;
+    padding: 18px 22px;
+  }
+  .test .buttons {
+    margin-top: 0;
   }
   .pad {
     width: 100%;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin: 20px 0;
-    padding: 8px;
-    border-radius: 12px;
+    margin: 14px 0 0;
+    min-height: 56px;
+    border-style: dashed;
+    color: var(--muted);
+    background: transparent;
   }
-  .pad span {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 14px 8px;
-    border-radius: 10px;
-    text-align: center;
-  }
-  .pad .pressed {
-    background: var(--teal);
-    color: var(--bg);
-    border-color: var(--teal);
-  }
-  small {
-    display: block;
-    font-size: 11px;
-    margin-top: 6px;
+  .pad.armed {
+    border-color: var(--blue);
+    color: var(--text);
   }
   .raw,
   .note {
@@ -562,14 +891,41 @@
   .capture {
     color: var(--gold);
   }
+  .deadzone {
+    display: block;
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: 14px;
+  }
   .deadzone input {
     display: block;
     width: min(100%, 320px);
-    margin-top: 10px;
+    margin-top: 8px;
   }
-  @media (max-width: 400px) {
-    .pad {
+  .advanced {
+    margin-top: 24px;
+  }
+  .advanced summary {
+    cursor: pointer;
+    color: var(--muted);
+  }
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 16px 0;
+    padding: 16px;
+    min-width: 0;
+  }
+  legend {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  @media (max-width: 760px) {
+    .chips {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .chip.move {
+      grid-column: 1 / -1;
     }
   }
 </style>

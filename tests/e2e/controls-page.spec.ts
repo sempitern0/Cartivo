@@ -4,7 +4,7 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
 }) => {
   await page.goto("/#controles");
   await expect(
-    page.getByRole("heading", { name: "Controles", exact: true }),
+    page.getByRole("heading", { name: "Configurar controles", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Diagnóstico sin emulación" }),
@@ -20,7 +20,7 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
     .click();
   await page.keyboard.up("KeyL");
   await expect(
-    page.getByRole("heading", { name: "Cartivo · NES" }),
+    page.getByRole("heading", { name: "Elige una consola" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Activar prueba" }),
@@ -40,7 +40,7 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
   await page.goBack();
   await page.goBack();
   await expect(
-    page.getByRole("heading", { name: "Controles", exact: true }),
+    page.getByRole("heading", { name: "Configurar controles", exact: true }),
   ).toBeFocused();
   await expect(page.locator("[data-action=a]")).toHaveText("ALibre");
   await expect(

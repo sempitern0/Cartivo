@@ -3,6 +3,7 @@
   import GameStage from "./GameStage.svelte";
   import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
   import { NesClient } from "../../../packages/runtime/src/nes-client.ts";
+  import { icons } from "./icons.ts";
   import audioWorkletUrl from "./audio.worklet.ts?worker&url";
   import { GameAudio } from "../../../packages/media/src/audio.ts";
   import {
@@ -23,7 +24,15 @@
     visible = true,
     autostart = false,
     onclose,
-  }: { file?: File; visible?: boolean; autostart?: boolean; onclose: () => void } = $props();
+    onreplace,
+  }: {
+    file?: File;
+    visible?: boolean;
+    autostart?: boolean;
+    onclose: () => void;
+    /** Called after this session closed safely, to start another ROM. */
+    onreplace?: (file: File) => void;
+  } = $props();
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
   );
@@ -34,7 +43,9 @@
   let muted = $state(false);
   let audioReady = $state(false);
   let frames = $state(0);
-  let padStatus = $state("Teclado disponible");
+  let padStatus = $state("Sin mando");
+  let padConnected = $state(false);
+  let romInput = $state.raw<HTMLInputElement>();
   let busy = $state(false);
   let viewport = $state.raw<HTMLElement>();
   let fullscreen = $state(false);
@@ -207,8 +218,10 @@
         buttons: [...pad.buttons],
         axes: [...pad.axes],
       };
-      padStatus = "Mando conectado · P1";
+      padStatus = "Mando conectado";
     }
+    padConnected = !!pad;
+    if (!pad && padStatus === "Mando conectado") padStatus = "Sin mando";
     const profile =
       pref.mode === "pad"
         ? pref.profile
@@ -413,11 +426,14 @@
       busy = false;
     }
   }
-  async function close() {
+  // Closing always goes through the same path: pause (SRAM flush confirmed by
+  // the worker), then dispose. `next` starts another ROM afterwards.
+  async function close(next?: File) {
+    const finish = () => (next && onreplace ? onreplace(next) : onclose());
     if (phase === "loading") {
       client?.dispose();
       audio?.close();
-      onclose();
+      finish();
       return;
     }
     if (busy) return;
@@ -429,7 +445,18 @@
     }
     client?.dispose();
     audio?.close();
-    onclose();
+    finish();
+  }
+  async function chooseRom() {
+    if (busy) return;
+    if (phase === "running") await pause();
+    romInput?.click();
+  }
+  function romChosen(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const next = input.files?.[0];
+    input.value = "";
+    if (next) void close(next);
   }
   onMount(() => {
     fullscreenAvailable = !!document.fullscreenEnabled;
@@ -522,14 +549,46 @@
     >
   {/if}
   <div class="heading" data-player-chrome>
-    <div>
-      <p class="badge">NES</p>
+    <div class="title">
+      <p class="kicker">NES</p>
       <h1>{file?.name ?? "Demo de controles"}</h1>
     </div>
-    <button data-player-action onclick={close} disabled={busy}
-      >{phase === "loading" ? "Cancelar carga" : "Cerrar juego"}</button
-    >
+    <div class="toolbar" role="toolbar" aria-label="Partida">
+      <button
+        data-player-action
+        class="tool icon-button"
+        onclick={async () => {
+          if (phase === "running") await pause();
+          graphicsOpen = !graphicsOpen;
+        }}
+        aria-expanded={graphicsOpen}
+        >{@html icons.monitor}<span>Gráficos</span></button
+      >
+      <button
+        data-player-action
+        class="tool icon-button"
+        onclick={chooseRom}
+        disabled={busy}>{@html icons.folder}<span>Cargar ROM</span></button
+      >
+      <span class="divider" aria-hidden="true"></span>
+      <button
+        data-player-action
+        class="tool icon-button"
+        onclick={() => close()}
+        disabled={busy}
+        >{@html icons.close}<span
+          >{phase === "loading" ? "Cancelar carga" : "Salir"}</span
+        ></button
+      >
+    </div>
   </div>
+  <input
+    bind:this={romInput}
+    type="file"
+    accept=".nes"
+    onchange={romChosen}
+    hidden
+  />
   {#if !file && phase !== "running"}<p class="demo-info" data-player-chrome>
       WASD o flechas para moverte · L = A · K = B.
     </p>{/if}
@@ -539,45 +598,26 @@
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
-  <div class="buttons player-actions" data-player-chrome>
-    {#if phase === "running"}<button data-player-action onclick={() => tapControl("select")}>Select · Q</button>
-      <button data-player-action onclick={() => tapControl("start")}>Start · Enter</button>
-      <button data-player-action onclick={() => pause()}
-        >Pausar juego</button
-      >{/if}
-    {#if phase === "paused"}<button data-player-action onclick={resetConsole} disabled={busy}>Reiniciar consola</button><button
-        bind:this={resumeButton}
-        class="primary"
-        onclick={resume}
-        disabled={busy}>Reanudar juego</button
-      >{/if}
-    {#if !audioReady && phase === "running"}<button
-        data-player-action
-        onclick={enableSound}>Activar sonido</button>{/if}
-    {#if audioReady}<button
-        data-player-action
-        aria-pressed={muted}
-        onclick={() => {
-          muted = !muted;
-          audio?.mute(muted);
-        }}>{muted ? "Activar sonido" : "Silenciar"}</button
-      >{/if}
-    <a data-player-action href="#controles">Configurar controles</a>
-    <button data-player-action class:focus-selected={focusMode} onclick={() => { focusMode = !focusMode; }} aria-pressed={focusMode} aria-label={focusMode ? "Desactivar Focus" : "Activar Focus"}>{focusMode ? "Focus activado" : "Activar Focus"}</button>
-    <button data-player-action onclick={() => { graphicsOpen = !graphicsOpen; }} aria-expanded={graphicsOpen}>Gráficos</button>
-    {#if fullscreenAvailable}<button
-        data-player-action
-        onclick={toggleFullscreen}
-        >{fullscreen
-          ? "Salir de pantalla completa"
-          : "Pantalla completa"}</button
-      >{/if}
-  </div>
-  {#if graphicsOpen && phase !== "running"}<fieldset class="graphics-menu">
-    <legend>Presentación de vídeo</legend>
-    <label>Escalado <select bind:value={scaleMode}><option value="fit">Ajustar</option><option value="integer">Píxel entero</option><option value="corrected-integer">4:3 entero (NES)</option></select></label>
-    <label>Aspecto <select bind:value={aspectMode}><option value="corrected">4:3 corregido</option><option value="native">Píxeles originales</option></select></label>
-  </fieldset>{/if}
+  {#if graphicsOpen && phase !== "running"}<fieldset
+      class="graphics-menu"
+      data-player-chrome
+    >
+      <legend>Presentación de vídeo</legend>
+      <label
+        >Escalado <select bind:value={scaleMode}
+          ><option value="fit">Ajustar</option><option value="integer"
+            >Píxel entero</option
+          ><option value="corrected-integer">4:3 entero (NES)</option></select
+        ></label
+      >
+      <label
+        >Aspecto <select bind:value={aspectMode}
+          ><option value="corrected">4:3 corregido</option><option
+            value="native">Píxeles originales</option
+          ></select
+        ></label
+      >
+    </fieldset>{/if}
   <p data-testid="player-phase" class="visually-hidden" aria-live="polite">
     {phase === "running"
       ? "Jugando"
@@ -588,7 +628,9 @@
           : ""}
   </p>
 
-  <p data-testid="save-status" class="visually-hidden" aria-live="polite">{saveStatus}</p>
+  <p data-testid="save-status" class="visually-hidden" aria-live="polite">
+    {saveStatus}
+  </p>
   {#if problem}<div
       bind:this={notice}
       class="notice"
@@ -598,8 +640,69 @@
       {problem}
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
-  <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
-  <div class="game-stage-wrapper" class:presenting={frames > 0}><GameStage bind:screen {frames} {scaleMode} {aspectMode} /></div>
+  <div class="frame" class:presenting={frames > 0}>
+    <div class="game-stage-wrapper">
+      <GameStage bind:screen {frames} {scaleMode} {aspectMode} />
+    </div>
+  </div>
+  <div class="buttons player-actions" data-player-chrome>
+    {#if phase === "running"}<button
+        data-player-action
+        onclick={() => pause()}>Pausar juego</button
+      ><button data-player-action onclick={() => tapControl("select")}
+        >Select · Q</button
+      ><button data-player-action onclick={() => tapControl("start")}
+        >Start · Enter</button
+      >{/if}
+    {#if phase === "paused"}<button
+        bind:this={resumeButton}
+        class="primary"
+        onclick={resume}
+        disabled={busy}>Reanudar juego</button
+      ><button
+        data-player-action
+        onclick={resetConsole}
+        disabled={busy}>Reiniciar consola</button
+      >{/if}
+    {#if !audioReady && phase === "running"}<button
+        data-player-action
+        onclick={enableSound}>Activar sonido</button
+      >{/if}
+    {#if audioReady}<button
+        data-player-action
+        aria-pressed={muted}
+        onclick={() => {
+          muted = !muted;
+          audio?.mute(muted);
+        }}>{muted ? "Activar sonido" : "Silenciar"}</button
+      >{/if}
+    <button
+      data-player-action
+      class:focus-selected={focusMode}
+      onclick={() => {
+        focusMode = !focusMode;
+      }}
+      aria-pressed={focusMode}
+      aria-label={focusMode ? "Desactivar Focus" : "Activar Focus"}
+      >{focusMode ? "Focus activado" : "Activar Focus"}</button
+    >
+    {#if fullscreenAvailable}<button
+        data-player-action
+        onclick={toggleFullscreen}
+        >{fullscreen
+          ? "Salir de pantalla completa"
+          : "Pantalla completa"}</button
+      >{/if}
+    <a data-player-action href="#controles">Configurar controles</a>
+  </div>
+  <ul class="status" data-player-chrome aria-label="Dispositivos">
+    <li data-testid="pad-status" class:on={padConnected}>
+      {@html icons.gamepad}<span>{padStatus}</span>
+    </li>
+    <li data-testid="keyboard-status" class="on">
+      {@html icons.keyboard}<span>Teclado conectado</span>
+    </li>
+  </ul>
   {#if battery && (phase === "paused" || phase === "error")}<details>
       <summary>Copias de partida</summary>
       <p>
@@ -659,17 +762,19 @@
   .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
   @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
   .player.focus-mode [data-player-chrome], .player.focus-mode > details { display: none; }
-  .game-stage-wrapper { width: 100%; height: min(62vh, 580px); min-height: 200px; margin: 20px auto; opacity: .35; }
-  .game-stage-wrapper.presenting { opacity: 1; }
+  .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
+  .frame.presenting { opacity: 1; }
+  .game-stage-wrapper { width: 100%; height: min(60vh, 560px); min-height: 200px; border-radius: 14px; overflow: hidden; }
   @media (prefers-reduced-motion: no-preference) {
-    .game-stage-wrapper { transition: opacity 180ms ease-out; }
+    .frame { transition: opacity 180ms ease-out; }
     .player:not(.focus-mode) { animation: player-enter 180ms ease-out both; }
   }
   @keyframes player-enter {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .player.focus-mode .game-stage-wrapper { flex: 1; height: auto; min-height: 0; margin: 0; }
+  .player.focus-mode .frame, .player:fullscreen .frame { flex: 1; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; display: flex; }
+  .player.focus-mode .game-stage-wrapper { flex: 1; height: auto; min-height: 0; margin: 0; border-radius: 0; }
   .player:fullscreen {
     background: var(--bg);
     width: 100%;
@@ -697,30 +802,101 @@
   .player.playing:fullscreen > details {
     display: none;
   }
-  .player:fullscreen .game-stage-wrapper { flex: 1; min-height: 0; height: auto; margin: 0; }
+  .player:fullscreen .game-stage-wrapper { flex: 1; min-height: 0; height: auto; margin: 0; border-radius: 0; }
   .player:fullscreen > details {
     flex: none;
   }
 
   .player {
-    margin: 24px auto;
-    max-width: 960px;
+    margin: 28px auto;
+    max-width: 1040px;
   }
   .heading {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 16px;
+    gap: 16px 24px;
     flex-wrap: wrap;
+  }
+  .title {
+    min-width: 0;
   }
   h1 {
     font-size: 28px;
+    margin: 6px 0 0;
     overflow-wrap: anywhere;
   }
-  .badge {
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--teal);
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .tool {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text);
+    padding: 10px 14px;
+  }
+  .tool:hover:not(:disabled) {
+    background: #ffffff0d;
+  }
+  .divider {
+    width: 1px;
+    height: 26px;
+    background: var(--border);
+    margin: 0 6px;
+  }
+  .player-actions {
+    justify-content: center;
+  }
+  .player-actions button,
+  .player-actions a {
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+  .status {
+    list-style: none;
+    padding: 0;
+    margin: 18px 0 6px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px 0;
+    color: var(--muted);
+    font-size: 15px;
+  }
+  .status li {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 22px;
+  }
+  .status li + li {
+    border-left: 1px solid var(--border);
+  }
+  .status li.on {
+    color: var(--text);
+  }
+  @media (max-width: 640px) {
+    .tool span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+    .frame {
+      padding: 6px;
+      border-radius: 16px;
+    }
+    .game-stage-wrapper {
+      height: auto;
+      aspect-ratio: 4 / 3;
+      min-height: 0;
+    }
   }
   p {
     line-height: 1.6;
