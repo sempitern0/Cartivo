@@ -3,6 +3,9 @@
   import GameStage from "./GameStage.svelte";
   import PlayerToolbar from "./PlayerToolbar.svelte";
   import GraphicsPanel from "./GraphicsPanel.svelte";
+  import SavePanel from "./SavePanel.svelte";
+  import SnapshotThumb from "./SnapshotThumb.svelte";
+  import { slotNames, when } from "./saves.ts";
   import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
   import {
     readDisplay,
@@ -77,43 +80,13 @@
   let saves = $state.raw<StateMeta[]>([]);
   let savesOpen = $state(false);
   let savesButton = $state.raw<HTMLButtonElement>();
-  let savesPanel = $state.raw<HTMLElement>();
   let resumeOffer = $state.raw<StateMeta>();
-  let confirmLoad = $state<StateSlot>();
   let toast = $state("");
   let toastTimer = 0;
-  const slotNames: Record<StateSlot, string> = {
-    auto: "Al salir",
-    "1": "Ranura 1",
-    "2": "Ranura 2",
-    "3": "Ranura 3",
-  };
-  const allSlots: StateSlot[] = ["auto", "1", "2", "3"];
-  const slotOf = (slot: StateSlot) => saves.find((s) => s.slot === slot);
-  const when = (time: number) =>
-    new Intl.DateTimeFormat("es", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(time);
   function notify(message: string) {
     toast = message;
     clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => (toast = ""), 2600);
-  }
-  function preview(canvas: HTMLCanvasElement, data?: Uint8ClampedArray) {
-    const draw = (pixels?: Uint8ClampedArray) => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      if (pixels && pixels.length === 128 * 120 * 4)
-        ctx.putImageData(
-          new ImageData(new Uint8ClampedArray(pixels), 128, 120),
-          0,
-          0,
-        );
-      else ctx.clearRect(0, 0, 128, 120);
-    };
-    draw(data);
-    return { update: draw };
   }
   async function saveSlot(slot: StateSlot, quiet = false) {
     if (!client || phase === "loading" || phase === "error") return false;
@@ -130,7 +103,6 @@
   }
   async function loadSlot(slot: StateSlot) {
     if (!client || phase === "loading" || phase === "error") return;
-    confirmLoad = undefined;
     const wasRunning = phase === "running";
     if (wasRunning) await pause();
     try {
@@ -160,15 +132,10 @@
     savesOpen = !savesOpen;
     if (savesOpen) {
       graphicsOpen = false;
-      await tick();
-      savesPanel?.querySelector<HTMLButtonElement>("button")?.focus({
-        preventScroll: true,
-      });
     }
   }
   function closeSaves() {
     savesOpen = false;
-    confirmLoad = undefined;
     savesButton?.focus({ preventScroll: true });
   }
   let runningCore = $state<string>();
@@ -776,83 +743,15 @@
     />
   {/if}
   {#if savesOpen && phase !== "running"}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <section
-      id="saves-panel"
-      class="panel saves card"
-      data-player-chrome
-      aria-labelledby="saves-title"
-      bind:this={savesPanel}
-      onkeydown={(e) => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          closeSaves();
-        }
-      }}
-    >
-      <header>
-        <h2 id="saves-title">Partidas</h2>
-        <p>
-          Guarda el momento exacto del juego. F5 guarda en la ranura 1 y F9 la
-          carga.{battery ? " La partida interna del cartucho se guarda aparte, automáticamente." : ""}
-        </p>
-        <button
-          class="close icon-button"
-          aria-label="Cerrar partidas"
-          onclick={closeSaves}>{@html icons.close}</button
-        >
-      </header>
-      <ul class="slots">
-        {#each allSlots as slot}
-          {@const meta = slotOf(slot)}
-          <li class="slot" data-slot={slot}>
-            <canvas
-              width="128"
-              height="120"
-              class="thumb"
-              class:empty={!meta}
-              aria-hidden="true"
-              use:preview={meta?.preview}
-            ></canvas>
-            <div class="slot-info">
-              <span class="name">{slotNames[slot]}</span>
-              <span class="hint"
-                >{meta
-                  ? `${when(meta.createdAt)} · ${coreLabel(system.id, meta.core)}`
-                  : slot === "auto"
-                    ? "Se guarda al salir del juego"
-                    : "Vacía"}</span
-              >
-            </div>
-            <div class="slot-actions">
-              {#if slot !== "auto"}<button
-                  onclick={() => saveSlot(slot)}
-                  aria-label={`Guardar en ${slotNames[slot]}`}>Guardar aquí</button
-                >{/if}
-              {#if meta}
-                {#if confirmLoad === slot}<button
-                    class="primary"
-                    onclick={() => loadSlot(slot)}
-                    aria-label={`Confirmar carga de ${slotNames[slot]}`}
-                    >Confirmar carga</button
-                  >{:else}<button
-                    onclick={() => (confirmLoad = slot)}
-                    aria-label={`Cargar ${slotNames[slot]}`}>Cargar</button
-                  >{/if}
-                <button
-                  class="link-danger"
-                  onclick={() => deleteSlot(slot)}
-                  aria-label={`Borrar ${slotNames[slot]}`}>Borrar</button
-                >
-              {/if}
-            </div>
-          </li>
-        {/each}
-      </ul>
-      {#if confirmLoad}<p class="hint" role="status">
-          Cargar sustituye el progreso actual que no hayas guardado.
-        </p>{/if}
-    </section>
+    <SavePanel
+      {saves}
+      systemId={system.id}
+      {battery}
+      onsave={(slot) => saveSlot(slot)}
+      onload={loadSlot}
+      ondelete={deleteSlot}
+      onclose={closeSaves}
+    />
   {/if}
   <p data-testid="player-phase" class="visually-hidden" aria-live="polite">
     {phase === "running"
@@ -879,13 +778,7 @@
   <div class="frame" class:presenting={frames > 0 || !!resumeOffer}>
     {#if resumeOffer && phase === "paused"}
       <div class="resume-offer" role="dialog" aria-labelledby="resume-title">
-        <canvas
-          width="128"
-          height="120"
-          class="thumb"
-          aria-hidden="true"
-          use:preview={resumeOffer.preview}
-        ></canvas>
+        <SnapshotThumb pixels={resumeOffer.preview} />
         <div>
           <h2 id="resume-title">Continuar donde lo dejaste</h2>
           <p class="hint">Guardada el {when(resumeOffer.createdAt)}</p>
@@ -1180,57 +1073,6 @@
   .resume-offer h2 {
     margin: 0;
     font-size: 22px;
-  }
-  .thumb {
-    width: 128px;
-    height: 120px;
-    border-radius: 8px;
-    background: #050507;
-    border: 1px solid var(--border);
-    image-rendering: pixelated;
-  }
-  .thumb.empty {
-    opacity: 0.4;
-  }
-  .slots {
-    list-style: none;
-    padding: 0;
-    margin: 16px 0 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-    gap: 12px;
-  }
-  .slot {
-    display: grid;
-    gap: 10px;
-    padding: 12px;
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-  }
-  .slot .thumb {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16 / 15;
-  }
-  .slot-info {
-    display: grid;
-    gap: 2px;
-  }
-  .slot-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .slot-actions button {
-    min-height: 38px;
-    padding: 6px 12px;
-    font-size: 14px;
-  }
-  .link-danger {
-    background: transparent;
-    border-color: transparent;
-    color: var(--coral);
   }
   .toast {
     text-align: center;
