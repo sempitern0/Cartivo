@@ -19,6 +19,7 @@ Tamaño del núcleo: `tetanes_bg.wasm` 942.831 bytes (sin comprimir), precachead
 ## Límites
 
 - Mismos cartuchos que H1-B-NES: iNES NTSC, mappers 0–4 y límites de `packages/adapters/src/ines.ts`. TetaNES implementa más mappers, pero no se habilitan sin pruebas y expediente.
+- Diferencia con JSNES: en UxROM (mapper 2) y CNROM (mapper 3) TetaNES no expone RAM en `$6000–$7FFF`, igual que esas placas originales; JSNES sí la mapea. Las partidas SRAM aplican a NROM con batería, MMC1 y MMC3.
 - Vídeo `Pixellate` (aspecto original); el filtro NTSC compuesto de TetaNES no se expone.
 - La preferencia de núcleo se aplica al siguiente arranque; si el WASM no carga, se informa y se puede elegir JSNES.
 - Sin save states, rewind, threads ni SIMD.

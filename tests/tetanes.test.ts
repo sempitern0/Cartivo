@@ -116,7 +116,13 @@ test("mappers 1–4 run on TetaNES with the same validation gate", () => {
     );
     core.input({ ...neutral(), a: true });
     core.advance(3);
-    assert.equal(core.save()[0], 1, `mapper ${mapper} writes SRAM`);
+    // UxROM (2) and CNROM (3) boards have no PRG-RAM; TetaNES follows the
+    // hardware (JSNES maps $6000 anyway). MMC1 and MMC3 keep battery RAM.
+    assert.equal(
+      core.save()[0],
+      mapper === 1 || mapper === 4 ? 1 : 0,
+      `mapper ${mapper} SRAM`,
+    );
     core.dispose();
   }
   const bad = controlDemo();
