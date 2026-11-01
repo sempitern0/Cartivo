@@ -16,6 +16,13 @@ allow = [
 ]
 confidence-threshold = 0.9
 
+# Owner decision 2026-11-01 (docs/research/TETANES_CORE_GATE.md): MPL-2.0 is
+# accepted only for this unmodified crate (dirs -> dirs-sys -> option-ext),
+# with its source linked from LICENSES.md. Any other MPL crate still fails.
+[[licenses.exceptions]]
+crate = "option-ext"
+allow = ["MPL-2.0"]
+
 [bans]
 multiple-versions = "allow"
 
