@@ -18,15 +18,16 @@ for (const file of manifest.files) {
     throw Error(`${file.path}: hash ${actual} distinto del manifiesto`);
 }
 const sbom = JSON.parse(readFileSync(join(crate, "sbom.json"), "utf8"));
-// Same single exception as cores/tetanes/deny.toml (owner decision).
-const exceptions = new Map([["option-ext", "MPL-2.0"]]);
-const allowed = /^(MIT|Apache-2\.0|BSD-[23]-Clause|ISC|Zlib|Unicode-3\.0|Apache-2\.0 WITH LLVM-exception)$/;
+// Private-use policy (ADR-005): any identified free/open licence, as in
+// cores/tetanes/deny.toml. Unknown or missing licences still fail.
+const allowed =
+  /^(MIT|Apache-2\.0|Apache-2\.0 WITH LLVM-exception|BSD-[23]-Clause|0BSD|ISC|Zlib|Unlicense|Unicode-3\.0|MPL-2\.0|L?GPL-[23]\.[01](-only|-or-later)?)$/;
 for (const dep of sbom) {
   const ok = String(dep.license ?? "")
     .split(/\s+OR\s+|\s*\/\s*/)
     .some((part) => part.replace(/[()]/g, "").split(/\s+AND\s+/).every((l) => allowed.test(l.trim())));
-  if (!ok && exceptions.get(dep.name) !== dep.license) throw Error(`${dep.name} ${dep.version}: licencia no admitida (${dep.license})`);
+  if (!ok) throw Error(`${dep.name} ${dep.version}: licencia no admitida (${dep.license})`);
 }
 console.log(
-  `TetaNES ${manifest.upstream.version} verificado: ${manifest.files.length} archivos, ${sbom.length} dependencias permisivas.`,
+  `TetaNES ${manifest.upstream.version} verificado: ${manifest.files.length} archivos, ${sbom.length} dependencias con licencia libre identificada.`,
 );

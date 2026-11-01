@@ -111,6 +111,23 @@ impl Core {
         self.audio.clone()
     }
 
+    /// Full console snapshot (TetaNES state format: header + compression).
+    /// Tied to this core and its version; Cartivo labels and stores it.
+    pub fn save_state(&mut self) -> Result<Vec<u8>, JsError> {
+        let mut out = Vec::new();
+        self.deck
+            .save_state(&mut out)
+            .map_err(|err| JsError::new(&err.to_string()))?;
+        Ok(out)
+    }
+
+    /// Restores a snapshot from `save_state`. Rejects states of another cart.
+    pub fn load_state(&mut self, state: &[u8]) -> Result<(), JsError> {
+        self.deck
+            .load_state(&mut &state[..])
+            .map_err(|err| JsError::new(&err.to_string()))
+    }
+
     /// Power-cycles the console, keeping the cartridge and its battery RAM.
     pub fn reset(&mut self) {
         let saved = self.sram();
