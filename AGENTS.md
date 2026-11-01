@@ -6,12 +6,14 @@ Antes de implementar, leer `docs/PLAN_TECNICO_CARTIVO.md` (objetivos, estado, ro
 
 V1: NES, SNES, GB, GBC, GBA, SMS, Mega Drive, N64, PS1 y PSP; las tres últimas dependen de aceptación individual y PS2 es laboratorio. No añadir sistemas ni accesorios sin una decisión de producto registrada. Un bloqueo de licencia no impide avanzar en tareas independientes, pero sí declarar completo el núcleo afectado.
 
+Para añadir una consola, seguir `docs/ADDING_A_SYSTEM.md` (contrato `CoreModule`, registros `registry.ts` y `systems.ts`, conformidad obligatoria).
+
 Trabajo por incrementos: un sistema o feature cada vez, en la rama de trabajo (nunca en `main`), con plan previo para cambios no triviales. Las decisiones técnicas rutinarias dentro del alcance se concretan con evidencia y se registran en su ADR; la licencia propia y las excepciones de licencia de terceros las decide el titular.
 
 ## Ingeniería
 
 - TypeScript estricto y contratos versionados con validación runtime.
-- La UI no conoce APIs internas de núcleos (solo identificadores en `packages/adapters/src/core-ids.ts`); sin globals compartidos entre emuladores.
+- La UI no conoce APIs internas de núcleos (solo `packages/runtime/src/systems.ts`); el Worker resuelve núcleos con `packages/adapters/src/registry.ts`. Sin globals compartidos entre emuladores.
 - Un juego activo; lifecycle, errores, cancelación y limpieza explícitos (`dispose` libera la memoria WASM).
 - No bloquear el hilo de UI con parsing, hashing o IO voluminoso.
 - No prometer WebGPU, threads, rewind, JIT ni lectura incremental sin evidencia del port y build concretos. Las «Partidas» (instantáneas) existen para NES (ADR-009); cada núcleo nuevo debe implementarlas o declarar que no puede.

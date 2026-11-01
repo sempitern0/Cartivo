@@ -25,14 +25,20 @@ export function isStateSlot(value: unknown): value is StateSlot {
   return (stateSlots as readonly unknown[]).includes(value);
 }
 
-/** Halves a 256×240 RGBA frame into a 128×120 preview. */
-export function makePreview(pixels: Uint8ClampedArray, width = 256) {
+/** Nearest-neighbour preview of any RGBA frame at 128×120 (NES: halved). */
+export function makePreview(
+  pixels: Uint8ClampedArray,
+  width = 256,
+  height = 240,
+) {
   const out = new Uint8ClampedArray(PREVIEW_WIDTH * PREVIEW_HEIGHT * 4);
-  for (let y = 0; y < PREVIEW_HEIGHT; y++)
+  for (let y = 0; y < PREVIEW_HEIGHT; y++) {
+    const sy = Math.floor((y * height) / PREVIEW_HEIGHT);
     for (let x = 0; x < PREVIEW_WIDTH; x++) {
-      const from = (y * 2 * width + x * 2) * 4;
+      const from = (sy * width + Math.floor((x * width) / PREVIEW_WIDTH)) * 4;
       out.set(pixels.subarray(from, from + 4), (y * PREVIEW_WIDTH + x) * 4);
     }
+  }
   return out;
 }
 

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { displayLayout, NES_VIDEO, type ScaleMode, type AspectMode } from "../../../packages/media/src/display-scaler.ts";
-  let { scaleMode = "fit", aspectMode = "corrected", smooth = false, frames = 0, screen = $bindable(), fallback = $bindable(false) }: {
+  import { displayLayout, NES_VIDEO, type ScaleMode, type AspectMode, type VideoDescriptor } from "../../../packages/media/src/display-scaler.ts";
+  let { video = NES_VIDEO, label = "NES", scaleMode = "fit", aspectMode = "corrected", smooth = false, frames = 0, screen = $bindable(), fallback = $bindable(false) }: {
+    /** Framebuffer and display aspect of the running system. */
+    video?: VideoDescriptor; label?: string;
     scaleMode?: ScaleMode; aspectMode?: AspectMode; smooth?: boolean; frames?: number; screen: HTMLCanvasElement | undefined;
     /** True when the chosen scale does not fit and "fit" is used instead. */
     fallback?: boolean;
@@ -9,7 +11,7 @@
   let container: HTMLDivElement;
   let width = $state(0);
   let height = $state(0);
-  let calculated = $derived(displayLayout(width, height, NES_VIDEO, scaleMode, aspectMode));
+  let calculated = $derived(displayLayout(width, height, video, scaleMode, aspectMode));
   $effect(() => {
     fallback = width > 0 && calculated.fallback;
   });
@@ -25,8 +27,8 @@
 
 <div class="stage" bind:this={container} data-testid="game-stage">
   <!-- svelte-ignore a11y_no_noninteractive_tabindex a11y_no_noninteractive_element_interactions -->
-  <canvas bind:this={screen} width="256" height="240" tabindex="0"
-    aria-label="Pantalla del juego NES. Escape para pausar."
+  <canvas bind:this={screen} width={video.sourceWidth} height={video.sourceHeight} tabindex="0"
+    aria-label={`Pantalla del juego ${label}. Escape para pausar.`}
     data-frames={frames}
     style:width={calculated.width + "px"}
     style:height={calculated.height + "px"}

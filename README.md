@@ -61,7 +61,7 @@ El núcleo TetaNES se compila **solo en CI** (`.github/workflows/core-tetanes.ym
 
 ```text
 apps/web/          PWA (Svelte 5 + Vite): UI, worker NES, AudioWorklet, service worker
-packages/          adapters (núcleos), runtime (protocolo), input, media, storage, fixtures
+packages/          adapters (contrato y registro de núcleos), runtime (sistemas, protocolo), input, media, storage, fixtures
 cores/             jsnes (manifiesto) y tetanes (envoltorio Rust + WASM generado por CI)
 tools/             verificación de núcleos, build de TetaNES, generador del service worker
 tests/             unitarios (node:test) y e2e (Playwright)
@@ -71,6 +71,7 @@ docs/              plan técnico, diseño, ADRs, compatibilidad e investigación
 ## Documentación
 
 - [Plan técnico](docs/PLAN_TECNICO_CARTIVO.md): objetivos, estado, arquitectura, roadmap y backlog.
+- [Añadir una consola](docs/ADDING_A_SYSTEM.md): checklist para integrar un sistema nuevo.
 - [Diseño](docs/DESIGN.md): paleta, principios y pantallas.
 - [Compatibilidad](docs/compatibility/README.md): qué está probado y cómo.
 - [ADRs](docs/adr/README.md): decisiones registradas.

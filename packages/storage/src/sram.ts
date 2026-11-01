@@ -7,11 +7,11 @@ export async function digest(bytes: Uint8Array): Promise<string> {
     b.toString(16).padStart(2, "0"),
   ).join("");
 }
-async function valid(g: Generation | undefined) {
+async function valid(g: Generation | undefined, size: number) {
   return (
     !!g &&
     g.bytes instanceof Uint8Array &&
-    g.bytes.length === 8192 &&
+    g.bytes.length === size &&
     (await digest(g.bytes)) === g.sha256
   );
 }
@@ -21,12 +21,20 @@ export class SramStore {
   private good: Generation | undefined;
   private release: () => void;
   recovered = false;
-  private constructor(db: IDBDatabase, key: string, release: () => void) {
+  /** Battery RAM size for this cartridge (from the core module). */
+  private size: number;
+  private constructor(
+    db: IDBDatabase,
+    key: string,
+    release: () => void,
+    size: number,
+  ) {
+    this.size = size;
     this.db = db;
     this.key = key;
     this.release = release;
   }
-  static async open(key: string): Promise<SramStore> {
+  static async open(key: string, size = 8192): Promise<SramStore> {
     if (!navigator.locks)
       throw Error(
         "Este navegador no permite coordinar el guardado. Usa un navegador con Web Locks.",
@@ -60,7 +68,7 @@ export class SramStore {
         req.onblocked = () =>
           reject(Error("Cierra otras pestañas para preparar el guardado."));
       });
-      return new SramStore(db, key, release);
+      return new SramStore(db, key, release, size);
     } catch (e) {
       release();
       throw e;
@@ -78,8 +86,8 @@ export class SramStore {
       },
     );
     if (!record) return;
-    if (await valid(record.current)) this.good = record.current;
-    else if (await valid(record.previous)) {
+    if (await valid(record.current, this.size)) this.good = record.current;
+    else if (await valid(record.previous, this.size)) {
       this.good = record.previous;
       this.recovered = true;
     } else
@@ -89,7 +97,7 @@ export class SramStore {
     return this.good!.bytes.slice();
   }
   async commit(bytes: Uint8Array) {
-    if (bytes.length !== 8192) throw Error("SRAM de tamaño incorrecto");
+    if (bytes.length !== this.size) throw Error("SRAM de tamaño incorrecto");
     const current = { bytes: bytes.slice(), sha256: await digest(bytes) };
     if (this.good?.sha256 === current.sha256) return;
     const record: RecordValue = { current, previous: this.good };

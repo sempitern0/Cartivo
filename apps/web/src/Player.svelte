@@ -8,13 +8,17 @@
     writeDisplay,
     type DisplayPreferences,
   } from "../../../packages/media/src/display-preferences.ts";
-  import { NesClient } from "../../../packages/runtime/src/nes-client.ts";
+  import { EmulatorClient } from "../../../packages/runtime/src/client.ts";
+  import {
+    acceptFor,
+    coreLabel,
+    type SystemInfo,
+  } from "../../../packages/runtime/src/systems.ts";
   import { icons } from "./icons.ts";
   import {
-    readNesCore,
-    writeNesCore,
+    readCore,
+    writeCore,
   } from "../../../packages/runtime/src/core-preference.ts";
-  import type { NesCoreId } from "../../../packages/adapters/src/core-ids.ts";
   import type {
     StateMeta,
     StateSlot,
@@ -40,7 +44,10 @@
     autostart = false,
     onclose,
     onreplace,
+    system,
   }: {
+    /** System being played (packages/runtime/src/systems.ts). */
+    system: SystemInfo;
     file?: File;
     visible?: boolean;
     autostart?: boolean;
@@ -61,7 +68,7 @@
   let padStatus = $state("Sin mando");
   let padConnected = $state(false);
   let romInput = $state.raw<HTMLInputElement>();
-  let coreChoice = $state<NesCoreId>(readNesCore());
+  let coreChoice = $state<string>(readCore(system));
   // «Partidas»: full-console snapshots (ADR-009).
   let saves = $state.raw<StateMeta[]>([]);
   let savesOpen = $state(false);
@@ -160,22 +167,17 @@
     confirmLoad = undefined;
     savesButton?.focus({ preventScroll: true });
   }
-  let runningCore = $state<NesCoreId>();
-  const coreIds: NesCoreId[] = ["tetanes", "jsnes"];
-  const coreNames: Record<NesCoreId, string> = {
-    tetanes: "TetaNES · WebAssembly",
-    jsnes: "JSNES · JavaScript",
-  };
-  function chooseCore(id: NesCoreId) {
+  let runningCore = $state<string>();
+  function chooseCore(id: string) {
     coreChoice = id;
-    writeNesCore(id);
+    writeCore(system, id);
   }
   let busy = $state(false);
   let viewport = $state.raw<HTMLElement>();
   let fullscreen = $state(false);
   let fullscreenAvailable = $state(false);
   let focusMode = $state(false);
-  const savedDisplay = readDisplay("nes");
+  const savedDisplay = readDisplay(system.id);
   let scaleMode = $state<ScaleMode>(savedDisplay.scale);
   let aspectMode = $state<AspectMode>(savedDisplay.aspect);
   let smooth = $state(savedDisplay.smooth);
@@ -198,8 +200,8 @@
     scaleMode = next.scale;
     aspectMode = next.aspect;
     smooth = next.smooth;
-    displayNote = writeDisplay("nes", next)
-      ? "Se recordará para NES en este dispositivo."
+    displayNote = writeDisplay(system.id, next)
+      ? `Se recordará para ${system.name} en este dispositivo.`
       : "Aplicado solo en esta sesión: el navegador no permite guardarlo.";
   }
   async function toggleGraphics() {
@@ -220,7 +222,7 @@
   let resumeButton = $state.raw<HTMLButtonElement>();
   let screen = $state.raw<HTMLCanvasElement>();
   let importInput = $state.raw<HTMLInputElement>();
-  let client: NesClient | undefined;
+  let client: EmulatorClient | undefined;
   let audio: GameAudio | undefined;
   let active = true;
   let loop = 0;
@@ -260,15 +262,17 @@
           audioReady = false;
         }
       });
-    client = new NesClient(
-      new Worker(new URL("./nes.worker.ts", import.meta.url), {
+    client = new EmulatorClient(
+      new Worker(new URL("./emulator.worker.ts", import.meta.url), {
         type: "module",
       }),
     );
     try {
       const r = await client.request(
         "load",
-        file ? { file, core: coreChoice } : { demo: true, core: coreChoice },
+        file
+          ? { file, system: system.id, core: coreChoice }
+          : { demo: true, system: system.id, core: coreChoice },
       );
       runningCore = r.core;
       if (!active) return;
@@ -437,7 +441,11 @@
         const ctx = screen.getContext("2d");
         if (!ctx) throw Error("Canvas 2D no disponible");
         ctx.putImageData(
-          new ImageData(new Uint8ClampedArray(r.pixels), 256, 240),
+          new ImageData(
+            new Uint8ClampedArray(r.pixels),
+            r.width ?? system.video.sourceWidth,
+            r.height ?? system.video.sourceHeight,
+          ),
           0,
           0,
         );
@@ -721,7 +729,7 @@
   class="player"
   class:playing={phase === "running"}
   class:focus-mode={focusMode && phase === "running"}
-  aria-label="Reproductor NES"
+  aria-label={`Reproductor ${system.name}`}
 >
   {#if focusMode && phase === "running"}
     <button
@@ -738,7 +746,7 @@
   {/if}
   <div class="heading" data-player-chrome>
     <div class="title">
-      <p class="kicker">NES</p>
+      <p class="kicker">{system.name}</p>
       <h1>{file?.name ?? "Demo de controles"}</h1>
     </div>
     <div class="toolbar" role="toolbar" aria-label="Partida">
@@ -782,7 +790,7 @@
   <input
     bind:this={romInput}
     type="file"
-    accept=".nes"
+    accept={acceptFor([system])}
     onchange={romChosen}
     hidden
   />
@@ -791,7 +799,7 @@
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
       El archivo permanece en tu dispositivo. Esta primera versión ejecuta
-      cartuchos iNES NTSC (mappers 0–4).
+      {system.formatNote}.
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
@@ -943,7 +951,7 @@
               <span class="name">{slotNames[slot]}</span>
               <span class="hint"
                 >{meta
-                  ? `${when(meta.createdAt)} · ${meta.core === "jsnes" ? "JSNES" : "TetaNES"}`
+                  ? `${when(meta.createdAt)} · ${coreLabel(system.id, meta.core)}`
                   : slot === "auto"
                     ? "Se guarda al salir del juego"
                     : "Vacía"}</span
@@ -1024,6 +1032,8 @@
     {/if}
     <div class="game-stage-wrapper">
       <GameStage
+        video={system.video}
+        label={system.name}
         bind:screen
         bind:fallback={scaleFallback}
         {frames}
@@ -1124,16 +1134,16 @@
   <details>
     <summary>Acerca de esta prueba</summary>
     <fieldset class="core-choice">
-      <legend>Núcleo NES</legend>
-      {#each coreIds as id}<label
+      <legend>Núcleo {system.name}</legend>
+      {#each system.cores as option (option.id)}<label
           ><input
             type="radio"
-            name="nes-core"
-            value={id}
-            checked={coreChoice === id}
-            onchange={() => chooseCore(id)}
+            name="core"
+            value={option.id}
+            checked={coreChoice === option.id}
+            onchange={() => chooseCore(option.id)}
           />
-          {coreNames[id]}{#if runningCore === id}<span class="secondary"
+          {option.label}{#if runningCore === option.id}<span class="secondary"
               >{" · en uso"}</span
             >{/if}</label
         >{/each}
@@ -1145,14 +1155,15 @@
         </p>{/if}
     </fieldset>
     <p class="secondary">
-      Ambos núcleos se ejecutan en un Worker y comparten la partida guardada.
-      <a href="/licenses/tetanes-LICENSE-MIT.txt" target="_blank" rel="noreferrer"
-        >Licencia TetaNES</a
-      > ·
-      <a href="/licenses/jsnes-Apache-2.0.txt" target="_blank" rel="noreferrer"
-        >Licencia JSNES</a
-      > ·
-      <a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer"
+      Los núcleos se ejecutan en un Worker y comparten la memoria de batería
+      del cartucho.
+      {#each system.cores.flatMap((c) => c.licenses) as license (license.href)}<a
+          href={license.href}
+          target="_blank"
+          rel="noreferrer">{license.name}</a
+        >
+        ·
+      {/each}<a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer"
         >Avisos de terceros</a
       >
     </p>

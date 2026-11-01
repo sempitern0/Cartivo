@@ -9,7 +9,7 @@ La SRAM (RAM con batería del cartucho) solo existe en algunos juegos. Muchos t�
 ## Decisión
 
 - **Capa propia «Partidas»** sobre las instantáneas de cada núcleo, independiente del formato interno. La SRAM sigue igual (ADR-007) y se confirma también en cada instantánea.
-- **Núcleos:** interfaz común `snapshot()`, `restore(bytes)` y `lastFrame()`. El estado se etiqueta con `core` y `coreVersion` (`packages/adapters/src/core.ts`). Un estado de otro núcleo o de otra versión no se carga y se conserva sin cambios. TetaNES rechaza además estados de otro cartucho. Todo núcleo futuro debe implementar esta interfaz o declarar que no puede.
+- **Núcleos:** interfaz común `snapshot()`, `restore(bytes)` y `lastFrame()`. El estado se etiqueta con `core` y `coreVersion` (`CoreModule.version` en `packages/adapters/src/registry.ts`). Un estado de otro núcleo o de otra versión no se carga y se conserva sin cambios. TetaNES rechaza además estados de otro cartucho. Todo núcleo futuro debe implementar esta interfaz o declarar que no puede.
 - **Almacenamiento** (`packages/storage/src/states.ts`): IndexedDB `cartivo-states`, clave `hashROM:ranura`. Ranuras: `auto` («Al salir») y `1`–`3`. Cada registro guarda bytes, SHA-256, núcleo, versión, frames, fecha y miniatura RGBA 128×120. Tope de 8 MB. Éxito solo tras `oncomplete`; checksum verificado al cargar. Nunca se usa Cache Storage.
 - **Escritor único:** Web Lock `cartivo:game:<hash>` para cualquier juego (con o sin batería), con un breve reintento para el traspaso entre sesiones de la misma pestaña.
 - **Protocolo NES v1:** `state-list`, `state-save`, `state-load` y `state-delete` con ranura validada; el Worker serializa y guarda, la UI solo recibe metadatos y miniaturas.

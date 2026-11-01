@@ -5,32 +5,55 @@
   import DiagnosticLab from "./DiagnosticLab.svelte";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
   import { icons } from "./icons.ts";
+  import {
+    acceptFor,
+    availableSystems,
+    systemForFile,
+    type SystemInfo,
+  } from "../../../packages/runtime/src/systems.ts";
   import "./theme.css";
   let controlsPage = $state(false);
+  const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
-  let game = $state<{ file?: File; id: number }>();
+  let game = $state<{ file?: File; system: SystemInfo; id: number }>();
   let nextGameId = 0;
-  const startGame = (file?: File) => {
-    game = { file, id: ++nextGameId };
+  const startGame = (system: SystemInfo, file?: File) => {
+    openError = "";
+    game = { file, system, id: ++nextGameId };
   };
   let fileInput = $state.raw<HTMLInputElement>();
+  /** System whose card opened the file picker. */
+  let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
   /** A file opened from the OS while another game was running. */
-  let pendingFile = $state.raw<File>();
+  let pending = $state.raw<{ file: File; system: SystemInfo }>();
+  let openError = $state("");
   let dragging = $state(false);
-  function openFile(file: File) {
+  /** Picks the system by extension; a card choice wins for its own picker. */
+  function openFile(file: File, preferred?: SystemInfo) {
+    const system = preferred ?? systemForFile(file.name);
+    if (!system) {
+      openError = `No se reconoce «${file.name}». Formatos admitidos: ${acceptFor(consoles)}.`;
+      return;
+    }
     // One active game: never replace a running session without the player
     // closing it first (its SRAM flush is confirmed on close).
-    if (game) pendingFile = file;
+    if (game) pending = { file, system };
     else {
-      pendingFile = undefined;
-      startGame(file);
+      pending = undefined;
+      startGame(system, file);
     }
+  }
+  function pick(system: SystemInfo) {
+    pickerSystem = system;
+    if (!fileInput) return;
+    fileInput.accept = acceptFor([system]);
+    fileInput.click();
   }
   function chooseGame(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = "";
-    if (file) openFile(file);
+    if (file) openFile(file, pickerSystem);
   }
   const hasFiles = (e: DragEvent) =>
     !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
@@ -140,59 +163,65 @@
           <button onclick={applyUpdate}>Actualizar ahora</button>
         </div>
       {/if}
+      {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
       <ul class="consoles" aria-label="Consolas">
-        <li>
-          <article
-            class="console-card card"
-            class:dragging
-            aria-labelledby="console-nes"
-          >
-            <div class="console-art" aria-hidden="true">
-              {#each Array(48) as _}<i></i>{/each}
-            </div>
-            <div class="console-text">
-              <h2 id="console-nes">NES</h2>
-              <p>Nintendo Entertainment System</p>
-            </div>
-            <div class="console-actions">
-              {#if pendingFile}
-                <button
-                  class="primary icon-button play"
-                  onclick={() => openFile(pendingFile!)}
-                  >{@html icons.play}<span>Jugar {pendingFile.name}</span
-                  ></button
+        {#each consoles as item (item.id)}
+          {@const waiting = pending?.system.id === item.id ? pending : undefined}
+          <li>
+            <article
+              class="console-card card"
+              class:dragging
+              aria-labelledby={`console-${item.id}`}
+            >
+              <div class="console-art" aria-hidden="true">
+                {#each Array(48) as _}<i></i>{/each}
+              </div>
+              <div class="console-text">
+                <h2 id={`console-${item.id}`}>{item.name}</h2>
+                <p>{item.longName}</p>
+              </div>
+              <div class="console-actions">
+                {#if waiting}
+                  <button
+                    class="primary icon-button play"
+                    onclick={() => openFile(waiting.file, waiting.system)}
+                    >{@html icons.play}<span>Jugar {waiting.file.name}</span
+                    ></button
+                  >
+                {:else}
+                  <button
+                    class="primary icon-button play"
+                    onclick={() => pick(item)}
+                    >{@html icons.play}<span>Jugar</span></button
+                  >
+                {/if}
+                <a
+                  class="icon-button square"
+                  href="#controles"
+                  aria-label={`Controles de ${item.name}`}
+                  title={`Controles de ${item.name}`}>{@html icons.sliders}</a
                 >
-              {:else}
-                <button
-                  class="primary icon-button play"
-                  onclick={() => fileInput?.click()}
-                  >{@html icons.play}<span>Jugar</span></button
+              </div>
+              <div class="console-foot">
+                {#if waiting}<button class="link" onclick={() => pick(item)}
+                    >Elegir otro juego</button
+                  >{/if}
+                {#if item.demo}<button
+                    class="link"
+                    onclick={() => startGame(item)}>Probar demo</button
+                  >{/if}
+                <span class="drop-hint"
+                  >o arrastra un archivo {item.extensions.join(", ")}</span
                 >
-              {/if}
-              <a
-                class="icon-button square"
-                href="#controles"
-                aria-label="Controles de NES"
-                title="Controles de NES">{@html icons.sliders}</a
-              >
-            </div>
-            <div class="console-foot">
-              {#if pendingFile}<button
-                  class="link"
-                  onclick={() => fileInput?.click()}>Elegir otro juego</button
-                >{/if}
-              <button class="link" onclick={() => startGame()}
-                >Probar demo</button
-              >
-              <span class="drop-hint">o arrastra un archivo .nes</span>
-            </div>
-          </article>
-        </li>
+              </div>
+            </article>
+          </li>
+        {/each}
       </ul>
       <input
         bind:this={fileInput}
         type="file"
-        accept=".nes"
+        accept={acceptFor(consoles)}
         onchange={chooseGame}
         hidden
       />
@@ -201,6 +230,7 @@
   {#if game}<div hidden={controlsPage}>
       {#key game.id}
         <Player
+          system={game.system}
           file={game.file}
           visible={!controlsPage}
           autostart
@@ -208,8 +238,9 @@
             game = undefined;
           }}
           onreplace={(file: File) => {
-            pendingFile = undefined;
-            startGame(file);
+            pending = undefined;
+            const current = game!.system;
+            startGame(systemForFile(file.name) ?? current, file);
           }}
         />
       {/key}
@@ -398,6 +429,15 @@
     min-height: 32px;
     color: var(--blue);
     font-size: 14px;
+  }
+  .open-error {
+    margin: 24px auto 0;
+    max-width: 640px;
+    padding: 12px 16px;
+    border: 1px solid var(--coral);
+    border-radius: 10px;
+    background: #34202a;
+    text-align: center;
   }
   .drop-hint {
     font-size: 13px;

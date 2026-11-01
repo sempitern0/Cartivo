@@ -1,31 +1,28 @@
-import { MAX_ROM_BYTES } from "../../../packages/adapters/src/ines.ts";
-import {
-  createCore,
-  prepareCore,
-  type NesCore,
-  type NesCoreId,
-} from "../../../packages/adapters/src/core.ts";
-import { controlDemo } from "../../../packages/fixtures/src/control-demo.ts";
+// Generic emulator Worker: one session, any registered system and core.
+import { coreModule } from "../../../packages/adapters/src/registry.ts";
+import type {
+  CoreModule,
+  EmulatorCore,
+} from "../../../packages/adapters/src/contract.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
 import { SramStore, digest } from "../../../packages/storage/src/sram.ts";
 import {
   StateStore,
   makePreview,
 } from "../../../packages/storage/src/states.ts";
-import { coreVersions } from "../../../packages/adapters/src/core.ts";
 import {
-  parseNesRequest,
-  type NesRequest,
-  type NesResult,
-} from "../../../packages/runtime/src/nes-protocol.ts";
+  parseRequest,
+  type EmuRequest,
+  type EmuResult,
+} from "../../../packages/runtime/src/protocol.ts";
 const scope = globalThis as unknown as {
   onmessage: ((event: MessageEvent) => void) | null;
   postMessage: (value: unknown, transfer: Transferable[]) => void;
 };
-let core: NesCore | undefined;
-let coreId: NesCoreId = "jsnes";
+let core: EmulatorCore | undefined;
+let module: CoreModule;
 /** Replaces the running core, releasing the previous one (wasm memory). */
-function use(next: NesCore) {
+function use(next: EmulatorCore) {
   if (core !== next) core?.dispose();
   core = next;
 }
@@ -43,28 +40,38 @@ async function flush() {
   }
   return false;
 }
-async function run(r: NesRequest): Promise<NesResult> {
+/** Battery RAM key; NES keeps its original prefix so old saves still load. */
+const sramKey = (system: string, romHash: string) =>
+  system === "nes" ? `nrom-sram-v1:${romHash}` : `${system}-sram-v1:${romHash}`;
+async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
-    if (r.file && r.file.size > MAX_ROM_BYTES)
-      throw Error("Archivo demasiado grande: límite experimental de 512 KB PRG y 256 KB CHR.");
-    coreId = r.core ?? "jsnes";
-    await prepareCore(coreId);
-    rom = r.demo ? controlDemo() : new Uint8Array(await r.file!.arrayBuffer());
+    const system = r.system ?? "nes";
+    // Protocol v1 without `core` meant JSNES; keep that for old clients.
+    module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
+    if (r.file && r.file.size > module.maxRomBytes)
+      throw Error("Archivo demasiado grande para este sistema.");
+    if (r.demo && !module.demo)
+      throw Error("Este sistema no tiene demo integrada.");
+    await module.prepare();
+    rom = r.demo
+      ? module.demo!()
+      : new Uint8Array(await r.file!.arrayBuffer());
+    module.validate(rom);
     hash = await digest(rom);
     // Per-game writer lock first: snapshots exist for every game.
     states = await StateStore.open(hash);
     // SRAM is keyed by ROM hash only, so a save moves between cores.
-    use(createCore(coreId, rom));
+    use(module.create(rom));
     if (core!.battery) {
-      store = await SramStore.open("nrom-sram-v1:" + hash);
+      store = await SramStore.open(sramKey(system, hash), module.sramBytes);
       const saved = await store.load();
-      if (saved) use(createCore(coreId, rom, saved));
+      if (saved) use(module.create(rom, saved));
     }
     session = r.session;
     return {
       hash,
-      core: coreId,
+      core: module.id,
       states: await states.list(),
       battery: core!.battery,
       recovered: store?.recovered ?? false,
@@ -77,13 +84,17 @@ async function run(r: NesRequest): Promise<NesResult> {
     // A reset must not erase battery-backed SRAM or its previous generation.
     const saved = await flush();
     const previousSave = core.battery ? core.save() : undefined;
-    use(createCore(coreId, rom, previousSave));
+    use(module.create(rom, previousSave));
     lastSaveFrame = 0;
     return { saved, frames: 0 };
   }
   if (r.command === "advance") {
     core.input(r.input!);
-    const result = core.advance(r.count!);
+    const result = {
+      ...core.advance(r.count!),
+      width: module.video.width,
+      height: module.video.height,
+    };
     let saved = false;
     let saveError: string | undefined;
     if (core.frames - lastSaveFrame >= 120) {
@@ -108,16 +119,20 @@ async function run(r: NesRequest): Promise<NesResult> {
       saved = false;
     }
     const frame = core.lastFrame();
+    const { width, height } = module.video;
     await states!.save(r.slot!, bytes, {
-      core: coreId,
-      coreVersion: coreVersions[coreId],
+      core: module.id,
+      coreVersion: module.version,
       frames: core.frames,
-      preview: frame.length === 256 * 240 * 4 ? makePreview(frame) : undefined,
+      preview:
+        frame.length === width * height * 4
+          ? makePreview(frame, width, height)
+          : undefined,
     });
     return { saved, states: await states!.list() };
   }
   if (r.command === "state-load") {
-    const bytes = await states!.load(r.slot!, coreId, coreVersions[coreId]);
+    const bytes = await states!.load(r.slot!, module.id, module.version);
     core.restore(bytes);
     return { frames: core.frames, states: await states!.list() };
   }
@@ -138,7 +153,7 @@ async function run(r: NesRequest): Promise<NesResult> {
       b.format !== "cartivo-nrom-sram-v1" ||
       b.game !== hash ||
       !Array.isArray(b.bytes) ||
-      b.bytes.length !== 8192 ||
+      b.bytes.length !== module.sramBytes ||
       b.bytes.some((v) => !Number.isInteger(v) || v < 0 || v > 255)
     )
       throw Error(
@@ -147,7 +162,7 @@ async function run(r: NesRequest): Promise<NesResult> {
     const save = Uint8Array.from(b.bytes);
     if ((await digest(save)) !== b.sha256)
       throw Error("La copia de partida está dañada");
-    const replacement = createCore(coreId, rom, save);
+    const replacement = module.create(rom, save);
     await store.commit(save);
     use(replacement);
     lastSaveFrame = 0;
@@ -161,9 +176,9 @@ async function run(r: NesRequest): Promise<NesResult> {
   return { saved };
 }
 scope.onmessage = async (event) => {
-  let request: NesRequest;
+  let request: EmuRequest;
   try {
-    request = parseNesRequest(event.data);
+    request = parseRequest(event.data);
   } catch {
     return;
   }

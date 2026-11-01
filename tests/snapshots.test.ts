@@ -14,7 +14,7 @@ import {
   PREVIEW_WIDTH,
   PREVIEW_HEIGHT,
 } from "../packages/storage/src/states.ts";
-import { parseNesRequest } from "../packages/runtime/src/nes-protocol.ts";
+import { parseRequest as parseNesRequest } from "../packages/runtime/src/protocol.ts";
 
 initSync({
   module: readFileSync(

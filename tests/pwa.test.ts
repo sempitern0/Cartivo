@@ -27,7 +27,7 @@ test("precache version is stable and changes with any file content", () => {
 test("service worker never precaches itself or source maps", () => {
   assert.equal(shouldPrecache("sw.js"), false);
   assert.equal(shouldPrecache("assets/index-1.js.map"), false);
-  assert.equal(shouldPrecache("assets/nes.worker-1.js"), true);
+  assert.equal(shouldPrecache("assets/emulator.worker-1.js"), true);
   assert.equal(shouldPrecache("licenses/NOTICE.txt"), true);
 });
 

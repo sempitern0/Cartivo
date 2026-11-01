@@ -90,3 +90,10 @@
 - Escritor único por juego también sin batería; el protocolo NES añade `state-list/save/load/delete`.
 - Política de licencias de uso privado (revisión de ADR-005): se admiten núcleos con cualquier licencia libre identificada; `cargo deny` y `verify-tetanes` la aplican.
 
+### Base multiconsola
+
+- Contrato de núcleo (`EmulatorCore`, `CoreModule`), registro de núcleos en el Worker y registro de sistemas para la UI.
+- Protocolo v1 genérico (`system`, `core`, tamaño de imagen), `EmulatorClient` y un único `emulator.worker.ts`; SRAM de tamaño configurable sin romper las partidas NES existentes.
+- Inicio, reproductor, Gráficos, Partidas y núcleos salen del registro; archivos asignados por extensión.
+- Prueba de conformidad para todo núcleo registrado y guía `docs/ADDING_A_SYSTEM.md`.
+

@@ -1,6 +1,6 @@
 # ADR-002 — Adaptadores y runtime de sesión
 
-Estado: propuesto. Fecha: 2026-10-30.
+Estado: **aceptado** (contrato implementado el 2026-11-01). Fecha: 2026-10-30.
 
 ## Decisión propuesta
 
@@ -22,3 +22,14 @@ Estados y transiciones en la sección 4 del plan. `dispose` idempotente, `stop` 
 ## Consecuencias
 
 Cada port requiere trabajo propio. WASM no universaliza gráficos, JIT ni filesystem. El aislamiento técnico no determina independencia legal de componentes.
+
+## Implementación (2026-11-01)
+
+- **Contrato** `packages/adapters/src/contract.ts`: `EmulatorCore` (entrada, frames, SRAM, instantáneas, `dispose`) y `CoreModule` (sistema, versión, vídeo, tamaño de SRAM, validación, demo, preparación y creación).
+- **Registros:** `packages/adapters/src/registry.ts` (lado Worker, módulos de núcleo) y `packages/runtime/src/systems.ts` (lado UI, sin código de núcleos).
+- **Protocolo v1 genérico** `packages/runtime/src/protocol.ts` con `system` y `core`, cliente `EmulatorClient` y un único `apps/web/src/emulator.worker.ts`.
+- **Pruebas:** `tests/core-conformance.test.ts` se aplica a cada módulo registrado.
+- **Guía:** `docs/ADDING_A_SYSTEM.md`.
+
+Pendiente: acciones de entrada por sistema (L/R, X/Y, C), OffscreenCanvas y renderizado propio para núcleos 3D.
+

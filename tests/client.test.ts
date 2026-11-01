@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NesClient } from "../packages/runtime/src/nes-client.ts";
+import { EmulatorClient as NesClient } from "../packages/runtime/src/client.ts";
 class Fake extends EventTarget {
   messages: any[] = [];
   terminated = false;

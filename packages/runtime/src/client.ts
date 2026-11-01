@@ -1,6 +1,8 @@
-import type { NesCommand, NesResult, NesRequest } from "./nes-protocol.ts";
+import type { EmuCommand, EmuResult, EmuRequest } from "./protocol.ts";
+/** Largest frame accepted from a core (covers every V1 system). */
+const MAX_PIXELS = 1024 * 1024;
 /** Single in-flight request, ordered commands, correlated replies and fatal timeout. */
-export class NesClient {
+export class EmulatorClient {
   private worker: Worker;
   private session = crypto.randomUUID();
   private id = 0;
@@ -9,7 +11,7 @@ export class NesClient {
   private pending:
     | {
         id: number;
-        resolve: (r: NesResult) => void;
+        resolve: (r: EmuResult) => void;
         reject: (e: Error) => void;
         timer: ReturnType<typeof setTimeout>;
       }
@@ -41,13 +43,18 @@ export class NesClient {
       );
       return;
     }
-    const result = r.result as NesResult;
+    const result = r.result as EmuResult;
     if (
       !result ||
       typeof result !== "object" ||
       (result.pixels &&
         (!(result.pixels instanceof Uint8ClampedArray) ||
-          result.pixels.length !== 256 * 240 * 4)) ||
+          !Number.isInteger(result.width) ||
+          !Number.isInteger(result.height) ||
+          result.width! < 1 ||
+          result.height! < 1 ||
+          result.width! * result.height! > MAX_PIXELS ||
+          result.pixels.length !== result.width! * result.height! * 4)) ||
       (result.audio &&
         (!(result.audio instanceof Float32Array) ||
           result.audio.length > 48000))
@@ -59,14 +66,14 @@ export class NesClient {
     p.resolve(result);
   };
   request(
-    command: NesCommand,
-    payload: Partial<NesRequest> = {},
-  ): Promise<NesResult> {
+    command: EmuCommand,
+    payload: Partial<EmuRequest> = {},
+  ): Promise<EmuResult> {
     const next = this.tail
       .catch(() => {})
       .then(
         () =>
-          new Promise<NesResult>((resolve, reject) => {
+          new Promise<EmuResult>((resolve, reject) => {
             if (this.closed) {
               reject(Error("Sesión cerrada"));
               return;

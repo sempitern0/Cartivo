@@ -5,7 +5,7 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | ADR | Tema | Estado |
 |---|---|---|
 | [001](001-platform-and-scope.md) | Catálogo, stack y distribución | Propuesto; stack aplicado (pnpm, Svelte/Vite, TS estricto) |
-| [002](002-core-runtime.md) | Adaptadores, sesiones y medios | Propuesto; protocolo NES v1 implementado |
+| [002](002-core-runtime.md) | Contrato de núcleos, registros y protocolo genérico | Aceptado (implementado) |
 | [003](003-local-data.md) | Archivos locales, saves y offline | Propuesto; excepción SRAM NES en ADR-007 |
 | [004](004-game-identity.md) | Identificación regional y proveedores | Propuesto (H3) |
 | [005](005-licensing.md) | PolyForm Noncommercial para código propio; política de uso privado para núcleos | Aceptado (revisión 2026-11-01) |

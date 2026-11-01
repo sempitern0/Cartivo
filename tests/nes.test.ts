@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { NesAdapter, validateRom } from "../packages/adapters/src/jsnes.ts";
 import { controlDemo } from "../packages/fixtures/src/control-demo.ts";
 import { neutral } from "../packages/input/src/nes-input.ts";
-import { parseNesRequest } from "../packages/runtime/src/nes-protocol.ts";
+import { parseRequest as parseNesRequest } from "../packages/runtime/src/protocol.ts";
 test("real NES fixture renders, responds to input, produces audio and restores SRAM", () => {
   const rom = controlDemo();
   assert.equal(

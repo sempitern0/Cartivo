@@ -1,27 +1,29 @@
-import { nesCores, type NesCoreId } from "../../adapters/src/core-ids.ts";
+import type { SystemInfo } from "./systems.ts";
 
-/** Default NES core once TetaNES passed its gate (ADR-008). */
-export const defaultNesCore: NesCoreId = "tetanes";
-const key = "cartivo:core:nes:v1";
-
-export function isNesCore(value: unknown): value is NesCoreId {
-  return (nesCores as readonly unknown[]).includes(value);
-}
+// Per-system core choice. The NES key is unchanged from earlier releases.
+const key = (systemId: string) => `cartivo:core:${systemId}:v1`;
 
 type Store = Pick<Storage, "getItem" | "setItem">;
 
-export function readNesCore(store?: Store): NesCoreId {
+export function readCore(system: SystemInfo, store?: Store): string {
   try {
-    const value = (store ?? localStorage).getItem(key);
-    return isNesCore(value) ? value : defaultNesCore;
+    const value = (store ?? localStorage).getItem(key(system.id));
+    return system.cores.some((c) => c.id === value)
+      ? (value as string)
+      : system.defaultCore;
   } catch {
-    return defaultNesCore;
+    return system.defaultCore;
   }
 }
 
-export function writeNesCore(id: NesCoreId, store?: Store): boolean {
+export function writeCore(
+  system: SystemInfo,
+  id: string,
+  store?: Store,
+): boolean {
+  if (!system.cores.some((c) => c.id === id)) return false;
   try {
-    (store ?? localStorage).setItem(key, id);
+    (store ?? localStorage).setItem(key(system.id), id);
     return true;
   } catch {
     return false;

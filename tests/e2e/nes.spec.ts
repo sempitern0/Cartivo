@@ -302,7 +302,7 @@ test("cancel loading destroys the session without late navigation", async ({
   const gate = new Promise<void>((resolve) => {
     release = resolve;
   });
-  await page.route("**/*nes.worker*", async (route) => {
+  await page.route("**/*emulator.worker*", async (route) => {
     await gate;
     await route.continue().catch(() => {});
   });

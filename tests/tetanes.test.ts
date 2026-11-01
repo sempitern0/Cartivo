@@ -13,12 +13,12 @@ import {
 import { NesAdapter } from "../packages/adapters/src/jsnes.ts";
 import { controlDemo } from "../packages/fixtures/src/control-demo.ts";
 import { neutral } from "../packages/input/src/nes-input.ts";
-import { parseNesRequest } from "../packages/runtime/src/nes-protocol.ts";
+import { parseRequest as parseNesRequest } from "../packages/runtime/src/protocol.ts";
 import {
-  readNesCore,
-  writeNesCore,
-  defaultNesCore,
+  readCore,
+  writeCore,
 } from "../packages/runtime/src/core-preference.ts";
+import { system } from "../packages/runtime/src/systems.ts";
 
 const wasm = new URL("../cores/tetanes/dist/tetanes_bg.wasm", import.meta.url);
 initSync({ module: readFileSync(wasm) });
@@ -144,12 +144,14 @@ test("input bits, protocol core field and stored preference", () => {
     getItem: (k: string) => memory.get(k) ?? null,
     setItem: (k: string, v: string) => void memory.set(k, v),
   };
-  assert.equal(readNesCore(store), defaultNesCore);
-  assert.equal(defaultNesCore, "tetanes");
-  writeNesCore("jsnes", store);
-  assert.equal(readNesCore(store), "jsnes");
+  const nes = system("nes")!;
+  assert.equal(readCore(nes, store), "tetanes");
+  assert.equal(nes.defaultCore, "tetanes");
+  writeCore(nes, "jsnes", store);
+  assert.equal(readCore(nes, store), "jsnes");
+  assert.equal(writeCore(nes, "fceux", store), false);
   memory.set("cartivo:core:nes:v1", "unknown");
-  assert.equal(readNesCore(store), "tetanes");
+  assert.equal(readCore(nes, store), "tetanes");
 });
 
 test("frame cost of both cores (informative, not a benchmark)", () => {

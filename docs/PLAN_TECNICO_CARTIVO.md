@@ -71,8 +71,8 @@ Requisitos permanentes: contraste AA, objetivos de 44 px, foco visible, `prefers
 
 ```text
 apps/web/src/            UI (App, Player, ControlsPanel, GameStage), worker NES, AudioWorklet, PWA
-packages/adapters/       ines.ts (validación común), jsnes.ts, tetanes.ts, core.ts (fábrica), core-ids.ts
-packages/runtime/        protocolo NES v1, cliente del Worker, sesión, preferencia de núcleo
+packages/adapters/       contract.ts (contrato de núcleo), registry.ts (módulos por sistema), ines.ts, jsnes.ts, tetanes.ts
+packages/runtime/        systems.ts (registro de sistemas para la UI), protocol.ts (v1 genérico), client.ts, preferencias
 packages/input/          normalización de teclado y Gamepad API, perfiles
 packages/media/          audio, escalado de vídeo, preferencias de pantalla
 packages/storage/        SRAM con generaciones (IndexedDB + Web Locks)
@@ -83,7 +83,7 @@ tools/                   verify-jsnes, verify-tetanes, build-tetanes, pwa-plugin
 tests/  tests/e2e/       unitarios (node:test) y E2E (Playwright)
 ```
 
-Paquetes nuevos solo con consumidor real. Dirección de dependencias: `apps → runtime/adaptadores → input/media/storage`; los adaptadores no se importan entre sí.
+Paquetes nuevos solo con consumidor real. Dirección de dependencias: `apps → runtime/adaptadores → input/media/storage`; los adaptadores no se importan entre sí. **Añadir una consola** sigue la checklist de [ADDING_A_SYSTEM](ADDING_A_SYSTEM.md): registrar un `CoreModule` y una entrada en `systems.ts`; inicio, reproductor, Gráficos, Partidas y selección de núcleo salen del registro.
 
 ### Ruta de un núcleo
 
@@ -108,9 +108,9 @@ Hosting estático HTTPS (Cloudflare Worker previsto) con `application/wasm`, cac
 
 ## 6. Contrato de núcleos
 
-**Implementado (NES, protocolo v1):** mensajes con versión, sesión e ID de petición, validación en ambos lados, una petición activa, timeout de 10 s, descarte de respuestas obsoletas. Comandos: `load` (con `core` opcional), `advance`, `pause`, `save`, `import`, `reset`. Buffers de vídeo, audio y SRAM transferidos, nunca compartidos.
+**Implementado (protocolo v1 genérico, ADR-002):** mensajes con versión, sesión e ID de petición, validación en ambos lados, una petición activa, timeout de 10 s, descarte de respuestas obsoletas. Comandos: `load` (con `system` y `core`), `advance` (devuelve RGBA con `width`/`height`), `pause`, `save`, `import`, `reset` y `state-list/save/load/delete`. Un único Worker resuelve el `CoreModule` en `registry.ts`; la UI usa `systems.ts`. Todo núcleo pasa `tests/core-conformance.test.ts`.
 
-**Objetivo al añadir sistemas:** generalizar a una sesión por sistema con manifiesto de núcleo (`id`, sistemas, formatos, capacidades reales, requisitos de navegador, licencia) y ajustes declarados por schema. Ciclo de vida `idle → loading → running ↔ paused → stopping → stopped`, con `failed` desde cualquier fase y `dispose` idempotente. Capacidades opcionales (`save-state`, `rewind`, `disc-swap`, `multiplayer`, `internal-resolution`…) solo cuando el núcleo y la build las implementen y estén probadas.
+**Siguiente:** acciones de entrada por sistema (L/R, X/Y, C), ajustes de núcleo declarados por schema y capacidades opcionales. Ciclo de vida `idle → loading → running ↔ paused → stopping → stopped`, con `failed` desde cualquier fase y `dispose` idempotente. Capacidades opcionales (`save-state`, `rewind`, `disc-swap`, `multiplayer`, `internal-resolution`…) solo cuando el núcleo y la build las implementen y estén probadas.
 
 Precedencia de ajustes: `valores verificados → sistema → núcleo → juego exacto → usuario → sesión`, con restablecer por juego y global. Las opciones se marcan `live`, `requires-reset` o `unsupported`; nada fuera del schema llega al WASM.
 
@@ -176,7 +176,7 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 | ID | Épica | Estado | Terminado cuando |
 |---|---|---|---|
 | E-01 | Licencias y firmware | En curso | Expediente por build; decisión sobre GPL registrada |
-| E-02 | Contrato y runtime | Parcial (NES v1) | Sesión genérica por sistema con manifiesto y schema |
+| E-02 | Contrato y runtime | Hecho (contrato, registros, protocolo genérico) | Ajustes de núcleo por schema y entrada por sistema |
 | E-03 | PWA y despliegue | Parcial | Instalación verificada en plataformas y dominio HTTPS con cabeceras |
 | E-04 | Persistencia | Parcial (SRAM + Partidas) | 100 ciclos con fallos inyectados; exportar Partidas; OPFS para ROMs |
 | E-05 | Entrada y foco | Parcial | UI completa con mando; P2; mando físico certificado |
