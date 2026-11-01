@@ -7,7 +7,8 @@ Estado: **implementado y probado con mandos sintéticos; mando físico pendiente
 - `packages/input/src/nes-input.ts`: estado NES P1 independiente del núcleo; teclado, layout `standard` y asignaciones manuales de botones y ejes. Direcciones opuestas se neutralizan.
 - Teclado por defecto: WASD y flechas, L = A, K = B, Q = Select, Enter = Start. Una tecla reasignada tiene prioridad sobre un valor por defecto que use la misma tecla. Perfiles antiguos (X/Z, Mayús derecha) se migran sin pisar reasignaciones.
 - Gamepad API con sondeo y evento de conexión; selección automática del primer mando visible; mensajes útiles si el navegador no expone el mando (contexto seguro, permisos, primera pulsación).
-- Asignación de los ocho controles: espera a soltar, rechaza colisiones, Escape cancela. Perfiles locales validados por mando; se aplican de forma explícita, nunca al reconectar a ciegas. Zona muerta ajustable.
+- Acciones: las ocho de NES/Game Boy más **L y R** (Game Boy Advance; I/O en teclado, LB/RB en mando estándar). Los núcleos que no las tienen las ignoran. Los perfiles guardados antes de L/R se completan sin perder ninguna asignación: tecla o botón por defecto, o el primero libre.
+- Asignación de los diez controles: espera a soltar, rechaza colisiones, Escape cancela. Perfiles locales validados por mando; se aplican de forma explícita, nunca al reconectar a ciegas. Zona muerta ajustable.
 - Blur, pestaña oculta, desconexión o cambio de dispositivo neutralizan la entrada; al reactivar hay que soltar todo. Los índices no identifican dispositivos.
 - Pantalla «Configurar controles» (`#controles`) con dibujos que se iluminan durante la prueba ([DESIGN](../DESIGN.md)).
 

@@ -120,3 +120,8 @@
 - Contrato: el tamaño de la SRAM lo da cada núcleo (`saveBytes`) y el reproductor avanza al ritmo de cada sistema (`frameRate`; GB a 59,73 Hz).
 - SameBoy se carga solo al jugar a GB/GBC (`import()` en Workers ES); Gráficos oculta las opciones de proporción cuando el píxel es cuadrado.
 - Pruebas: conformidad de `gb`/`gbc`, cabecera, sistemas y E2E de demo, SRAM, F5/F9, soltar `.gbc` y archivo dañado.
+
+### H2-GBA: botones L y R
+
+- Acciones L y R para Game Boy Advance: I/O en teclado y LB/RB en mando estándar, con chips en Controles y hombros en el dibujo del mando; NES y Game Boy las ignoran.
+- Los perfiles de teclado y mando guardados antes de L/R se completan sin perder asignaciones.
