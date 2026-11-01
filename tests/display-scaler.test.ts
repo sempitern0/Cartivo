@@ -62,3 +62,13 @@ test("other consoles use own descriptor and do not inherit NES 4:3", () => {
     "fit",
   );
 });
+
+test("aspect labels for known displays", async () => {
+  const { aspectLabel } = await import(
+    "../packages/media/src/display-scaler.ts"
+  );
+  assert.equal(aspectLabel(4 / 3), "4:3");
+  assert.equal(aspectLabel(10 / 9), "10:9");
+  assert.equal(aspectLabel(1.5), "3:2");
+  assert.equal(aspectLabel(1.234), "1.23");
+});

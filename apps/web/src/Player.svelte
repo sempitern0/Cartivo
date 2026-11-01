@@ -2,9 +2,9 @@
   import { onMount, tick } from "svelte";
   import GameStage from "./GameStage.svelte";
   import PlayerToolbar from "./PlayerToolbar.svelte";
+  import GraphicsPanel from "./GraphicsPanel.svelte";
   import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
   import {
-    defaultDisplay,
     readDisplay,
     writeDisplay,
     type DisplayPreferences,
@@ -190,16 +190,6 @@
   let displayNote = $state("");
   let graphicsOpen = $state(false);
   let graphicsButton = $state.raw<HTMLButtonElement>();
-  let graphicsPanel = $state.raw<HTMLElement>();
-  const scaleOptions: { value: ScaleMode; label: string; hint: string }[] = [
-    { value: "fit", label: "Ajustar", hint: "Ocupa todo el espacio disponible" },
-    { value: "integer", label: "Píxel entero", hint: "Píxeles idénticos; puede dejar bordes" },
-    { value: "corrected-integer", label: "4:3 entero", hint: "Proporción de televisor con píxel entero" },
-  ];
-  const aspectOptions: { value: AspectMode; label: string; hint: string }[] = [
-    { value: "corrected", label: "4:3 de televisor", hint: "Como se veía en la época" },
-    { value: "native", label: "Píxeles cuadrados", hint: "Imagen original de 256 × 240" },
-  ];
   function setDisplay(patch: Partial<DisplayPreferences>) {
     const next = { scale: scaleMode, aspect: aspectMode, smooth, ...patch };
     scaleMode = next.scale;
@@ -213,12 +203,6 @@
     if (phase === "running") await pause();
     graphicsOpen = !graphicsOpen;
     if (graphicsOpen) savesOpen = false;
-    if (graphicsOpen) {
-      await tick();
-      graphicsPanel
-        ?.querySelector<HTMLInputElement>("input:checked")
-        ?.focus({ preventScroll: true });
-    }
   }
   function closeGraphics() {
     graphicsOpen = false;
@@ -780,115 +764,22 @@
     <button class="primary" onclick={start}>Jugar</button>{/if}
   {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
   {#if graphicsOpen && phase !== "running"}
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <section
-      id="graphics-panel"
-      class="graphics card"
-      data-player-chrome
-      aria-labelledby="graphics-title"
-      bind:this={graphicsPanel}
-      onkeydown={(e) => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          closeGraphics();
-        }
-      }}
-    >
-      <header>
-        <h2 id="graphics-title">Gráficos</h2>
-        <p>Los cambios se ven al momento sobre la imagen en pausa.</p>
-        <button
-          class="close icon-button"
-          aria-label="Cerrar gráficos"
-          onclick={closeGraphics}>{@html icons.close}</button
-        >
-      </header>
-      <fieldset>
-        <legend>Escalado</legend>
-        <div class="options">
-          {#each scaleOptions as option}<label
-              class="option"
-              class:checked={scaleMode === option.value}
-            >
-              <input
-                type="radio"
-                name="scale"
-                value={option.value}
-                checked={scaleMode === option.value}
-                onchange={() => setDisplay({ scale: option.value })}
-              />
-              <svg class="diagram" viewBox="0 0 80 50" aria-hidden="true">
-                <rect class="screen" x="1" y="1" width="78" height="48" rx="5" />
-                {#if option.value === "fit"}<rect class="image" x="13" y="4" width="54" height="42" rx="2" />
-                {:else if option.value === "integer"}<rect class="image" x="22" y="9" width="36" height="32" rx="2" /><path class="px" d="M22 17h36M22 25h36M22 33h36M31 9v32M40 9v32M49 9v32" />
-                {:else}<rect class="image" x="19" y="9" width="42" height="32" rx="2" /><path class="px" d="M19 17h42M19 25h42M19 33h42M29.5 9v32M40 9v32M50.5 9v32" />{/if}
-              </svg>
-              <span class="name">{option.label}</span>
-              <span class="hint">{option.hint}</span>
-            </label>{/each}
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend>Proporción</legend>
-        <div class="options two">
-          {#each aspectOptions as option}<label
-              class="option"
-              class:checked={aspectMode === option.value}
-            >
-              <input
-                type="radio"
-                name="aspect"
-                value={option.value}
-                checked={aspectMode === option.value}
-                onchange={() => setDisplay({ aspect: option.value })}
-              />
-              <svg class="diagram" viewBox="0 0 80 50" aria-hidden="true">
-                <rect class="screen" x="1" y="1" width="78" height="48" rx="5" />
-                {#if option.value === "corrected"}<rect class="image" x="12" y="5" width="56" height="40" rx="2" />
-                {:else}<rect class="image" x="17" y="5" width="46" height="40" rx="2" />{/if}
-              </svg>
-              <span class="name">{option.label}</span>
-              <span class="hint">{option.hint}</span>
-            </label>{/each}
-        </div>
-      </fieldset>
-      <label class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          checked={smooth}
-          onchange={(e) => setDisplay({ smooth: e.currentTarget.checked })}
-        />
-        <span class="track" aria-hidden="true"></span>
-        <span>
-          <span class="name">Suavizado</span>
-          <span class="hint"
-            >Difumina los bordes de los píxeles. Desactivado conserva el aspecto
-            original.</span
-          >
-        </span>
-      </label>
-      <footer>
-        <p aria-live="polite">
-          {scaleFallback
-            ? "Ese escalado no cabe en esta ventana: se usa Ajustar hasta que haya espacio."
-            : displayNote}
-        </p>
-        <button
-          onclick={() => setDisplay({ ...defaultDisplay })}
-          disabled={scaleMode === defaultDisplay.scale &&
-            aspectMode === defaultDisplay.aspect &&
-            smooth === defaultDisplay.smooth}>Restablecer</button
-        >
-        <button class="primary" onclick={closeGraphics}>Listo</button>
-      </footer>
-    </section>
+    <GraphicsPanel
+      video={system.video}
+      {scaleMode}
+      {aspectMode}
+      {smooth}
+      fallback={scaleFallback}
+      note={displayNote}
+      onchange={setDisplay}
+      onclose={closeGraphics}
+    />
   {/if}
   {#if savesOpen && phase !== "running"}
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <section
       id="saves-panel"
-      class="graphics saves card"
+      class="panel saves card"
       data-player-chrome
       aria-labelledby="saves-title"
       bind:this={savesPanel}
@@ -1251,41 +1142,6 @@
   }
   p {
     line-height: 1.6;
-  }
-  .graphics { margin: 16px 0 0; padding: 20px 22px; }
-  .graphics header { display: grid; grid-template-columns: 1fr auto; column-gap: 16px; align-items: start; }
-  .graphics h2 { margin: 0; font-size: 20px; }
-  .graphics header p { grid-column: 1; margin: 4px 0 0; color: var(--muted); font-size: 14px; }
-  .graphics .close { grid-column: 2; grid-row: 1 / span 2; width: 44px; padding: 0; background: transparent; }
-  .graphics fieldset { border: 0; padding: 0; margin: 18px 0 0; min-width: 0; }
-  .graphics legend { padding: 0; margin-bottom: 10px; font-size: 13px; font-weight: 600; color: var(--muted); }
-  .options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-  .options.two { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 66%; }
-  .option { position: relative; display: grid; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
-  .option:hover { border-color: #565c72; }
-  .option.checked { border-color: var(--blue); box-shadow: var(--glow); }
-  /* The invisible input covers the whole card so pointer and keyboard both hit it. */
-  .option input, .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
-  .option:has(input:focus-visible), .switch:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
-  .diagram { width: 100%; max-width: 120px; height: auto; margin-bottom: 6px; }
-  .diagram .screen { fill: #0b0d13; stroke: #3a3f52; stroke-width: 1.5; }
-  .diagram .image { fill: #24324b; stroke: var(--blue); stroke-width: 1.5; }
-  .option.checked .diagram .image { fill: #2b4f7d; }
-  .diagram .px { stroke: #619de566; stroke-width: 0.8; }
-  .graphics .name { font-weight: 650; }
-  .graphics .hint { display: block; font-size: 13px; color: var(--muted); line-height: 1.4; }
-  .switch { position: relative; display: flex; align-items: flex-start; gap: 14px; margin-top: 20px; padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
-  .track { flex: none; position: relative; width: 44px; height: 26px; border-radius: 999px; background: #2a2e3d; border: 1px solid var(--border); margin-top: 2px; }
-  .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); }
-  .switch:has(input:checked) .track { background: var(--blue); border-color: var(--blue); }
-  .switch:has(input:checked) .track::after { left: 21px; background: #111218; }
-  @media (prefers-reduced-motion: no-preference) { .track::after { transition: left 120ms ease-out; } }
-  .graphics footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
-  .graphics footer p { flex: 1; min-width: 200px; margin: 0; font-size: 13px; color: var(--muted); }
-  @media (max-width: 640px) {
-    .options, .options.two { grid-template-columns: minmax(0, 1fr); max-width: none; }
-    .option { grid-template-columns: 72px 1fr; column-gap: 12px; align-items: center; }
-    .option .diagram { grid-row: 1 / span 2; margin: 0; }
   }
   .focus-selected { border-color: var(--teal); color: var(--teal); background: #17312e; }
   .buttons {

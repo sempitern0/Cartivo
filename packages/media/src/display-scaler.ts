@@ -111,3 +111,17 @@ export function displayLayout(
     fallback: mode !== actualMode,
   };
 }
+
+/** Human label for a display aspect ratio («4:3», «10:9», «3:2»…). */
+export function aspectLabel(aspect: number): string {
+  for (const [w, h] of [
+    [4, 3],
+    [10, 9],
+    [3, 2],
+    [16, 9],
+    [8, 7],
+    [1, 1],
+  ] as const)
+    if (Math.abs(aspect - w / h) < 0.01) return `${w}:${h}`;
+  return aspect.toFixed(2);
+}
