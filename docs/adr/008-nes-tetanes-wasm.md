@@ -20,3 +20,12 @@ ADR-007 dejó abierto el gate WASM porque el entorno no tenía toolchain Rust. L
 - El desarrollo local no necesita Rust; cambiar el envoltorio sí requiere pasar por el CI de núcleo.
 - Cada actualización de `tetanes-core` vuelve a pasar el gate CORE-LEGAL-01 y la recompilación reproducible.
 - Pendiente: QA física (mando, audio), Firefox/Safari, rendimiento real en dispositivos, ampliar mappers con pruebas, 100 ciclos. No se anuncian save states, rewind, threads ni SIMD.
+
+
+## Política de cuota de GitHub Actions (2026-11-01)
+
+El WebAssembly TetaNES compilado está versionado en `cores/tetanes/dist`, con manifiesto, hashes y SBOM. No tiene sentido volver a compilar Rust para cada actualización del reproductor, documentación o PR.
+
+`core-tetanes.yml` se ejecuta exclusivamente por petición deliberada: `workflow_dispatch` (una vez disponible desde la rama predeterminada) o un cambio explícito a `cores/tetanes/.build-request` en esta rama. `build` actualiza los binarios y metadatos comprometidos; `verify` recompila para comprobar reproducibilidad, **solo manualmente**. Ningún build dispara una segunda compilación pesada.
+
+El CI cotidiano mantiene `pnpm verify:core`, que valida SHA-256 de los archivos y licencia del SBOM existente sin instalar Rust. **Advertencia:** verificar los hashes del binario almacenado no prueba que concuerde con una modificación nueva de fuentes. Cambios en `cores/tetanes/src`, `Cargo.toml`, `Cargo.lock`, toolchain, parches o receta de build deben acompañarse de una regeneración explícita de artefactos antes de integrar esos cambios. Registrar la causa y evidencia; no prometer reproducibilidad sin correr el modo `verify`.
