@@ -134,3 +134,10 @@
 - Guardado SRAM, Flash o EEPROM en un búfer fijo de 128 KB (como libretro), así que `saveBytes` no cambia.
 - `wasm-host.ts`: carga, imports de sistema y `BridgeCore` comunes para SameBoy y mGBA.
 - Fixture original ARM (modo 3) y validación de cabecera GBA; conformidad de `gba/mgba` y E2E de demo, L/R en píxeles, SRAM, F5/F9, soltar `.gba` y archivo dañado.
+
+### Revisión previa al merge de H2 (GB, GBC y GBA)
+
+- Game Boy: pruebas de que la cabecera elige el hardware (DMG en grises, CGB en color) y de que el reloj de MBC3 se guarda con la SRAM y avanza mientras la app está cerrada.
+- GBA: variantes propias de la fixture con los protocolos reales de Flash y EEPROM; el juego relee su partida tras reabrir. Prueba sin chip de guardado y coste del búfer fijo medido.
+- `wasm-host.ts`: lista explícita de imports permitidos (un import desconocido falla en `prepare()` nombrándolo) y núcleo cerrado que rechaza llamadas.
+- Backlog: descriptor de entrada por sistema y precache selectivo de núcleos antes de SNES y de núcleos pesados.

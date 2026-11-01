@@ -54,6 +54,8 @@ Arnés C nativo (gcc, mismas fuentes y definiciones) con la fixture original `pa
 - Instantánea con repetición idéntica; estados corruptos rechazados.
 - Recarga de batería; 0,78 ms por frame en nativo.
 
+Revisión previa al merge (`tests/gba-saves.test.ts`): variantes propias de la fixture escriben con los protocolos reales de SRAM, Flash y EEPROM, y el juego relee su partida tras reabrir. Ver [H2-GBA](../compatibility/H2-GBA.md).
+
 ## 7. Trazabilidad
 
 - Build en CI **solo bajo petición** (`.github/workflows/core-mgba.yml`: `cores/mgba/.build-request` o `workflow_dispatch`).

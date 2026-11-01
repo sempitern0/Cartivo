@@ -179,9 +179,9 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 |---|---|---|---|
 | E-01 | Licencias y firmware | En curso | Expediente por build; decisión sobre GPL registrada |
 | E-02 | Contrato y runtime | Hecho (contrato, registros, protocolo genérico) | Ajustes de núcleo por schema; cadencia por núcleo (hoy 60 Hz fijos) y sincronía A/V; framebuffer variable; carga diferida por núcleo; `EmulatorSession` (RAF, Worker, audio) fuera de `Player` si las pruebas lo justifican |
-| E-03 | PWA y despliegue | Parcial | Instalación verificada en plataformas y dominio HTTPS con cabeceras |
+| E-03 | PWA y despliegue | Parcial | **Precache selectivo de núcleos** (shell crítico aparte; núcleos instalados al elegirlos) antes de integrar núcleos pesados; instalación verificada en plataformas y dominio HTTPS con cabeceras |
 | E-04 | Persistencia | Parcial (SRAM + Partidas; 100 ciclos en E2E) | Exportar Partidas; OPFS para ROMs; cuotas y formatos de copia versionados por sistema |
-| E-05 | Entrada y foco | Parcial (`InputCapture` para el juego) | Acciones por sistema (L/R, X/Y, C) y P1–P4 con perfiles migrados; separar vista y escaneo en `ControlsPanel`; UI completa con mando; mando físico certificado |
+| E-05 | Entrada y foco | Parcial (`InputCapture`; diez acciones con L/R) | **Descriptor de entrada por sistema** (acciones, nombres, dibujo y asignaciones por defecto) antes de SNES (X/Y) y Mega Drive (C); P1–P4 con perfiles migrados; separar vista y escaneo en `ControlsPanel`; UI completa con mando; mando físico certificado |
 | E-06 | NES | Experimental | QA física y mappers ampliados con pruebas |
 | E-07 | GB/GBC/GBA | Experimental: SameBoy (GB/GBC, ADR-010) y mGBA (GBA, ADR-011) | QA física; RTC y sensores de GBA; paletas DMG opcionales |
 | E-08 | SNES, SMS, Mega Drive | Pendiente | Gate de licencia y rendimiento |
