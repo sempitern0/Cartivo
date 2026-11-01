@@ -13,6 +13,10 @@ export class Core {
      */
     frames(count: number): void;
     /**
+     * Restores a snapshot from `save_state`. Rejects states of another cart.
+     */
+    load_state(state: Uint8Array | number[]): void;
+    /**
      * Loads an iNES image. Cartivo validates the header before calling this.
      */
     constructor(rom: Uint8Array | number[], sample_rate: number);
@@ -24,6 +28,11 @@ export class Core {
      * Power-cycles the console, keeping the cartridge and its battery RAM.
      */
     reset(): void;
+    /**
+     * Full console snapshot (TetaNES state format: header + compression).
+     * Tied to this core and its version; Cartivo labels and stores it.
+     */
+    save_state(): Uint8Array;
     /**
      * Sets player 1 buttons from a bit mask in `BUTTONS` order.
      */
@@ -50,9 +59,11 @@ export interface InitOutput {
     readonly core_audio: (a: number, b: number) => void;
     readonly core_battery: (a: number) => number;
     readonly core_frames: (a: number, b: number, c: number) => void;
+    readonly core_load_state: (a: number, b: number, c: number, d: number) => void;
     readonly core_new: (a: number, b: number, c: number, d: number) => void;
     readonly core_pixels: (a: number, b: number) => void;
     readonly core_reset: (a: number) => void;
+    readonly core_save_state: (a: number, b: number) => void;
     readonly core_set_input: (a: number, b: number) => void;
     readonly core_set_sram: (a: number, b: number, c: number) => void;
     readonly core_sram: (a: number, b: number) => void;

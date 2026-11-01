@@ -54,6 +54,25 @@ export class Core {
         }
     }
     /**
+     * Restores a snapshot from `save_state`. Rejects states of another cart.
+     * @param {Uint8Array | number[]} state
+     */
+    load_state(state) {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            const ptr0 = passArray8ToWasm0(state, wasm.__wbindgen_export);
+            const len0 = WASM_VECTOR_LEN;
+            wasm.core_load_state(retptr, this.__wbg_ptr, ptr0, len0);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            if (r1) {
+                throw takeFromExternrefTable0(r0);
+            }
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
+    }
+    /**
      * Loads an iNES image. Cartivo validates the header before calling this.
      * @param {Uint8Array | number[]} rom
      * @param {number} sample_rate
@@ -100,6 +119,29 @@ export class Core {
      */
     reset() {
         wasm.core_reset(this.__wbg_ptr);
+    }
+    /**
+     * Full console snapshot (TetaNES state format: header + compression).
+     * Tied to this core and its version; Cartivo labels and stores it.
+     * @returns {Uint8Array}
+     */
+    save_state() {
+        try {
+            const retptr = wasm.__wbindgen_add_to_stack_pointer(-16) >>> 0;
+            wasm.core_save_state(retptr, this.__wbg_ptr);
+            var r0 = getDataViewMemory0().getInt32(retptr + 4 * 0, true);
+            var r1 = getDataViewMemory0().getInt32(retptr + 4 * 1, true);
+            var r2 = getDataViewMemory0().getInt32(retptr + 4 * 2, true);
+            var r3 = getDataViewMemory0().getInt32(retptr + 4 * 3, true);
+            if (r3) {
+                throw takeFromExternrefTable0(r2);
+            }
+            var v1 = getArrayU8FromWasm0(r0, r1).slice();
+            wasm.__wbindgen_export3(r0, r1 * 1, 1);
+            return v1;
+        } finally {
+            wasm.__wbindgen_add_to_stack_pointer(16);
+        }
     }
     /**
      * Sets player 1 buttons from a bit mask in `BUTTONS` order.

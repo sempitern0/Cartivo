@@ -26,19 +26,19 @@
   "files": [
     {
       "path": "dist/tetanes.d.ts",
-      "sha256": "b6821e57831bea95d936d93f6f7e9ae193d6dd962fb7d66b64d8cbabcfaf6a43"
+      "sha256": "118f04a91bb48d063292d3b07b60889c470c08717228aa7d0b269339f7b48f0d"
     },
     {
       "path": "dist/tetanes.js",
-      "sha256": "4faf95e12b10e712e077df40fb2270cd998b38d06b08cc6288b7cee4d282f0ba"
+      "sha256": "6095bf886bdf1de879853c22aff9dd6e2adcf5881f7a45e86c423fcbb5c54469"
     },
     {
       "path": "dist/tetanes_bg.wasm",
-      "sha256": "c61f83e51186908a022feb26bdd94b86907255ddf20ae6b1bb2ca73a42edf6af"
+      "sha256": "f681fa5d47762996824e8c19b6a8094437704e6c055147ea9c4f81f0882b4322"
     },
     {
       "path": "dist/tetanes_bg.wasm.d.ts",
-      "sha256": "39c8cd9f5992e89cfb8b499b43abbe62542fc2683c888b8379b51c4791fd854f"
+      "sha256": "cdfdc53abf3884205a54cb59805684e70190566a739f86d3c09cd0f3e7a6d65f"
     }
   ]
 }
