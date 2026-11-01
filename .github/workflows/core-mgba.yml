@@ -1,0 +1,88 @@
+name: Core mGBA
+# EXPENSIVE: builds the mGBA (Game Boy Advance) WebAssembly core with
+# Emscripten. Normal CI only checks the committed artefacts (verify:core).
+# Runs exclusively on deliberate request: a commit that changes
+# cores/mgba/.build-request, or workflow_dispatch once this file is on
+# main. Never rebuild just because application code or a PR changed.
+on:
+  push:
+    paths:
+      - "cores/mgba/.build-request"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "EXPLICIT ONLY: build and commit artefacts, or rebuild once to verify reproducibility"
+        default: build
+        type: choice
+        options: [build, verify]
+permissions:
+  contents: read
+concurrency:
+  group: core-mgba-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'build' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Read pinned emsdk
+        id: pins
+        run: |
+          echo "version=$(node -p "require('./cores/mgba/toolchain.json').emsdk.version")" >> "$GITHUB_OUTPUT"
+          echo "commit=$(node -p "require('./cores/mgba/toolchain.json').emsdk.commit")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/emsdk
+          key: emsdk-${{ steps.pins.outputs.version }}-${{ steps.pins.outputs.commit }}
+      - name: Emscripten (pinned)
+        env:
+          VERSION: ${{ steps.pins.outputs.version }}
+          COMMIT: ${{ steps.pins.outputs.commit }}
+        run: |
+          if [ ! -d ~/emsdk/.git ]; then
+            git clone https://github.com/emscripten-core/emsdk ~/emsdk
+          fi
+          git -C ~/emsdk fetch -q --depth 1 origin "$COMMIT"
+          git -C ~/emsdk -c advice.detachedHead=false checkout -q "$COMMIT"
+          ~/emsdk/emsdk install "$VERSION"
+          ~/emsdk/emsdk activate "$VERSION"
+      - name: Licence and source gate (CORE-LEGAL-01)
+        run: |
+          # Upstream licence must still be MPL-2.0 at the pinned commit.
+          node -e '
+            const p = require("./cores/mgba/toolchain.json").mgba;
+            if (p.spdx !== "MPL-2.0") throw Error("mGBA spdx changed");'
+      - name: Build
+        run: |
+          source ~/emsdk/emsdk_env.sh
+          node tools/build-mgba.mjs ${{ env.MODE == 'verify' && '--verify' || '' }}
+          if [ "$MODE" = build ]; then
+            # Committed notices must match the pinned upstream licences.
+            M=cores/mgba/build/mgba
+            cmp $M/LICENSE apps/web/public/licenses/mgba-MPL-2.0.txt
+            cmp $M/src/third-party/blip_buf/license.txt apps/web/public/licenses/blip_buf-LGPL-2.1.txt
+            cmp $M/src/third-party/inih/LICENSE.txt apps/web/public/licenses/inih-BSD-3-Clause.txt
+            node tools/verify-mgba.mjs
+          fi
+      - name: Commit artefacts
+        if: env.MODE == 'build'
+        run: |
+          git config user.name "cartivo-core-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cores/mgba/dist cores/mgba/manifest.json cores/mgba/sbom.json
+          if git diff --cached --quiet; then echo "Artefacts unchanged"; exit 0; fi
+          HASH=$(sha256sum cores/mgba/dist/mgba.wasm | cut -c1-12)
+          git commit -m "chore(core): build mGBA WASM ${HASH}"
+          git push
+          # GITHUB_TOKEN pushes do not start other workflows; the next normal
+          # push runs Foundation CI. No automatic reproducibility rebuild.

@@ -29,3 +29,7 @@ Se añade perfil local versionado de teclado con las ocho acciones, captura por 
 ## Revisión: utilidad del jugador
 
 El panel de entrada pasa a `ControlsPanel.svelte` y a una pantalla propia `#controles`, accesible antes de jugar. El laboratorio plegable conserva únicamente diagnóstico técnico. El panel se monta al entrar y se desmonta al salir; navegación y foco pertenecen al shell, normalización a `packages/input`. No añadir un router externo para dos destinos locales. La integración durante una partida requiere pausa/neutralización del runtime cuando exista el núcleo.
+
+## Revisión: L y R (2026-11-01, H2-GBA)
+
+Las acciones pasan a ser diez: se añaden `l` y `r` para Game Boy Advance, con I/O en teclado y LB/RB (botones estándar 4 y 5) en mando. Es una lista común: cada adaptador mapea solo las que existen en su consola, así que NES y Game Boy las ignoran. No se crean perfiles por sistema mientras no haya consolas con botones incompatibles. Los perfiles guardados sin L/R se migran sin perder asignaciones: se usa la tecla o el botón por defecto si está libre, y si no, el primero libre. Si un mando no tiene botones libres, su perfil manual pide asignarse de nuevo.

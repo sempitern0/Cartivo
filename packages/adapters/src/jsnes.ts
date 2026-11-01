@@ -1,10 +1,7 @@
 import { NES, Controller } from "jsnes";
-import {
-  actions,
-  type Action,
-  type InputState,
-} from "../../input/src/nes-input.ts";
-const buttons: Record<Action, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7> = {
+import type { Action, InputState } from "../../input/src/nes-input.ts";
+/** NES pad only: L/R (Game Boy Advance) have no NES button and are ignored. */
+const buttons: Partial<Record<Action, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>> = {
   a: Controller.BUTTON_A,
   b: Controller.BUTTON_B,
   select: Controller.BUTTON_SELECT,
@@ -51,8 +48,8 @@ export class NesAdapter {
     for (let i = 0; i < 8192; i++) memory[0x6000 + i] = save?.[i] ?? 0;
   }
   input(state: InputState) {
-    for (const action of actions)
-      this.core[state[action] ? "buttonDown" : "buttonUp"](1, buttons[action]);
+    for (const [action, button] of Object.entries(buttons))
+      this.core[state[action as Action] ? "buttonDown" : "buttonUp"](1, button);
   }
   advance(count: number) {
     if (!Number.isInteger(count) || count < 1 || count > 3)

@@ -27,6 +27,17 @@ Emscripten 6.0.12 system libraries (MIT OR NCSA; musl MIT; compiler-rt
 Apache-2.0 WITH LLVM-exception; dlmalloc CC0-1.0): cores/sameboy/sbom.json.
 No Nintendo boot ROM, BIOS or game is distributed.
 
+mGBA 0.10.5 (Game Boy Advance only) — Copyright (c) 2013-2022 Jeffrey Pfau;
+Mozilla Public License 2.0: mgba-MPL-2.0.txt (adjacent file). Source code:
+https://github.com/mgba-emu/mgba/tree/26b7884bc25a5933960f3cdcd98bac1ae14d42e2
+Unmodified files listed in cores/mgba/sources.txt, with mGBA's own HLE BIOS,
+compiled to standalone WebAssembly by Cartivo's CI (cores/mgba). It includes
+blip_buf 1.1.0 — Copyright (C) 2003-2009 Shay Green; GNU LGPL 2.1 or later:
+blip_buf-LGPL-2.1.txt; inih — Copyright (c) 2009 Ben Hoyt; BSD 3-Clause:
+inih-BSD-3-Clause.txt; and public-domain MurmurHash3. The reproducible build
+recipe (tools/build-mgba.mjs) allows relinking. No Nintendo BIOS or game is
+distributed.
+
 Svelte 5.57.3 — MIT. Full copyright and license: svelte-MIT.txt.
 
 Cartivo's original code: PolyForm Noncommercial 1.0.0. That restriction is not

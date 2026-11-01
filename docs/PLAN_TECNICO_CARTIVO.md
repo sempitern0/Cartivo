@@ -25,6 +25,7 @@ El usuario abre una URL o la app instalada, **elige consola, elige juego y juega
 | PWA | Manifest, iconos originales, SW generado en build (`tools/pwa-plugin.mjs`), offline, actualización que espera a no tener juego activo, «Abrir con» `.nes`, arrastrar y soltar | QA de instalación en Android/iOS y despliegue HTTPS (Cloudflare Worker, decidido por el titular) |
 | NES | **TetaNES 0.17.0 en WebAssembly** por defecto (ADR-008); JSNES 2.1.0 como alternativa (ADR-007). iNES NTSC, mappers 0–4 | QA física con mando y audio; Firefox/Safari; ampliar mappers con pruebas |
 | Game Boy / Color | **SameBoy 1.0.4 en WebAssembly** (ADR-010), dos tarjetas; hardware DMG o CGB según la cabecera; sin mapper, MBC1/2/3/5; SRAM por cartucho, Partidas y ritmo de 59,73 Hz | QA con juegos propios, mando y audio reales; paletas DMG opcionales |
+| Game Boy Advance | **mGBA 0.10.5 en WebAssembly** (ADR-011), BIOS HLE; SRAM/Flash/EEPROM en búfer fijo de 128 KB; botones L/R comunes (I/O, LB/RB) | QA con juegos propios; RTC y sensores; mando con LB/RB |
 | Entrada | Teclado (WASD/flechas, L/K/Q/Enter) y Gamepad API con perfiles, remapeo, zona muerta, neutralización al perder foco | Mando físico certificado; P2 |
 | Partidas | «Partidas» para cualquier juego: instantáneas en 3 ranuras + «Al salir», «Continuar donde lo dejaste», F5/F9 (ADR-009). SRAM de batería con dos generaciones, Web Lock, export/import, compartida entre núcleos. E2E de 100 ciclos alternando núcleos y de estados dañados o de otra versión | Exportar instantáneas |
 | Calidad | CI: verify:core, lint, svelte-check, tests unitarios (Node), build, E2E Playwright en dev y en build de producción, capturas de UI. Reproductor dividido (`PlayerToolbar`, `GraphicsPanel`, `SavePanel`, `InputCapture`) | Matriz de navegadores real ([H1-QA](compatibility/H1-QA.md)); presupuestos de rendimiento medidos |
@@ -39,7 +40,7 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` pued
 |---|---|---|---|---|
 | NES | V1 estable | TetaNES 0.17.0 (WASM); JSNES 2.1.0 comparador | **accepted** | Ampliar mappers solo con fixtures y expediente; FDS excluido |
 | Game Boy / Color | V1 estable | **SameBoy 1.0.4** (Expat, boot ROMs libres) | **accepted** | Integrado en H2-GB (ADR-010); mGBA queda para GBA |
-| Game Boy Advance | V1 estable | mGBA (BIOS HLE integrada) | candidate | Flash/EEPROM/SRAM/RTC; sin BIOS externa |
+| Game Boy Advance | V1 estable | **mGBA 0.10.5** (MPL-2.0, BIOS HLE) | **accepted (uso privado)** | Integrado en H2-GBA (ADR-011); blip_buf LGPL-2.1+ enlazado estáticamente |
 | SNES | V1 estable | ares (ISC) o Snes9x (licencia no comercial propia) | candidate | Chips especiales con firmware por título: excluirlos si lo requieren; medir rendimiento de ares en WASM |
 | Master System / Mega Drive | V1 estable | Genesis Plus GX (condiciones no comerciales) u otra alternativa | candidate | Riesgo de licencia; Mega-CD fuera de V1 |
 | N64 | V1 beta | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado) | Backend gráfico web, Controller Pak, instantáneas |
@@ -159,7 +160,7 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 | H0-NES | **Hecho** | TetaNES WASM aceptado y reproducible; JSNES como comparador |
 | H1 — Primera ruta jugable | **En curso (PR #2)** | Falta: QA física (mando, audio), Firefox/Safari, 100 ciclos de partida automatizados, instalación en móvil |
 | H1.5 — Sin fricción | Siguiente | Continuar último juego, biblioteca local mínima, UI con mando, despliegue HTTPS |
-| H2 — 8/16 bits | En curso | GB/GBC hecho (experimental, ADR-010) → GBA (mGBA + botones L/R) → SNES → SMS/Mega Drive, un sistema por incremento con su gate |
+| H2 — 8/16 bits | En curso | GB/GBC y GBA hechos (experimental, ADR-010/011) → SNES → SMS/Mega Drive, un sistema por incremento con su gate |
 | H3 — Biblioteca y experiencia | Pendiente | Identidad regional, carátulas con licencia y fallback, ajustes por juego, inglés |
 | H4 — 3D | Pendiente | N64, PS1, PSP con núcleos GPL admitidos por uso privado; rendimiento web por medir |
 | H5 — Publicación V1 | Pendiente | Sistemas aceptados, despliegue real, rollback, avisos completos |
@@ -169,7 +170,7 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 
 1. **Cerrar H1:** exportar/importar Partidas; E2E en Firefox además de Chromium; completar la QA física de [H1-QA](compatibility/H1-QA.md).
 2. **Continuar + biblioteca mínima** (mayor reducción de fricción): ROM en OPFS bajo consentimiento, tarjeta «Continuar» en inicio, borrado selectivo que nunca toque partidas.
-3. **GBA con mGBA:** gate propio, port WASM con la plantilla Emscripten de SameBoy (`ADDING_A_SYSTEM.md`) y, antes, acciones por sistema en la entrada (L/R). GB/GBC ya está integrado con SameBoy (H2-GB).
+3. **SNES:** gate (Snes9x o ares), botones X/Y (la entrada ya tiene L/R) y la plantilla Emscripten con `wasm-host.ts`. GB, GBC y GBA ya están integrados (H2).
 4. **Despliegue en Cloudflare** con cabeceras reales y smoke test offline del dominio.
 
 ## 15. Backlog
@@ -178,11 +179,11 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 |---|---|---|---|
 | E-01 | Licencias y firmware | En curso | Expediente por build; decisión sobre GPL registrada |
 | E-02 | Contrato y runtime | Hecho (contrato, registros, protocolo genérico) | Ajustes de núcleo por schema; cadencia por núcleo (hoy 60 Hz fijos) y sincronía A/V; framebuffer variable; carga diferida por núcleo; `EmulatorSession` (RAF, Worker, audio) fuera de `Player` si las pruebas lo justifican |
-| E-03 | PWA y despliegue | Parcial | Instalación verificada en plataformas y dominio HTTPS con cabeceras |
+| E-03 | PWA y despliegue | Parcial | **Precache selectivo de núcleos** (shell crítico aparte; núcleos instalados al elegirlos) antes de integrar núcleos pesados; instalación verificada en plataformas y dominio HTTPS con cabeceras |
 | E-04 | Persistencia | Parcial (SRAM + Partidas; 100 ciclos en E2E) | Exportar Partidas; OPFS para ROMs; cuotas y formatos de copia versionados por sistema |
-| E-05 | Entrada y foco | Parcial (`InputCapture` para el juego) | Acciones por sistema (L/R, X/Y, C) y P1–P4 con perfiles migrados; separar vista y escaneo en `ControlsPanel`; UI completa con mando; mando físico certificado |
+| E-05 | Entrada y foco | Parcial (`InputCapture`; diez acciones con L/R) | **Descriptor de entrada por sistema** (acciones, nombres, dibujo y asignaciones por defecto) antes de SNES (X/Y) y Mega Drive (C); P1–P4 con perfiles migrados; separar vista y escaneo en `ControlsPanel`; UI completa con mando; mando físico certificado |
 | E-06 | NES | Experimental | QA física y mappers ampliados con pruebas |
-| E-07 | GB/GBC/GBA | GB/GBC experimental (SameBoy, ADR-010) | GB/GBC: QA física; GBA: gate mGBA, entrada L/R y build reproducible |
+| E-07 | GB/GBC/GBA | Experimental: SameBoy (GB/GBC, ADR-010) y mGBA (GBA, ADR-011) | QA física; RTC y sensores de GBA; paletas DMG opcionales |
 | E-08 | SNES, SMS, Mega Drive | Pendiente | Gate de licencia y rendimiento |
 | E-09 | Biblioteca, identidad y carátulas | Pendiente | Sin falsos positivos, corrección manual, fallback |
 | E-10 | Perfiles de pantalla y ajustes por juego | Parcial (pantalla NES) | Schema, precedencia y restablecer |

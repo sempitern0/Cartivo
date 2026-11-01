@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { initSync } from "../cores/tetanes/dist/tetanes.js";
 import { coreModules } from "../packages/adapters/src/registry.ts";
 import { provideSameBoyBinary } from "../packages/adapters/src/sameboy.ts";
+import { provideMgbaBinary } from "../packages/adapters/src/mgba.ts";
 import { neutral } from "../packages/input/src/nes-input.ts";
 
 // Node cannot fetch file URLs: instantiate wasm cores up front so their
@@ -18,6 +19,9 @@ initSync({
 });
 provideSameBoyBinary(
   readFileSync(new URL("../cores/sameboy/dist/sameboy.wasm", import.meta.url)),
+);
+provideMgbaBinary(
+  readFileSync(new URL("../cores/mgba/dist/mgba.wasm", import.meta.url)),
 );
 
 const hash = (b: Uint8ClampedArray) =>

@@ -8,6 +8,8 @@ import { TetanesAdapter } from "./tetanes.ts";
 import { controlDemo } from "../../fixtures/src/control-demo.ts";
 import { gbControlDemo } from "../../fixtures/src/gb-control-demo.ts";
 import { MAX_GB_ROM_BYTES, validateGbRom } from "./gb-header.ts";
+import { MAX_GBA_ROM_BYTES, validateGbaRom } from "./gba-header.ts";
+import { gbaControlDemo } from "../../fixtures/src/gba-control-demo.ts";
 
 // SameBoy loads on demand: NES players never download its glue or wasm.
 type SameBoy = typeof import("./sameboy.ts");
@@ -24,6 +26,23 @@ function prepareSameBoy() {
       throw error;
     });
   return sameboyReady;
+}
+
+// mGBA (Game Boy Advance) loads on demand too.
+type Mgba = typeof import("./mgba.ts");
+let mgba: Mgba | undefined;
+let mgbaReady: Promise<void> | undefined;
+function prepareMgba() {
+  mgbaReady ??= import("./mgba.ts")
+    .then(async (lib) => {
+      await lib.prepareMgba();
+      mgba = lib;
+    })
+    .catch((error: unknown) => {
+      mgbaReady = undefined;
+      throw error;
+    });
+  return mgbaReady;
 }
 
 /** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
@@ -82,6 +101,20 @@ export const coreModules: readonly CoreModule[] = [
   },
   sameboyModule("gb", false),
   sameboyModule("gbc", true),
+  {
+    system: "gba",
+    id: "mgba",
+    version: "0.10.5",
+    video: { width: 240, height: 160 },
+    maxRomBytes: MAX_GBA_ROM_BYTES,
+    validate: validateGbaRom,
+    demo: gbaControlDemo,
+    prepare: prepareMgba,
+    create(rom, save) {
+      if (!mgba) throw Error("El núcleo mGBA no está preparado.");
+      return new mgba.MgbaAdapter(rom, save);
+    },
+  },
 ];
 
 export function coreModule(system: string, id: string): CoreModule {

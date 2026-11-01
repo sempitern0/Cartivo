@@ -10,7 +10,8 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 | PWA | Instalable y offline; QA en móviles pendiente | [H1-C-PWA](H1-C-PWA.md) |
 | QA de la base NES | Automático en CI; manual parcial | [H1-QA](H1-QA.md) |
 | GB y GBC · SameBoy (WASM) | Experimental: sin mapper, MBC1/2/3/5 | [H2-GB](H2-GB.md) |
-| SNES, GBA, SMS, Mega Drive | Pendiente (candidatos en el plan técnico) | — |
+| GBA · mGBA (WASM) | Experimental: SRAM, Flash y EEPROM; BIOS HLE | [H2-GBA](H2-GBA.md) |
+| SNES, SMS, Mega Drive | Pendiente (candidatos en el plan técnico) | — |
 | N64, PS1, PSP | Pendiente; riesgo de licencia GPL | — |
 | PS2 | Laboratorio pendiente | — |
 

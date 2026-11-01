@@ -29,9 +29,10 @@ export function selectPad(
 }
 export function readKeyboard(): KeyboardProfile {
   try {
-    const saved = parseKeyboard(
-      JSON.parse(localStorage.getItem("cartivo:keyboard:v1") ?? "null"),
+    const stored = JSON.parse(
+      localStorage.getItem("cartivo:keyboard:v1") ?? "null",
     );
+    const saved = parseKeyboard(stored);
     if (!saved) return { ...defaultKeyboard };
     // Upgrade previous arrow-based defaults individually, preserving manual
     // direction remaps and all unrelated actions.
@@ -56,7 +57,8 @@ export function readKeyboard(): KeyboardProfile {
       migrated.b = "KeyK";
     }
     if (parseKeyboard(migrated)) {
-      if (JSON.stringify(migrated) !== JSON.stringify(saved))
+      // Also persists L/R filled in for profiles saved before they existed.
+      if (JSON.stringify(migrated) !== JSON.stringify(stored))
         localStorage.setItem("cartivo:keyboard:v1", JSON.stringify(migrated));
       return migrated;
     }

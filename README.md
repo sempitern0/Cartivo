@@ -6,10 +6,10 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 · Game Boy y Game Boy Color (experimental): sin mapper, MBC1/2/3/5 |
-| **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly |
+| **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 · Game Boy y Game Boy Color (experimental): sin mapper, MBC1/2/3/5 · Game Boy Advance (experimental): SRAM, Flash y EEPROM |
+| **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly · GBA: mGBA 0.10.5 en WebAssembly (BIOS HLE) |
 | **App** | Instalable como PWA y funciona sin conexión (build de producción) |
-| **Controles** | Teclado y mando (Gamepad API) con remapeo |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA (I/O, LB/RB) |
 | **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9) y conserva la memoria de batería del cartucho |
 | **Pendiente** | QA con mando físico, Firefox/Safari, móviles, continuar último juego, más consolas |
 
@@ -46,7 +46,7 @@ Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligada
 | `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en dev / en la build de producción |
 | `pnpm verify:core` | Integridad de JSNES y TetaNES contra sus manifiestos |
 
-Los WASM de TetaNES y SameBoy están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml` o `core-sameboy.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md) y [ADR-010](docs/adr/010-gb-sameboy.md)). La CI omite los cambios que solo tocan documentación.
+Los WASM de TetaNES, SameBoy y mGBA están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml` o `core-mgba.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md) y [ADR-011](docs/adr/011-gba-mgba.md)). La CI omite los cambios que solo tocan documentación.
 
 ## Jugar
 
@@ -62,7 +62,7 @@ Los WASM de TetaNES y SameBoy están versionados en `cores/*/dist`: la CI normal
 ```text
 apps/web/          PWA (Svelte 5 + Vite): UI por componentes, Worker de emulación, AudioWorklet, service worker
 packages/          adapters (contrato y registro de núcleos), runtime (sistemas, protocolo), input, media, storage, fixtures
-cores/             jsnes (manifiesto), tetanes (envoltorio Rust) y sameboy (envoltorio C); WASM generado por CI
+cores/             jsnes (manifiesto), tetanes (envoltorio Rust) y sameboy y mgba (envoltorios C); WASM generado por CI
 tools/             verificación de núcleos, build de TetaNES, generador del service worker
 tests/             unitarios (node:test) y e2e (Playwright)
 docs/              plan técnico, diseño, ADRs, compatibilidad e investigación

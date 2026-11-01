@@ -101,3 +101,24 @@ test("previews, slots and protocol validation", () => {
     parseNesRequest({ ...base, command: "state-delete", slot: "x" }),
   );
 });
+
+test("protocol v1 input without L/R is still accepted (released)", () => {
+  const base = { v: 1, session: "s", id: 1, command: "advance", count: 1 };
+  const eight = {
+    up: false,
+    down: false,
+    left: false,
+    right: true,
+    a: false,
+    b: false,
+    select: false,
+    start: false,
+  };
+  const request = parseNesRequest({ ...base, input: { ...eight } });
+  assert.equal(request.input?.l, false);
+  assert.equal(request.input?.r, false);
+  assert.equal(request.input?.right, true);
+  assert.throws(() => parseNesRequest({ ...base, input: { ...eight, l: 1 } }));
+  const { right: _right, ...seven } = eight;
+  assert.throws(() => parseNesRequest({ ...base, input: seven }));
+});

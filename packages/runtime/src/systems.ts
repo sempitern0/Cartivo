@@ -2,6 +2,7 @@
 // Worker side resolves cores through packages/adapters/src/registry.ts.
 // Adding a console: docs/ADDING_A_SYSTEM.md.
 import {
+  GBA_VIDEO,
   GB_VIDEO,
   NES_VIDEO,
   type VideoDescriptor,
@@ -83,6 +84,35 @@ export const systems: readonly SystemInfo[] = [
     longName: "Nintendo Game Boy Color",
     extensions: [".gbc"],
   }),
+  {
+    id: "gba",
+    name: "Game Boy Advance",
+    longName: "Nintendo Game Boy Advance",
+    extensions: [".gba"],
+    video: GBA_VIDEO,
+    // 16 777 216 Hz clock, 280 896 cycles per frame ≈ 59.73 fps.
+    frameRate: 16777216 / 280896,
+    cores: [
+      {
+        id: "mgba",
+        label: "mGBA · WebAssembly",
+        version: "0.10.5",
+        licenses: [
+          { name: "Licencia mGBA", href: "/licenses/mgba-MPL-2.0.txt" },
+          {
+            name: "Licencia blip_buf",
+            href: "/licenses/blip_buf-LGPL-2.1.txt",
+          },
+          { name: "Licencia inih", href: "/licenses/inih-BSD-3-Clause.txt" },
+        ],
+      },
+    ],
+    defaultCore: "mgba",
+    formatNote:
+      "cartuchos de Game Boy Advance con guardado SRAM, Flash o EEPROM, con la BIOS integrada de mGBA",
+    demo: true,
+    available: true,
+  },
 ];
 
 /** GB and GBC share SameBoy; the cartridge header picks the hardware. */

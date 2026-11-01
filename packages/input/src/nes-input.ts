@@ -1,4 +1,7 @@
-/** Cartivo input: local, normalized NES P1 controls. No dependency on a core ABI. */
+/** Cartivo input: local, normalized P1 controls. No dependency on a core ABI.
+ * NES and Game Boy use the first eight; L and R exist for Game Boy Advance
+ * and are ignored by cores that lack them (each adapter maps its own keys).
+ */
 export const actions = [
   "up",
   "down",
@@ -8,8 +11,12 @@ export const actions = [
   "b",
   "select",
   "start",
+  "l",
+  "r",
 ] as const;
 export type Action = (typeof actions)[number];
+/** Added after profiles were first saved: older profiles may lack them. */
+const later: readonly Action[] = ["l", "r"];
 export type InputState = Record<Action, boolean>;
 export type Binding =
   | { kind: "button"; index: number }
@@ -34,6 +41,8 @@ export const keys: Record<string, Action> = {
   KeyK: "b",
   KeyQ: "select",
   Enter: "start",
+  KeyI: "l",
+  KeyO: "r",
 };
 export const standard: Profile = {
   up: { kind: "button", index: 12 },
@@ -44,6 +53,8 @@ export const standard: Profile = {
   b: { kind: "button", index: 1 },
   select: { kind: "button", index: 8 },
   start: { kind: "button", index: 9 },
+  l: { kind: "button", index: 4 },
+  r: { kind: "button", index: 5 },
 };
 export function bindingPressed(
   pad: Pad,
@@ -110,6 +121,7 @@ export function parseProfile(value: unknown, pad: Pad): Profile | undefined {
   const result = {} as Profile;
   for (const action of actions) {
     const raw = source[action];
+    if (!raw && later.includes(action)) continue; // filled in below
     if (!raw || typeof raw !== "object") return;
     const b = raw as Record<string, unknown>;
     if (!Number.isInteger(b.index) || (b.index as number) < 0) return;
@@ -126,6 +138,18 @@ export function parseProfile(value: unknown, pad: Pad): Profile | undefined {
         direction: b.direction,
       };
     else return;
+  }
+  // Older profiles: give L/R the standard shoulders, or the first free button.
+  for (const action of later) {
+    if (result[action]) continue;
+    const used = Object.values(result);
+    const free = [standard[action].index, ...pad.buttons.keys()].find(
+      (index) =>
+        index < pad.buttons.length &&
+        !used.some((b) => sameBinding(b, { kind: "button", index })),
+    );
+    if (free === undefined) return;
+    result[action] = { kind: "button", index: free };
   }
   for (let i = 0; i < actions.length; i++)
     for (let j = i + 1; j < actions.length; j++)
@@ -151,6 +175,7 @@ export type KeyboardProfile = Record<Action, string>;
 export const defaultKeyboard = Object.fromEntries(
   Object.entries(keys).map(([code, action]) => [action, code]),
 ) as KeyboardProfile;
+const letters = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map((c) => `Key${c}`);
 export function allowedKey(code: string): boolean {
   return (
     code !== "KeyF" &&
@@ -164,8 +189,19 @@ export function parseKeyboard(value: unknown): KeyboardProfile | undefined {
   const result = {} as KeyboardProfile;
   for (const action of actions) {
     const code = (value as Record<string, unknown>)[action];
+    if (code === undefined && later.includes(action)) continue;
     if (typeof code !== "string" || !allowedKey(code)) return;
     result[action] = code;
+  }
+  // Older profiles: default L/R keys, or the first free letter.
+  for (const action of later) {
+    if (result[action]) continue;
+    const used = new Set(Object.values(result));
+    const free = [defaultKeyboard[action], ...letters].find(
+      (code) => !used.has(code) && code !== "KeyF",
+    );
+    if (!free) return;
+    result[action] = free;
   }
   return new Set(Object.values(result)).size === actions.length
     ? result

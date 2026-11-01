@@ -120,3 +120,24 @@
 - Contrato: el tamaño de la SRAM lo da cada núcleo (`saveBytes`) y el reproductor avanza al ritmo de cada sistema (`frameRate`; GB a 59,73 Hz).
 - SameBoy se carga solo al jugar a GB/GBC (`import()` en Workers ES); Gráficos oculta las opciones de proporción cuando el píxel es cuadrado.
 - Pruebas: conformidad de `gb`/`gbc`, cabecera, sistemas y E2E de demo, SRAM, F5/F9, soltar `.gbc` y archivo dañado.
+
+### H2-GBA: botones L y R
+
+- Acciones L y R para Game Boy Advance: I/O en teclado y LB/RB en mando estándar, con chips en Controles y hombros en el dibujo del mando; NES y Game Boy las ignoran.
+- Los perfiles de teclado y mando guardados antes de L/R se completan sin perder asignaciones.
+
+### H2-GBA: Game Boy Advance con mGBA
+
+- Tarjeta «Game Boy Advance» (`.gba`) con mGBA 0.10.5 en WebAssembly autónomo, BIOS HLE y arranque directo; L/R funcionan en el juego (ADR-011).
+- Gate CORE-LEGAL-01 de mGBA (MPL-2.0; blip_buf LGPL-2.1+, inih BSD-3-Clause): accepted para uso privado, con las obligaciones si se publicara.
+- Build solo bajo petición (`core-mgba.yml`, emsdk 6.0.12) con lista de fuentes versionada en lugar de CMake; `verify-mgba` en `verify:core`; avisos en `LICENSES.md` y `NOTICE.txt`.
+- Guardado SRAM, Flash o EEPROM en un búfer fijo de 128 KB (como libretro), así que `saveBytes` no cambia.
+- `wasm-host.ts`: carga, imports de sistema y `BridgeCore` comunes para SameBoy y mGBA.
+- Fixture original ARM (modo 3) y validación de cabecera GBA; conformidad de `gba/mgba` y E2E de demo, L/R en píxeles, SRAM, F5/F9, soltar `.gba` y archivo dañado.
+
+### Revisión previa al merge de H2 (GB, GBC y GBA)
+
+- Game Boy: pruebas de que la cabecera elige el hardware (DMG en grises, CGB en color) y de que el reloj de MBC3 se guarda con la SRAM y avanza mientras la app está cerrada.
+- GBA: variantes propias de la fixture con los protocolos reales de Flash y EEPROM; el juego relee su partida tras reabrir. Prueba sin chip de guardado y coste del búfer fijo medido.
+- `wasm-host.ts`: lista explícita de imports permitidos (un import desconocido falla en `prepare()` nombrándolo) y núcleo cerrado que rechaza llamadas.
+- Backlog: descriptor de entrada por sistema y precache selectivo de núcleos antes de SNES y de núcleos pesados.

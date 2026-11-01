@@ -6,6 +6,7 @@ import {
   parseProfile,
   pressedBindings,
   sameDevice,
+  parseKeyboard,
 } from "../packages/input/src/nes-input.ts";
 import type { Pad } from "../packages/input/src/nes-input.ts";
 const pad = (): Pad => ({
@@ -149,4 +150,55 @@ test("Select, Start and the legacy right Shift binding are normalized", async ()
   assert.equal(keyboardAction("KeyQ", legacy), "select");
   assert.equal(keyboardAction("KeyS", legacy), "down");
   assert.equal(keyboardAction("ArrowDown", legacy), "down");
+});
+
+test("L and R: I/O on the keyboard and LB/RB on a standard pad", () => {
+  const p = pad();
+  p.buttons[4].pressed = true;
+  assert.equal(sample(p, standard, new Set()).l, true);
+  assert.equal(sample(p, standard, new Set(["KeyO"])).r, true);
+  assert.equal(sample(undefined, undefined, new Set(["KeyI"])).l, true);
+});
+
+test("profiles saved before L/R existed keep every binding", () => {
+  // Keyboard: the eight original actions, one of them already on I.
+  const old = {
+    up: "KeyW",
+    down: "KeyS",
+    left: "KeyA",
+    right: "KeyD",
+    a: "KeyI",
+    b: "KeyK",
+    select: "KeyQ",
+    start: "Enter",
+  };
+  const keyboard = parseKeyboard(old);
+  assert.ok(keyboard);
+  assert.equal(keyboard.a, "KeyI");
+  assert.equal(keyboard.r, "KeyO");
+  assert.ok(keyboard.l !== "KeyI" && keyboard.l.startsWith("Key"));
+  // Gamepad: a manual profile that already uses buttons 4 and 5.
+  const p = pad();
+  const manual = {
+    up: { kind: "button", index: 12 },
+    down: { kind: "button", index: 13 },
+    left: { kind: "button", index: 14 },
+    right: { kind: "button", index: 15 },
+    a: { kind: "button", index: 4 },
+    b: { kind: "button", index: 5 },
+    select: { kind: "button", index: 8 },
+    start: { kind: "button", index: 9 },
+  };
+  const profile = parseProfile(manual, p);
+  assert.ok(profile);
+  assert.deepEqual(profile.a, { kind: "button", index: 4 });
+  assert.deepEqual(profile.l, { kind: "button", index: 0 });
+  assert.deepEqual(profile.r, { kind: "button", index: 1 });
+  // A pad without free buttons cannot get L/R: the profile is refused.
+  const tiny = { ...pad(), buttons: p.buttons.slice(0, 16) };
+  tiny.buttons = tiny.buttons.slice(0, 8);
+  const eight = Object.fromEntries(
+    Object.keys(manual).map((k, i) => [k, { kind: "button", index: i }]),
+  );
+  assert.equal(parseProfile(eight, tiny), undefined);
 });
