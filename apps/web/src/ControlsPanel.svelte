@@ -37,6 +37,8 @@
     b: "B",
     select: "Select",
     start: "Start",
+    l: "L",
+    r: "R",
   };
   let pads = $state<Pad[]>([]);
   let selected = $state(-1);
@@ -64,7 +66,7 @@
   let connection = $state("Buscando mando…");
   let advancedOpen = $state(false);
   const directions = ["up", "down", "left", "right"] as const;
-  const buttonsRow = ["a", "b", "start", "select"] as const;
+  const buttonsRow = ["a", "b", "start", "select", "l", "r"] as const;
   const padConnected = $derived(selected !== -1 && !!last);
   const keyboardStore = "cartivo:keyboard:v1";
   function saveKeyboard() {
@@ -166,7 +168,7 @@
   }
   function beginMapping() {
     if (!last) return;
-    pause("Asigna los ocho controles. Escape cancela.");
+    pause("Asigna los diez controles (L y R al final). Escape cancela.");
     draft = {};
     capture = actions[0];
     waitingRelease = true;
@@ -181,7 +183,7 @@
       profile = parsed;
       selectPad(last, profile, deadzone);
       pause(
-        "Perfil local aplicado. Comprueba los ocho controles antes de jugar.",
+        "Perfil local aplicado. Comprueba los controles antes de jugar.",
       );
     } catch {
       pause(
@@ -438,6 +440,8 @@
           <rect class:lit={inputState.right} x="86" y="68" width="24" height="22" rx="4" />
           <rect x="64" y="68" width="22" height="22" />
         </g>
+        <rect class="shoulder" class:lit={inputState.l} x="62" y="10" width="56" height="12" rx="6" />
+        <rect class="shoulder" class:lit={inputState.r} x="202" y="10" width="56" height="12" rx="6" />
         <rect class="mini" class:lit={inputState.select} x="130" y="74" width="26" height="10" rx="5" />
         <rect class="mini" class:lit={inputState.start} x="164" y="74" width="26" height="10" rx="5" />
         <circle class="face" class:lit={inputState.b} cx="232" cy="88" r="15" />
@@ -509,6 +513,7 @@
         ></button
       >{/each}
   </div>
+  <p class="hint">L y R solo los usa Game Boy Advance.</p>
   <div class="row-end">
     <button class="link" onclick={resetKeyboard}>Restablecer teclado</button>
   </div>
@@ -725,7 +730,8 @@
   .pad-art .dpad rect {
     fill: #11131b;
   }
-  .pad-art .mini {
+  .pad-art .mini,
+  .pad-art .shoulder {
     fill: #11131b;
   }
   .pad-art .face {

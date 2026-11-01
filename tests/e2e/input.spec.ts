@@ -45,6 +45,31 @@ test("keyboard scope, release and Tab escape", async ({ page }) => {
   await page.keyboard.up("KeyL");
   await expect(page.getByTestId("input-status")).toContainText("pausada");
 });
+test("L and R: I/O keys and LB/RB light up and can be remapped", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Activar prueba" }).click();
+  await page.keyboard.down("KeyI");
+  await expect(page.locator("[data-action=l]")).toHaveText("LPulsado");
+  await page.keyboard.up("KeyI");
+  await page.keyboard.down("KeyO");
+  await expect(page.locator("[data-action=r]")).toHaveText("RPulsado");
+  await page.keyboard.up("KeyO");
+  await page.getByLabel("Mando", { exact: true }).selectOption("0");
+  await page.getByRole("button", { name: "Activar prueba" }).click();
+  await page.evaluate(() => {
+    (window as any).testPad.buttons[5].pressed = true;
+  });
+  await expect(page.locator("[data-action=r]")).toHaveText("RPulsado");
+  await page.evaluate(() => {
+    (window as any).testPad.buttons[5].pressed = false;
+  });
+  await page.getByRole("button", { name: "Asignar tecla L", exact: true }).click();
+  await page.keyboard.press("KeyU");
+  await expect(
+    page.getByRole("button", { name: "Asignar tecla L", exact: true }),
+  ).toHaveText("L = U");
+});
 test("standard pad, disconnect and reused slot require reactivation", async ({
   page,
 }) => {
@@ -86,12 +111,13 @@ test("manual profile persists and requires explicit restore", async ({
   });
   await page.getByLabel("Mando", { exact: true }).selectOption("0");
   await page.getByRole("button", { name: "Asignar controles" }).click();
-  for (let index = 0; index < 8; index++) {
+  // Ten controls since L/R exist (Game Boy Advance).
+  for (let index = 0; index < 10; index++) {
     await expect(page.locator(".capture")).not.toContainText("Suelta");
     await page.evaluate((i) => {
       (window as any).testPad.buttons[i].pressed = true;
     }, index);
-    if (index < 7)
+    if (index < 9)
       await expect(page.locator(".capture")).toContainText("Suelta");
     else await expect(page.locator(".capture")).toHaveCount(0);
     await page.evaluate((i) => {
