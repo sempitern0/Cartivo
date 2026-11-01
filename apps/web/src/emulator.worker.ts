@@ -66,7 +66,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     // SRAM is keyed by ROM hash only, so a save moves between cores.
     use(module.create(rom));
     if (core!.battery) {
-      store = await SramStore.open(sramKey(system, hash), module.sramBytes);
+      store = await SramStore.open(sramKey(system, hash), core!.saveBytes);
       const saved = await store.load();
       if (saved) use(module.create(rom, saved));
     }
@@ -157,7 +157,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       b.format !== backupFormat(module.system) ||
       b.game !== hash ||
       !Array.isArray(b.bytes) ||
-      b.bytes.length !== module.sramBytes ||
+      b.bytes.length !== core.saveBytes ||
       b.bytes.some((v) => !Number.isInteger(v) || v < 0 || v > 255)
     )
       throw Error(

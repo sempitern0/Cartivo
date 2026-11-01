@@ -21,7 +21,7 @@ export class SramStore {
   private good: Generation | undefined;
   private release: () => void;
   recovered = false;
-  /** Battery RAM size for this cartridge (from the core module). */
+  /** Battery RAM size for this cartridge (`EmulatorCore.saveBytes`). */
   private size: number;
   private constructor(
     db: IDBDatabase,

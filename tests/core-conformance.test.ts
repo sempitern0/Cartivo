@@ -51,8 +51,9 @@ for (const module of coreModules) {
     assert.notEqual(hash(frame.pixels), before);
     assert.equal(core.lastFrame().length, width * height * 4);
 
-    // Battery RAM has the declared size.
-    assert.equal(core.save().length, module.sramBytes);
+    // Battery RAM has the size the core reports for this cartridge.
+    assert.ok(Number.isInteger(core.saveBytes) && core.saveBytes >= 0);
+    assert.equal(core.save().length, core.saveBytes);
 
     // Snapshots are deterministic and corrupt ones are rejected.
     const input = { ...neutral(), down: true };

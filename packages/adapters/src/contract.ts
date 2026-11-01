@@ -23,7 +23,12 @@ export interface EmulatorCore {
   input(state: InputState): void;
   /** Emulates 1–3 frames. */
   advance(count: number): Frame;
-  /** Battery RAM, exactly `CoreModule.sramBytes` long. */
+  /**
+   * Battery RAM size of this cartridge in the core's own save format (NES
+   * 8 KB; Game Boy 0–128 KB plus the clock). Fixed once the core exists.
+   */
+  readonly saveBytes: number;
+  /** Battery RAM, exactly `saveBytes` long. */
   save(): Uint8Array;
   /** Full console snapshot for «Partidas», tied to this core and version. */
   snapshot(): Uint8Array;
@@ -41,8 +46,6 @@ export interface CoreModule {
   /** Exact version: snapshots of another version are not loaded. */
   version: string;
   video: { width: number; height: number };
-  /** Battery RAM size used by SramStore and backups. */
-  sramBytes: number;
   maxRomBytes: number;
   /** Throws a user-readable error for unsupported files. */
   validate(rom: Uint8Array): { battery: boolean };

@@ -23,6 +23,8 @@ export class NesAdapter {
   private pixels = new Uint8ClampedArray(256 * 240 * 4);
   private audio: number[] = [];
   readonly battery: boolean;
+  /** NES battery RAM ($6000–$7FFF), as shared with TetaNES. */
+  readonly saveBytes = 8192;
   frames = 0;
   constructor(rom: Uint8Array, save?: Uint8Array) {
     this.battery = validateRom(rom).battery;
