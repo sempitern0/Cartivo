@@ -101,8 +101,11 @@ test("answering «No» keeps nothing and is not asked again", async ({
     return names;
   });
   expect(roms).toEqual([]);
+  // Reopening finds the exit snapshot (offer) but never asks again.
   await open(page);
-  await running(page);
+  await expect(
+    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Sí, recordar" })).toHaveCount(
     0,
   );
