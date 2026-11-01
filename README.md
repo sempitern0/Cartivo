@@ -60,7 +60,7 @@ El núcleo TetaNES se compila **solo en CI** (`.github/workflows/core-tetanes.ym
 ## Estructura
 
 ```text
-apps/web/          PWA (Svelte 5 + Vite): UI, worker NES, AudioWorklet, service worker
+apps/web/          PWA (Svelte 5 + Vite): UI por componentes, Worker de emulación, AudioWorklet, service worker
 packages/          adapters (contrato y registro de núcleos), runtime (sistemas, protocolo), input, media, storage, fixtures
 cores/             jsnes (manifiesto) y tetanes (envoltorio Rust + WASM generado por CI)
 tools/             verificación de núcleos, build de TetaNES, generador del service worker

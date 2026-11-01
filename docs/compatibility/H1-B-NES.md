@@ -22,18 +22,18 @@ Estado: **experimental.** NES funciona de extremo a extremo (archivo local o dem
 
 ## Ruta común
 
-- Worker por sesión, protocolo NES v1 validado, una petición activa, timeout de 10 s; vídeo 256×240 RGBA y audio transferidos.
+- Worker por sesión, protocolo v1 validado, una petición activa, timeout de 10 s; vídeo RGBA del tamaño del sistema (NES 256×240) y audio transferidos.
 - AudioWorklet mono a 48 kHz con cola de 250 ms, activado tras gesto del usuario sin bloquear el arranque.
 - Abrir Controles, perder foco o visibilidad, o desconectar el mando pausa y neutraliza la entrada; reanudar exige soltar los botones.
 - SRAM por hash de ROM: dos generaciones SHA-256 en una transacción IndexedDB, Web Lock de escritor único, commit cada 120 frames y al pausar/cerrar, export/import JSON (`cartivo-nrom-sram-v1`) con identidad y checksum, recuperación de la generación anterior si la actual está dañada. «Reiniciar consola» guarda antes de reiniciar.
 
 ## Partidas (instantáneas)
 
-Cualquier juego, con o sin batería, puede guardarse en tres ranuras y en «Al salir», con «Continuar donde lo dejaste» al reabrir y F5/F9 ([ADR-009](../adr/009-save-states.md)). Los estados van ligados a núcleo y versión.
+Cualquier juego, con o sin batería, puede guardarse en tres ranuras y en «Al salir», con «Continuar donde lo dejaste» al reabrir y F5/F9 ([ADR-009](../adr/009-save-states.md)). Los estados van ligados a núcleo y versión; los de otro núcleo, otra versión o dañados se rechazan con un mensaje y se conservan.
 
 ## Evidencia automática
 
-Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`, `tests/snapshots.test.ts`): fixture, entrada, audio, SRAM y restauración en ambos núcleos y mappers 1–4; instantáneas deterministas en UxROM sin batería; validación de formato, ranuras y protocolo. E2E de Partidas (`tests/e2e/saves.spec.ts`): ranuras, «Continuar», «Empezar de nuevo» y F5/F9. E2E en Chromium (dev y build de producción): emulación real, SRAM/export/import/reapertura, rechazo de archivo y copia ajena, escritor único, generación dañada, mando sintético y desconexión, remapeo aplicado, cancelación de carga, Focus, pantalla completa, escalado y cambio de núcleo.
+Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`, `tests/snapshots.test.ts`): fixture, entrada, audio, SRAM y restauración en ambos núcleos y mappers 1–4; instantáneas deterministas en UxROM sin batería; validación de formato, ranuras y protocolo. E2E de Partidas (`tests/e2e/saves.spec.ts`): ranuras, «Continuar», «Empezar de nuevo», F5/F9, cancelar el selector, pestaña oculta y ciclos sin Workers huérfanos. Resistencia (`tests/e2e/integrity.spec.ts`): 100 ciclos alternando núcleos y partidas dañadas o de otra versión. Matriz completa: [H1-QA](H1-QA.md). E2E en Chromium (dev y build de producción): emulación real, SRAM/export/import/reapertura, rechazo de archivo y copia ajena, escritor único, generación dañada, mando sintético y desconexión, remapeo aplicado, cancelación de carga, Focus, pantalla completa, escalado y cambio de núcleo.
 
 ## QA manual pendiente
 
@@ -44,4 +44,4 @@ Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`, `tests/snapshots.test.t
 5. Contra o cualquier juego sin batería: Partidas → Guardar aquí, Salir, volver a abrir → Continuar; F5/F9.
 6. Mando físico (modelo, conexión, navegador) registrado en [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md).
 
-Abiertos: escucha física, Firefox/Safari, suspensión móvil, 100 ciclos de resistencia, presupuestos de rendimiento, exportar Partidas. Un jugador, audio mono.
+Abiertos: escucha física, Firefox/Safari, suspensión móvil, presupuestos de rendimiento, exportar Partidas. Un jugador, audio mono.

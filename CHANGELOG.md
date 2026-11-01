@@ -97,3 +97,10 @@
 - Inicio, reproductor, Gráficos, Partidas y núcleos salen del registro; archivos asignados por extensión.
 - Prueba de conformidad para todo núcleo registrado y guía `docs/ADDING_A_SYSTEM.md`.
 
+### Endurecimiento previo al merge (PR #2)
+
+- Integridad de partidas: E2E de 100 ciclos alternando núcleos, partidas dañadas o de otra versión, cancelación del selector, pestaña oculta y ausencia de Workers huérfanos; prueba de tiendas sin Web Locks.
+- Reproductor dividido en `PlayerToolbar`, `GraphicsPanel` (etiquetas desde el vídeo del sistema), `SavePanel` y `SnapshotThumb`, sin cambios visuales.
+- Nombres de almacenamiento por sistema (`formats.ts`) con los de NES intactos; mensaje de núcleo incompatible derivado del registro; sin tamaños 256×240 por defecto fuera del núcleo.
+- Pruebas de coherencia manifest ↔ `systems.ts` y de ausencia de ids de sistema en la interfaz; mapa de archivos para GB/GBC en `ADDING_A_SYSTEM.md`.
+- Medición de carga y precache; carga diferida por núcleo pospuesta al segundo sistema (H1-C-PWA). Matriz de QA en `docs/compatibility/H1-QA.md`.
