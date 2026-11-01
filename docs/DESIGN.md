@@ -21,7 +21,7 @@ Una acción principal por pantalla. Elegir juego y, cuando exista una partida, C
 
 El recorrido de cinco decisiones del plan se conserva como capacidades, no cinco pantallas obligatorias. Mostrar detalles técnicos y ajustes por núcleo solo en opciones avanzadas. El laboratorio permanece plegado y separado del flujo de jugar. Ninguna simulación se presenta como emulación funcional.
 
-Estado actual: Elegir juego admite NROM NTSC experimental y Probar demo NES ejecuta una fixture propia. La sección de laboratorio permite probar un Worker real con sesión simulada. La ruta real tiene importación local, audio y SRAM; instalación/offline siguen pendientes.
+Estado actual: la tarjeta NES admite iNES NTSC experimental (mappers 0–4) y Probar demo ejecuta una fixture propia. La sección de laboratorio permite probar un Worker real con sesión simulada. La ruta real tiene importación local, audio, SRAM, instalación PWA y reapertura offline (H1-C).
 
 ## Zona permanente de controles
 
@@ -50,3 +50,13 @@ Controles por defecto: WASD/flechas, **L = A** y **K = B**. Los perfiles locales
 **Audio web:** el lanzamiento automático nunca espera a que un navegador desbloquee AudioContext. Si no se puede activar automáticamente, se ofrece **Activar sonido** como acción voluntaria, sin impedir juego ni SRAM.
 
 Este cambio es de UX e input; **no** demuestra por sí mismo soporte adicional de ROMs, sistemas o firmware. Las transiciones no desmontarán/reiniciarán el núcleo al cambiar Focus, pantalla completa o Ajustes. Respetar `prefers-reduced-motion` en animaciones futuras.
+
+## Interfaz H1-D (01-11-2026)
+
+Basada en los bocetos del titular. **Regla:** sin logotipos, tipografías de marca, fotos de consolas, personajes ni capturas de juegos de terceros. Cada consola se identifica con su nombre en la tipografía de Cartivo y con arte abstracto original hecho con los tokens de la paleta (campo de píxeles en la tarjeta NES; dibujos SVG propios de teclado y de un mando genérico sin marca). Iconos en `apps/web/src/icons.ts`, originales y decorativos (`aria-hidden`); el nombre accesible lo lleva el control.
+
+- **Inicio «Elige una consola»:** rejilla preparada para crecer, hoy con una sola tarjeta (NES). Solo aparecen consolas jugables; no se muestran tarjetas «próximamente». Acción principal **Jugar**; icono de ajustes hacia `#controles`; **Probar demo** y arrastrar `.nes` como alternativas. Un archivo en espera cambia la acción a «Jugar {archivo}».
+- **Configurar controles:** tarjeta de teclado y tarjeta de mando que se iluminan con el estado de la prueba (nunca solo color: el estado también se anuncia en texto). Chips para A, B, Start y Select; **Mover** despliega **Avanzado** con las direcciones. Selector de mando, asignación y zona muerta viven en la tarjeta del mando.
+- **Reproductor:** barra superior con **Gráficos**, **Cargar ROM** y **Salir**; marco con brillo azul alrededor del vídeo 4:3 (se retira en Focus y pantalla completa); acciones compactas bajo el vídeo y pie de estado «Mando conectado / Sin mando · Teclado conectado». **Cargar ROM** reutiliza el cierre seguro (pausa con flush SRAM) antes de montar la nueva ROM: nunca hay dos sesiones. No hay botón «Guardar» hasta que existan save states.
+- Teclas por defecto sin cambios (WASD/flechas, L = A, K = B, Q = Select, Enter = Start).
+

@@ -62,3 +62,11 @@
 - Arrastrar y soltar `.nes`, «Abrir con Cartivo» y cola del archivo si ya hay una partida en curso.
 - Persistencia de almacenamiento solicitada solo con la app instalada.
 - CI: formato corregido y prioridad de reasignaciones explícitas sobre teclas predeterminadas en colisión.
+
+### Interfaz H1-D
+
+- Inicio «Elige una consola» con tarjeta NES (Jugar, ajustes, demo, arrastrar y soltar) y arte abstracto original.
+- «Configurar controles» con dibujos propios de teclado y mando que se iluminan durante la prueba, chips de asignación y opciones avanzadas plegadas.
+- Reproductor con barra superior (Gráficos, Cargar ROM, Salir), marco del vídeo y pie con estado de mando y teclado; «Cargar ROM» cierra la sesión con guardado confirmado antes de abrir otra.
+- Capturas de interfaz generadas por los E2E y publicadas como artefacto del CI.
+

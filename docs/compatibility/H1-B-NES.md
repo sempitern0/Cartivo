@@ -100,7 +100,7 @@ Probar: jugar y pulsar Tab/Shift+Tab/espacio/flechas, girar rueda; no debe mover
 
 ## UX actual: carga directa y atajos (31-10-2026)
 
-El selector inicial de la PWA es ahora un **escenario vacío** con «Añadir juego» y «Probar demo». Elegir archivo `.nes` o la demo monta el reproductor e inicia la emulación **sin segundo clic en «Jugar»**. El laboratorio de diagnóstico está plegado bajo **Ajustes**, junto al área de controles; la cabecera solo muestra marca y Ajustes, sin footer. Las instrucciones históricas de arriba describen incrementos anteriores.
+El selector inicial de la PWA es ahora un **escenario vacío** con «Añadir juego» y «Probar demo». Elegir archivo `.nes` o la demo monta el reproductor e inicia la emulación **sin segundo clic en «Jugar»**. El laboratorio de diagnóstico está plegado bajo **Ajustes**, junto al área de controles; la cabecera solo muestra marca y Ajustes, sin footer. Las instrucciones históricas de arriba describen incrementos anteriores. Desde H1-D (2026-11-01) el inicio es la rejilla «Elige una consola» con la tarjeta NES (**Jugar**) y el reproductor usa **Salir** en lugar de «Cerrar juego»; véase `docs/DESIGN.md`.
 
 El teclado predeterminado conserva WASD/flechas y cambia **Z → K (B)**, **X → L (A)**. Los perfiles locales de teclado con las dos asignaciones antiguas intactas se migran, respetando remapeos personalizados; F está reservado a Focus. `Escape` pausa y permite recuperar la navegación. El audio no puede bloquear la ejecución si el navegador exige otro gesto; «Activar sonido» permanece disponible cuando se necesita. La demo sigue escribiendo SRAM mediante A.
 

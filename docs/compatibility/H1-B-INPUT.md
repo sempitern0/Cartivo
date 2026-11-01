@@ -79,7 +79,7 @@ Validación manual: actualizar la rama, abrir Controles, conectar USB y pulsar u
 
 ## Zona de controles independiente (31-10-2026)
 
-Acceso actual: cabecera → **Controles**, o `http://127.0.0.1:5173/#controles`. Sustituye las instrucciones históricas que situaban la prueba de entrada en el laboratorio. El laboratorio conserva solo el diagnóstico del Worker.
+Acceso actual: cabecera → **Ajustes** (pantalla «Configurar controles»), icono de ajustes de la tarjeta NES, o `http://127.0.0.1:5173/#controles`. Desde H1-D las tarjetas de teclado y mando se iluminan durante la prueba; las direcciones se reasignan en **Avanzado**. Sustituye las instrucciones históricas que situaban la prueba de entrada en el laboratorio. El laboratorio conserva solo el diagnóstico del Worker.
 
 Panel reutilizable `ControlsPanel.svelte`, separado de navegación y núcleo. Al salir se desmonta y limpia la entrada; los perfiles permanecen guardados. Al volver la prueba está detenida. La integración con pausa/perfiles de una partida real sigue pendiente del núcleo.
 
