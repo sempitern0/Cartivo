@@ -1,10 +1,15 @@
 /** Original Cartivo fixture, PolyForm Noncommercial-1.0.0 (repository LICENSE).
  * Tiny ARM assembler and a 64 KiB Game Boy Advance program in bitmap mode 3;
  * no third-party ROM, BIOS or artwork (the header logo area is left blank).
- * D-pad moves a square; A counts in SRAM ($0E000000) and toggles the
+ * D-pad moves a square; A counts in the cartridge save and toggles the
  * background; B plays a tone; L and R change the square's colour.
+ * `save` picks how the counter is stored, each with its real protocol:
+ * SRAM byte writes, Flash program commands ($AA/$55/$A0), serial EEPROM
+ * requests through DMA 3, or nothing at all ("none", work RAM only).
  */
-export function gbaControlDemo(): Uint8Array {
+export type GbaSaveKind = "sram" | "flash" | "eeprom" | "none";
+
+export function gbaControlDemo(save: GbaSaveKind = "sram"): Uint8Array {
   const rom = new Uint8Array(0x10000).fill(0xff);
   const base = 0x080000c0;
   const code: number[] = [];
@@ -16,9 +21,10 @@ export function gbaControlDemo(): Uint8Array {
   const emit = (word: number) => code.push(word >>> 0);
   const label = (name: string) => labels.set(name, here());
 
-  // Condition codes (ARM): EQ 0, NE 1, GT 12, LT 11, AL 14.
+  // Condition codes (ARM): EQ 0, NE 1, PL 5, GT 12, LT 11, AL 14.
   const EQ = 0x0,
     NE = 0x1,
+    PL = 0x5,
     LT = 0xb,
     GT = 0xc,
     AL = 0xe;
@@ -37,7 +43,7 @@ export function gbaControlDemo(): Uint8Array {
   const dp = (op: number, rd: number, rn: number, value: number, cond = AL) =>
     emit(
       (cond << 28) |
-        0x02000000 |
+        0x02000000 | // immediate operand (I bit)
         (op << 21) |
         (rn << 16) |
         (rd << 12) |
@@ -93,6 +99,37 @@ export function gbaControlDemo(): Uint8Array {
   const addReg = (rd: number, rn: number, rm: number, lsl = 0) =>
     emit(0xe0800000 | (rn << 16) | (rd << 12) | (lsl << 7) | rm);
   const ret = () => emit(0xe1a0f00e); // MOV PC, LR
+  /** STR rd, [rn, #offset] (32-bit). */
+  const str = (rd: number, rn: number, offset = 0) =>
+    emit(0xe5800000 | (rn << 16) | (rd << 12) | offset);
+  /** LDRH rd, [rn], #2 (post-increment). */
+  const ldrhNext = (rd: number, rn: number) =>
+    emit(0xe0d000b2 | (rn << 16) | (rd << 12));
+  /** MOV rd, rm, LSR rs. */
+  const lsr = (rd: number, rm: number, rs: number) =>
+    emit(0xe1a00030 | (rd << 12) | (rs << 8) | rm);
+  /** MOV rd, rm, LSL #1. */
+  const lsl1 = (rd: number, rm: number) => emit(0xe1a00080 | (rd << 12) | rm);
+  const orr = (rd: number, rn: number, rm: number) =>
+    emit(0xe1800000 | (rn << 16) | (rd << 12) | rm);
+
+  /** r1 = the save counter. */
+  function loadCounter() {
+    if (save === "eeprom") b("eepromLoad", AL, true);
+    else if (save === "none") {
+      ldr(2, 0x03000000); // work RAM: nothing survives a restart
+      ldrb(1, 2);
+    } else ldrb(1, SRAM); // SRAM, and Flash reads in its data mode
+  }
+  /** Stores r1 as the save counter. */
+  function storeCounter() {
+    if (save === "eeprom") b("eepromStore", AL, true);
+    else if (save === "flash") b("flashStore", AL, true);
+    else if (save === "none") {
+      ldr(2, 0x03000000);
+      strb(1, 2);
+    } else strb(1, SRAM);
+  }
 
   // r8 I/O, r9 VRAM, r10 SRAM, r4/r5 square x/y, r6 previous keys,
   // r7 square colour, r11 background colour.
@@ -118,7 +155,13 @@ export function gbaControlDemo(): Uint8Array {
   mov(Y, 76);
   mov(PREV, 0);
   ldr(INK, WHITE);
-  ldrb(1, SRAM);
+  if (save === "flash") {
+    // Any write to $0E005555 makes the cartridge a Flash chip (mGBA).
+    ldr(2, 0x0e005555);
+    mov(12, 0xf0); // "terminate": harmless outside a command
+    strb(12, 2);
+  }
+  loadCounter();
   tst(1, 1);
   ldr(BG, GREEN, EQ);
   ldr(BG, BLUE, NE);
@@ -161,9 +204,9 @@ export function gbaControlDemo(): Uint8Array {
   b("aDone", EQ);
   tst(PREV, 1);
   b("aDone", NE);
-  ldrb(1, SRAM);
+  loadCounter();
   add(1, 1, 1);
-  strb(1, SRAM);
+  storeCounter();
   tst(1, 1);
   ldr(BG, GREEN, EQ);
   ldr(BG, BLUE, NE);
@@ -187,6 +230,93 @@ export function gbaControlDemo(): Uint8Array {
   cmp(0, 160);
   b("leave", EQ);
   b("frame");
+
+  // Save routines (only the ones the chosen kind needs). They use r1-r3
+  // and r12 and keep r0 (this frame's keys).
+  if (save === "flash") {
+    label("flashStore"); // program one byte: $AA, $55, $A0, then the data
+    ldr(2, 0x0e005555);
+    ldr(3, 0x0e002aaa);
+    mov(12, 0xaa);
+    strb(12, 2);
+    mov(12, 0x55);
+    strb(12, 3);
+    mov(12, 0xa0);
+    strb(12, 2);
+    strb(1, SRAM);
+    ret();
+  }
+  if (save === "eeprom") {
+    /** DMA 3, 16-bit, immediate; waits until the transfer is over. */
+    const dma = (src: number, dst: number, count: number, wait: string) => {
+      ldr(2, 0x040000d4);
+      ldr(3, src);
+      str(3, 2, 0);
+      ldr(3, dst);
+      str(3, 2, 4);
+      ldr(3, 0x80000000 | count);
+      str(3, 2, 8);
+      label(wait);
+      ldrh(12, 2, 0x0a);
+      tst(12, 0x8000);
+      b(wait, NE);
+    };
+    // Request buffers live in IWRAM ($0300xxxx): mGBA treats a ROM whose
+    // literals point mostly at EWRAM ($0200xxxx) as a multiboot image.
+    // Write request (512 B chip, block 0): 1, 0, six address bits, 64 data
+    // bits (counter first, MSB first), then a closing 0.
+    label("eepromStore");
+    ldr(2, 0x03001000);
+    mov(12, 1);
+    strhNext(12, 2);
+    mov(12, 0);
+    mov(3, 7);
+    label("esHeader");
+    strhNext(12, 2);
+    subs(3, 3, 1);
+    b("esHeader", NE);
+    mov(3, 7);
+    label("esBits");
+    lsr(12, 1, 3);
+    and(12, 12, 1);
+    strhNext(12, 2);
+    subs(3, 3, 1);
+    b("esBits", PL);
+    mov(12, 0);
+    mov(3, 57);
+    label("esTail");
+    strhNext(12, 2);
+    subs(3, 3, 1);
+    b("esTail", NE);
+    dma(0x03001000, 0x0d000000, 73, "esDma");
+    ret();
+    // Read request: 1, 1, six address bits, 0; then 68 bits come back (4
+    // junk bits, then the block MSB first).
+    label("eepromLoad");
+    ldr(2, 0x03001200);
+    mov(12, 1);
+    strhNext(12, 2);
+    strhNext(12, 2);
+    mov(12, 0);
+    mov(3, 7);
+    label("elRequest");
+    strhNext(12, 2);
+    subs(3, 3, 1);
+    b("elRequest", NE);
+    dma(0x03001200, 0x0d000000, 9, "elAsk");
+    dma(0x0d000000, 0x03001400, 68, "elRead");
+    ldr(2, 0x03001408);
+    mov(1, 0);
+    mov(3, 8);
+    label("elBits");
+    ldrhNext(12, 2);
+    and(12, 12, 1);
+    lsl1(1, 1);
+    orr(1, 1, 12);
+    subs(3, 3, 1);
+    b("elBits", NE);
+    ret();
+  }
 
   // fill: background colour (r11) over the whole 240×160 screen.
   label("fill");
@@ -233,7 +363,14 @@ export function gbaControlDemo(): Uint8Array {
     const offset = ((target - (base + at * 4 + 8)) >> 2) & 0xffffff;
     code[at] = ((cond << 28) | (link ? 0x0b000000 : 0x0a000000) | offset) >>> 0;
   }
-  const marker = [..."SRAM_V113"].map((c) => c.charCodeAt(0));
+  const marker = [
+    ...{
+      sram: "SRAM_V113",
+      flash: "FLASH_V126",
+      eeprom: "EEPROM_V124",
+      none: "",
+    }[save],
+  ].map((c) => c.charCodeAt(0));
 
   const view = new DataView(rom.buffer);
   rom.fill(0, 0, 0xc0);
