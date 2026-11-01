@@ -1,0 +1,224 @@
+{
+  "id": "jsnes-nrom-experimental",
+  "version": "2.1.0",
+  "engine": "JavaScript",
+  "spdx": "Apache-2.0",
+  "sourceCommit": "cbad9f1db57dfb275b90ffa26f9c479c355d8d5c",
+  "npmIntegrity": "sha512-LUa++E5Dfs1A6ZYB5HiSOR4JrUzrZEXGLZ5Imczhu9lkg7f+94SqnLZ/MXwGa7oc02+j/xYyHR0azGQ6LCU68g==",
+  "runtimeDependencies": [],
+  "patchedFiles": [],
+  "acceptedMappers": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "biosRequired": false,
+  "files": [
+    {
+      "path": "LICENSE",
+      "gitBlobSha": "13c5c83c6d0170b07e41828837841c1d078ee46a"
+    },
+    {
+      "path": "index.d.ts",
+      "gitBlobSha": "2c908fffd8edf570543eb1151e3dcfb371488a74"
+    },
+    {
+      "path": "package.json",
+      "gitBlobSha": "4e3e3dad9eb790c30c0be0f1da5c7c5f78c0d8f6"
+    },
+    {
+      "path": "src/browser.d.ts",
+      "gitBlobSha": "f864620922a343e9821375dc5dc6981066d49c51"
+    },
+    {
+      "path": "src/browser/frame-timer.js",
+      "gitBlobSha": "cfc5dd5241da485893645f82bbdb4228eae5db90"
+    },
+    {
+      "path": "src/browser/gamepad.js",
+      "gitBlobSha": "9981e7e1a4574f4fc74299cac2b8b476898da43e"
+    },
+    {
+      "path": "src/browser/index.js",
+      "gitBlobSha": "c14858e196b8f5d609e4d24d3154228f8e304241"
+    },
+    {
+      "path": "src/browser/keyboard.js",
+      "gitBlobSha": "20e6bb4ccd105d38c18e4e0960adde1a1081ecd1"
+    },
+    {
+      "path": "src/browser/screen.js",
+      "gitBlobSha": "d86176230fdfac328c5754a53f4082ad38024198"
+    },
+    {
+      "path": "src/browser/speakers.js",
+      "gitBlobSha": "d1f353a50d7aa972c6be6e7d89d96281a9cd13ab"
+    },
+    {
+      "path": "src/controller.d.ts",
+      "gitBlobSha": "6b7690e3bd91975859963db8fbcf05d54b1603b5"
+    },
+    {
+      "path": "src/controller.js",
+      "gitBlobSha": "89de86cb15f7aafc92a384ebf9cdb2bcb2dc34e9"
+    },
+    {
+      "path": "src/cpu.js",
+      "gitBlobSha": "4c19ff5077875b6c7c16b1772ba82f06f1b275c7"
+    },
+    {
+      "path": "src/gamegenie.d.ts",
+      "gitBlobSha": "4fc0ed293c79c28d528fec6b264986af6a1f528a"
+    },
+    {
+      "path": "src/gamegenie.js",
+      "gitBlobSha": "5ed0ef793fd20a057ffa0e3b9b0f1a8ed74a6373"
+    },
+    {
+      "path": "src/index.js",
+      "gitBlobSha": "fb62250844e37d8263e49857d276afc9b814bb10"
+    },
+    {
+      "path": "src/mappers/index.js",
+      "gitBlobSha": "b5e94b2d391010bee195ae6828f65355f626a4ba"
+    },
+    {
+      "path": "src/mappers/mapper0.js",
+      "gitBlobSha": "cd372e4be2c65010d81064bcf0f0e7bbdab94724"
+    },
+    {
+      "path": "src/mappers/mapper1.js",
+      "gitBlobSha": "47e5243620d5c68e520fca830b2e372c61971f97"
+    },
+    {
+      "path": "src/mappers/mapper11.js",
+      "gitBlobSha": "bbdb20ff314556ca3c9d617f6d81e1ccef2aa80e"
+    },
+    {
+      "path": "src/mappers/mapper118.js",
+      "gitBlobSha": "dffaa24163b2c89c21a712269adff288a32b7c18"
+    },
+    {
+      "path": "src/mappers/mapper119.js",
+      "gitBlobSha": "0dcb4dca288184ede6704e380a62fbb7d9d0ff3b"
+    },
+    {
+      "path": "src/mappers/mapper140.js",
+      "gitBlobSha": "38c64931f799da016f14fbc4ff7bc63685b2d802"
+    },
+    {
+      "path": "src/mappers/mapper180.js",
+      "gitBlobSha": "c3d96a6b984c48d26ad1a4dd65c7662a8a4dc932"
+    },
+    {
+      "path": "src/mappers/mapper2.js",
+      "gitBlobSha": "2264f04d0a452de3ca8b31c4c1400fff4e7e6407"
+    },
+    {
+      "path": "src/mappers/mapper240.js",
+      "gitBlobSha": "77e03940c8226b206281f29d5022bec34619a3d0"
+    },
+    {
+      "path": "src/mappers/mapper241.js",
+      "gitBlobSha": "4dd96102c7e871295ebd68587f0627fa70a16854"
+    },
+    {
+      "path": "src/mappers/mapper3.js",
+      "gitBlobSha": "f9956da8a00ff3b00747dcf40081743a2441163f"
+    },
+    {
+      "path": "src/mappers/mapper34.js",
+      "gitBlobSha": "fff2242b15997edbf9566be608ad053d2e46e436"
+    },
+    {
+      "path": "src/mappers/mapper38.js",
+      "gitBlobSha": "b75d42c1520b0c591fd6bd6573d91b0355f304ef"
+    },
+    {
+      "path": "src/mappers/mapper4.js",
+      "gitBlobSha": "b45455fc6670d5c1788bdc39d6c283f024ee6bac"
+    },
+    {
+      "path": "src/mappers/mapper5.js",
+      "gitBlobSha": "6a07914ee20aeb6b4c63835f29b0a65ae7aa4987"
+    },
+    {
+      "path": "src/mappers/mapper66.js",
+      "gitBlobSha": "286d8ec5d398ba4e98ebe9574d25095baf14f5d4"
+    },
+    {
+      "path": "src/mappers/mapper7.js",
+      "gitBlobSha": "b627be60146ebb1489b3e0936d041fcc5bce5795"
+    },
+    {
+      "path": "src/mappers/mapper71.js",
+      "gitBlobSha": "3a54c4dfb03f879e1134b84087de696e0f5106c1"
+    },
+    {
+      "path": "src/mappers/mapper79.js",
+      "gitBlobSha": "f4d8de1d289f54a26cb2514c47d754b18035dd0a"
+    },
+    {
+      "path": "src/mappers/mapper9.js",
+      "gitBlobSha": "491dca41501ba4d617c53b3c255f1b77da1cadbd"
+    },
+    {
+      "path": "src/mappers/mapper94.js",
+      "gitBlobSha": "193fd543d18f103ebe967ab45000745086fecc16"
+    },
+    {
+      "path": "src/nes.d.ts",
+      "gitBlobSha": "0c25b666f0661d9e38b44070952b5553aa858b4f"
+    },
+    {
+      "path": "src/nes.js",
+      "gitBlobSha": "7b2aecf9548e0d86927038d92459e4a6fc7f8777"
+    },
+    {
+      "path": "src/papu/channel-dm.js",
+      "gitBlobSha": "0d03d55c7360802de249c060c4a87ad114514c7f"
+    },
+    {
+      "path": "src/papu/channel-noise.js",
+      "gitBlobSha": "ab20f234b441037ee1393aeaea5ab0464a35e002"
+    },
+    {
+      "path": "src/papu/channel-square.js",
+      "gitBlobSha": "5ecab2159aeff8d6d5ac70bf88b22825679f689c"
+    },
+    {
+      "path": "src/papu/channel-triangle.js",
+      "gitBlobSha": "bda42a1fc04d8e3ce7b9fc12bb0bb7784e2cb5bb"
+    },
+    {
+      "path": "src/papu/index.js",
+      "gitBlobSha": "718a4bbf2468fb5c14052a77914f16eceac014e3"
+    },
+    {
+      "path": "src/ppu/index.js",
+      "gitBlobSha": "a69b917d72b7d81bf14d92936877117e5b38e75b"
+    },
+    {
+      "path": "src/ppu/nametable.js",
+      "gitBlobSha": "04dc921300d30c476dc3158bef6ce2442eb14b0c"
+    },
+    {
+      "path": "src/ppu/palette-table.js",
+      "gitBlobSha": "5241c1255a7184694d42ad3a474cf0799f74364d"
+    },
+    {
+      "path": "src/rom.js",
+      "gitBlobSha": "ec455230faf98641b166617a8fede59a2e68c381"
+    },
+    {
+      "path": "src/tile.js",
+      "gitBlobSha": "cb0db35a9afea392d90e6af2c8647fca0de9ff8d"
+    },
+    {
+      "path": "src/utils.js",
+      "gitBlobSha": "35a5a808ceb8b77ac89d65ebf2039581823d22d6"
+    }
+  ]
+}

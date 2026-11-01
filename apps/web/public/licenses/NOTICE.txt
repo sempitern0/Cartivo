@@ -1,0 +1,24 @@
+Cartivo third-party runtime notices
+
+JSNES 2.1.0 — Copyright 2020 Ben Firshman; Apache License 2.0.
+Source: https://github.com/bfirsh/jsnes/tree/cbad9f1db57dfb275b90ffa26f9c479c355d8d5c
+License: jsnes-Apache-2.0.txt (adjacent file).
+JSNES credits James Sanders' vNES and Matt Wescott's JSSpeccy in its README.
+Cartivo imports unchanged JavaScript sources, bundled by Vite. No upstream ROMs,
+frontend assets, BIOS or prebuilt WASM are distributed.
+
+TetaNES (tetanes-core 0.17.0) — Copyright (c) 2021 Luke Petherbridge;
+dual-licensed MIT OR Apache-2.0: tetanes-LICENSE-MIT.txt and
+tetanes-LICENSE-APACHE.txt (adjacent files). Source:
+https://github.com/lukexor/tetanes (crate tetanes-core on crates.io).
+Compiled unchanged to WebAssembly by Cartivo's CI (cores/tetanes). Its
+Rust dependencies and their licences are listed in cores/tetanes/sbom.json.
+
+option-ext 0.2.0 (dependency of dirs-sys) — Mozilla Public License 2.0:
+option-ext-MPL-2.0.txt. Unmodified; its source code is available at
+https://github.com/soc/option-ext and https://crates.io/crates/option-ext.
+
+Svelte 5.57.3 — MIT. Full copyright and license: svelte-MIT.txt.
+
+Cartivo's original code: PolyForm Noncommercial 1.0.0. That restriction is not
+applied to these third-party components, which retain their own licenses.

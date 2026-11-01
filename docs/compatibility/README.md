@@ -1,28 +1,25 @@
 # Compatibilidad: estado y evidencia
 
-**No hay pruebas de ejecución de Cartivo todavía.** Todos los candidatos están pendientes; las etiquetas de objetivo en el plan no describen soporte logrado.
+Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream, los tests con mocks y la compatibilidad de un emulador nativo no cuentan.
 
-| Sistema | Estado de evaluación actual | Evidencia mínima para aceptación |
+| Área | Estado | Documento |
 |---|---|---|
-| NES | Pendiente | Mapper, input, audio, SRAM y reinicio offline |
-| SNES | Pendiente | Chips/firmware por juego, guardado y sincronización |
-| GB / GBC | Pendiente | Mapper, RTC, paleta/color y persistencia |
-| GBA | Pendiente | BIOS libre integrada, Flash/EEPROM/SRAM y audio |
-| SMS / Mega Drive | Pendiente; riesgo de licencia | Núcleo distribuible, región, audio, mando 3/6 botones |
-| N64 | Pendiente | Backend web, endianness, 4 mandos y tipos de save/Pak |
-| PS1 | Pendiente | HLE sin firmware externo, memory cards y multidisco |
-| PSP | Pendiente | Build web funcional, ISO, analógico y Memory Stick |
-| PS2 | Pendiente; laboratorio | Play!.js, HLE, ISO grande, input y guardado persistente |
+| NES · TetaNES (WASM, por defecto) | Experimental: iNES NTSC, mappers 0–4 | [H0-WASM-NES](H0-WASM-NES.md) |
+| NES · ruta común y JSNES | Experimental; JSNES como alternativa | [H1-B-NES](H1-B-NES.md) |
+| Entrada | Teclado y mando con perfiles; hardware pendiente | [H1-B-INPUT](H1-B-INPUT.md) |
+| PWA | Instalable y offline; QA en móviles pendiente | [H1-C-PWA](H1-C-PWA.md) |
+| QA de la base NES | Automático en CI; manual parcial | [H1-QA](H1-QA.md) |
+| SNES, GB, GBC, GBA, SMS, Mega Drive | Pendiente (candidatos en el plan técnico) | — |
+| N64, PS1, PSP | Pendiente; riesgo de licencia GPL | — |
+| PS2 | Laboratorio pendiente | — |
 
-## Plantilla de informe por spike/build
+## Plantilla de informe por núcleo o build
 
-1. Sistema, candidato, URL upstream, commit y licencia/dependencias.
-2. Receta reproducible, toolchain, flags, parches, build ID y hashes.
-3. Equipo real, SO, navegador/versión, modo pestaña/PWA y cabeceras.
-4. Fixture autorizado, licencia, hash, formato y tamaño. Títulos comerciales solo en pruebas privadas obtenidas legítimamente; no subir sus archivos a git/CI.
-5. Comandos y pasos de prueba: arranque, input, audio, persistencia, export/import, offline, suspensión y cierre.
-6. Duración, velocidad emulada, frames presentados, p95, underruns, pico de memoria y datos brutos. Latencia end-to-end solo con método de medición definido.
-7. Casos fallidos, reproducción, límites de formato/archivo, diagnóstico y acción siguiente.
-8. Conclusión: accepted/blocked y, solo si se acepta, stable/beta/experimental por plataforma y build.
-
-No copiar estados de compatibilidad del emulador nativo como resultados web. La prueba de mock acredita el contrato; una demo upstream acredita existencia; únicamente el port integrado y probado acredita soporte en Cartivo.
+1. Sistema, núcleo, versión o commit, licencia y dependencias (enlace al expediente CORE-LEGAL-01).
+2. Receta de build, toolchain, hashes y verificación reproducible.
+3. Equipo, sistema, navegador y modo (pestaña o instalada).
+4. Fixture autorizada con licencia, hash y oráculo. Juegos comerciales solo en pruebas privadas, nunca en git ni CI.
+5. Pruebas: arranque, entrada, audio, partida, export/import, offline, suspensión y cierre.
+6. Velocidad emulada, frames, p95, underruns, memoria; latencia solo con método definido.
+7. Fallos, límites de formato y siguiente paso.
+8. Conclusión `accepted`/`blocked` y, si procede, `experimental`/`beta`/`stable` por plataforma y build.
