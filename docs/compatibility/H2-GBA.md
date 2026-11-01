@@ -28,8 +28,8 @@ Oráculo:
 |---|---|
 | Arnés C nativo (gcc, mismas fuentes y definiciones) | Imagen opaca, movimiento, L/R, audio a 48 kHz (1605 muestras por 2 frames), SRAM, instantánea determinista (397 312 bytes), estados corto y basura rechazados, recarga de batería; 0,78 ms por frame |
 | Adaptador TS + WASM del bot en Node | Las mismas comprobaciones; 0,88 ms por frame; colores exactos 255,255,0 (L) y 255,0,255 (R) |
-| `pnpm test` (local, Node 22) | 71/71, con la conformidad de `gba/mgba` y la migración de perfiles L/R |
-| E2E `tests/e2e/gba.spec.ts` e `input.spec.ts` | Demo 240×160 con L/R comprobados en los píxeles del canvas; SRAM conservada al reabrir; F5/F9; `.gba` soltado; archivo dañado; L/R en Controles y asignación de diez controles. Resultado de CI en la descripción de la PR |
+| `pnpm test` (local en Node 22 y en CI con Node 24) | 72/72, con la conformidad de `gba/mgba`, la migración de perfiles L/R y el protocolo v1 sin L/R |
+| E2E `tests/e2e/gba.spec.ts` e `input.spec.ts` | Demo 240×160 con L/R comprobados en los píxeles del canvas; SRAM conservada al reabrir; F5/F9; `.gba` soltado; archivo dañado; L/R en Controles y asignación de diez controles. **CI sobre `03b88df`** (Foundation CI, run 41316064341): 4/4 GBA y L/R en dev y en preview; suite completa 53 superados en dev y 52 en preview, `svelte-check` sin errores |
 
 ## QA manual pendiente
 
