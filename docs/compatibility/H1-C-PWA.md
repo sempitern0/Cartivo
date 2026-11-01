@@ -1,6 +1,6 @@
 # H1-C — PWA instalable y offline
 
-Fecha: 2026-11-01. **Experimental.** Shell instalable con manifiesto, service worker propio y reapertura sin conexión de la build de producción. No cambia el núcleo (JSNES en Worker, ADR-007) ni su alcance.
+Fecha: 2026-11-01. **Experimental.** Shell instalable con manifiesto, service worker propio y reapertura sin conexión de la build de producción. No cambia los núcleos (TetaNES por defecto, ADR-008; JSNES alternativo, ADR-007).
 
 ## Qué incluye
 
@@ -17,6 +17,21 @@ Fecha: 2026-11-01. **Experimental.** Shell instalable con manifiesto, service wo
 
 El service worker solo existe en la build de producción (`pnpm build` / `pnpm preview`); en `pnpm dev` no se registra.
 
+## Medición de carga (etapa D de la PR #2)
+
+Build de CI sobre `2ba0b33` (salida de `vite build`, tamaños sin comprimir / gzip):
+
+| Recurso | Tamaño | Cuándo se descarga |
+|---|---|---|
+| `index.html` + `index-*.js` + `index-*.css` (shell) | 0,9 + 110,2 + 23,1 kB (≈45 kB gzip) | Al abrir la app |
+| `emulator.worker-*.js` (protocolo, JSNES, glue TetaNES, almacenamiento) | 145,4 kB | Al empezar un juego (el Worker se crea en `Player`) |
+| `tetanes_bg-*.wasm` | 1.132,9 kB (427,2 kB gzip) | Al preparar TetaNES dentro del Worker |
+| AudioWorklet y Worker de diagnóstico | 0,7 + 1,3 kB | Al activar sonido / abrir el laboratorio |
+
+El SW precachea todo (≈1,3 MB sin comprimir) para jugar offline tras la instalación.
+
+**Decisión: posponer la carga diferida por núcleo.** La pantalla inicial ya no carga ningún núcleo: JSNES y TetaNES solo llegan con el Worker. Separar JSNES del Worker ahorraría unos 100 kB a quien use TetaNES, a cambio de más riesgo en la PR (precache por grupos, offline del núcleo alternativo). Pasa a ser necesario con el segundo sistema: entonces `registry.ts` debe cargar cada módulo con `import()` dinámico dentro del Worker y el SW debe separar el shell de los núcleos instalados, sin descargas silenciosas de núcleos no elegidos.
+
 ## Validación manual pendiente (QA real)
 
 1. `pnpm build && pnpm preview`, abrir http://127.0.0.1:4173 en Chrome/Edge/Brave: aparece **Instalar app** en la cabecera. Instalar y abrir la ventana independiente.
@@ -31,4 +46,4 @@ El service worker solo existe en la build de producción (`pnpm build` / `pnpm p
 - La instalación real exige un despliegue HTTPS (o `localhost`). No hay todavía hosting ni workflow de publicación.
 - Sin E2E de instalación, `file_handlers`, suspensión móvil ni cuota de almacenamiento; Chromium headless no cierra esos gates.
 - Sin COOP/COEP: no hacen falta mientras no haya núcleos con hilos WASM.
-- No hay packs de núcleos bajo demanda: todo el bundle actual se precachea (es pequeño).
+- No hay packs de núcleos bajo demanda: todo el bundle actual se precachea (medición arriba).
