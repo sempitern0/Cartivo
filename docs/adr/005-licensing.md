@@ -1,6 +1,6 @@
 # ADR-005 — Modelo de licencia y distribución de núcleos
 
-Estado: **aceptado para el código propio**; integración y distribución de núcleos externos condicionadas a auditoría. Fecha: 2026-10-30.
+Estado: **aceptado para el código propio**; revisión «Uso privado» del 2026-11-01 (al final). Fecha: 2026-10-30.
 
 ## Decisión del titular
 
@@ -35,3 +35,16 @@ Mantener inventario y avisos separados para cada tercero; no añadir textos inco
 - Aplicar PolyForm indiscriminadamente a núcleos GPL: incompatible sin derechos adicionales o una combinación que satisfaga realmente ambas licencias.
 
 **Estado de implementación:** solo decisión y documentación; sin certificación jurídica de núcleos, builds ni releases.
+
+## Revisión: uso privado (2026-11-01)
+
+**Decisión del titular:** Cartivo se usa de forma personal y privada. El repositorio es privado y no se distribuye a terceros.
+
+- Mientras se mantenga así, se admiten núcleos con **cualquier licencia libre o de código disponible identificada** (MIT, Apache-2.0, BSD, ISC, Zlib, MPL-2.0, LGPL, GPL, y licencias no comerciales como las de Snes9x o Genesis Plus GX para uso personal). Las obligaciones de redistribución (fuentes correspondientes, compatibilidad del conjunto) no se activan sin distribución.
+- Se siguen conservando licencias, avisos y procedencia de cada núcleo (gate CORE-LEGAL-01 como registro), y se rechazan componentes sin licencia o de fuentes no verificadas.
+- `cores/tetanes/deny.toml` y `tools/verify-tetanes.mjs` aplican esta lista; la excepción puntual de `option-ext` queda absorbida.
+- **Despliegue:** una URL pública sería distribución. El despliegue personal (Cloudflare) debe protegerse con acceso restringido (por ejemplo Cloudflare Access).
+- **Antes de cualquier publicación o entrega a terceros** se rehace el análisis de combinación con PolyForm por núcleo, y los núcleos incompatibles se retiran, se sustituyen o se resuelve la licencia.
+
+`LICENSE` (PolyForm Noncommercial 1.0.0) no cambia.
+

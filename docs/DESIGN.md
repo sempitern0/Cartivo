@@ -32,11 +32,15 @@ Rejilla centrada que crece con cada sistema aceptado; hoy, una tarjeta NES. Solo
 Tarjeta de teclado y tarjeta de mando genérico (dibujos propios) que se iluminan durante la prueba. Chips para reasignar A, B, Start y Select; **Mover** despliega **Avanzado** con las direcciones. Selector de mando, asignación manual y zona muerta en la tarjeta del mando. Salir desmonta el sondeo; al volver no queda ninguna tecla pulsada. Abrirla durante una partida pausa y neutraliza la entrada.
 
 ### Reproductor
-- Barra superior: **Gráficos**, **Cargar ROM** (cierre seguro con guardado y nueva ROM) y **Salir**.
+- Barra superior: **Gráficos**, **Partidas**, **Cargar ROM** (cierre seguro con guardado y nueva ROM) y **Salir**.
 - Vídeo 4:3 en un marco con brillo azul; acciones compactas debajo (Pausar/Reanudar, Select, Start, sonido, Focus, pantalla completa, Reiniciar consola en pausa) y pie de estado «Mando conectado / Sin mando · Teclado conectado».
 - **Focus** (F) y **pantalla completa** retiran el marco y la interfaz; salir de pantalla completa pausa. Durante el juego se capturan las teclas y la rueda; Escape pausa y devuelve el foco a Reanudar. Los atajos del navegador con Ctrl/Meta/Alt no se bloquean.
 - Errores en un aviso por encima del vídeo, llevado a la vista.
-- «Copias de partida» (exportar/importar) y «Acerca de esta prueba» (núcleo TetaNES/JSNES y licencias) plegados, solo en pausa o error. No hay botón «Guardar» hasta que existan save states.
+- «Copias de partida» (exportar/importar la memoria de batería) y «Acerca de esta prueba» (núcleo TetaNES/JSNES y licencias) plegados, solo en pausa o error.
+- Al reabrir un juego con partida «Al salir», un aviso sobre el vídeo ofrece **Continuar** o **Empezar de nuevo**, con miniatura y fecha.
+
+### Panel Partidas
+Mismo estilo que Gráficos (pausa al abrir). Tarjeta «Al salir» (automática) y tres ranuras con miniatura, fecha y núcleo; **Guardar aquí**, **Cargar** (pide confirmar porque sustituye el progreso no guardado) y **Borrar**. F5 guarda en la ranura 1 y F9 la carga, con confirmación breve bajo el vídeo. Si el juego tiene batería, se aclara que su partida interna se guarda aparte.
 
 ### Panel Gráficos
 Panel propio (pausa la partida al abrirse). Tarjetas con diagrama para **Escalado** (Ajustar, Píxel entero, 4:3 entero) y **Proporción** (4:3 de televisor, Píxeles cuadrados), interruptor **Suavizado** (desactivado por defecto) y **Restablecer**. Los cambios se ven al momento y se recuerdan por sistema (`cartivo:display:nes:v1`). Si el escalado no cabe, se avisa y se usa Ajustar. Escape o **Listo** cierran y devuelven el foco a **Gráficos**.

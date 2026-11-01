@@ -27,9 +27,13 @@ Estado: **experimental.** NES funciona de extremo a extremo (archivo local o dem
 - Abrir Controles, perder foco o visibilidad, o desconectar el mando pausa y neutraliza la entrada; reanudar exige soltar los botones.
 - SRAM por hash de ROM: dos generaciones SHA-256 en una transacción IndexedDB, Web Lock de escritor único, commit cada 120 frames y al pausar/cerrar, export/import JSON (`cartivo-nrom-sram-v1`) con identidad y checksum, recuperación de la generación anterior si la actual está dañada. «Reiniciar consola» guarda antes de reiniciar.
 
+## Partidas (instantáneas)
+
+Cualquier juego, con o sin batería, puede guardarse en tres ranuras y en «Al salir», con «Continuar donde lo dejaste» al reabrir y F5/F9 ([ADR-009](../adr/009-save-states.md)). Los estados van ligados a núcleo y versión.
+
 ## Evidencia automática
 
-Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`): fixture, entrada, audio, SRAM y restauración en ambos núcleos y mappers 1–4; validación de formato y protocolo. E2E en Chromium (dev y build de producción): emulación real, SRAM/export/import/reapertura, rechazo de archivo y copia ajena, escritor único, generación dañada, mando sintético y desconexión, remapeo aplicado, cancelación de carga, Focus, pantalla completa, escalado y cambio de núcleo.
+Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`, `tests/snapshots.test.ts`): fixture, entrada, audio, SRAM y restauración en ambos núcleos y mappers 1–4; instantáneas deterministas en UxROM sin batería; validación de formato, ranuras y protocolo. E2E de Partidas (`tests/e2e/saves.spec.ts`): ranuras, «Continuar», «Empezar de nuevo» y F5/F9. E2E en Chromium (dev y build de producción): emulación real, SRAM/export/import/reapertura, rechazo de archivo y copia ajena, escritor único, generación dañada, mando sintético y desconexión, remapeo aplicado, cancelación de carga, Focus, pantalla completa, escalado y cambio de núcleo.
 
 ## QA manual pendiente
 
@@ -37,6 +41,7 @@ Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`): fixture, entrada, audi
 2. Copias de partida: exportar e importar en el mismo juego; una copia de otro juego debe rechazarse.
 3. Abrir Controles en partida, cambiar una tecla y reanudar: se aplica.
 4. Misma demo en dos pestañas: la segunda se rechaza.
-5. Mando físico (modelo, conexión, navegador) registrado en [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md).
+5. Contra o cualquier juego sin batería: Partidas → Guardar aquí, Salir, volver a abrir → Continuar; F5/F9.
+6. Mando físico (modelo, conexión, navegador) registrado en [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md).
 
-Abiertos: escucha física, Firefox/Safari, suspensión móvil, 100 ciclos de resistencia, presupuestos de rendimiento. Un jugador, audio mono, sin save states.
+Abiertos: escucha física, Firefox/Safari, suspensión móvil, 100 ciclos de resistencia, presupuestos de rendimiento, exportar Partidas. Un jugador, audio mono.

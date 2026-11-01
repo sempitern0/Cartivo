@@ -14,7 +14,7 @@ Trabajo por incrementos: un sistema o feature cada vez, en la rama de trabajo (n
 - La UI no conoce APIs internas de núcleos (solo identificadores en `packages/adapters/src/core-ids.ts`); sin globals compartidos entre emuladores.
 - Un juego activo; lifecycle, errores, cancelación y limpieza explícitos (`dispose` libera la memoria WASM).
 - No bloquear el hilo de UI con parsing, hashing o IO voluminoso.
-- No prometer WebGPU, threads, rewind, JIT, save states ni lectura incremental sin evidencia del port y build concretos.
+- No prometer WebGPU, threads, rewind, JIT ni lectura incremental sin evidencia del port y build concretos. Las «Partidas» (instantáneas) existen para NES (ADR-009); cada núcleo nuevo debe implementarlas o declarar que no puede.
 - Aspecto y velocidad originales por defecto; las mejoras que alteren fidelidad son opcionales y vienen desactivadas.
 - Paquetes nuevos solo con consumidor real; sin scaffolding vacío.
 
@@ -30,10 +30,12 @@ Trabajo por incrementos: un sistema o feature cada vez, en la rama de trabajo (n
 
 El código original de Cartivo usa **PolyForm Noncommercial 1.0.0** (`LICENSE`, ADR-005); no se aplica a núcleos ni librerías de terceros ni anula los derechos concedidos con la LGPL-2.1 anterior. No integrar ni publicar un núcleo con expediente bloqueado; se puede investigar su viabilidad sin redistribuirlo.
 
-Cada núcleo pasa el gate CORE-LEGAL-01 (skill `cartivo-core-gate`): fuentes primarias, versión y toolchain fijadas, SBOM, licencias, firmware y decisión registrada. Un iframe, Worker u origen separado no eximen de obligaciones. No inventar permisos, benchmarks ni compatibilidad web a partir de una versión nativa.
+**Política vigente: uso privado** (revisión de ADR-005). Cartivo no se distribuye a terceros, así que se admiten núcleos con cualquier licencia libre o de código disponible identificada (incluidas GPL, MPL y no comerciales). Se rechazan componentes sin licencia o de fuentes no verificadas. Antes de cualquier publicación se rehace el análisis de compatibilidad por núcleo.
+
+Cada núcleo pasa el gate CORE-LEGAL-01 (skill `cartivo-core-gate`) como registro: fuentes primarias, versión y toolchain fijadas, SBOM, licencias, firmware y decisión. No inventar permisos, benchmarks ni compatibilidad web a partir de una versión nativa.
 
 **NES:**
-- TetaNES (`tetanes-core` =0.17.0) es el núcleo por defecto (ADR-008, `docs/compatibility/H0-WASM-NES.md`). Se compila solo en CI (`core-tetanes.yml`), que versiona `cores/tetanes/dist`, `manifest.json`, `sbom.json` y `Cargo.lock`: no editarlos a mano. Cambiar `cores/tetanes/src` o dependencias repite el gate (`cargo deny`; excepción MPL-2.0 solo para `option-ext`).
+- TetaNES (`tetanes-core` =0.17.0) es el núcleo por defecto (ADR-008, `docs/compatibility/H0-WASM-NES.md`). Se compila solo en CI (`core-tetanes.yml`), que versiona `cores/tetanes/dist`, `manifest.json`, `sbom.json` y `Cargo.lock`: no editarlos a mano. Cambiar `cores/tetanes/src` o dependencias repite el gate (`cargo deny` con la lista de uso privado).
 - JSNES 2.1.0 queda como alternativa (ADR-007): no editar fuentes de `node_modules`.
 - La validación iNES es común (`packages/adapters/src/ines.ts`); ampliar mappers exige fixtures, pruebas y expediente. La UI no accede a la ABI de SRAM de ningún núcleo.
 - La fixture propia está en `packages/fixtures`: preservar hash, licencia y oráculo.

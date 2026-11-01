@@ -10,10 +10,10 @@ El usuario abre una URL o la app instalada, **elige consola, elige juego y juega
 
 1. **Instalable y offline.** HTTPS, manifest y service worker propio. La app y los núcleos usados funcionan sin red; los juegos los aporta el usuario y nunca salen de su dispositivo.
 2. **Sin BIOS propietarias externas.** Solo núcleos sin BIOS, con firmware libre o con HLE. Si un sistema no lo cumple, no se publica.
-3. **Licencias por artefacto.** Cartivo usa PolyForm Noncommercial 1.0.0 para su código; cada núcleo pasa el gate CORE-LEGAL-01 (ADR-005) por build. Un Worker o un origen separado no eximen de obligaciones.
+3. **Licencias: uso privado.** Cartivo usa PolyForm Noncommercial 1.0.0 para su código y hoy no se distribuye a terceros (ADR-005, revisión 2026-11-01): se admiten núcleos con cualquier licencia libre o de código disponible identificada, conservando licencias y avisos. Cada núcleo pasa el gate CORE-LEGAL-01 como registro; antes de publicar se revisa la compatibilidad.
 4. **Partidas a salvo.** Generaciones recuperables, escritor único, exportación siempre disponible. Ninguna actualización recarga una sesión activa ni borra partidas.
 5. **Fidelidad por defecto.** Aspecto y velocidad originales; las mejoras que alteren la imagen o el tiempo son opcionales y vienen desactivadas.
-6. **Solo capacidades reales.** La UI no ofrece lo que el núcleo y la build no hacen (save states, rewind, threads, resolución interna…).
+6. **Solo capacidades reales.** La UI no ofrece lo que el núcleo y la build no hacen (rewind, threads, resolución interna…). Guardar partida en cualquier momento es un requisito de producto: cada núcleo debe ofrecer instantáneas para la capa «Partidas» (ADR-009).
 
 **Fuera de V1:** escribir emuladores propios, netplay, cuentas o nube, logros, catálogo o descarga de ROMs, telemetría identificable.
 
@@ -25,7 +25,7 @@ El usuario abre una URL o la app instalada, **elige consola, elige juego y juega
 | PWA | Manifest, iconos originales, SW generado en build (`tools/pwa-plugin.mjs`), offline, actualización que espera a no tener juego activo, «Abrir con» `.nes`, arrastrar y soltar | QA de instalación en Android/iOS y despliegue HTTPS (Cloudflare Worker, decidido por el titular) |
 | NES | **TetaNES 0.17.0 en WebAssembly** por defecto (ADR-008); JSNES 2.1.0 como alternativa (ADR-007). iNES NTSC, mappers 0–4 | QA física con mando y audio; Firefox/Safari; ampliar mappers con pruebas |
 | Entrada | Teclado (WASD/flechas, L/K/Q/Enter) y Gamepad API con perfiles, remapeo, zona muerta, neutralización al perder foco | Mando físico certificado; P2 |
-| Partidas | SRAM 8 KB con dos generaciones SHA-256 en IndexedDB, Web Lock, export/import, compartida entre núcleos | 100 ciclos automatizados con fallos inyectados |
+| Partidas | «Partidas» para cualquier juego: instantáneas en 3 ranuras + «Al salir», «Continuar donde lo dejaste», F5/F9 (ADR-009). SRAM de batería con dos generaciones, Web Lock, export/import, compartida entre núcleos | 100 ciclos automatizados con fallos inyectados; exportar instantáneas |
 | Calidad | CI: verify:core, lint, svelte-check, tests unitarios (Node), build, E2E Playwright en dev y en build de producción, capturas de UI | Matriz de navegadores real; presupuestos de rendimiento medidos |
 
 Detalle y evidencias: [H1-B NES (JSNES)](compatibility/H1-B-NES.md), [H1-B Entrada](compatibility/H1-B-INPUT.md), [H1-C PWA](compatibility/H1-C-PWA.md), [H0-WASM-NES (TetaNES)](compatibility/H0-WASM-NES.md).
@@ -37,18 +37,18 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` pued
 | Sistema | Objetivo | Núcleo | Estado | Notas para el gate |
 |---|---|---|---|---|
 | NES | V1 estable | TetaNES 0.17.0 (WASM); JSNES 2.1.0 comparador | **accepted** | Ampliar mappers solo con fixtures y expediente; FDS excluido |
-| Game Boy / Color | V1 estable | SameBoy (Expat, boot ROMs libres) o mGBA (MPL-2.0) | candidate | Recomendado como siguiente sistema: misma ruta 2D que NES. mGBA cubriría GB/GBC/GBA con un solo núcleo, pero su MPL-2.0 requiere decisión del titular (precedente: `option-ext`) |
+| Game Boy / Color | V1 estable | mGBA (MPL-2.0) o SameBoy (Expat, boot ROMs libres) | candidate | Siguiente sistema recomendado. mGBA cubre GB/GBC/GBA con un solo núcleo y tiene save states |
 | Game Boy Advance | V1 estable | mGBA (BIOS HLE integrada) | candidate | Flash/EEPROM/SRAM/RTC; sin BIOS externa |
 | SNES | V1 estable | ares (ISC) o Snes9x (licencia no comercial propia) | candidate | Chips especiales con firmware por título: excluirlos si lo requieren; medir rendimiento de ares en WASM |
 | Master System / Mega Drive | V1 estable | Genesis Plus GX (condiciones no comerciales) u otra alternativa | candidate | Riesgo de licencia; Mega-CD fuera de V1 |
-| N64 | V1 beta | Mupen64Plus-Next (GPL-2.0) o ares | candidate, riesgo copyleft | Backend gráfico web, Controller Pak |
-| PlayStation | V1 beta | PCSX-ReARMed / Beetle PSX (GPL-2.0, HLE/OpenBIOS) | candidate, riesgo copyleft | Memory cards, multidisco, lectura por bloques |
-| PSP | V1 beta | PPSSPP (GPL-2.0-or-later, HLE) | candidate, riesgo copyleft | Port web, Memory Stick, rendimiento |
+| N64 | V1 beta | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado) | Backend gráfico web, Controller Pak, instantáneas |
+| PlayStation | V1 beta | PCSX-ReARMed / Beetle PSX (GPL-2.0, HLE/OpenBIOS) | candidate (uso privado) | Memory cards, multidisco, lectura por bloques |
+| PSP | V1 beta | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) | Port web, Memory Stick, rendimiento |
 | PS2 | Laboratorio opt-in | Play! (BSD-2, HLE) | candidate | Fuera del compromiso V1; sin soporte móvil general |
 
 Pospuestos: Game Gear, DS (V1.1), Dreamcast. Fuera: Saturn, 32X, Mega-CD, arcade, accesorios especiales. Matriz y fuentes: [CORE_LICENSE_AND_FIRMWARE_MATRIX](research/CORE_LICENSE_AND_FIRMWARE_MATRIX.md).
 
-**Bloqueo conocido:** los núcleos GPL (N64, PS1, PSP) no se pueden distribuir junto a código PolyForm sin una solución jurídica válida (excepción del autor, otro núcleo o cambio de licencia de Cartivo). Es una decisión del titular, pendiente; no bloquea H2.
+**Licencias:** con la política de uso privado, GPL (N64, PS1, PSP), MPL (mGBA) y licencias no comerciales (Snes9x, Genesis Plus GX) son admisibles. Si algún día se publica Cartivo, esos núcleos requieren revisión previa (retirarlos, sustituirlos o resolver la licencia). Para elegir núcleo pesan ahora el rendimiento en WASM, la calidad y que ofrezca **instantáneas** para «Partidas».
 
 **Política de firmware:** auditar por sistema + modo + formato + juego. Se admite firmware libre reimplementado y HLE. No se extrapola la compatibilidad nativa de un emulador a su port web.
 
@@ -56,9 +56,9 @@ Pospuestos: Game Gear, DS (V1.1), Dreamcast. Fuera: Saturn, 32X, Mega-CD, arcade
 
 Recorrido: **Elegir consola → Jugar (abrir juego) → partida**. Mando o teclado se detectan solos; pantalla y rendimiento en «Automático». Guía visual en [DESIGN.md](DESIGN.md): paleta propia (coral, azul, turquesa, dorado), sin logos ni arte de terceros, una acción principal por pantalla.
 
-Pantallas actuales: inicio con tarjetas de consola, «Configurar controles», reproductor con panel Gráficos y «Acerca de esta prueba» (núcleo y licencias). Próximas, por orden:
+Pantallas actuales: inicio con tarjetas de consola, «Configurar controles», reproductor con paneles Gráficos y Partidas, aviso «Continuar donde lo dejaste» al reabrir un juego y «Acerca de esta prueba» (núcleo y licencias). Próximas, por orden:
 
-1. **Continuar:** recordar el último juego y reanudarlo con un clic (copia local de la ROM bajo consentimiento, OPFS).
+1. **Continuar desde el inicio:** recordar el último juego y reanudarlo con un clic sin volver a elegir el archivo (copia local de la ROM bajo consentimiento, OPFS).
 2. **Biblioteca local mínima:** juegos abiertos, sistema, última partida; sin red.
 3. **UI navegable con mando:** foco con cruceta, A acepta, B vuelve, menú de pausa con mando.
 4. **Carátulas e identidad regional** (H3), siempre opcionales y con fallback local.
@@ -119,7 +119,7 @@ Precedencia de ajustes: `valores verificados → sistema → núcleo → juego e
 - **Hoy:** SRAM de 8 KB por hash de ROM, dos generaciones en una transacción IndexedDB, Web Lock por juego, commit cada 120 frames y al pausar o cerrar, copias JSON versionadas con checksum. No depende de `beforeunload`.
 - **Siguiente:** copia opcional de la ROM en OPFS para «Continuar» (con tamaño y consentimiento), `navigator.storage.persist()` en la app instalada (ya implementado), aviso de cuota.
 - **Discos grandes (H4):** lectura por bloques sin copiar la imagen entera al heap WASM; el adaptador debe demostrar una ruta síncrona válida (OPFS síncrono en Worker, Asyncify/JSPI o puente de IO). Hash incremental en Worker.
-- **Save states:** formato ligado a núcleo y build; separados de la SRAM y nunca intercambiables por defecto.
+- **Partidas (instantáneas, ADR-009):** IndexedDB `cartivo-states`, ranuras «Al salir» + 3 por hash de ROM, SHA-256, tope 8 MB, miniatura; ligadas a núcleo y versión (un estado de otro núcleo o versión se rechaza sin borrarse). Guardado automático al salir, al cambiar de ROM y al ocultarse la pestaña. Separadas de la SRAM, que sigue siendo la partida interna del cartucho.
 
 ## 8. Identidad de juegos y carátulas (H3)
 
@@ -160,15 +160,15 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 | H1.5 — Sin fricción | Siguiente | Continuar último juego, biblioteca local mínima, UI con mando, despliegue HTTPS |
 | H2 — 8/16 bits | Pendiente | GB/GBC → GBA → SNES → SMS/Mega Drive, un sistema por incremento con su gate |
 | H3 — Biblioteca y experiencia | Pendiente | Identidad regional, carátulas con licencia y fallback, ajustes por juego, inglés |
-| H4 — 3D | Pendiente, bloqueo de licencia | N64, PS1, PSP; requiere decisión sobre núcleos GPL |
+| H4 — 3D | Pendiente | N64, PS1, PSP con núcleos GPL admitidos por uso privado; rendimiento web por medir |
 | H5 — Publicación V1 | Pendiente | Sistemas aceptados, despliegue real, rollback, avisos completos |
 | Laboratorio PS2 | Pendiente | Play! opt-in con límites publicados |
 
 ### Próximos incrementos recomendados
 
-1. **Cerrar H1:** test E2E de 100 ciclos de guardado con fallos inyectados; ejecución E2E en Firefox (Playwright) además de Chromium; checklist de QA física para el titular.
+1. **Cerrar H1:** test E2E de 100 ciclos de guardado (SRAM y Partidas) con fallos inyectados; exportar/importar Partidas; E2E en Firefox además de Chromium; checklist de QA física.
 2. **Continuar + biblioteca mínima** (mayor reducción de fricción): ROM en OPFS bajo consentimiento, tarjeta «Continuar» en inicio, borrado selectivo que nunca toque partidas.
-3. **GB/GBC:** gate de SameBoy y mGBA, elegir uno, build en CI con el patrón de `cores/tetanes`, adaptador y perfil de pantalla 10:9.
+3. **GB/GBC/GBA con mGBA** (o SameBoy para GB/GBC): build en CI con el patrón de `cores/tetanes` (Emscripten), adaptador con instantáneas para Partidas y perfiles de pantalla 10:9 y 3:2.
 4. **Despliegue en Cloudflare** con cabeceras reales y smoke test offline del dominio.
 
 ## 15. Backlog
@@ -178,14 +178,14 @@ Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Andr
 | E-01 | Licencias y firmware | En curso | Expediente por build; decisión sobre GPL registrada |
 | E-02 | Contrato y runtime | Parcial (NES v1) | Sesión genérica por sistema con manifiesto y schema |
 | E-03 | PWA y despliegue | Parcial | Instalación verificada en plataformas y dominio HTTPS con cabeceras |
-| E-04 | Persistencia | Parcial | 100 ciclos con fallos inyectados; OPFS para ROMs |
+| E-04 | Persistencia | Parcial (SRAM + Partidas) | 100 ciclos con fallos inyectados; exportar Partidas; OPFS para ROMs |
 | E-05 | Entrada y foco | Parcial | UI completa con mando; P2; mando físico certificado |
 | E-06 | NES | Experimental | QA física y mappers ampliados con pruebas |
 | E-07 | GB/GBC/GBA | Pendiente | Gate, build reproducible y expediente |
 | E-08 | SNES, SMS, Mega Drive | Pendiente | Gate de licencia y rendimiento |
 | E-09 | Biblioteca, identidad y carátulas | Pendiente | Sin falsos positivos, corrección manual, fallback |
 | E-10 | Perfiles de pantalla y ajustes por juego | Parcial (pantalla NES) | Schema, precedencia y restablecer |
-| E-11 | N64, PS1, PSP | Bloqueado (licencia) | Decisión del titular y gate por sistema |
+| E-11 | N64, PS1, PSP | Pendiente (uso privado) | Gate por sistema, rendimiento web e instantáneas |
 | E-12 | Rendimiento y diagnóstico | Pendiente | Presupuestos medidos por build |
 | E-13 | QA, seguridad y releases | Parcial | Matriz real, SBOM por núcleo, rollback |
 | E-14 | PS2 laboratorio | Pendiente | Prueba web reproducible y canal opt-in |
@@ -196,7 +196,7 @@ Un incremento está terminado cuando: tiene pruebas proporcionales (unitarias y 
 
 ## 17. Riesgos abiertos
 
-1. Núcleos GPL frente a PolyForm Noncommercial (N64, PS1, PSP).
+1. Publicar en el futuro exigiría revisar los núcleos GPL, MPL y no comerciales admitidos por la política de uso privado.
 2. Rendimiento de núcleos más pesados (ares, 3D) en WASM sin hilos, sobre todo en móvil.
 3. iOS/Safari: memoria, Gamepad API, almacenamiento y PWA offline.
 4. Lectura de imágenes de disco grandes sin copiarlas al heap.

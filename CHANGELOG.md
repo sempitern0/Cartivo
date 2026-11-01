@@ -84,3 +84,9 @@
 - Plan técnico revisión 3: estado real, catálogo con núcleos candidatos, ruta de un núcleo (gate → build en CI → artefactos verificados), roadmap y backlog con estado y próximos incrementos.
 - README, DESIGN, AGENTS y compatibilidad compactados al estado actual con comandos clave; se retiran la guía H0/H1, el plan de Focus y el registro H1-A (cubiertos por el plan, DESIGN y el historial).
 
+### Partidas y licencias de uso privado
+
+- «Partidas» para cualquier juego NES: instantáneas de TetaNES y JSNES en tres ranuras y «Al salir», miniaturas, «Continuar donde lo dejaste» al reabrir y F5/F9 (ADR-009). La memoria de batería sigue funcionando aparte.
+- Escritor único por juego también sin batería; el protocolo NES añade `state-list/save/load/delete`.
+- Política de licencias de uso privado (revisión de ADR-005): se admiten núcleos con cualquier licencia libre identificada; `cargo deny` y `verify-tetanes` la aplican.
+

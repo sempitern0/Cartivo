@@ -6,7 +6,7 @@ Fecha: 2026-11-01. **Experimental.** NES usa por defecto TetaNES (`tetanes-core`
 |---|---|---|
 | Build WASM reproducible | `core-tetanes.yml`: Rust 1.90.0, `wasm-bindgen` 0.2.130, `Cargo.lock`; artefactos del bot `195a27a`; recompilación independiente (`mode=verify`) con hashes idénticos | Cumplido |
 | Integridad en cada CI | `pnpm verify:core` (`tools/verify-tetanes.mjs`): hashes de `dist/` y licencias del SBOM | Cumplido |
-| Licencias | `cargo deny` (licencias y fuentes); excepción MPL-2.0 solo para `option-ext` aprobada por el titular | Cumplido |
+| Licencias | `cargo deny` (licencias y fuentes) con la política de uso privado de ADR-005 | Cumplido |
 | Sin BIOS ni archivos externos | Envoltorio sin sistema de archivos ni `localStorage`; ROM y SRAM como bytes | Cumplido |
 | Arranque, vídeo, entrada, audio y SRAM | `tests/tetanes.test.ts` con la fixture original: imagen, movimiento, tono con B, SRAM con A y restauración; mappers 1–4 generados en memoria | Automático (Node) |
 | Partida compartida entre núcleos | Unit: SRAM de JSNES → TetaNES → JSNES; mismo `SramStore` por hash de ROM | Automático |
@@ -22,7 +22,7 @@ Tamaño del núcleo: `tetanes_bg.wasm` 942.831 bytes (sin comprimir), precachead
 - Diferencia con JSNES: en UxROM (mapper 2) y CNROM (mapper 3) TetaNES no expone RAM en `$6000–$7FFF`, igual que esas placas originales; JSNES sí la mapea. Las partidas SRAM aplican a NROM con batería, MMC1 y MMC3.
 - Vídeo `Pixellate` (aspecto original); el filtro NTSC compuesto de TetaNES no se expone.
 - La preferencia de núcleo se aplica al siguiente arranque; si el WASM no carga, se informa y se puede elegir JSNES.
-- Sin save states, rewind, threads ni SIMD.
+- Instantáneas con `save_state`/`load_state` de TetaNES (comprimidas; unos cientos de bytes con la fixture) para «Partidas» (ADR-009). Sin rewind, threads ni SIMD.
 
 ## Cómo probar en local
 

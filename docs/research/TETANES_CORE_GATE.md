@@ -1,6 +1,6 @@
 # Expediente CORE-LEGAL-01 — TetaNES (tetanes-core) en WebAssembly
 
-Fecha: 2026-11-01. Responsable de la decisión: titular de Cartivo. Resultado: **accepted** (con una excepción MPL-2.0 aprobada por el titular). No es asesoramiento jurídico; registra la evidencia y la decisión.
+Fecha: 2026-11-01. Responsable de la decisión: titular de Cartivo. Resultado: **accepted**. Desde el 2026-11-01 rige la política de uso privado (ADR-005), que admite cualquier licencia libre identificada; la excepción MPL-2.0 de `option-ext` queda absorbida por ella. No es asesoramiento jurídico; registra la evidencia y la decisión.
 
 ## 1. Identificación
 

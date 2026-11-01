@@ -10,7 +10,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **Núcleo NES** | TetaNES 0.17.0 en WebAssembly por defecto; JSNES 2.1.0 como alternativa (Acerca de esta prueba) |
 | **App** | Instalable como PWA y funciona sin conexión (build de producción) |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo |
-| **Partidas** | Guardado de batería automático, recuperable y exportable |
+| **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9) y conserva la memoria de batería del cartucho |
 | **Pendiente** | QA con mando físico, Firefox/Safari, móviles, continuar último juego, más consolas |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema se publica solo cuando su núcleo supera el gate técnico y de licencia. Plan completo: [docs/PLAN_TECNICO_CARTIVO.md](docs/PLAN_TECNICO_CARTIVO.md).
@@ -53,7 +53,8 @@ El núcleo TetaNES se compila **solo en CI** (`.github/workflows/core-tetanes.ym
 - **Jugar** en la tarjeta NES abre un `.nes`; también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
 - Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
-- En partida: **Gráficos** (escalado, proporción, suavizado), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
+- En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar y cargar en ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
+- **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.
 - Algunos menús usan **Select** para elegir opción; por ejemplo, «1/2 PLAYERS» en Contra.
 
 ## Estructura
@@ -79,4 +80,4 @@ docs/              plan técnico, diseño, ADRs, compatibilidad e investigación
 
 El código original de Cartivo usa **PolyForm Noncommercial 1.0.0** ([LICENSE](LICENSE)): uso, estudio, modificación y redistribución no comerciales; el uso comercial requiere permiso del titular. No es una licencia OSI. La LGPL-2.1 de la revisión inicial no se revoca para copias anteriores.
 
-Los núcleos y librerías de terceros conservan sus licencias ([LICENSES.md](LICENSES.md), [ADR-005](docs/adr/005-licensing.md)). No se distribuyen juegos ni BIOS.
+Los núcleos y librerías de terceros conservan sus licencias ([LICENSES.md](LICENSES.md)). Cartivo se usa de forma **privada**: se admiten núcleos con cualquier licencia libre identificada y, antes de publicarlo, habría que revisar su compatibilidad ([ADR-005](docs/adr/005-licensing.md)). No se distribuyen juegos ni BIOS.
