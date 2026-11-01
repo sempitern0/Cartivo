@@ -10,6 +10,11 @@
   } from "../../../packages/media/src/display-preferences.ts";
   import { NesClient } from "../../../packages/runtime/src/nes-client.ts";
   import { icons } from "./icons.ts";
+  import {
+    readNesCore,
+    writeNesCore,
+  } from "../../../packages/runtime/src/core-preference.ts";
+  import type { NesCoreId } from "../../../packages/adapters/src/core-ids.ts";
   import audioWorkletUrl from "./audio.worklet.ts?worker&url";
   import { GameAudio } from "../../../packages/media/src/audio.ts";
   import {
@@ -52,6 +57,17 @@
   let padStatus = $state("Sin mando");
   let padConnected = $state(false);
   let romInput = $state.raw<HTMLInputElement>();
+  let coreChoice = $state<NesCoreId>(readNesCore());
+  let runningCore = $state<NesCoreId>();
+  const coreIds: NesCoreId[] = ["tetanes", "jsnes"];
+  const coreNames: Record<NesCoreId, string> = {
+    tetanes: "TetaNES · WebAssembly",
+    jsnes: "JSNES · JavaScript",
+  };
+  function chooseCore(id: NesCoreId) {
+    coreChoice = id;
+    writeNesCore(id);
+  }
   let busy = $state(false);
   let viewport = $state.raw<HTMLElement>();
   let fullscreen = $state(false);
@@ -147,7 +163,11 @@
       }),
     );
     try {
-      const r = await client.request("load", file ? { file } : { demo: true });
+      const r = await client.request(
+        "load",
+        file ? { file, core: coreChoice } : { demo: true, core: coreChoice },
+      );
+      runningCore = r.core;
       if (!active) return;
       battery = !!r.battery;
       saveStatus = r.recovered
@@ -869,11 +889,37 @@
     >{/if}
   <details>
     <summary>Acerca de esta prueba</summary>
+    <fieldset class="core-choice">
+      <legend>Núcleo NES</legend>
+      {#each coreIds as id}<label
+          ><input
+            type="radio"
+            name="nes-core"
+            value={id}
+            checked={coreChoice === id}
+            onchange={() => chooseCore(id)}
+          />
+          {coreNames[id]}{#if runningCore === id}<span class="secondary">
+              · en uso</span
+            >{/if}</label
+        >{/each}
+      {#if runningCore && coreChoice !== runningCore}<p
+          class="secondary"
+          data-testid="core-pending"
+        >
+          Se usará al abrir el próximo juego o con Cargar ROM.
+        </p>{/if}
+    </fieldset>
     <p class="secondary">
-      Núcleo JSNES 2.1.0 · JavaScript en Worker. <a
-        href="/licenses/jsnes-Apache-2.0.txt"
-        target="_blank"
-        rel="noreferrer">Licencia y atribución</a
+      Ambos núcleos se ejecutan en un Worker y comparten la partida guardada.
+      <a href="/licenses/tetanes-LICENSE-MIT.txt" target="_blank" rel="noreferrer"
+        >Licencia TetaNES</a
+      > ·
+      <a href="/licenses/jsnes-Apache-2.0.txt" target="_blank" rel="noreferrer"
+        >Licencia JSNES</a
+      > ·
+      <a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer"
+        >Avisos de terceros</a
       >
     </p>
   </details>
@@ -1088,5 +1134,22 @@
   summary {
     cursor: pointer;
     padding: 12px 0;
+  }
+  .core-choice {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: grid;
+    gap: 8px;
+  }
+  .core-choice legend {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .core-choice label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 32px;
   }
 </style>

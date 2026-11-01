@@ -1,4 +1,5 @@
 import { actions, type InputState } from "../../input/src/nes-input.ts";
+import { nesCores, type NesCoreId } from "../../adapters/src/core-ids.ts";
 export type NesCommand =
   | "load"
   | "advance"
@@ -16,6 +17,8 @@ export type NesRequest = {
   count?: number;
   input?: InputState;
   backup?: unknown;
+  /** Core for `load`; omitted means JSNES (protocol v1 compatibility). */
+  core?: NesCoreId;
 };
 export function parseNesRequest(value: unknown): NesRequest {
   if (!value || typeof value !== "object") throw Error("Mensaje inválido");
@@ -39,6 +42,12 @@ export function parseNesRequest(value: unknown): NesRequest {
   )
     throw Error("Falta archivo local");
   if (
+    r.command === "load" &&
+    r.core !== undefined &&
+    !(nesCores as readonly unknown[]).includes(r.core)
+  )
+    throw Error("Núcleo NES desconocido");
+  if (
     r.command === "advance" &&
     (!Number.isInteger(r.count) ||
       r.count! < 1 ||
@@ -58,6 +67,7 @@ export type NesResult = {
   saved?: boolean;
   saveError?: string;
   recovered?: boolean;
+  core?: NesCoreId;
   save?: Uint8Array;
   saveHash?: string;
 };

@@ -1,7 +1,10 @@
+import { MAX_ROM_BYTES } from "../../../packages/adapters/src/ines.ts";
 import {
-  NesAdapter,
-  MAX_ROM_BYTES,
-} from "../../../packages/adapters/src/jsnes.ts";
+  createCore,
+  prepareCore,
+  type NesCore,
+  type NesCoreId,
+} from "../../../packages/adapters/src/core.ts";
 import { controlDemo } from "../../../packages/fixtures/src/control-demo.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
 import { SramStore, digest } from "../../../packages/storage/src/sram.ts";
@@ -14,7 +17,13 @@ const scope = globalThis as unknown as {
   onmessage: ((event: MessageEvent) => void) | null;
   postMessage: (value: unknown, transfer: Transferable[]) => void;
 };
-let core: NesAdapter | undefined;
+let core: NesCore | undefined;
+let coreId: NesCoreId = "jsnes";
+/** Replaces the running core, releasing the previous one (wasm memory). */
+function use(next: NesCore) {
+  if (core !== next) core?.dispose();
+  core = next;
+}
 let store: SramStore | undefined;
 let rom: Uint8Array;
 let hash = "";
@@ -33,18 +42,22 @@ async function run(r: NesRequest): Promise<NesResult> {
     if (core) throw Error("Ya hay un juego cargado");
     if (r.file && r.file.size > MAX_ROM_BYTES)
       throw Error("Archivo demasiado grande: límite experimental de 512 KB PRG y 256 KB CHR.");
+    coreId = r.core ?? "jsnes";
+    await prepareCore(coreId);
     rom = r.demo ? controlDemo() : new Uint8Array(await r.file!.arrayBuffer());
     hash = await digest(rom);
-    core = new NesAdapter(rom);
-    if (core.battery) {
+    // SRAM is keyed by ROM hash only, so a save moves between cores.
+    use(createCore(coreId, rom));
+    if (core!.battery) {
       store = await SramStore.open("nrom-sram-v1:" + hash);
       const saved = await store.load();
-      if (saved) core = new NesAdapter(rom, saved);
+      if (saved) use(createCore(coreId, rom, saved));
     }
     session = r.session;
     return {
       hash,
-      battery: core.battery,
+      core: coreId,
+      battery: core!.battery,
       recovered: store?.recovered ?? false,
     };
   }
@@ -55,7 +68,7 @@ async function run(r: NesRequest): Promise<NesResult> {
     // A reset must not erase battery-backed SRAM or its previous generation.
     const saved = await flush();
     const previousSave = core.battery ? core.save() : undefined;
-    core = new NesAdapter(rom, previousSave);
+    use(createCore(coreId, rom, previousSave));
     lastSaveFrame = 0;
     return { saved, frames: 0 };
   }
@@ -97,9 +110,9 @@ async function run(r: NesRequest): Promise<NesResult> {
     const save = Uint8Array.from(b.bytes);
     if ((await digest(save)) !== b.sha256)
       throw Error("La copia de partida está dañada");
-    const replacement = new NesAdapter(rom, save);
+    const replacement = createCore(coreId, rom, save);
     await store.commit(save);
-    core = replacement;
+    use(replacement);
     lastSaveFrame = 0;
     return { saved: true };
   }
