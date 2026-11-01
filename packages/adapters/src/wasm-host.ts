@@ -47,6 +47,14 @@ export function wasmLoader(name: string, url: URL) {
         });
       });
       return compiled.then((module) => {
+        // Fail early, with the name, if a rebuilt core needs something new.
+        const missing = unsupportedImports(module);
+        if (missing.length) {
+          compiled = undefined;
+          throw Error(
+            `El núcleo ${name} necesita funciones que Cartivo no ofrece: ${missing.join(", ")}.`,
+          );
+        }
         ready = module;
       });
     },
@@ -57,10 +65,41 @@ export function wasmLoader(name: string, url: URL) {
   };
 }
 
+/** WASI errno for an operation this host does not provide (no files). */
+const ENOSYS = 52;
+
 /**
- * Host functions for a standalone Emscripten module. Only a clock, an empty
- * environment and a discarded log are needed; anything else answers "not
- * supported" (52) instead of failing to load.
+ * Every host function a standalone core may import, by module. A core that
+ * imports anything else is refused at prepare() (see unsupportedImports).
+ */
+const allowed: Record<string, readonly string[]> = {
+  env: ["emscripten_notify_memory_growth"],
+  wasi_snapshot_preview1: [
+    "clock_time_get",
+    "fd_write",
+    "fd_close",
+    "fd_seek",
+    "environ_sizes_get",
+    "environ_get",
+    "args_sizes_get",
+    "args_get",
+    "proc_exit",
+  ],
+};
+
+/** Imports outside the allow-list, as "module.name". */
+export function unsupportedImports(module: WebAssembly.Module): string[] {
+  return WebAssembly.Module.imports(module)
+    .filter(
+      ({ module: space, name, kind }) =>
+        kind !== "function" || !allowed[space]?.includes(name),
+    )
+    .map(({ module: space, name }) => `${space}.${name}`);
+}
+
+/**
+ * Host functions for a standalone Emscripten module: a clock, an empty
+ * environment, a discarded log and no files.
  */
 function hostImports(
   name: string,
@@ -73,7 +112,7 @@ function hostImports(
     view().setUint32(size, 0, true);
     return 0;
   };
-  const known: Record<string, (...args: never[]) => unknown> = {
+  const host: Record<string, (...args: never[]) => unknown> = {
     clock_time_get: (_id: number, _precision: bigint, out: number) => {
       view().setBigUint64(out, BigInt(Date.now()) * 1_000_000n, true);
       return 0;
@@ -85,6 +124,8 @@ function hostImports(
       view().setUint32(written, total, true);
       return 0;
     },
+    fd_close: () => ENOSYS,
+    fd_seek: () => ENOSYS,
     environ_sizes_get: empty,
     environ_get: () => 0,
     args_sizes_get: empty,
@@ -95,13 +136,13 @@ function hostImports(
     emscripten_notify_memory_growth: () => undefined,
   };
   const imports: Record<string, Record<string, WebAssembly.ImportValue>> = {};
-  for (const { module: space, name: item, kind } of WebAssembly.Module.imports(
+  for (const { module: space, name: item } of WebAssembly.Module.imports(
     module,
   )) {
-    if (kind !== "function")
-      throw Error(`Import inesperado del núcleo ${name}: ${space}.${item}`);
-    (imports[space] ??= {})[item] = (known[item] ??
-      (() => 52)) as WebAssembly.ImportValue;
+    const fn = allowed[space]?.includes(item) ? host[item] : undefined;
+    if (!fn)
+      throw Error(`Import no previsto del núcleo ${name}: ${space}.${item}`);
+    (imports[space] ??= {})[item] = fn as WebAssembly.ImportValue;
   }
   return imports;
 }
@@ -159,6 +200,12 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
     }
   }
 
+  /** The live core pointer; a disposed core refuses every call. */
+  #live(): Pointer {
+    if (!this.#core) throw Error("El núcleo ya se ha cerrado.");
+    return this.#core;
+  }
+
   /** Copies bytes into wasm memory for the duration of `use`. */
   #withBytes<R>(bytes: Uint8Array, use: (pointer: Pointer) => R): R {
     const pointer = this.#wasm.malloc(Math.max(1, bytes.length));
@@ -184,7 +231,7 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
   }
 
   input(state: InputState) {
-    this.#wasm.cartivo_set_input(this.#core, this.#options.bits(state));
+    this.#wasm.cartivo_set_input(this.#live(), this.#options.bits(state));
   }
 
   advance(count: number) {
@@ -192,12 +239,12 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
       throw Error("Lote de frames inválido");
     const samples = Math.min(
       MAX_AUDIO,
-      this.#wasm.cartivo_frames(this.#core, count),
+      this.#wasm.cartivo_frames(this.#live(), count),
     );
     this.frames += count;
     const audio = new Float32Array(
       this.#wasm.memory.buffer,
-      this.#wasm.cartivo_audio(this.#core),
+      this.#wasm.cartivo_audio(this.#live()),
       samples,
     ).slice();
     return { pixels: this.lastFrame(), audio, frames: this.frames };
@@ -205,7 +252,7 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
 
   save() {
     return this.#readBytes(this.saveBytes, (pointer) =>
-      this.#wasm.cartivo_save(this.#core, pointer),
+      this.#wasm.cartivo_save(this.#live(), pointer),
     );
   }
 
@@ -214,23 +261,23 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
     const { width, height } = this.#options;
     return new Uint8ClampedArray(
       this.#wasm.memory.buffer,
-      this.#wasm.cartivo_pixels(this.#core),
+      this.#wasm.cartivo_pixels(this.#live()),
       width * height * 4,
     ).slice();
   }
 
   /** Full console snapshot in the core's own state format. */
   snapshot(): Uint8Array {
-    const length = this.#wasm.cartivo_state_size(this.#core);
+    const length = this.#wasm.cartivo_state_size(this.#live());
     return this.#readBytes(length, (pointer) =>
-      this.#wasm.cartivo_save_state(this.#core, pointer),
+      this.#wasm.cartivo_save_state(this.#live(), pointer),
     );
   }
 
   /** Restores a snapshot; the bridges leave the machine untouched on failure. */
   restore(bytes: Uint8Array) {
     const result = this.#withBytes(bytes, (pointer) =>
-      this.#wasm.cartivo_load_state(this.#core, pointer, bytes.length),
+      this.#wasm.cartivo_load_state(this.#live(), pointer, bytes.length),
     );
     if (result !== 0)
       throw Error(
