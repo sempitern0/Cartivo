@@ -3,11 +3,19 @@
   import Player from "./Player.svelte";
   import ControlsPanel from "./ControlsPanel.svelte";
   import DiagnosticLab from "./DiagnosticLab.svelte";
+  import ContinueCard from "./ContinueCard.svelte";
+  import Library from "./Library.svelte";
+  import {
+    listGames,
+    readRemember,
+    type LibraryEntry,
+  } from "../../../packages/storage/src/library.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
   import { icons } from "./icons.ts";
   import {
     acceptFor,
     availableSystems,
+    system as findSystem,
     systemForFile,
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
@@ -15,12 +23,43 @@
   let controlsPage = $state(false);
   const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
-  let game = $state<{ file?: File; system: SystemInfo; id: number }>();
-  let nextGameId = 0;
-  const startGame = (system: SystemInfo, file?: File) => {
-    openError = "";
-    game = { file, system, id: ++nextGameId };
+  type Game = {
+    file?: File;
+    /** A remembered game, loaded from this device (ADR-012). */
+    stored?: LibraryEntry;
+    /** Continue from «Al salir» without the offer. */
+    resume?: boolean;
+    system: SystemInfo;
+    id: number;
   };
+  let game = $state.raw<Game>();
+  let nextGameId = 0;
+  const startGame = (
+    system: SystemInfo,
+    file?: File,
+    from: Pick<Game, "stored" | "resume"> = {},
+  ) => {
+    openError = "";
+    game = { file, system, ...from, id: ++nextGameId };
+  };
+  // Local library: remembered games, most recent first.
+  let games = $state.raw<LibraryEntry[]>([]);
+  let showLibrary = $state(false);
+  async function refreshLibrary() {
+    try {
+      games = await listGames();
+    } catch {
+      games = [];
+    }
+    showLibrary = games.length > 0 || readRemember() !== undefined;
+  }
+  const latest = $derived.by(() => {
+    for (const entry of games) {
+      const system = findSystem(entry.system);
+      if (system) return { entry, system };
+    }
+    return undefined;
+  });
   let fileInput = $state.raw<HTMLInputElement>();
   /** System whose card opened the file picker. */
   let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
@@ -78,6 +117,7 @@
   };
   onMount(() => {
     startPwa();
+    void refreshLibrary();
     // "Open with Cartivo" from the operating system (installed PWA).
     const queue = (window as Window & { launchQueue?: LaunchQueue })
       .launchQueue;
@@ -164,6 +204,18 @@
         </div>
       {/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
+      {#if latest}
+        <ContinueCard
+          entry={latest.entry}
+          system={latest.system}
+          oncontinue={() =>
+            latest &&
+            startGame(latest.system, undefined, {
+              stored: latest.entry,
+              resume: true,
+            })}
+        />
+      {/if}
       <ul class="consoles" aria-label="Consolas">
         {#each consoles as item (item.id)}
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
@@ -225,6 +277,14 @@
         onchange={chooseGame}
         hidden
       />
+      {#if showLibrary}
+        <Library
+          {games}
+          onplay={(entry, system) =>
+            startGame(system, undefined, { stored: entry })}
+          onchange={refreshLibrary}
+        />
+      {/if}
     </section>
   {/if}
   {#if game}<div hidden={controlsPage}>
@@ -232,10 +292,13 @@
         <Player
           system={game.system}
           file={game.file}
+          stored={game.stored}
+          resume={game.resume}
           visible={!controlsPage}
           autostart
           onclose={() => {
             game = undefined;
+            void refreshLibrary();
           }}
           onreplace={(file: File) => {
             pending = undefined;

@@ -35,11 +35,18 @@
   import { GameAudio } from "../../../packages/media/src/audio.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
   import {
+    readRemember,
+    writeRemember,
+    type LibraryEntry,
+  } from "../../../packages/storage/src/library.ts";
+  import {
     getPadPreference,
     readKeyboard,
   } from "../../../packages/input/src/preferences.ts";
   let {
     file,
+    stored,
+    resume: continueNow = false,
     visible = true,
     autostart = false,
     onclose,
@@ -49,6 +56,10 @@
     /** System being played (packages/runtime/src/systems.ts). */
     system: SystemInfo;
     file?: File;
+    /** A remembered game, read from this device by the Worker (ADR-012). */
+    stored?: LibraryEntry;
+    /** Continue from «Al salir» directly, without the offer. */
+    resume?: boolean;
     visible?: boolean;
     autostart?: boolean;
     onclose: () => void;
@@ -77,6 +88,25 @@
   let savesOpen = $state(false);
   let savesButton = $state.raw<HTMLButtonElement>();
   let resumeOffer = $state.raw<StateMeta>();
+  // One-time question: remember games on this device? (ADR-012)
+  let askRemember = $state(false);
+  async function answerRemember(yes: boolean) {
+    askRemember = false;
+    const kept = writeRemember(yes);
+    if (!yes) {
+      notify("No se recordarán juegos. Puedes cambiarlo en Tus juegos.");
+      return;
+    }
+    if (!kept) notify("El navegador no permite guardar esta preferencia.");
+    try {
+      const r = await client?.request("library-add");
+      if (r?.libraryError) problem = r.libraryError;
+      else if (r?.remembered)
+        notify("Juego recordado: podrás continuar desde el inicio.");
+    } catch (e) {
+      problem = e instanceof Error ? e.message : "No se pudo recordar el juego";
+    }
+  }
   let toast = $state("");
   let toastTimer = 0;
   function notify(message: string) {
@@ -217,11 +247,14 @@
       }),
     );
     try {
+      const choice = readRemember();
       const r = await client.request(
         "load",
         file
-          ? { file, system: system.id, core: coreChoice }
-          : { demo: true, system: system.id, core: coreChoice },
+          ? { file, system: system.id, core: coreChoice, remember: choice === true }
+          : stored
+            ? { stored: stored.hash, system: system.id, core: coreChoice }
+            : { demo: true, system: system.id, core: coreChoice },
       );
       runningCore = r.core;
       if (!active) return;
@@ -233,9 +266,16 @@
           ? "Guardado automático preparado."
           : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
-      // Offer to continue from the exit snapshot instead of starting over.
-      resumeOffer = saves.find((s) => s.slot === "auto");
-      if (!resumeOffer) await resume();
+      if (r.libraryError) problem = r.libraryError;
+      askRemember = !!file && choice === undefined && !r.remembered;
+      const exit = saves.find((s) => s.slot === "auto");
+      // «Continuar» from the home screen goes straight to the exit snapshot.
+      if (continueNow && exit) await loadSlot("auto");
+      else {
+        // Offer to continue from the exit snapshot instead of starting over.
+        resumeOffer = exit;
+        if (!resumeOffer) await resume();
+      }
     } catch (e) {
       client?.dispose();
       if (active) fail(e);
@@ -627,7 +667,7 @@
   {/if}
   <PlayerToolbar
     systemName={system.name}
-    title={file?.name ?? "Demo de controles"}
+    title={file?.name ?? stored?.name ?? "Demo de controles"}
     {phase}
     {busy}
     {graphicsOpen}
@@ -646,7 +686,22 @@
     onchange={romChosen}
     hidden
   />
-  {#if !file && phase !== "running"}<p class="demo-info" data-player-chrome>
+  {#if askRemember}<div
+      class="remember-ask"
+      role="group"
+      aria-labelledby="remember-ask-text"
+      data-player-chrome
+    >
+      <p id="remember-ask-text">
+        ¿Recordar tus juegos en este dispositivo para continuar con un clic?
+      </p>
+      <button data-player-action onclick={() => answerRemember(true)}
+        >Sí, recordar</button
+      ><button data-player-action onclick={() => answerRemember(false)}
+        >No</button
+      >
+    </div>{/if}
+  {#if !file && !stored && phase !== "running"}<p class="demo-info" data-player-chrome>
       WASD o flechas para moverte · L = A · K = B.
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
@@ -998,6 +1053,23 @@
   .resume-offer h2 {
     margin: 0;
     font-size: 22px;
+  }
+  .remember-ask {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin: 12px 0 0;
+    font-size: 14px;
+  }
+  .remember-ask p {
+    margin: 0;
+  }
+  .remember-ask button {
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 14px;
   }
   .toast {
     text-align: center;
