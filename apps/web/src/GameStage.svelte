@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { displayLayout, NES_VIDEO, type ScaleMode, type AspectMode, type VideoDescriptor } from "../../../packages/media/src/display-scaler.ts";
-  let { video = NES_VIDEO, label = "NES", scaleMode = "fit", aspectMode = "corrected", smooth = false, frames = 0, screen = $bindable(), fallback = $bindable(false) }: {
+  import { displayLayout, type ScaleMode, type AspectMode, type VideoDescriptor } from "../../../packages/media/src/display-scaler.ts";
+  let { video, label, scaleMode = "fit", aspectMode = "corrected", smooth = false, frames = 0, screen = $bindable(), fallback = $bindable(false) }: {
     /** Framebuffer and display aspect of the running system. */
-    video?: VideoDescriptor; label?: string;
+    video: VideoDescriptor; label: string;
     scaleMode?: ScaleMode; aspectMode?: AspectMode; smooth?: boolean; frames?: number; screen: HTMLCanvasElement | undefined;
     /** True when the chosen scale does not fit and "fit" is used instead. */
     fallback?: boolean;

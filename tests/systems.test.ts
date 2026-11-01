@@ -8,6 +8,7 @@ import {
   coreLabel,
 } from "../packages/runtime/src/systems.ts";
 import { coreModules } from "../packages/adapters/src/registry.ts";
+import { readFileSync, readdirSync } from "node:fs";
 
 test("system ids and extensions are unique", () => {
   assert.equal(new Set(systems.map((s) => s.id)).size, systems.length);
@@ -45,4 +46,29 @@ test("files are routed by extension", () => {
   assert.equal(systemForFile("notes.txt"), undefined);
   assert.equal(acceptFor(availableSystems()), ".nes");
   assert.equal(coreLabel("nes", "tetanes"), "TetaNES");
+});
+
+test("the manifest opens exactly the extensions of available systems", () => {
+  const manifest = JSON.parse(
+    readFileSync("apps/web/public/manifest.webmanifest", "utf8"),
+  ) as { file_handlers: { accept: Record<string, string[]> }[] };
+  const handled = manifest.file_handlers.flatMap((h) =>
+    Object.values(h.accept).flat(),
+  );
+  const offered = availableSystems().flatMap((s) => s.extensions);
+  assert.deepEqual(handled.sort(), offered.sort());
+});
+
+// The interface takes everything system-specific from systems.ts, so adding
+// a console must not need `if (system === "gb")` branches in the UI. The
+// worker is exempt only for the protocol v1 default (no system means NES).
+test("the interface has no hard-coded system ids", () => {
+  const dir = "apps/web/src";
+  for (const file of readdirSync(dir)) {
+    if (!/\.(svelte|ts)$/.test(file) || file === "emulator.worker.ts") continue;
+    const source = readFileSync(`${dir}/${file}`, "utf8");
+    for (const s of systems)
+      assert.doesNotMatch(source, new RegExp(`["'\`]${s.id}["'\`]`), file);
+    assert.doesNotMatch(source, /NES_VIDEO|cartivo-nrom|nrom-sram/, file);
+  }
 });

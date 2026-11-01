@@ -7,6 +7,11 @@ import type {
 import { neutral } from "../../../packages/input/src/nes-input.ts";
 import { SramStore, digest } from "../../../packages/storage/src/sram.ts";
 import {
+  backupFormat,
+  sramKey,
+} from "../../../packages/storage/src/formats.ts";
+import { coreLabel } from "../../../packages/runtime/src/systems.ts";
+import {
   StateStore,
   makePreview,
 } from "../../../packages/storage/src/states.ts";
@@ -40,9 +45,6 @@ async function flush() {
   }
   return false;
 }
-/** Battery RAM key; NES keeps its original prefix so old saves still load. */
-const sramKey = (system: string, romHash: string) =>
-  system === "nes" ? `nrom-sram-v1:${romHash}` : `${system}-sram-v1:${romHash}`;
 async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
@@ -132,7 +134,9 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     return { saved, states: await states!.list() };
   }
   if (r.command === "state-load") {
-    const bytes = await states!.load(r.slot!, module.id, module.version);
+    const bytes = await states!.load(r.slot!, module.id, module.version, (id) =>
+      coreLabel(module.system, id),
+    );
     core.restore(bytes);
     return { frames: core.frames, states: await states!.list() };
   }
@@ -150,7 +154,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     if (
       !store ||
       !b ||
-      b.format !== "cartivo-nrom-sram-v1" ||
+      b.format !== backupFormat(module.system) ||
       b.game !== hash ||
       !Array.isArray(b.bytes) ||
       b.bytes.length !== module.sramBytes ||

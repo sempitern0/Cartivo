@@ -85,7 +85,7 @@ test("JSNES snapshot restores the exact moment", () => {
 test("previews, slots and protocol validation", () => {
   const frame = new Uint8ClampedArray(256 * 240 * 4);
   frame.set([10, 20, 30, 255], (2 * 256 + 4) * 4);
-  const preview = makePreview(frame);
+  const preview = makePreview(frame, 256, 240);
   assert.equal(preview.length, PREVIEW_WIDTH * PREVIEW_HEIGHT * 4);
   assert.deepEqual(
     [...preview.subarray((128 + 2) * 4, (128 + 2) * 4 + 4)],

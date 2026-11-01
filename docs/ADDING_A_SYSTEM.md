@@ -39,5 +39,21 @@ Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un siste
 - `tests/systems.test.ts` comprueba que la UI y el Worker coinciden (ids, versiones y vídeo).
 - Añadir pruebas específicas del formato y E2E del flujo (abrir archivo, jugar, Partidas) en dev y preview.
 
+## Mapa para GB/GBC (próximo sistema)
+Archivos que debería tocar el incremento, según el estado de la PR #2:
+
+| Tocar | Para qué |
+|---|---|
+| `cores/<id>/`, `.github/workflows/core-<id>.yml`, `tools/build-<id>.mjs`, `tools/verify-<id>.mjs` | Build WASM reproducible |
+| `packages/adapters/src/<id>.ts`, validador de cabecera GB, `registry.ts` | Módulo del núcleo |
+| `packages/fixtures/` | ROM original de prueba |
+| `packages/runtime/src/systems.ts`, `apps/web/public/manifest.webmanifest` | Tarjeta, extensiones `.gb`/`.gbc`, vídeo 160×144 a 10:9 |
+| `tests/core-conformance.test.ts` (fixture), pruebas de formato y E2E | Conformidad |
+| Docs del apartado 6 | Expediente |
+
+**No deberían cambiar:** `App.svelte`, `Player.svelte`, `PlayerToolbar.svelte`, `GraphicsPanel.svelte`, `SavePanel.svelte`, `GameStage.svelte`, `emulator.worker.ts`, `protocol.ts`, `client.ts` ni `packages/storage`. La SRAM se guarda como `gb-sram-v1:<hash>` y las copias como `cartivo-gb-sram-v1` (`packages/storage/src/formats.ts`); las Partidas ya son por hash y núcleo. `tests/systems.test.ts` falla si la interfaz incluye ids de sistema escritos a mano o si el manifest y `systems.ts` no coinciden.
+
+**Límites conocidos (posmerge):** el bucle del reproductor avanza a 60 Hz fijos (GB va a 59,73 Hz: deriva inapreciable, sin corrección de A/V por núcleo); los controles y su página siguen siendo los 8 botones NES (válidos para GB/GBC); el vídeo del núcleo es de tamaño fijo (sin cambios de resolución en caliente).
+
 ## 6. Documentación
 Crear `docs/compatibility/<SISTEMA>.md` y un ADR del núcleo, y actualizar README, el plan técnico (catálogo y backlog), `LICENSES.md`, `apps/web/public/licenses/` y CHANGELOG.

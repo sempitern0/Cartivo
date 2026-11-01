@@ -6,6 +6,10 @@
   import SavePanel from "./SavePanel.svelte";
   import SnapshotThumb from "./SnapshotThumb.svelte";
   import { slotNames, when } from "./saves.ts";
+  import {
+    backupFormat,
+    MAX_BACKUP_FILE,
+  } from "../../../packages/storage/src/formats.ts";
   import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
   import {
     readDisplay,
@@ -529,7 +533,7 @@
       const blob = new Blob(
         [
           JSON.stringify({
-            format: "cartivo-nrom-sram-v1",
+            format: backupFormat(system.id),
             game: r.hash,
             sha256: r.saveHash,
             bytes: Array.from(r.save),
@@ -557,7 +561,7 @@
     if (!backup || phase !== "paused" || busy) return;
     busy = true;
     try {
-      if (backup.size > 40000) throw Error("Copia demasiado grande");
+      if (backup.size > MAX_BACKUP_FILE) throw Error("Copia demasiado grande");
       await client!.request("import", {
         backup: JSON.parse(await backup.text()),
       });

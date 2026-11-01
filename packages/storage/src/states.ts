@@ -25,11 +25,11 @@ export function isStateSlot(value: unknown): value is StateSlot {
   return (stateSlots as readonly unknown[]).includes(value);
 }
 
-/** Nearest-neighbour preview of any RGBA frame at 128×120 (NES: halved). */
+/** Nearest-neighbour preview of any RGBA frame at 128×120. */
 export function makePreview(
   pixels: Uint8ClampedArray,
-  width = 256,
-  height = 240,
+  width: number,
+  height: number,
 ) {
   const out = new Uint8ClampedArray(PREVIEW_WIDTH * PREVIEW_HEIGHT * 4);
   for (let y = 0; y < PREVIEW_HEIGHT; y++) {
@@ -40,6 +40,26 @@ export function makePreview(
     }
   }
   return out;
+}
+
+/**
+ * A snapshot only restores on the exact core and version that wrote it;
+ * otherwise explain why and leave the record untouched.
+ */
+export function snapshotFits(
+  saved: Pick<StateMeta, "core" | "coreVersion">,
+  core: string,
+  coreVersion: string,
+  coreName: (id: string) => string = (id) => id,
+) {
+  if (saved.core !== core)
+    throw Error(
+      `Esta partida se guardó con ${coreName(saved.core)}. Cambia de núcleo en Acerca de esta prueba para cargarla.`,
+    );
+  if (saved.coreVersion !== coreVersion)
+    throw Error(
+      `Esta partida es de otra versión del núcleo (${saved.coreVersion}) y no se puede cargar. Se conserva sin cambios.`,
+    );
 }
 
 const meta = ({ bytes: _b, sha256: _s, ...rest }: StateRecord): StateMeta =>
@@ -153,20 +173,18 @@ export class StateStore {
   }
 
   /** Returns the snapshot bytes after checking core, version and checksum. */
-  async load(slot: StateSlot, core: string, coreVersion: string) {
+  async load(
+    slot: StateSlot,
+    core: string,
+    coreVersion: string,
+    coreName: (id: string) => string = (id) => id,
+  ) {
     const tx = this.db.transaction("states", "readonly");
     const value = (await request(
       tx.objectStore("states").get(this.key(slot)),
     )) as StateRecord | undefined;
     if (!value) throw Error("Esa ranura está vacía");
-    if (value.core !== core)
-      throw Error(
-        `Esta partida se guardó con ${value.core === "jsnes" ? "JSNES" : "TetaNES"}. Cambia de núcleo en Acerca de esta prueba para cargarla.`,
-      );
-    if (value.coreVersion !== coreVersion)
-      throw Error(
-        `Esta partida es de otra versión del núcleo (${value.coreVersion}) y no se puede cargar. Se conserva sin cambios.`,
-      );
+    snapshotFits(value, core, coreVersion, coreName);
     if (
       !(value.bytes instanceof Uint8Array) ||
       (await digest(value.bytes)) !== value.sha256
