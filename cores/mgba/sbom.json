@@ -1,0 +1,56 @@
+[
+  {
+    "name": "mGBA (core, GBA, ARM, util)",
+    "version": "0.10.5",
+    "license": "MPL-2.0",
+    "repository": "https://github.com/mgba-emu/mgba"
+  },
+  {
+    "name": "mGBA HLE BIOS (src/gba/hle-bios.c)",
+    "version": "0.10.5",
+    "license": "MPL-2.0",
+    "repository": "https://github.com/mgba-emu/mgba"
+  },
+  {
+    "name": "blip_buf 1.1.0 (src/third-party/blip_buf)",
+    "version": "0.10.5",
+    "license": "LGPL-2.1-or-later",
+    "repository": "https://github.com/mgba-emu/mgba"
+  },
+  {
+    "name": "inih (src/third-party/inih)",
+    "version": "0.10.5",
+    "license": "BSD-3-Clause",
+    "repository": "https://github.com/mgba-emu/mgba"
+  },
+  {
+    "name": "MurmurHash3 (src/util/hash.c)",
+    "version": "0.10.5",
+    "license": "LicenseRef-public-domain",
+    "repository": "https://github.com/mgba-emu/mgba"
+  },
+  {
+    "name": "Emscripten system libraries",
+    "version": "6.0.12",
+    "license": "MIT OR NCSA",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "musl libc (Emscripten)",
+    "version": "6.0.12",
+    "license": "MIT",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "compiler-rt (Emscripten)",
+    "version": "6.0.12",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "dlmalloc (Emscripten)",
+    "version": "6.0.12",
+    "license": "CC0-1.0",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  }
+]
