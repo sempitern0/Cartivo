@@ -1048,7 +1048,8 @@
   .option { position: relative; display: grid; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
   .option:hover { border-color: #565c72; }
   .option.checked { border-color: var(--blue); box-shadow: var(--glow); }
-  .option input, .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  /* The invisible input covers the whole card so pointer and keyboard both hit it. */
+  .option input, .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
   .option:has(input:focus-visible), .switch:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
   .diagram { width: 100%; max-width: 120px; height: auto; margin-bottom: 6px; }
   .diagram .screen { fill: #0b0d13; stroke: #3a3f52; stroke-width: 1.5; }
