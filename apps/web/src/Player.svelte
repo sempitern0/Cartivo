@@ -616,6 +616,9 @@
       finish();
       return;
     }
+    // Wait for an in-flight save/pause instead of ignoring «Salir».
+    for (let i = 0; busy && i < 50; i++)
+      await new Promise((r) => setTimeout(r, 50));
     if (busy) return;
     if (phase === "running") await pause();
     // Exit snapshot so the next opening can continue from here. Skipped

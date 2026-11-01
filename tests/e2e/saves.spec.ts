@@ -78,6 +78,9 @@ test("leaving saves automatically and reopening offers to continue", async ({
   await running(page);
   // Starting over is also possible.
   await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Jugar", exact: true }),
+  ).toBeVisible();
   await open(page);
   await page.getByRole("button", { name: "Empezar de nuevo" }).click();
   await expect(offer).toHaveCount(0);
