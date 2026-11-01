@@ -20,7 +20,8 @@ const root = resolve(import.meta.dirname, "..");
 const crate = join(root, "cores/tetanes");
 const verify = process.argv.includes("--verify");
 const run = (cmd, args, opts = {}) =>
-  execFileSync(cmd, args, { cwd: crate, encoding: "utf8", ...opts }).trim();
+  // With stdio: "inherit" execFileSync returns null; nothing to capture.
+  (execFileSync(cmd, args, { cwd: crate, encoding: "utf8", ...opts }) ?? "").trim();
 const sha256 = (file) =>
   createHash("sha256").update(readFileSync(file)).digest("hex");
 
