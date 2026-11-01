@@ -33,15 +33,7 @@
   } from "../../../packages/storage/src/states.ts";
   import audioWorkletUrl from "./audio.worklet.ts?worker&url";
   import { GameAudio } from "../../../packages/media/src/audio.ts";
-  import {
-    neutral,
-    sample,
-    keyboardAction,
-    standard,
-    sameDevice,
-    type Pad,
-    type Action,
-  } from "../../../packages/input/src/nes-input.ts";
+  import { InputCapture } from "../../../packages/input/src/capture.ts";
   import {
     getPadPreference,
     readKeyboard,
@@ -188,20 +180,17 @@
   let loop = 0;
   let time = 0;
   let remainder = 0;
-  let armed = false;
-  let lastPad: Pad | undefined;
-  let chosenIndex: number | undefined;
-  let selectedOnce = false;
-  const held = new Set<string>();
-  const virtual = new Set<Action>();
-  let virtualRelease = 0;
-  let keyboard = readKeyboard();
+  const controls = new InputCapture(
+    readKeyboard(),
+    () => navigator.getGamepads?.() ?? [],
+    getPadPreference,
+  );
   function fail(e: unknown) {
     phase = "error";
     if (battery) saveStatus = "Guardado sin confirmar.";
     problem = e instanceof Error ? e.message : "No se pudo iniciar la sesión";
     audio?.pause();
-    held.clear();
+    controls.clear();
   }
   async function start() {
     if (phase !== "ready") return;
@@ -261,12 +250,7 @@
     if (!active || !visible) return;
     // Playing without choosing «Continuar» starts over from power-on.
     resumeOffer = undefined;
-    keyboard = readKeyboard();
-    held.clear();
-    armed = false;
-    lastPad = undefined;
-    selectedOnce = false;
-    chosenIndex = undefined;
+    controls.start(readKeyboard());
     time = performance.now();
     remainder = 0;
     phase = "running";
@@ -279,10 +263,7 @@
     if (phase !== "running") return;
     phase = "paused";
     cancelAnimationFrame(loop);
-    held.clear();
-    virtual.clear();
-    clearTimeout(virtualRelease);
-    armed = false;
+    controls.clear();
     audio?.pause();
     busy = true;
     try {
@@ -313,69 +294,15 @@
   });
   async function pump(now: number) {
     if (phase !== "running" || !visible || !active) return;
-    const pref = getPadPreference();
-    let pads: Pad[] = [];
-    try {
-      pads = Array.from(navigator.getGamepads?.() ?? []).filter(
-        (p): p is Gamepad => !!p && p.connected,
-      );
-    } catch {
-      padStatus = "Mando bloqueado por el navegador; teclado disponible.";
-    }
-    if (!selectedOnce) {
-      chosenIndex =
-        pref.mode === "pad"
-          ? pref.index
-          : pref.mode === "auto"
-            ? pads.find((p) => p.mapping === "standard")?.index
-            : undefined;
-      selectedOnce = true;
-    }
-    // Allow hot-plug without switching away from an already chosen controller.
-    if (chosenIndex === undefined && pref.mode === "auto")
-      chosenIndex = pads.find((p) => p.mapping === "standard")?.index;
-    const pad = pads.find((p) => p.index === chosenIndex);
-    if (lastPad && !sameDevice(lastPad, pad)) {
-      padStatus = "Mando desconectado o sustituido. Compruébalo en Controles.";
+    const reading = controls.read();
+    padStatus = reading.status;
+    if (reading.lost) {
       await pause();
       return;
     }
-    if (pad) {
-      if (pref.mode === "pad" && pad.id !== pref.id) {
-        padStatus = "El mando ha cambiado. Selecciónalo en Controles.";
-        await pause();
-        return;
-      }
-      lastPad = {
-        index: pad.index,
-        id: pad.id,
-        mapping: pad.mapping,
-        connected: pad.connected,
-        buttons: [...pad.buttons],
-        axes: [...pad.axes],
-      };
-      padStatus = "Mando conectado";
-    }
-    padConnected = !!pad;
-    if (!pad && padStatus === "Mando conectado") padStatus = "Sin mando";
-    const profile =
-      pref.mode === "pad"
-        ? pref.profile
-        : pad?.mapping === "standard"
-          ? standard
-          : undefined;
-    if (pad && !profile)
-      padStatus = "Configura este mando en Controles; teclado disponible.";
-    const input = sample(
-      pad,
-      profile,
-      held,
-      pref.mode === "pad" ? pref.deadzone : 0.25,
-      keyboard,
-    );
-    for (const action of virtual) input[action] = true;
-    if (!armed) {
-      if (!Object.values(input).some(Boolean)) armed = true;
+    padConnected = reading.connected;
+    const input = reading.input;
+    if (!reading.ready) {
       time = now;
       loop = requestAnimationFrame(pump);
       return;
@@ -457,14 +384,11 @@
     ) return;
     e.preventDefault();
     e.stopPropagation();
-    if (keyboardAction(e.code, keyboard) && !e.repeat) held.add(e.code);
+    controls.keyDown(e.code, e.repeat);
   }
   function tapControl(action: "start" | "select") {
     if (phase !== "running") return;
-    clearTimeout(virtualRelease);
-    virtual.clear();
-    virtual.add(action);
-    virtualRelease = window.setTimeout(() => virtual.clear(), 180);
+    controls.tap(action);
   }
   async function resetConsole() {
     if (phase === "running") await pause();
@@ -474,8 +398,7 @@
     try {
       const result = await client!.request("reset");
       frames = result.frames ?? 0;
-      virtual.clear();
-      held.clear();
+      controls.clear();
       saveStatus = result.saved ? "Partida guardada antes de reiniciar." : saveStatus;
       problem = "";
     } catch (error) {
@@ -658,16 +581,14 @@
       // Mobile may kill a hidden tab: keep an exit snapshot as well.
       void pause().then(() => saveSlot("auto", true));
     };
-    const up = (e: KeyboardEvent) => held.delete(e.code);
+    const up = (e: KeyboardEvent) => controls.keyUp(e.code);
     window.addEventListener("blur", blur);
     document.addEventListener("visibilitychange", hide);
     window.addEventListener("keyup", up);
     return () => {
       active = false;
       cancelAnimationFrame(loop);
-      held.clear();
-      virtual.clear();
-      clearTimeout(virtualRelease);
+      controls.clear();
       audio?.close();
       client?.dispose();
       document.removeEventListener("keydown", keydown, true);
