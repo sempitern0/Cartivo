@@ -33,13 +33,14 @@ Oráculo:
 | Arnés C nativo (gcc, mismas fuentes y flags) | DMG y CGB: imagen, la entrada mueve el cuadrado, 803,5 muestras por frame (59,73 Hz), SRAM 8 KB y contador, instantánea ida y vuelta con repetición idéntica, estado corrupto rechazado sin alterar la máquina, recarga de batería |
 | Adaptador TS + WASM del bot en Node | Las mismas comprobaciones con `dist/sameboy.wasm`; ~2,6 ms por frame |
 | `pnpm test` (local en Node 22 y en CI con Node 24) | 66/66, incluida la conformidad de `gb/sameboy` y `gbc/sameboy` |
+| `tests/gb.test.ts` (WASM del bot en Node) | La cabecera elige el hardware: la fixture DMG solo produce grises y la CGB, color. MBC3+reloj: `saveBytes` = 8 KB + 48 B (pie vba64); la marca de tiempo es la hora real; con la app «cerrada» tres horas, el reloj avanza unas 3 h al reabrir y la RAM se conserva |
 | E2E `tests/e2e/gb.spec.ts` | Demo GB y GBC con 160×144 y SRAM conservada al reabrir; F5/F9; `.gbc` soltado abre GBC; archivo dañado rechazado; Gráficos sin opciones redundantes. **CI sobre `9fdb533`** (Foundation CI, run 41311681735): 6/6 en dev y 6/6 en preview; suite completa 48 superados en dev y 47 en preview, `svelte-check` sin errores |
 
 ## QA manual pendiente
 
 1. Demo de Game Boy y de Game Boy Color: mover, A cambia el color, B suena; salir y reabrir conserva el color.
 2. Un juego propio de GB y otro de GBC (solo en local): arranque, partida de batería, Partidas, F5/F9.
-3. Un juego con reloj (MBC3): la hora avanza con el sistema.
+3. Un juego con reloj (MBC3), con un juego real: la hora avanza con el sistema también tras cerrar la app (el automatismo ya lo comprueba con la fixture).
 4. Mando físico y audio reales; Firefox/Safari; móvil.
 
 Límites: un jugador, audio mono, sin Super Game Boy, cable link, cámara, impresora ni sensores. El RTC no es determinista tras restaurar una instantánea.
