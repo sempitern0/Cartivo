@@ -141,3 +141,8 @@
 - GBA: variantes propias de la fixture con los protocolos reales de Flash y EEPROM; el juego relee su partida tras reabrir. Prueba sin chip de guardado y coste del búfer fijo medido.
 - `wasm-host.ts`: lista explícita de imports permitidos (un import desconocido falla en `prepare()` nombrándolo) y núcleo cerrado que rechaza llamadas.
 - Backlog: descriptor de entrada por sistema y precache selectivo de núcleos antes de SNES y de núcleos pesados.
+
+### CI de núcleos
+
+- Los workflows de núcleo ya no se disparan por `.build-request` en `main` (al fusionar una PR); allí se usa `workflow_dispatch`.
+- Reproducibilidad confirmada: las compilaciones de SameBoy y mGBA relanzadas en `main` dieron los mismos hashes que los artefactos versionados.

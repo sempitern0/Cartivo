@@ -7,6 +7,9 @@ name: Core TetaNES
 # Never rebuild automatically just because application code or a PR changed.
 on:
   push:
+    # Work branches only: merging a PR that carried a build request must not
+    # rebuild on main (main uses workflow_dispatch for deliberate builds).
+    branches-ignore: [main]
     paths:
       - "cores/tetanes/.build-request"
   workflow_dispatch:

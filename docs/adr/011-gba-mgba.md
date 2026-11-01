@@ -16,6 +16,7 @@ Tras GB/GBC con SameBoy (ADR-010), el titular pidió GBA. SameBoy no cubre GBA; 
 - **Build:**
   - `cores/mgba/sources.txt` sustituye a CMake: el target libretro de mGBA (solo GBA, sin dependencias) menos el frontend y el renderer OpenGL, con `flags.h` y `version.c` generados.
   - WebAssembly autónomo `dist/mgba.wasm` (~575 KB), compilado una vez en CI y solo bajo petición (`core-mgba.yml`).
+- **Compilación reproducida:** una compilación independiente en `main` dio el mismo binario. El disparo por `.build-request` ignora `main` (ADR-008).
 - **Host común:** `packages/adapters/src/wasm-host.ts` reúne la carga diferida del WASM, los imports de sistema y `BridgeCore`, el `EmulatorCore` sobre la ABI `cartivo_*`. SameBoy y mGBA solo aportan su orden de botones, sus dimensiones y su `cartivo_create`.
   - Los imports son una **lista explícita** (reloj, entorno vacío, log descartado, sin archivos). Un núcleo recompilado que pida otra cosa se rechaza en `prepare()` nombrando la función que falta.
   - Un núcleo cerrado (`dispose`) rechaza cualquier llamada en vez de usar memoria liberada.
