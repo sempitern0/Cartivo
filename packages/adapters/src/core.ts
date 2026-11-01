@@ -8,6 +8,12 @@ import type { NesCoreId } from "./core-ids.ts";
 export { nesCores, type NesCoreId } from "./core-ids.ts";
 export type NesCore = NesAdapter | TetanesAdapter;
 
+/** Snapshot formats are tied to the core and its exact version. */
+export const coreVersions: Record<NesCoreId, string> = {
+  tetanes: "0.17.0",
+  jsnes: "2.1.0",
+};
+
 let ready: Promise<unknown> | undefined;
 
 /** Loads the TetaNES wasm once per Worker. */

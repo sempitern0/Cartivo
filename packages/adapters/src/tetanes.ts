@@ -61,6 +61,24 @@ export class TetanesAdapter {
     if (this.core.battery) out.set(this.core.sram().subarray(0, SRAM_BYTES));
     return out;
   }
+  /** Copy of the last presented frame (RGBA 256×240; empty before any frame). */
+  lastFrame(): Uint8ClampedArray {
+    return new Uint8ClampedArray(this.core.pixels().buffer);
+  }
+  /** Full console snapshot in TetaNES' own (compressed) state format. */
+  snapshot(): Uint8Array {
+    return this.core.save_state();
+  }
+  /** Restores a snapshot; TetaNES rejects states of another cartridge. */
+  restore(bytes: Uint8Array) {
+    try {
+      this.core.load_state(bytes);
+    } catch {
+      throw Error(
+        "La partida guardada no corresponde a este juego o está dañada",
+      );
+    }
+  }
   /** Frees the wasm-side instance; the adapter is unusable afterwards. */
   dispose() {
     this.core.free();

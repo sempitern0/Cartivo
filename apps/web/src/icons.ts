@@ -25,6 +25,9 @@ export const icons = {
   gamepad: svg(
     '<path d="M7 8h10a4 4 0 0 1 3.9 4.9l-.8 3.4a2 2 0 0 1-3.4.9L14.6 15H9.4l-2.1 2.2a2 2 0 0 1-3.4-.9l-.8-3.4A4 4 0 0 1 7 8z"/><path d="M7.5 11v3M6 12.5h3M15.5 12h.01M17.5 13.5h.01"/>',
   ),
+  save: svg(
+    '<path d="M5 4h11l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+  ),
   play: svg('<path d="M8 5.5v13l10-6.5z" fill="currentColor"/>'),
   check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
 } as const;

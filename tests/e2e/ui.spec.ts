@@ -17,6 +17,17 @@ async function noHorizontalScroll(page: Page) {
 }
 
 async function playing(page: Page) {
+  // An exit snapshot from earlier in the test offers «Continuar»: start over.
+  const offer = page.getByRole("button", { name: "Empezar de nuevo" });
+  await expect
+    .poll(
+      async () =>
+        (await page.getByTestId("player-phase").textContent())?.includes(
+          "Jugando",
+        ) || (await offer.count()) > 0,
+    )
+    .toBe(true);
+  if (await offer.count()) await offer.click();
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await expect
     .poll(async () =>

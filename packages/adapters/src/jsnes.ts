@@ -66,6 +66,24 @@ export class NesAdapter {
       frames: this.frames,
     };
   }
+  /** Copy of the last presented frame (RGBA 256×240). */
+  lastFrame(): Uint8ClampedArray {
+    return this.pixels.slice();
+  }
+  /** Full console snapshot (JSNES `toJSON`), encoded as UTF-8 JSON. */
+  snapshot(): Uint8Array {
+    return new TextEncoder().encode(JSON.stringify(this.core.toJSON()));
+  }
+  /** Restores a snapshot from `snapshot()`; throws on malformed data. */
+  restore(bytes: Uint8Array) {
+    let state: unknown;
+    try {
+      state = JSON.parse(new TextDecoder().decode(bytes));
+    } catch {
+      throw Error("La partida guardada está dañada");
+    }
+    this.core.fromJSON(state as Parameters<NES["fromJSON"]>[0]);
+  }
   /** Nothing to release: plain JavaScript objects are garbage collected. */
   dispose() {}
   save() {

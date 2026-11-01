@@ -1,12 +1,21 @@
 import { actions, type InputState } from "../../input/src/nes-input.ts";
 import { nesCores, type NesCoreId } from "../../adapters/src/core-ids.ts";
+import {
+  isStateSlot,
+  type StateMeta,
+  type StateSlot,
+} from "../../storage/src/states.ts";
 export type NesCommand =
   | "load"
   | "advance"
   | "pause"
   | "save"
   | "import"
-  | "reset";
+  | "reset"
+  | "state-list"
+  | "state-save"
+  | "state-load"
+  | "state-delete";
 export type NesRequest = {
   v: 1;
   session: string;
@@ -19,6 +28,8 @@ export type NesRequest = {
   backup?: unknown;
   /** Core for `load`; omitted means JSNES (protocol v1 compatibility). */
   core?: NesCoreId;
+  /** Snapshot slot for state-save/state-load/state-delete. */
+  slot?: StateSlot;
 };
 export function parseNesRequest(value: unknown): NesRequest {
   if (!value || typeof value !== "object") throw Error("Mensaje inválido");
@@ -30,7 +41,18 @@ export function parseNesRequest(value: unknown): NesRequest {
     r.session.length > 128 ||
     !Number.isSafeInteger(r.id) ||
     r.id < 1 ||
-    !["load", "advance", "pause", "save", "import", "reset"].includes(r.command)
+    ![
+      "load",
+      "advance",
+      "pause",
+      "save",
+      "import",
+      "reset",
+      "state-list",
+      "state-save",
+      "state-load",
+      "state-delete",
+    ].includes(r.command)
   )
     throw Error("Protocolo NES inválido");
   if (
@@ -47,6 +69,11 @@ export function parseNesRequest(value: unknown): NesRequest {
     !(nesCores as readonly unknown[]).includes(r.core)
   )
     throw Error("Núcleo NES desconocido");
+  if (
+    ["state-save", "state-load", "state-delete"].includes(r.command) &&
+    !isStateSlot(r.slot)
+  )
+    throw Error("Ranura de partida inválida");
   if (
     r.command === "advance" &&
     (!Number.isInteger(r.count) ||
@@ -70,4 +97,6 @@ export type NesResult = {
   core?: NesCoreId;
   save?: Uint8Array;
   saveHash?: string;
+  /** Snapshot slots for this game (metadata and previews only). */
+  states?: StateMeta[];
 };

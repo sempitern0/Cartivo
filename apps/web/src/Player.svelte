@@ -15,6 +15,10 @@
     writeNesCore,
   } from "../../../packages/runtime/src/core-preference.ts";
   import type { NesCoreId } from "../../../packages/adapters/src/core-ids.ts";
+  import type {
+    StateMeta,
+    StateSlot,
+  } from "../../../packages/storage/src/states.ts";
   import audioWorkletUrl from "./audio.worklet.ts?worker&url";
   import { GameAudio } from "../../../packages/media/src/audio.ts";
   import {
@@ -58,6 +62,104 @@
   let padConnected = $state(false);
   let romInput = $state.raw<HTMLInputElement>();
   let coreChoice = $state<NesCoreId>(readNesCore());
+  // «Partidas»: full-console snapshots (ADR-009).
+  let saves = $state.raw<StateMeta[]>([]);
+  let savesOpen = $state(false);
+  let savesButton = $state.raw<HTMLButtonElement>();
+  let savesPanel = $state.raw<HTMLElement>();
+  let resumeOffer = $state.raw<StateMeta>();
+  let confirmLoad = $state<StateSlot>();
+  let toast = $state("");
+  let toastTimer = 0;
+  const slotNames: Record<StateSlot, string> = {
+    auto: "Al salir",
+    "1": "Ranura 1",
+    "2": "Ranura 2",
+    "3": "Ranura 3",
+  };
+  const allSlots: StateSlot[] = ["auto", "1", "2", "3"];
+  const slotOf = (slot: StateSlot) => saves.find((s) => s.slot === slot);
+  const when = (time: number) =>
+    new Intl.DateTimeFormat("es", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(time);
+  function notify(message: string) {
+    toast = message;
+    clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(() => (toast = ""), 2600);
+  }
+  function preview(canvas: HTMLCanvasElement, data?: Uint8ClampedArray) {
+    const draw = (pixels?: Uint8ClampedArray) => {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      if (pixels && pixels.length === 128 * 120 * 4)
+        ctx.putImageData(
+          new ImageData(new Uint8ClampedArray(pixels), 128, 120),
+          0,
+          0,
+        );
+      else ctx.clearRect(0, 0, 128, 120);
+    };
+    draw(data);
+    return { update: draw };
+  }
+  async function saveSlot(slot: StateSlot, quiet = false) {
+    if (!client || phase === "loading" || phase === "error") return false;
+    try {
+      const r = await client.request("state-save", { slot });
+      saves = r.states ?? saves;
+      if (!quiet) notify(`Partida guardada en ${slotNames[slot].toLowerCase()}.`);
+      return true;
+    } catch (e) {
+      if (!quiet)
+        problem = e instanceof Error ? e.message : "No se pudo guardar la partida";
+      return false;
+    }
+  }
+  async function loadSlot(slot: StateSlot) {
+    if (!client || phase === "loading" || phase === "error") return;
+    confirmLoad = undefined;
+    const wasRunning = phase === "running";
+    if (wasRunning) await pause();
+    try {
+      const r = await client.request("state-load", { slot });
+      saves = r.states ?? saves;
+      frames = r.frames ?? frames;
+      resumeOffer = undefined;
+      savesOpen = false;
+      problem = "";
+      notify(`Partida cargada: ${slotNames[slot].toLowerCase()}.`);
+      await resume();
+    } catch (e) {
+      problem = e instanceof Error ? e.message : "No se pudo cargar la partida";
+    }
+  }
+  async function deleteSlot(slot: StateSlot) {
+    if (!client) return;
+    try {
+      const r = await client.request("state-delete", { slot });
+      saves = r.states ?? saves;
+    } catch (e) {
+      problem = e instanceof Error ? e.message : "No se pudo borrar la partida";
+    }
+  }
+  async function toggleSaves() {
+    if (phase === "running") await pause();
+    savesOpen = !savesOpen;
+    if (savesOpen) {
+      graphicsOpen = false;
+      await tick();
+      savesPanel?.querySelector<HTMLButtonElement>("button")?.focus({
+        preventScroll: true,
+      });
+    }
+  }
+  function closeSaves() {
+    savesOpen = false;
+    confirmLoad = undefined;
+    savesButton?.focus({ preventScroll: true });
+  }
   let runningCore = $state<NesCoreId>();
   const coreIds: NesCoreId[] = ["tetanes", "jsnes"];
   const coreNames: Record<NesCoreId, string> = {
@@ -103,6 +205,7 @@
   async function toggleGraphics() {
     if (phase === "running") await pause();
     graphicsOpen = !graphicsOpen;
+    if (graphicsOpen) savesOpen = false;
     if (graphicsOpen) {
       await tick();
       graphicsPanel
@@ -170,13 +273,16 @@
       runningCore = r.core;
       if (!active) return;
       battery = !!r.battery;
+      saves = r.states ?? [];
       saveStatus = r.recovered
         ? "Partida recuperada desde la generación anterior."
         : battery
           ? "Guardado automático preparado."
-          : "Este cartucho no usa guardado de partida.";
+          : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
-      await resume();
+      // Offer to continue from the exit snapshot instead of starting over.
+      resumeOffer = saves.find((s) => s.slot === "auto");
+      if (!resumeOffer) await resume();
     } catch (e) {
       client?.dispose();
       if (active) fail(e);
@@ -189,6 +295,8 @@
       audioReady = false;
     });
     if (!active || !visible) return;
+    // Playing without choosing «Continuar» starts over from power-on.
+    resumeOffer = undefined;
     keyboard = readKeyboard();
     held.clear();
     armed = false;
@@ -356,6 +464,14 @@
       focusMode = !focusMode;
       return;
     }
+    if ((e.code === "F5" || e.code === "F9") && !e.repeat) {
+      // Never let F5 reload the page during a game.
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.code === "F5") void saveSlot("1");
+      else void loadSlot("1");
+      return;
+    }
     if (e.code === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -502,6 +618,9 @@
     }
     if (busy) return;
     if (phase === "running") await pause();
+    // Exit snapshot so the next opening can continue from here. Skipped
+    // while the continue offer is pending: nothing has been played yet.
+    if (phase === "paused" && !resumeOffer) await saveSlot("auto", true);
     if (saveStatus === "Guardado sin confirmar.") {
       problem =
         "Exporta una copia antes de cerrar: el guardado local no se ha confirmado.";
@@ -564,7 +683,9 @@
       void pause();
     };
     const hide = () => {
-      if (document.hidden) void pause();
+      if (!document.hidden || phase !== "running") return;
+      // Mobile may kill a hidden tab: keep an exit snapshot as well.
+      void pause().then(() => saveSlot("auto", true));
     };
     const up = (e: KeyboardEvent) => held.delete(e.code);
     window.addEventListener("blur", blur);
@@ -626,6 +747,16 @@
         aria-expanded={graphicsOpen}
         aria-controls="graphics-panel"
         >{@html icons.monitor}<span>Gráficos</span></button
+      >
+      <button
+        data-player-action
+        class="tool icon-button"
+        bind:this={savesButton}
+        onclick={toggleSaves}
+        aria-expanded={savesOpen}
+        aria-controls="saves-panel"
+        disabled={phase === "loading" || phase === "error"}
+        >{@html icons.save}<span>Partidas</span></button
       >
       <button
         data-player-action
@@ -766,6 +897,85 @@
       </footer>
     </section>
   {/if}
+  {#if savesOpen && phase !== "running"}
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <section
+      id="saves-panel"
+      class="graphics saves card"
+      data-player-chrome
+      aria-labelledby="saves-title"
+      bind:this={savesPanel}
+      onkeydown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          closeSaves();
+        }
+      }}
+    >
+      <header>
+        <h2 id="saves-title">Partidas</h2>
+        <p>
+          Guarda el momento exacto del juego. F5 guarda en la ranura 1 y F9 la
+          carga.{battery ? " La partida interna del cartucho se guarda aparte, automáticamente." : ""}
+        </p>
+        <button
+          class="close icon-button"
+          aria-label="Cerrar partidas"
+          onclick={closeSaves}>{@html icons.close}</button
+        >
+      </header>
+      <ul class="slots">
+        {#each allSlots as slot}
+          {@const meta = slotOf(slot)}
+          <li class="slot" data-slot={slot}>
+            <canvas
+              width="128"
+              height="120"
+              class="thumb"
+              class:empty={!meta}
+              aria-hidden="true"
+              use:preview={meta?.preview}
+            ></canvas>
+            <div class="slot-info">
+              <span class="name">{slotNames[slot]}</span>
+              <span class="hint"
+                >{meta
+                  ? `${when(meta.createdAt)} · ${meta.core === "jsnes" ? "JSNES" : "TetaNES"}`
+                  : slot === "auto"
+                    ? "Se guarda al salir del juego"
+                    : "Vacía"}</span
+              >
+            </div>
+            <div class="slot-actions">
+              {#if slot !== "auto"}<button
+                  onclick={() => saveSlot(slot)}
+                  aria-label={`Guardar en ${slotNames[slot]}`}>Guardar aquí</button
+                >{/if}
+              {#if meta}
+                {#if confirmLoad === slot}<button
+                    class="primary"
+                    onclick={() => loadSlot(slot)}
+                    aria-label={`Confirmar carga de ${slotNames[slot]}`}
+                    >Confirmar carga</button
+                  >{:else}<button
+                    onclick={() => (confirmLoad = slot)}
+                    aria-label={`Cargar ${slotNames[slot]}`}>Cargar</button
+                  >{/if}
+                <button
+                  class="link-danger"
+                  onclick={() => deleteSlot(slot)}
+                  aria-label={`Borrar ${slotNames[slot]}`}>Borrar</button
+                >
+              {/if}
+            </div>
+          </li>
+        {/each}
+      </ul>
+      {#if confirmLoad}<p class="hint" role="status">
+          Cargar sustituye el progreso actual que no hayas guardado.
+        </p>{/if}
+    </section>
+  {/if}
   <p data-testid="player-phase" class="visually-hidden" aria-live="polite">
     {phase === "running"
       ? "Jugando"
@@ -788,7 +998,27 @@
       {problem}
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
-  <div class="frame" class:presenting={frames > 0}>
+  <div class="frame" class:presenting={frames > 0 || !!resumeOffer}>
+    {#if resumeOffer && phase === "paused"}
+      <div class="resume-offer" role="dialog" aria-labelledby="resume-title">
+        <canvas
+          width="128"
+          height="120"
+          class="thumb"
+          aria-hidden="true"
+          use:preview={resumeOffer.preview}
+        ></canvas>
+        <div>
+          <h2 id="resume-title">Continuar donde lo dejaste</h2>
+          <p class="hint">Guardada el {when(resumeOffer.createdAt)}</p>
+          <div class="buttons">
+            <button class="primary" onclick={() => loadSlot("auto")}
+              >Continuar</button
+            ><button onclick={() => resume()}>Empezar de nuevo</button>
+          </div>
+        </div>
+      </div>
+    {/if}
     <div class="game-stage-wrapper">
       <GameStage
         bind:screen
@@ -850,6 +1080,7 @@
       >{/if}
     <a data-player-action href="#controles">Configurar controles</a>
   </div>
+  {#if toast}<p class="toast" role="status" data-testid="toast">{toast}</p>{/if}
   <ul class="status" data-player-chrome aria-label="Dispositivos">
     <li data-testid="pad-status" class:on={padConnected}>
       {@html icons.gamepad}<span>{padStatus}</span>
@@ -1134,6 +1365,83 @@
   summary {
     cursor: pointer;
     padding: 12px 0;
+  }
+  .frame {
+    position: relative;
+  }
+  .resume-offer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    padding: 20px;
+    border-radius: 14px;
+    background: #0a0c12e6;
+  }
+  .resume-offer h2 {
+    margin: 0;
+    font-size: 22px;
+  }
+  .thumb {
+    width: 128px;
+    height: 120px;
+    border-radius: 8px;
+    background: #050507;
+    border: 1px solid var(--border);
+    image-rendering: pixelated;
+  }
+  .thumb.empty {
+    opacity: 0.4;
+  }
+  .slots {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+    gap: 12px;
+  }
+  .slot {
+    display: grid;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .slot .thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 15;
+  }
+  .slot-info {
+    display: grid;
+    gap: 2px;
+  }
+  .slot-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .slot-actions button {
+    min-height: 38px;
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+  .link-danger {
+    background: transparent;
+    border-color: transparent;
+    color: var(--coral);
+  }
+  .toast {
+    text-align: center;
+    margin: 8px 0 0;
+    color: var(--teal);
+    font-size: 14px;
   }
   .core-choice {
     border: 1px solid var(--border);

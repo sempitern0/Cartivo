@@ -9,6 +9,11 @@ import { controlDemo } from "../../../packages/fixtures/src/control-demo.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
 import { SramStore, digest } from "../../../packages/storage/src/sram.ts";
 import {
+  StateStore,
+  makePreview,
+} from "../../../packages/storage/src/states.ts";
+import { coreVersions } from "../../../packages/adapters/src/core.ts";
+import {
   parseNesRequest,
   type NesRequest,
   type NesResult,
@@ -25,6 +30,7 @@ function use(next: NesCore) {
   core = next;
 }
 let store: SramStore | undefined;
+let states: StateStore | undefined;
 let rom: Uint8Array;
 let hash = "";
 let session = "";
@@ -46,6 +52,8 @@ async function run(r: NesRequest): Promise<NesResult> {
     await prepareCore(coreId);
     rom = r.demo ? controlDemo() : new Uint8Array(await r.file!.arrayBuffer());
     hash = await digest(rom);
+    // Per-game writer lock first: snapshots exist for every game.
+    states = await StateStore.open(hash);
     // SRAM is keyed by ROM hash only, so a save moves between cores.
     use(createCore(coreId, rom));
     if (core!.battery) {
@@ -57,6 +65,7 @@ async function run(r: NesRequest): Promise<NesResult> {
     return {
       hash,
       core: coreId,
+      states: await states.list(),
       battery: core!.battery,
       recovered: store?.recovered ?? false,
     };
@@ -88,6 +97,34 @@ async function run(r: NesRequest): Promise<NesResult> {
     return { ...result, saved, saveError };
   }
   core.input(neutral());
+  if (r.command === "state-list") return { states: await states!.list() };
+  if (r.command === "state-save") {
+    const bytes = core.snapshot();
+    // Battery RAM is committed too, so both kinds of save agree.
+    let saved = false;
+    try {
+      saved = await flush();
+    } catch {
+      saved = false;
+    }
+    const frame = core.lastFrame();
+    await states!.save(r.slot!, bytes, {
+      core: coreId,
+      coreVersion: coreVersions[coreId],
+      frames: core.frames,
+      preview: frame.length === 256 * 240 * 4 ? makePreview(frame) : undefined,
+    });
+    return { saved, states: await states!.list() };
+  }
+  if (r.command === "state-load") {
+    const bytes = await states!.load(r.slot!, coreId, coreVersions[coreId]);
+    core.restore(bytes);
+    return { frames: core.frames, states: await states!.list() };
+  }
+  if (r.command === "state-delete") {
+    await states!.delete(r.slot!);
+    return { states: await states!.list() };
+  }
   if (r.command === "import") {
     const b = r.backup as {
       format?: unknown;

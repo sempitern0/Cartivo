@@ -1,8 +1,22 @@
 import { test, expect } from "@playwright/test";
+/** A previous exit snapshot shows «Continuar»; these tests start over. */
+async function startOver(page: import("@playwright/test").Page) {
+  const offer = page.getByRole("button", { name: "Empezar de nuevo" });
+  await expect
+    .poll(
+      async () =>
+        (await page.getByTestId("player-phase").textContent())?.includes(
+          "Jugando",
+        ) || (await offer.count()) > 0,
+    )
+    .toBe(true);
+  if (await offer.count()) await offer.click();
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+}
 async function start(page: import("@playwright/test").Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Probar demo" }).click();
-  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+  await startOver(page);
   await expect
     .poll(async () =>
       Number(await page.locator("canvas").getAttribute("data-frames")),
@@ -410,6 +424,7 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   // Choices persist for NES on this device.
   await page.reload();
   await page.getByRole("button", { name: "Probar demo" }).click();
+  await startOver(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByRole("button", { name: "Gráficos" }).click();
   await expect(page.getByRole("radio", { name: /^Píxel entero/ })).toBeChecked();

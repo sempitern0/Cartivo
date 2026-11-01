@@ -1,4 +1,19 @@
 import { test, expect } from "@playwright/test";
+/** A previous exit snapshot shows «Continuar»; these tests start over. */
+async function startOver(page: import("@playwright/test").Page) {
+  const offer = page.getByRole("button", { name: "Empezar de nuevo" });
+  await expect
+    .poll(
+      async () =>
+        (await page.getByTestId("player-phase").textContent())?.includes(
+          "Jugando",
+        ) || (await offer.count()) > 0,
+    )
+    .toBe(true);
+  if (await offer.count()) await offer.click();
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+}
+
 
 test("web app manifest is installable and its icons load", async ({
   page,
@@ -87,7 +102,7 @@ test("installed shell reopens offline and plays the demo", async ({
       throw new Error(`${e.message}\n${problems.join("\n")}\n${html}`);
     });
   await page.getByRole("button", { name: "Probar demo" }).click();
-  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+  await startOver(page);
   await expect
     .poll(async () =>
       Number(await page.locator("canvas").getAttribute("data-frames")),
