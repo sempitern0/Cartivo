@@ -32,6 +32,8 @@ El SW precachea todo (≈1,3 MB sin comprimir) para jugar offline tras la instal
 
 **Decisión: posponer la carga diferida por núcleo.** La pantalla inicial ya no carga ningún núcleo: JSNES y TetaNES solo llegan con el Worker. Separar JSNES del Worker ahorraría unos 100 kB a quien use TetaNES, a cambio de más riesgo en la PR (precache por grupos, offline del núcleo alternativo). Pasa a ser necesario con el segundo sistema: entonces `registry.ts` debe cargar cada módulo con `import()` dinámico dentro del Worker y el SW debe separar el shell de los núcleos instalados, sin descargas silenciosas de núcleos no elegidos.
 
+**Actualización H2-GB ([ADR-010](../adr/010-gb-sameboy.md)):** SameBoy ya se carga con `import()` dentro del Worker (Workers como módulos ES), así que quien juega a NES no descarga su adaptador ni compila su WASM. El SW sigue precacheando todo: son unos 190 KB más, y así cualquier consola funciona sin conexión tras instalar. Separar el precache por núcleo queda pendiente hasta que un núcleo pese lo suficiente para justificarlo.
+
 ## Validación manual pendiente (QA real)
 
 1. `pnpm build && pnpm preview`, abrir http://127.0.0.1:4173 en Chrome/Edge/Brave: aparece **Instalar app** en la cabecera. Instalar y abrir la ventana independiente.

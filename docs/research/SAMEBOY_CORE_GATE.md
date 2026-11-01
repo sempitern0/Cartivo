@@ -53,6 +53,8 @@ SameBoy expone `GB_save_state_to_buffer`/`GB_load_state_from_buffer`. El arnés 
 
 ## 8. Decisión
 
-**accepted.** Se integra para GB y GBC (ADR-010). Pendientes:
-- Confirmación del titular sobre la licencia MIT del envoltorio.
-- Registrar en este expediente el hash del primer build de CI.
+**accepted.** Se integra para GB y GBC (ADR-010).
+
+Primer build (`core-sameboy.yml`, run sobre `c6b1750`, commit del bot `7c8c798`): `dist/sameboy.wasm` de 189 824 bytes, SHA-256 `65131c5958e2…` (completo en `manifest.json`); `verify-sameboy` sin errores. Imports del binario: `clock_time_get`, `fd_write`, `fd_close`, `fd_seek` y `emscripten_notify_memory_growth`, todos resueltos por el adaptador. La reproducibilidad (`mode=verify`) no se ha lanzado: queda a petición.
+
+Pendiente: confirmación del titular sobre la licencia MIT del envoltorio y sobre añadir SameBoy a `LICENSES.md`.

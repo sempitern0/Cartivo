@@ -26,7 +26,7 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 ## Pantallas
 
 ### Inicio · «Elige una consola»
-Rejilla centrada que crece con cada sistema aceptado; hoy, una tarjeta NES. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre `.nes`), icono **Controles de NES**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida.
+Rejilla centrada que crece con cada sistema aceptado; hoy, NES, Game Boy y Game Boy Color. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre las extensiones de esa consola: `.nes`, `.gb`, `.gbc`), icono **Controles de {consola}**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida.
 
 ### Configurar controles (`#controles`, desde **Ajustes**)
 Tarjeta de teclado y tarjeta de mando genérico (dibujos propios) que se iluminan durante la prueba. Chips para reasignar A, B, Start y Select; **Mover** despliega **Avanzado** con las direcciones. Selector de mando, asignación manual y zona muerta en la tarjeta del mando. Salir desmonta el sondeo; al volver no queda ninguna tecla pulsada. Abrirla durante una partida pausa y neutraliza la entrada.
