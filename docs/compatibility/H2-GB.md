@@ -32,8 +32,8 @@ Oráculo:
 |---|---|
 | Arnés C nativo (gcc, mismas fuentes y flags) | DMG y CGB: imagen, la entrada mueve el cuadrado, 803,5 muestras por frame (59,73 Hz), SRAM 8 KB y contador, instantánea ida y vuelta con repetición idéntica, estado corrupto rechazado sin alterar la máquina, recarga de batería |
 | Adaptador TS + WASM del bot en Node | Las mismas comprobaciones con `dist/sameboy.wasm`; ~2,6 ms por frame |
-| `pnpm test` (local, Node 22) | 66/66, incluida la conformidad de `gb/sameboy` y `gbc/sameboy` |
-| E2E `tests/e2e/gb.spec.ts` | Demo GB y GBC con 160×144 y SRAM conservada al reabrir; F5/F9; `.gbc` soltado abre GBC; archivo dañado rechazado; Gráficos sin opciones redundantes. Resultado de CI: ver la descripción de la PR |
+| `pnpm test` (local en Node 22 y en CI con Node 24) | 66/66, incluida la conformidad de `gb/sameboy` y `gbc/sameboy` |
+| E2E `tests/e2e/gb.spec.ts` | Demo GB y GBC con 160×144 y SRAM conservada al reabrir; F5/F9; `.gbc` soltado abre GBC; archivo dañado rechazado; Gráficos sin opciones redundantes. **CI sobre `9fdb533`** (Foundation CI, run 41311681735): 6/6 en dev y 6/6 en preview; suite completa 48 superados en dev y 47 en preview, `svelte-check` sin errores |
 
 ## QA manual pendiente
 
