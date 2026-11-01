@@ -6,8 +6,15 @@ import { SramStore } from "../packages/storage/src/sram.ts";
 // Without Web Locks there is no safe single writer: refuse explicitly
 // instead of falling back to an unsafe multi-tab mode.
 test("stores refuse to open without Web Locks", async () => {
-  const nav = globalThis.navigator as Navigator & { locks?: unknown };
-  assert.equal(nav?.locks, undefined, "Node has no Web Locks");
-  await assert.rejects(StateStore.open("game"), /Web Locks/);
-  await assert.rejects(SramStore.open("game"), /Web Locks/);
+  const original = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {},
+  });
+  try {
+    await assert.rejects(StateStore.open("game"), /Web Locks/);
+    await assert.rejects(SramStore.open("game"), /Web Locks/);
+  } finally {
+    if (original) Object.defineProperty(globalThis, "navigator", original);
+  }
 });
