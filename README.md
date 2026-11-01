@@ -1,74 +1,82 @@
 # Cartivo
 
-PWA de emulación local: **elige consola, mando o teclado, juego y pantalla; empieza a jugar**.
+PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y juega**. Todo ocurre en tu dispositivo: sin BIOS propietarias, sin ROMs incluidas y sin servidor de juego.
 
-**Estado: emulación NES experimental (iNES NTSC, mappers 0–4) con TetaNES en WebAssembly (Worker); JSNES 2.1.0 disponible como alternativa.** Demo original, teclado/mando, audio y guardado SRAM con export/import. El núcleo por defecto es TetaNES compilado a WebAssembly por el CI ([H0-WASM-NES](docs/compatibility/H0-WASM-NES.md)); no hace falta Rust para desarrollar. La build de producción es **instalable como PWA y reabre sin conexión** (experimental, ver [H1-C PWA](docs/compatibility/H1-C-PWA.md)). No se distribuyen juegos ni BIOS propietarias de terceros.
+## Estado
 
-## Catálogo inicial propuesto
+| | |
+|---|---|
+| **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 |
+| **Núcleo NES** | TetaNES 0.17.0 en WebAssembly por defecto; JSNES 2.1.0 como alternativa (Acerca de esta prueba) |
+| **App** | Instalable como PWA y funciona sin conexión (build de producción) |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo |
+| **Partidas** | Guardado de batería automático, recuperable y exportable |
+| **Pendiente** | QA con mando físico, Firefox/Safari, móviles, continuar último juego, más consolas |
 
-| Grupo | Consolas | Objetivo sujeto a validación |
-|---|---|---|
-| Nintendo domésticas | NES, SNES | V1 estable |
-| Nintendo portátiles | Game Boy, Game Boy Color, Game Boy Advance | V1 estable |
-| Sega | Master System, Mega Drive / Genesis | V1 estable, con licencia del núcleo por resolver |
-| Generación 3D | Nintendo 64, PlayStation, PSP | V1 beta por sistema si supera sus pruebas |
-| Laboratorio | PlayStation 2 | Experimental opt-in, fuera del compromiso GA V1 |
+Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema se publica solo cuando su núcleo supera el gate técnico y de licencia. Plan completo: [docs/PLAN_TECNICO_CARTIVO.md](docs/PLAN_TECNICO_CARTIVO.md).
 
-La aplicación procesa archivos aportados por el usuario en su dispositivo. Catálogo, configuración y partidas son locales; las carátulas y metadatos de red son opcionales. La instalación y las capacidades dependen del navegador y del sistema operativo.
+## Empezar
+
+Requisitos: **Node.js 24.22.1** (ver `.node-version`) y **pnpm 11.25.0**. No hace falta Rust: el núcleo WASM ya viene compilado en el repositorio.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev                      # http://127.0.0.1:5173
+```
+
+En Windows usa `pnpm.cmd`. Si aparece `Unsupported engine`, instala Node 24.22.1 y abre una terminal nueva (`where.exe node` localiza instalaciones antiguas).
+
+Para probar **instalación y modo sin conexión** hay que usar la build de producción (el service worker no existe en `pnpm dev`):
+
+```sh
+pnpm build && pnpm preview    # http://127.0.0.1:4173 → «Instalar app» en la cabecera
+```
+
+Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligadas a ese origen.
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm dev` | Servidor de desarrollo |
+| `pnpm build` / `pnpm preview` | Build de producción con PWA / servirla en local |
+| `pnpm check` | Tipos (svelte-check) |
+| `pnpm lint` | Formato (Prettier) |
+| `pnpm test` | Tests unitarios, incluido el núcleo WASM |
+| `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en dev / en la build de producción |
+| `pnpm verify:core` | Integridad de JSNES y TetaNES contra sus manifiestos |
+
+El núcleo TetaNES se compila **solo en CI** (`.github/workflows/core-tetanes.yml`), que sube `cores/tetanes/dist` a la rama y comprueba que la build es reproducible.
+
+## Jugar
+
+- **Jugar** en la tarjeta NES abre un `.nes`; también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
+- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus.
+- Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
+- En partida: **Gráficos** (escalado, proporción, suavizado), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
+- Algunos menús usan **Select** para elegir opción; por ejemplo, «1/2 PLAYERS» en Contra.
+
+## Estructura
+
+```text
+apps/web/          PWA (Svelte 5 + Vite): UI, worker NES, AudioWorklet, service worker
+packages/          adapters (núcleos), runtime (protocolo), input, media, storage, fixtures
+cores/             jsnes (manifiesto) y tetanes (envoltorio Rust + WASM generado por CI)
+tools/             verificación de núcleos, build de TetaNES, generador del service worker
+tests/             unitarios (node:test) y e2e (Playwright)
+docs/              plan técnico, diseño, ADRs, compatibilidad e investigación
+```
 
 ## Documentación
 
-- [Plan técnico maestro](docs/PLAN_TECNICO_CARTIVO.md): arquitectura, contratos, catálogo, UX, almacenamiento, seguridad, QA y roadmap.
-- [Guía de ejecución H0/H1](docs/GUIA_EJECUCION_H0_H1.md): prompt de implementación y evidencias de aceptación del primer incremento NES.
-- [ADRs](docs/adr/README.md): decisiones propuestas y bloqueo de licencias.
-- [Estado de compatibilidad](docs/compatibility/README.md): qué está probado y qué falta demostrar.
-- [Diseño y UX](docs/DESIGN.md): paleta propia, una acción principal y configuración automática.
-- [Reglas de desarrollo](AGENTS.md): límites y evidencias exigidas durante la implementación.
-
-La ruta experimental está documentada y probada en [H1-B NES](docs/compatibility/H1-B-NES.md). H0-WASM y H1 completo siguen abiertos: no se anuncia soporte general NES ni producción.
-
-## Arquitectura prevista
-
-Svelte/Vite y TypeScript para la PWA; C/C++ y Emscripten para núcleos WASM independientes; Workers y adaptadores tipados para sesiones; IndexedDB/OPFS para datos locales. Hosting estático con cabeceras de aislamiento, packs de núcleos bajo demanda y gateway opcional de metadatos.
-
-La primera ruta real usa una demo original NROM, controles configurables, audio y SRAM recuperable/exportable. Consulta [las pruebas del incremento](docs/compatibility/H1-B-NES.md); la instalación y reapertura offline están en [H1-C PWA](docs/compatibility/H1-C-PWA.md).
+- [Plan técnico](docs/PLAN_TECNICO_CARTIVO.md): objetivos, estado, arquitectura, roadmap y backlog.
+- [Diseño](docs/DESIGN.md): paleta, principios y pantallas.
+- [Compatibilidad](docs/compatibility/README.md): qué está probado y cómo.
+- [ADRs](docs/adr/README.md): decisiones registradas.
+- [Reglas de desarrollo](AGENTS.md) y [CHANGELOG](CHANGELOG.md).
 
 ## Licencia
 
-**Cartivo: PolyForm Noncommercial 1.0.0** para el código original del proyecto cuyos derechos controle el titular, conforme al [LICENSE](LICENSE). Permite utilizar, estudiar, modificar y redistribuir el software para los fines no comerciales definidos por la licencia; los usos comerciales requieren autorización adicional del titular. La licencia es *source-available*, no una licencia open source reconocida por OSI.
+El código original de Cartivo usa **PolyForm Noncommercial 1.0.0** ([LICENSE](LICENSE)): uso, estudio, modificación y redistribución no comerciales; el uso comercial requiere permiso del titular. No es una licencia OSI. La LGPL-2.1 de la revisión inicial no se revoca para copias anteriores.
 
-La licencia anterior de la revisión inicial era LGPL-2.1: el cambio no revoca retroactivamente los permisos válidamente concedidos a destinatarios de copias anteriores. No se relicencia código ajeno ni se afirman derechos sobre contribuciones de terceros.
-
-Los núcleos, librerías, herramientas y recursos externos mantienen sus propias licencias; toda integración y distribución requiere revisión por build. No se distribuyen núcleos GPL incompatibles dentro de un conjunto sujeto a restricciones no comerciales sin autorización suficiente o una solución jurídicamente válida. Worker, iframe y descarga diferida no crean excepciones. Véase [ADR-005](docs/adr/005-licensing.md).
-
-## Ejecutar la base
-
-**Requisitos:** Node.js **>=24.22.1 <25** (versión recomendada en [`.node-version`](.node-version): `24.22.1`) y pnpm `11.25.0`.
-
-En Windows, si `pnpm` muestra `Unsupported engine` con Node `24.20.0`, instala [Node.js 24.22.1 LTS desde su distribución oficial](https://nodejs.org/en/blog/release/v24.22.1/) y **abre una terminal nueva**. Es una actualización de seguridad; no conviene rebajar `engines.node` para ocultar el aviso. Si sigue apareciendo una versión antigua, ejecuta `where.exe node` para localizar otras instalaciones en `PATH`.
-
-```sh
-node --version
-pnpm --version
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-Para probar la instalación y el modo sin conexión hay que usar la build de producción: `pnpm build && pnpm preview` y abrir http://127.0.0.1:4173. El navegador ofrece **Instalar app** en la cabecera cuando lo permite.
-
-El `node --version` debe mostrar `v24.22.1` o una revisión posterior compatible con la serie 24. CI emplea la versión fijada en `.node-version`.
-
-Abrir http://127.0.0.1:5173. En **Elige una consola**, la tarjeta NES ofrece **Jugar** (abre una ROM `.nes` local; también se puede arrastrar a la ventana), **Probar demo** y el icono de ajustes, que lleva a **Configurar controles**. Durante la partida, la barra superior tiene **Gráficos**, **Cargar ROM** (cierra la sesión guardando la SRAM y abre otra ROM) y **Salir**; debajo del vídeo se indica si hay mando y teclado conectados. En la cabecera permanecen el logotipo Cartivo y **Ajustes**, donde se encuentran los controles y el laboratorio técnico.
-
-**Teclado NES predeterminado:** WASD o flechas para mover, **L = A**, **K = B**, Mayús derecha = Select y Enter = Start. **F** activa Focus y **Escape** pausa. Los mandos se detectan con Gamepad API; las asignaciones son editables. Cuando el navegador impide el audio automático, puede activarse desde el reproductor.
-
-El núcleo JSNES experimental acepta actualmente iNES NTSC, mappers 0–4 dentro de los límites documentados. Los guardados SRAM y su importación/exportación funcionan en los juegos compatibles. Véanse [H1-B NES](docs/compatibility/H1-B-NES.md) y [Ajustes/controles](docs/compatibility/H1-B-INPUT.md).
-
-
-
-La demo y el reproductor ejecutan el núcleo real. El laboratorio técnico de sesión continúa siendo un diagnóstico sin emulación. [Avisos de terceros](LICENSES.md) y [decisión del adaptador](docs/adr/007-nes-experimental-js.md).
-
-
-### Controles NES en menús de juegos
-
-WASD o flechas = cruceta; **L = A**, **K = B**, **Q = Select**, **Enter = Start**. En la partida, los botones visibles `Select · Q` y `Start · Enter` evitan depender del teclado. Para regresar al menú inicial de una ROM como Contra, pausa con Escape y utiliza **Reiniciar consola**: Select solo cambia la selección de jugadores cuando el propio juego muestra esa pantalla: en el título de Contra, «1 PLAYER / 2 PLAYERS» se cambia con **Select** (Q o el botón Select del mando), no con la cruceta. Reiniciar guarda la SRAM antes de restablecer el núcleo y no debe confundirse con recuperar una partida guardada. `ShiftRight` sigue admitido para perfiles anteriores; se recomienda Q por accesibilidad en navegadores modernos.
+Los núcleos y librerías de terceros conservan sus licencias ([LICENSES.md](LICENSES.md), [ADR-005](docs/adr/005-licensing.md)). No se distribuyen juegos ni BIOS.

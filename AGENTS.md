@@ -2,66 +2,50 @@
 
 ## Fuente de verdad y alcance
 
-Leer `docs/PLAN_TECNICO_CARTIVO.md`, ADRs y evidencia de compatibilidad antes de implementar. El plan es una especificación, no una declaración de funcionalidades existentes. El estado observado y sus pruebas se mantienen en README y `docs/compatibility/`; actualizarlos con cada incremento, sin conservar una etiqueta de planificación cuando ya exista código.
+Antes de implementar, leer `docs/PLAN_TECNICO_CARTIVO.md` (objetivos, estado, roadmap), los ADRs afectados y `docs/compatibility/`. El plan es una especificación; el estado real y sus pruebas viven en README y `docs/compatibility/`, que se actualizan en cada incremento.
 
-V1: NES, SNES, GB, GBC, GBA, SMS, Mega Drive, N64, PS1 y PSP. Las tres últimas dependen de aceptación individual; PS2 es laboratorio independiente. No añadir sistemas ni accesorios fuera de alcance sin una decisión de producto registrada.
+V1: NES, SNES, GB, GBC, GBA, SMS, Mega Drive, N64, PS1 y PSP; las tres últimas dependen de aceptación individual y PS2 es laboratorio. No añadir sistemas ni accesorios sin una decisión de producto registrada. Un bloqueo de licencia no impide avanzar en tareas independientes, pero sí declarar completo el núcleo afectado.
 
-Para ejecutar H0/H1, seguir `docs/GUIA_EJECUCION_H0_H1.md`. La investigación NES habilita el primer incremento; los spikes 3D pendientes no bloquean el shell. Un bloqueo de licencia no impide avanzar en tareas independientes autorizadas, pero impide declarar completo el núcleo afectado.
+Trabajo por incrementos: un sistema o feature cada vez, en la rama de trabajo (nunca en `main`), con plan previo para cambios no triviales. Las decisiones técnicas rutinarias dentro del alcance se concretan con evidencia y se registran en su ADR; la licencia propia y las excepciones de licencia de terceros las decide el titular.
 
 ## Ingeniería
 
-- Implementar H0/H1 incrementalmente. No construir todos los adaptadores a la vez.
-- Mantener TypeScript estricto y contratos versionados con validación runtime.
-- UI sin conocimiento de APIs internas del núcleo; no crear globals compartidos entre emuladores.
-- Un juego activo; lifecycle, errores, cancelación y limpieza explícitos.
+- TypeScript estricto y contratos versionados con validación runtime.
+- La UI no conoce APIs internas de núcleos (solo identificadores en `packages/adapters/src/core-ids.ts`); sin globals compartidos entre emuladores.
+- Un juego activo; lifecycle, errores, cancelación y limpieza explícitos (`dispose` libera la memoria WASM).
 - No bloquear el hilo de UI con parsing, hashing o IO voluminoso.
-- No prometer WebGPU, threads, rewind, JIT, save states ni lectura incremental sin evidencia del port y build concreta.
-- Mantener el aspecto original y la velocidad emulada por defecto; mejoras que alteren fidelidad son opcionales.
-- Crear paquetes cuando exista consumidor, sin scaffolding vacío ni complejidad innecesaria.
+- No prometer WebGPU, threads, rewind, JIT, save states ni lectura incremental sin evidencia del port y build concretos.
+- Aspecto y velocidad originales por defecto; las mejoras que alteren fidelidad son opcionales y vienen desactivadas.
+- Paquetes nuevos solo con consumidor real; sin scaffolding vacío.
 
 ## Datos y seguridad
 
-- Sin BIOS propietarias externas obligatorias, ROMs comerciales, claves o arte sin derechos en git/CI.
+- Sin BIOS propietarias, ROMs comerciales, claves ni arte sin derechos en git o CI.
 - Archivos, partidas y rutas del usuario permanecen locales; metadatos remotos opcionales y transparentes.
-- No tratar Workers del mismo origen como sandbox de privilegios.
-- Saves con generaciones recuperables, escritor único, exportación y confirmación de commit. No depender de eventos de cierre.
-- Ninguna actualización del SW/núcleo recarga una sesión activa o borra saves para liberar caché.
+- Un Worker del mismo origen no es un sandbox de privilegios.
+- Partidas con generaciones recuperables, escritor único, exportación y commit confirmado; no depender de eventos de cierre.
+- Ninguna actualización del SW o del núcleo recarga una sesión activa ni borra partidas para liberar caché.
 
-## Licencias y fuentes
+## Licencias y núcleos
 
-El código original de Cartivo cuyos derechos controle el titular se publica bajo **PolyForm Noncommercial 1.0.0** (véase `LICENSE` y ADR-005). No aplicar esta licencia a núcleos, bibliotecas o archivos de terceros, ni afirmar que anula derechos otorgados con la LGPL-2.1 anterior. Los permisos comerciales del código propio requieren autorización adicional. No integrar/publicar un núcleo cuyo expediente legal siga bloqueado; puede investigarse su viabilidad sin redistribuirlo.
+El código original de Cartivo usa **PolyForm Noncommercial 1.0.0** (`LICENSE`, ADR-005); no se aplica a núcleos ni librerías de terceros ni anula los derechos concedidos con la LGPL-2.1 anterior. No integrar ni publicar un núcleo con expediente bloqueado; se puede investigar su viabilidad sin redistribuirlo.
 
-Consultar fuentes primarias, fijar commit/toolchain y registrar licencia, dependencias, parches, fuentes y avisos de cada build. Un iframe/Worker/origen separado no exime obligaciones. No inventar permisos, benchmarks ni compatibilidad web a partir de una versión nativa.
+Cada núcleo pasa el gate CORE-LEGAL-01 (skill `cartivo-core-gate`): fuentes primarias, versión y toolchain fijadas, SBOM, licencias, firmware y decisión registrada. Un iframe, Worker u origen separado no eximen de obligaciones. No inventar permisos, benchmarks ni compatibilidad web a partir de una versión nativa.
+
+**NES:**
+- TetaNES (`tetanes-core` =0.17.0) es el núcleo por defecto (ADR-008, `docs/compatibility/H0-WASM-NES.md`). Se compila solo en CI (`core-tetanes.yml`), que versiona `cores/tetanes/dist`, `manifest.json`, `sbom.json` y `Cargo.lock`: no editarlos a mano. Cambiar `cores/tetanes/src` o dependencias repite el gate (`cargo deny`; excepción MPL-2.0 solo para `option-ext`).
+- JSNES 2.1.0 queda como alternativa (ADR-007): no editar fuentes de `node_modules`.
+- La validación iNES es común (`packages/adapters/src/ines.ts`); ampliar mappers exige fixtures, pruebas y expediente. La UI no accede a la ABI de SRAM de ningún núcleo.
+- La fixture propia está en `packages/fixtures`: preservar hash, licencia y oráculo.
 
 ## Verificación
 
-Con código implementado, ejecutar tipos/lint y pruebas adecuadas al cambio. E2E para flujos críticos; QA real para GPU, mandos, instalación y suspensión móvil. Usar fixtures autorizados y conservar procedencia/licencia. Para documentación, comprobar enlaces relativos, fences y coherencia del alcance; no declarar tests de runtime ejecutados cuando solo hay documentos.
+Con código: `pnpm verify:core`, `check`, `lint`, `test`, `build` y E2E de los flujos afectados; en dev y en preview cuando cambien Worker, audio, assets o PWA. QA real para GPU, mandos, audio, instalación y suspensión móvil: los gamepads sintéticos y Chromium headless no la sustituyen. Para documentación: enlaces relativos, fences y coherencia del alcance; no declarar tests ejecutados cuando solo hay documentos.
 
-Entregar qué cambió, evidencia de validación y límites pendientes. Actualizar documentación y compatibilidad cuando cambien decisiones o resultados.
+No confundir documentación, shell con mock, ruta jugable y release estable. Registrar por criterio el commit o build, la prueba y el resultado; lo pendiente conserva su estado. Entregar qué cambió, evidencia y límites, y actualizar README, `docs/compatibility/`, CHANGELOG y el ADR afectado.
 
-## Inicio de implementación tras el merge
+## Experiencia
 
-Seguir el contrato de arranque de la guía H0/H1. Verificar la rama base actualizada y trabajar en una rama de implementación cuando la documental ya esté fusionada. Las decisiones técnicas propuestas pueden concretarse con evidencia y registrarse en su ADR durante H0; no exigir una aprobación adicional para cada elección técnica rutinaria dentro del alcance autorizado. La decisión del modelo de licencia corresponde al titular y no se deduce de aceptar la arquitectura.
+Seguir `docs/DESIGN.md` y los tokens de `apps/web/src/theme.css`: paleta propia, sin logos ni arte de terceros, una acción principal por pantalla, valores automáticos y corrección manual accesible. Laboratorio y detalles de núcleo solo en opciones avanzadas. Respetar foco, contraste y navegación con teclado y mando.
 
-H0 tiene una salida mínima para NES y expedientes independientes para otros sistemas. H1 solo depende de esa salida NES y de los servicios que consume; no de terminar todos los spikes 3D. No crear módulos, gateway ni backends sin consumidor en el primer incremento.
-
-No confundir preparación documental, shell con mock, H1 jugable y release estable. Registrar por criterio el commit/build, prueba y resultado; un requisito pendiente conserva ese estado aunque el resto del incremento pase.
-
-## Dirección visual y experiencia
-
-Seguir `docs/DESIGN.md` y los tokens de `apps/web/src/theme.css`. Paleta propia inspirada en tonos PSX, sin reproducir el logo ni sus valores exactos. Interfaz minimalista: una acción principal, valores automáticos, detección fiable y corrección manual accesible. Los cinco pasos del plan son decisiones cubiertas, no pantallas obligatorias. Mantener laboratorio plegado y separado del juego; detalles de núcleos y diagnóstico solo en opciones avanzadas. Respetar foco, contraste y navegación con teclado/mando.
-
-## Continuidad H1 de entrada
-
-Consultar `docs/research/` antes de seleccionar un núcleo; no repetir la matriz preliminar como sustituto de los spikes pendientes. Estado actual y QA de entrada: `docs/compatibility/H1-B-INPUT.md`. Reutilizar `packages/input` para normalizar entrada; integrar neutralización/pausa con el runtime al conectar el núcleo. Los tests de Gamepad API sintética no cierran el gate de mando físico.
-
-
-La configuración y prueba de entrada es una utilidad permanente del jugador: `#controles` y `ControlsPanel.svelte`. Mantenerla fuera del laboratorio técnico y reutilizar el panel en futuros ajustes; al integrarlo durante una partida, conectar pausa/neutralización con el gestor de sesión antes de aceptar entradas.
-
-## Núcleo NES WebAssembly
-
-Seguir ADR-008 y `docs/compatibility/H0-WASM-NES.md`. TetaNES (`tetanes-core` =0.17.0) se compila solo en CI (`core-tetanes.yml`), que versiona `cores/tetanes/dist`, `manifest.json`, `sbom.json` y `Cargo.lock`; no editar esos artefactos a mano. Cambios en `cores/tetanes/src` o dependencias repiten el gate CORE-LEGAL-01 (`cargo deny`, excepción MPL-2.0 solo para `option-ext`). La validación iNES es común (`packages/adapters/src/ines.ts`); ampliar mappers exige pruebas y expediente. La UI solo conoce identificadores de núcleo (`core-ids.ts`).
-
-## Incremento NES experimental
-
-Seguir ADR-007 y `docs/compatibility/H1-B-NES.md`. El adaptador JSNES 2.1.0 ejecuta iNES NTSC con mappers 0–4 y límites por board de la revisión ADR-007, es JavaScript en Worker y no cierra el gate WASM. Antes de build ejecutar `pnpm verify:core`; no editar fuentes de node_modules ni ampliar mappers sin prueba/expediente. La fixture propia está en packages/fixtures; preservar hash/licencia/oráculo. UI no accede al ABI SRAM. Probar dev y preview cuando cambien Worker, audio o assets. Hardware/suspensión/offline no se acreditan con gamepads sintéticos.
+La configuración de controles (`#controles`, `ControlsPanel.svelte`) es una utilidad permanente del jugador fuera del laboratorio; reutilizar `packages/input` para normalizar entrada y conectar pausa y neutralización con la sesión antes de aceptar entradas.

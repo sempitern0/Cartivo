@@ -11,7 +11,7 @@ Fecha: 2026-11-01. **Experimental.** NES usa por defecto TetaNES (`tetanes-core`
 | Arranque, vídeo, entrada, audio y SRAM | `tests/tetanes.test.ts` con la fixture original: imagen, movimiento, tono con B, SRAM con A y restauración; mappers 1–4 generados en memoria | Automático (Node) |
 | Partida compartida entre núcleos | Unit: SRAM de JSNES → TetaNES → JSNES; mismo `SramStore` por hash de ROM | Automático |
 | Integración en el navegador | Suite E2E NES con TetaNES por defecto en dev y preview, cambio a JSNES y vuelta, reapertura offline con el `.wasm` precacheado | Automático (Chromium) |
-| Rendimiento | Coste por frame medido en Node como dato informativo (unos 2,5–3 ms/frame en el contenedor de desarrollo; el CI registra ambos núcleos) | Informativo, sin presupuesto validado |
+| Rendimiento | Coste por frame medido en Node como dato informativo: en el runner de CI, TetaNES ≈ 2,0 ms/frame y JSNES ≈ 1,1 ms/frame con la fixture | Informativo, sin presupuesto validado |
 | Mando físico, audio real, Firefox/Safari, móviles | — | Pendiente (QA manual) |
 
 Tamaño del núcleo: `tetanes_bg.wasm` 942.831 bytes (sin comprimir), precacheado por el service worker.

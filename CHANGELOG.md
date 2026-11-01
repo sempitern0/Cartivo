@@ -79,3 +79,8 @@
 - La partida SRAM se comparte entre núcleos; pruebas unitarias del WASM y E2E de cambio de núcleo.
 - Expediente CORE-LEGAL-01 y avisos de licencia (TetaNES MIT/Apache-2.0; excepción MPL-2.0 para `option-ext` aprobada por el titular).
 
+### Documentación
+
+- Plan técnico revisión 3: estado real, catálogo con núcleos candidatos, ruta de un núcleo (gate → build en CI → artefactos verificados), roadmap y backlog con estado y próximos incrementos.
+- README, DESIGN, AGENTS y compatibilidad compactados al estado actual con comandos clave; se retiran la guía H0/H1, el plan de Focus y el registro H1-A (cubiertos por el plan, DESIGN y el historial).
+
