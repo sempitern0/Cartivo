@@ -1,5 +1,11 @@
 import { actions, type InputState } from "../../input/src/nes-input.ts";
-export type NesCommand = "load" | "advance" | "pause" | "save" | "import" | "reset";
+export type NesCommand =
+  | "load"
+  | "advance"
+  | "pause"
+  | "save"
+  | "import"
+  | "reset";
 export type NesRequest = {
   v: 1;
   session: string;
