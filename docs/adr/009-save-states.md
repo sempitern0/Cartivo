@@ -19,9 +19,17 @@ La SRAM (RAM con batería del cartucho) solo existe en algunos juegos. Muchos t�
   - Al reabrir un juego con «Al salir», aviso **Continuar donde lo dejaste / Empezar de nuevo**.
   - **F5** guarda en la ranura 1 y **F9** la carga; F5 no recarga la página durante la partida.
 
+### Revisión 2026-11-02: exportar e importar
+
+- **Formato `cartivo-state-v1`** (`packages/storage/src/state-file.ts`): un archivo JSON por ranura con sistema, hash de la ROM, ranura, núcleo y versión, frames, fecha, SHA-256, bytes en base64 y la miniatura opcional.
+- **Importar** valida todo en el Worker (`state-import`) y guarda en la ranura de origen con la misma transacción durable que «Guardar aquí» (`StateStore.put`).
+  - Se rechaza otro juego, un núcleo que el sistema no tiene, otra versión del núcleo (nunca podría cargarse), checksum o tamaño incorrectos y miniaturas mal dimensionadas.
+  - Se acepta otro núcleo del mismo sistema: al cargarla, `snapshotFits` explica que hay que cambiar de núcleo.
+- **Exportar** (`state-export`) verifica antes el checksum. La UI solo descarga o elige el archivo y nunca ve el formato interno del núcleo. Sustituir una ranura ocupada pide confirmación en el panel.
+
 ## Consecuencias
 
 - Cualquier juego NES puede guardar y continuar, también sin batería.
 - Evidencia de integridad: [H1-QA](../compatibility/H1-QA.md) (100 ciclos, estados dañados o de otra versión, ciclo de vida).
 - Las instantáneas dependen de la versión del núcleo: actualizar TetaNES puede dejar estados antiguos sin poder cargarse (se avisa; la SRAM no se ve afectada).
-- Pendiente: exportar e importar instantáneas, varias por ranura con historial, y «Continuar» desde el inicio sin volver a elegir el archivo (requiere guardar la ROM en OPFS).
+- Pendiente: varias instantáneas por ranura con historial. Exportar e importar está hecho (revisión de 2026-11-02) y «Continuar» desde el inicio también (ADR-012).

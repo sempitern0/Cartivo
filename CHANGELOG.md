@@ -197,3 +197,9 @@
 - **Tiempos de espera:** 60 s para abrir un juego (compilar el núcleo y calcular el hash) y 10 s para el resto.
 - **PWA:** se instala con 6 descargas a la vez, y «sin conexión» solo se indica cuando la caché está completa, con su manifiesto y todos sus archivos.
 - **Plan técnico:** nuevo punto «Fiabilidad y portabilidad» con lo pendiente (Firefox/WebKit, pruebas de fallo en navegador, modo sin persistencia, subruta) y reglas de sincronización para H6.
+
+### Cerrar H1: exportar e importar Partidas
+
+- Cada ranura de **Partidas** se puede exportar como archivo (`cartivo-state-v1`: JSON con la instantánea en base64, su SHA-256 y la miniatura) e importar después, también en otro navegador o dispositivo con el mismo juego.
+- Importar devuelve la partida a su ranura de origen y pide confirmación si está ocupada. Rechaza con un mensaje claro una partida de otro juego, de otra versión del núcleo o dañada; acepta la de otro núcleo del mismo sistema.
+- La descarga de archivos es común a Partidas y Copias de partida. ADR-009 revisado.

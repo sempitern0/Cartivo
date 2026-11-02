@@ -4,6 +4,7 @@
     MAX_BACKUP_FILE,
   } from "../../../packages/storage/src/formats.ts";
   import type { EmulatorClient } from "../../../packages/runtime/src/client.ts";
+  import { downloadJson } from "./download.ts";
   // «Copias de partida»: export and import the cartridge's battery RAM as a
   // versioned JSON file with its checksum. Only for games with a battery.
   let {
@@ -33,23 +34,12 @@
     try {
       const r = await client.request("save");
       if (!r.save) throw Error("No hay partida exportable");
-      const blob = new Blob(
-        [
-          JSON.stringify({
-            format: backupFormat(systemId),
-            game: r.hash,
-            sha256: r.saveHash,
-            bytes: Array.from(r.save),
-          }),
-        ],
-        { type: "application/json" },
-      );
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "cartivo-partida.json";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadJson("cartivo-partida.json", {
+        format: backupFormat(systemId),
+        game: r.hash,
+        sha256: r.saveHash,
+        bytes: Array.from(r.save),
+      });
       onstatus("Copia exportada.");
     } catch (e) {
       onproblem(e instanceof Error ? e.message : "Exportación fallida");

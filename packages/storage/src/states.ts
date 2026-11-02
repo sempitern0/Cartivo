@@ -21,6 +21,12 @@ export type StateMeta = {
   preview?: Uint8ClampedArray;
 };
 type StateRecord = StateMeta & { bytes: Uint8Array; sha256: string };
+/** A complete snapshot: what is stored, exported and imported. */
+export type StoredState = {
+  meta: StateMeta;
+  bytes: Uint8Array;
+  sha256: string;
+};
 
 export function isStateSlot(value: unknown): value is StateSlot {
   return (stateSlots as readonly unknown[]).includes(value);
@@ -145,18 +151,24 @@ export class StateStore {
     bytes: Uint8Array,
     info: Omit<StateMeta, "slot" | "size" | "createdAt">,
   ): Promise<StateMeta> {
-    if (!bytes.length || bytes.length > MAX_STATE_BYTES)
-      throw Error("La partida supera el tamaño admitido (8 MB)");
-    const record: StateRecord = {
-      ...info,
-      slot,
-      size: bytes.length,
-      createdAt: Date.now(),
+    return this.put({
+      meta: { ...info, slot, size: bytes.length, createdAt: Date.now() },
       bytes: Uint8Array.from(bytes),
       sha256: await digest(bytes),
-    };
+    });
+  }
+
+  /**
+   * Stores a complete snapshot in its slot (a new save or an imported file),
+   * replacing what was there. Success only once the transaction is durable.
+   */
+  async put({ meta: info, bytes, sha256 }: StoredState): Promise<StateMeta> {
+    // The one write path, so the size limit holds for saves and imports.
+    if (!bytes.length || bytes.length > MAX_STATE_BYTES)
+      throw Error("La partida supera el tamaño admitido (8 MB)");
+    const record: StateRecord = { ...info, bytes, sha256 };
     const tx = this.db.transaction("states", "readwrite");
-    tx.objectStore("states").put(record, this.key(slot));
+    tx.objectStore("states").put(record, this.key(info.slot));
     // Only report success once the transaction is durable.
     await new Promise<void>((resolve, reject) => {
       tx.oncomplete = () => resolve();
@@ -166,6 +178,29 @@ export class StateStore {
     return meta(record);
   }
 
+  private async read(slot: StateSlot): Promise<StateRecord> {
+    const tx = this.db.transaction("states", "readonly");
+    const value = (await request(
+      tx.objectStore("states").get(this.key(slot)),
+    )) as StateRecord | undefined;
+    if (!value) throw Error("Esa ranura está vacía");
+    return value;
+  }
+
+  private static async verified(value: StateRecord): Promise<StoredState> {
+    if (
+      !(value.bytes instanceof Uint8Array) ||
+      (await digest(value.bytes)) !== value.sha256
+    )
+      throw Error("La partida guardada está dañada");
+    return { meta: meta(value), bytes: value.bytes, sha256: value.sha256 };
+  }
+
+  /** The whole snapshot of a slot, checksum verified (to export it). */
+  async record(slot: StateSlot): Promise<StoredState> {
+    return StateStore.verified(await this.read(slot));
+  }
+
   /** Returns the snapshot bytes after checking core, version and checksum. */
   async load(
     slot: StateSlot,
@@ -173,18 +208,9 @@ export class StateStore {
     coreVersion: string,
     coreName: (id: string) => string = (id) => id,
   ) {
-    const tx = this.db.transaction("states", "readonly");
-    const value = (await request(
-      tx.objectStore("states").get(this.key(slot)),
-    )) as StateRecord | undefined;
-    if (!value) throw Error("Esa ranura está vacía");
+    const value = await this.read(slot);
     snapshotFits(value, core, coreVersion, coreName);
-    if (
-      !(value.bytes instanceof Uint8Array) ||
-      (await digest(value.bytes)) !== value.sha256
-    )
-      throw Error("La partida guardada está dañada");
-    return value.bytes;
+    return (await StateStore.verified(value)).bytes;
   }
 
   async delete(slot: StateSlot) {

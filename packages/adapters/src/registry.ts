@@ -175,8 +175,12 @@ export const coreModules: readonly CoreModule[] = [
   },
 ];
 
+/** The registered core of a system, or undefined (e.g. from an old file). */
+export const findCoreModule = (system: string, id: string) =>
+  coreModules.find((m) => m.system === system && m.id === id);
+
 export function coreModule(system: string, id: string): CoreModule {
-  const found = coreModules.find((m) => m.system === system && m.id === id);
+  const found = findCoreModule(system, id);
   if (!found) throw Error(`Núcleo ${id} no disponible para ${system}`);
   return found;
 }

@@ -13,6 +13,7 @@ import {
   type StateSlot,
 } from "../../storage/src/states.ts";
 import { isSha256 } from "../../storage/src/library.ts";
+import type { StateFile } from "../../storage/src/state-file.ts";
 export type EmuCommand =
   | "load"
   | "advance"
@@ -24,6 +25,8 @@ export type EmuCommand =
   | "state-save"
   | "state-load"
   | "state-delete"
+  | "state-export"
+  | "state-import"
   | "library-add";
 export type EmuRequest = {
   v: 1;
@@ -43,8 +46,10 @@ export type EmuRequest = {
   system?: string;
   /** Core for `load`; omitted means the system's first core in the worker. */
   core?: string;
-  /** Snapshot slot for state-save/state-load/state-delete. */
+  /** Snapshot slot for state-save/state-load/state-delete/state-export. */
   slot?: StateSlot;
+  /** Parsed JSON of an exported snapshot for state-import (checked in the Worker). */
+  stateFile?: unknown;
 };
 export function parseRequest(value: unknown): EmuRequest {
   if (!value || typeof value !== "object") throw Error("Mensaje inválido");
@@ -67,6 +72,8 @@ export function parseRequest(value: unknown): EmuRequest {
       "state-save",
       "state-load",
       "state-delete",
+      "state-export",
+      "state-import",
       "library-add",
     ].includes(r.command)
   )
@@ -91,10 +98,17 @@ export function parseRequest(value: unknown): EmuRequest {
       throw Error(`Núcleo desconocido para ${target.name}`);
   }
   if (
-    ["state-save", "state-load", "state-delete"].includes(r.command) &&
+    ["state-save", "state-load", "state-delete", "state-export"].includes(
+      r.command,
+    ) &&
     !isStateSlot(r.slot)
   )
     throw Error("Ranura de partida inválida");
+  if (
+    r.command === "state-import" &&
+    (!r.stateFile || typeof r.stateFile !== "object")
+  )
+    throw Error("Falta la partida que importar");
   if (
     r.command === "advance" &&
     (!Number.isInteger(r.count) ||
@@ -129,6 +143,8 @@ export type EmuResult = {
   saveHash?: string;
   /** Snapshot slots for this game (metadata and previews only). */
   states?: StateMeta[];
+  /** state-export: the snapshot as a versioned file, ready to download. */
+  stateFile?: StateFile;
   /** The game is now in the local library (load with remember, library-add). */
   remembered?: boolean;
   /** Why the game could not be remembered; the session goes on. */

@@ -10,8 +10,8 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly · GBA: mGBA 0.10.5 en WebAssembly (BIOS HLE) · SNES: Snes9x 1.63 en WebAssembly · Master System y Mega Drive: Genesis Plus GX en WebAssembly |
 | **App** | Instalable como PWA con todos los núcleos incluidos; funciona sin conexión (build de producción) y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA y SNES (I/O, LB/RB), X/Y para SNES y Mega Drive (U/J, botones norte y oeste); en Mega Drive A/B/C van en J/K/L y X/Y/Z en I/U/O |
-| **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9) y conserva la memoria de batería del cartucho |
-| **Pendiente** | QA con mando físico, Firefox/Safari y móviles; exportar Partidas; UI navegable con mando; consolas 3D (N64, PS1, PSP) |
+| **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9), exporta e importa cada ranura como archivo y conserva la memoria de batería del cartucho |
+| **Pendiente** | QA con mando físico, Firefox/Safari y móviles; UI navegable con mando; consolas 3D (N64, PS1, PSP) |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema se publica solo cuando su núcleo supera el gate técnico y de licencia. Plan completo: [docs/PLAN_TECNICO_CARTIVO.md](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -53,7 +53,7 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados 
 - **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
 - Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
-- En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar y cargar en ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
+- En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar, cargar, exportar e importar ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.
 - La primera vez que abres un juego, Cartivo pregunta si quieres **recordar tus juegos en este dispositivo**. Si aceptas, la tarjeta **Continuar** del inicio reanuda el último juego con un clic, sin volver a elegir el archivo, y **Tus juegos** lista los demás. La copia se guarda solo en tu navegador; quitar un juego de la lista conserva sus partidas ([ADR-012](docs/adr/012-library-continue.md)).
 - Algunos menús usan **Select** para elegir opción; por ejemplo, «1/2 PLAYERS» en Contra.
