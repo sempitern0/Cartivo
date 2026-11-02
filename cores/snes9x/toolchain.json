@@ -1,0 +1,13 @@
+{
+  "snes9x": {
+    "tag": "1.63",
+    "commit": "921f9f7b83660eb44ad263022a57a4a029057c37",
+    "repository": "https://github.com/snes9xgit/snes9x",
+    "spdx": "LicenseRef-Snes9x-noncommercial"
+  },
+  "emsdk": {
+    "version": "6.0.12",
+    "commit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+    "repository": "https://github.com/emscripten-core/emsdk"
+  }
+}

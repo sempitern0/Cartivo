@@ -33,4 +33,6 @@ cores/tetanes/target/
 cores/sameboy/build/
 !cores/sameboy/dist/
 cores/mgba/build/
+cores/snes9x/build/
+!cores/snes9x/dist/
 !cores/mgba/dist/
