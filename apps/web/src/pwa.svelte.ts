@@ -67,12 +67,13 @@ export function startPwa() {
 
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   const sw = navigator.serviceWorker;
-  sw.addEventListener("controllerchange", () => {
-    void offlineCacheComplete(
-      new URL(import.meta.env.BASE_URL, location.href).href,
-    )
+  const scope = new URL(import.meta.env.BASE_URL, location.href).href;
+  const verifyOffline = () =>
+    offlineCacheComplete(scope)
       .catch(() => false)
       .then(setOfflineReady);
+  sw.addEventListener("controllerchange", () => {
+    void verifyOffline();
     // Only reload when the player explicitly applied an update, and the
     // UI only offers that while no game session is open.
     if (reloadWhenActivated) location.reload();
@@ -85,9 +86,7 @@ export function startPwa() {
         track(registration.installing),
       );
       await sw.ready;
-      setOfflineReady(
-        await offlineCacheComplete(registration.scope).catch(() => false),
-      );
+      await verifyOffline();
       // Installed apps keep saves safer from storage eviction. Asking in a
       // plain tab could show a permission prompt in some browsers.
       if (pwa.installed && navigator.storage?.persist)
