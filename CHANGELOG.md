@@ -210,6 +210,13 @@
 - Firefox necesita un servidor de sonido en Linux: la CI usa PulseAudio con un sumidero nulo, así que el audio también se comprueba en Firefox.
 - La prueba de pantalla completa compara con la altura real de la ventana en ese modo, en lugar de con el viewport configurado. Ninguna prueba se omite por ser Firefox.
 
+### CI más rápida y sin duplicados
+
+- Las cuatro tandas E2E (Chromium y Firefox, en dev y en preview) corren en paralelo en una matriz. La CI completa baja de unos 8 minutos a unos 4.
+- La preparación (pnpm, Node, instalación) vive en una acción común, `.github/actions/setup`, en lugar de copiarse en cada job.
+- El build se hace solo donde se usa (preview).
+- En la CI, una prueba que falla una vez se reintenta y se marca como «flaky», con traza. Los resultados de cada tanda, capturas incluidas, se suben como artefacto.
+
 ### La memoria de batería se guarda sin frenar la imagen
 
 - El guardado automático de la memoria del cartucho (cada 120 frames) ya no retiene el siguiente frame mientras IndexedDB escribe. Antes, una escritura lenta podía pausar el juego con «La ejecución se ha retrasado».
