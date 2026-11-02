@@ -46,7 +46,7 @@ Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligada
 | `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en dev / en la build de producción |
 | `pnpm verify:core` | Integridad de todos los núcleos contra sus manifiestos, sin recompilar |
 
-Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml` o `core-genesis-plus-gx.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md) [ADR-013](docs/adr/013-snes-snes9x.md) y [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md)). La CI omite los cambios que solo tocan documentación.
+Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml` o `core-genesis-plus-gx.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md), [ADR-013](docs/adr/013-snes-snes9x.md) y [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md)). La CI omite los cambios que solo tocan documentación.
 
 ## Jugar
 

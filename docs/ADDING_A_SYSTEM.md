@@ -17,7 +17,7 @@ Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la pl
   - Gate de licencias y fuentes.
   - Disparo **solo explícito** (`workflow_dispatch` o un archivo `.build-request` en una rama de trabajo, con `branches-ignore: [main]` para que fusionar no recompile), nunca por push o PR: el binario se compila una vez por cambio del núcleo.
   - Commit de `dist/`, `manifest.json` y `sbom.json` por el workflow; recompilación de verificación solo a mano.
-- Añadir `tools/verify-<id>.mjs` a `pnpm verify:core`. La CI rechaza una PR que cambie `cores/<id>/src`, `Cargo.toml` o la toolchain sin traer `manifest.json` y `dist/` regenerados.
+- Añadir el id del núcleo a `node tools/verify-core.mjs …` en `pnpm verify:core` (núcleos Emscripten; manifiesto con `upstream.name` y `tag` o `commit`). La CI rechaza una PR que cambie `cores/<id>/src`, `Cargo.toml` o la toolchain sin traer `manifest.json` y `dist/` regenerados.
 
 ## 3. Módulo del núcleo
 - Adaptador `packages/adapters/src/<id>.ts` que implemente `EmulatorCore`: `input`, `advance` (1–3 frames, RGBA del tamaño declarado, audio mono a 48 kHz ≤ 1 s), `saveBytes` (tamaño de la SRAM de ese cartucho; 0 si no tiene) y `save` (SRAM de ese tamaño), `snapshot`/`restore` (errores legibles), `lastFrame` y `dispose` (liberar memoria WASM).

@@ -336,3 +336,26 @@ export function packBits(
   });
   return bits;
 }
+
+/**
+ * RETRO_DEVICE_ID_JOYPAD_* order, shared by every bridge that drives a
+ * libretro frontend (Snes9x, Genesis Plus GX). Each system maps its own
+ * buttons onto these positions (systems.ts `buttons` and `labels`).
+ */
+const libretroOrder: readonly (keyof InputState)[] = [
+  "b",
+  "y",
+  "select",
+  "start",
+  "up",
+  "down",
+  "left",
+  "right",
+  "a",
+  "x",
+  "l",
+  "r",
+];
+
+export const libretroInputBits = (state: InputState) =>
+  packBits(libretroOrder, state);
