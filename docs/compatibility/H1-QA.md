@@ -1,6 +1,6 @@
-# H1 — Matriz de QA (NES, PWA y entrada)
+# H1 — Matriz de QA (todos los sistemas, PWA y entrada)
 
-Fecha: 2026-11-01. Estado de verificación de la base NES antes de fusionar la PR #2. Lo automático se ejecuta en GitHub Actions (Node 24, Chromium headless de Playwright); lo manual solo cuenta cuando alguien lo ha hecho en hardware real, y entonces se anota quién, con qué y cuándo.
+Actualizado: 2026-11-02. Lo automático se ejecuta en GitHub Actions (Node 24; Chromium y Firefox headless de Playwright, en dev y en preview). Lo manual solo cuenta cuando alguien lo ha hecho en hardware real, y entonces se anota quién, con qué y cuándo. Cerrar H1 solo depende ya de la sección **Manual**.
 
 ## Automático (CI, workflow `ci`)
 

@@ -1,6 +1,6 @@
 # Añadir una consola a Cartivo
 
-Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la plantilla de SameBoy y mGBA (`packages/adapters/src/wasm-host.ts`, puente `cartivo_*`). Un sistema por incremento, en la rama de trabajo y con plan previo. El contrato está en `packages/adapters/src/contract.ts`; NES (`tetanes`, `jsnes`) es la referencia.
+Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la plantilla común (`packages/adapters/src/wasm-host.ts`, puente `cartivo_*`). Si el núcleo tiene frontend libretro, el camino más corto es el de Snes9x y Genesis Plus GX: un puente que conduce `retro_*`, con la ROM en memoria y el orden de botones común `libretroInputBits`. Un sistema por incremento, en la rama de trabajo y con plan previo. El contrato está en `packages/adapters/src/contract.ts`; NES (`tetanes`, `jsnes`) es la referencia.
 
 ## 1. Núcleo y licencia
 - Elegir el núcleo con la matriz de `docs/research/` y el plan técnico. Requisitos: compila a WebAssembly, no necesita BIOS propietaria y ofrece **instantáneas de estado** (para «Partidas»).
@@ -11,7 +11,7 @@ Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la pl
   - `new(rom, sampleRate)`, `set_input(bits)` y `frames(n)`.
   - `pixels()`, `audio()`, `sram()` y `set_sram()`.
   - `save_state()`, `load_state()` y `reset()`.
-- Copiar `.github/workflows/core-tetanes.yml` y `tools/build-tetanes.mjs` como base:
+- Copiar como base `core-genesis-plus-gx.yml` y `tools/build-genesis-plus-gx.mjs` (C/C++ con Emscripten) o `core-tetanes.yml` y `tools/build-tetanes.mjs` (Rust):
   - Rust → `wasm-bindgen`; C/C++ → Emscripten con versión fijada.
   - Lockfile, toolchain y rutas reasignadas.
   - Gate de licencias y fuentes.
