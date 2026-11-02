@@ -187,3 +187,13 @@
 - `wasm-host.ts` admite `setjmp`/`longjmp` nativos de WebAssembly (la etiqueta `env.__c_longjmp`), que Musashi necesita para los errores de dirección del 68000.
 - `.sms`, `.md`, `.gen` y `.bin` en el selector, al soltar y en «Abrir con».
 - Fixtures Z80 y 68000 originales y pruebas: cabeceras, oráculos completos en WASM, conformidad y E2E. ADR-014 y [H2-SEGA](docs/compatibility/H2-SEGA.md).
+
+### Fiabilidad (auditoría del titular)
+
+- **Biblioteca:** una copia verificada ya no se reescribe, así que un fallo al recordar otra vez un juego no puede borrarla. Al quitar un juego se borra antes la entrada que la copia, y las copias huérfanas con más de 24 h se podan en segundo plano (ADR-012).
+- **Durante la partida** funcionan todos los controles de la página, como «Ajustes» o el logo. Un clic en una zona vacía sigue devolviendo el foco al juego.
+- **Guardar en una ranura** avisa si la instantánea se guardó pero falló la memoria del cartucho.
+- **Núcleos C:** si el servidor no entrega `application/wasm`, se compilan desde los bytes; una descarga fallida tiene su propio mensaje.
+- **Tiempos de espera:** 60 s para abrir un juego (compilar el núcleo y calcular el hash) y 10 s para el resto.
+- **PWA:** se instala con 6 descargas a la vez, y «sin conexión» solo se indica cuando la caché está completa, con su manifiesto y todos sus archivos.
+- **Plan técnico:** nuevo punto «Fiabilidad y portabilidad» con lo pendiente (Firefox/WebKit, pruebas de fallo en navegador, modo sin persistencia, subruta) y reglas de sincronización para H6.

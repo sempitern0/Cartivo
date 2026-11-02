@@ -18,6 +18,13 @@ Para seguir una partida había que volver a elegir el archivo en cada visita, au
 - **Quitar de la lista** borra la copia y la entrada. Las Partidas (`cartivo-states`) y la SRAM (`cartivo-saves`) están en otros almacenes y **no se tocan**: al volver a abrir el archivo, el juego sigue donde estaba.
 - Los archivos no salen del dispositivo; no hay metadatos remotos.
 
+### Revisión 2026-11-02: escrituras recuperables
+
+Cambios de la auditoría del titular:
+- **Copias direccionadas por contenido:** si `roms/<hash>` ya existe y su tamaño y hash coinciden, recordar el juego no la reescribe. Solo se escribe una copia ausente o dañada, y solo esa se borra si no se puede verificar. Un fallo de cuota al recordar otra vez un juego ya no puede borrar su copia válida.
+- **Orden índice/copia:** al recordar, primero la copia verificada y después la entrada; al quitar, primero la entrada y después la copia. Una interrupción deja como mucho un archivo huérfano, nunca una entrada que apunte a una copia ausente.
+- **Poda:** al abrir el inicio, en segundo plano, se borran los archivos de `roms/` sin entrada con más de 24 h. El margen evita competir con una escritura del Worker en curso.
+
 ## Alternativas descartadas
 
 - **File System Access (handles persistentes):** no existe en Safari ni Firefox y exige volver a conceder el permiso. Puede añadirse después como alternativa sin copia.
