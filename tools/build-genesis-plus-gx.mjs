@@ -53,7 +53,9 @@ const dirs = ["core", "core/z80", "core/m68k", "core/ntsc", "core/sound", "core/
   "core/input_hw", "core/cd_hw", "core/cart_hw", "core/cart_hw/svp"];
 const flags = [
   "-O3", "-DNDEBUG", "-DLSB_FIRST", "-DALIGN_LONG", "-DBYTE_ORDER=LITTLE_ENDIAN", "-DHAVE_ZLIB",
-  "-DUSE_LIBTREMOR", "-Dflac_max=MAX", "-Dflac_min=MIN", "-Dfseeko=fseek", "-Dftello=ftell",
+  // Upstream's -Dfseeko/-Dftello/-Dflac_* only serve libchdr's FLAC (CHD),
+  // which is not built; with Emscripten's stdio.h they would not compile.
+  "-DUSE_LIBTREMOR",
   "-DUSE_16BPP_RENDERING", "-DFRONTEND_SUPPORTS_RGB565", "-D__LIBRETRO__", "-DUSE_LIBRETRO_VFS",
   "-DM68K_OVERCLOCK_SHIFT=20", "-DZ80_OVERCLOCK_SHIFT=20", "-DHAVE_YM3438_CORE", "-DHAVE_OPLL_CORE",
   "-DINLINE=static inline",
