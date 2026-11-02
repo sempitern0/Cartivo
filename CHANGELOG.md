@@ -163,3 +163,10 @@
 - El logo enlaza al inicio.
 - En Controles, la barra de prueba va junto a los dibujos que se iluminan.
 - Tarjetas de consola alineadas, de igual altura y con títulos más contenidos.
+
+### Base para H2
+
+- `Player.svelte` dividido de 1104 a 773 líneas sin cambiar comportamiento: `PlayerActions`, `DeviceStatus`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `display.svelte.ts`, `sound.svelte.ts` y `game-capture.ts`.
+- Botones declarados por sistema (`buttons` en `systems.ts`): Controles muestra solo los que usa alguna consola y genera sus notas.
+- PWA: se instala todo (decisión del titular) y una actualización copia de la caché anterior los archivos sin cambios en lugar de volver a descargarlos. El build informa del tamaño precargado.
+- Plan técnico, revisión 4: «Hecho — no reimplementar» y «Pendiente» en orden; Snes9x y Genesis Plus GX elegidos; hito futuro H6 de cuentas online con Supabase.

@@ -1,6 +1,6 @@
 # Añadir una consola a Cartivo
 
-Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un sistema por incremento, en la rama de trabajo y con plan previo. El contrato está en `packages/adapters/src/contract.ts`; NES (`tetanes`, `jsnes`) es la referencia.
+Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la plantilla de SameBoy y mGBA (`packages/adapters/src/wasm-host.ts`, puente `cartivo_*`). Un sistema por incremento, en la rama de trabajo y con plan previo. El contrato está en `packages/adapters/src/contract.ts`; NES (`tetanes`, `jsnes`) es la referencia.
 
 ## 1. Núcleo y licencia
 - Elegir el núcleo con la matriz de `docs/research/` y el plan técnico. Requisitos: compila a WebAssembly, no necesita BIOS propietaria y ofrece **instantáneas de estado** (para «Partidas»).
@@ -32,7 +32,7 @@ Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un siste
   - `cores` con versión y licencias, `defaultCore`, `formatNote`, `demo` y `available`.
 - Añadir las extensiones a `file_handlers` en `apps/web/public/manifest.webmanifest`.
 - La tarjeta de inicio, el selector de archivos, el reproductor, Gráficos, Partidas y la selección de núcleo salen del registro sin más cambios.
-- **Botones:** NES, GB y GBC usan los 8 de `packages/input/src/nes-input.ts`. Para GBA (L/R), SNES (X/Y/L/R) o Mega Drive (C, 6 botones) hay que ampliar antes `InputState` y `ControlsPanel` con acciones por sistema; es un incremento propio.
+- **Botones:** declarar en `systems.ts` los `buttons` del mando original (acciones de `packages/input/src/nes-input.ts` además de la cruceta). Controles muestra solo los botones que usa alguna consola disponible y genera las notas («L y R solo los usa Game Boy Advance»). Si el sistema necesita una acción que aún no existe (X/Y para SNES), se añade en `packages/input` con migración de perfiles como L/R (lista `later`) y como opcional en el protocolo v1.
 
 ## 5. Pruebas
 - `pnpm test` ejecuta `tests/core-conformance.test.ts` sobre todos los módulos registrados: arranque, tamaño de imagen, entrada, audio, SRAM, instantáneas deterministas, rechazo de estados corruptos y `dispose`. En Node, instancia el WASM con `initSync` igual que TetaNES.

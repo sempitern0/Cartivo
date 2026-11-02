@@ -1,6 +1,7 @@
 // Systems Cartivo can run, as the UI sees them. No core code here: the
 // Worker side resolves cores through packages/adapters/src/registry.ts.
 // Adding a console: docs/ADDING_A_SYSTEM.md.
+import type { Action } from "../../input/src/nes-input.ts";
 import {
   GBA_VIDEO,
   GB_VIDEO,
@@ -27,6 +28,8 @@ export type SystemInfo = {
   video: VideoDescriptor;
   /** Frames per second the player advances (original hardware rate). */
   frameRate: number;
+  /** Buttons of the original controller besides the D-pad, as Cartivo actions. */
+  buttons: readonly Action[];
   cores: CoreInfo[];
   defaultCore: string;
   /** Formats the current build accepts, in user terms. */
@@ -37,6 +40,9 @@ export type SystemInfo = {
   available: boolean;
 };
 
+/** NES and Game Boy pads: A, B, Start and Select. */
+const basicButtons: readonly Action[] = ["a", "b", "start", "select"];
+
 export const systems: readonly SystemInfo[] = [
   {
     id: "nes",
@@ -46,6 +52,7 @@ export const systems: readonly SystemInfo[] = [
     video: NES_VIDEO,
     // NTSC is 60.0988 Hz; kept at 60 as shipped (no audible drift yet).
     frameRate: 60,
+    buttons: basicButtons,
     cores: [
       {
         id: "tetanes",
@@ -92,6 +99,7 @@ export const systems: readonly SystemInfo[] = [
     video: GBA_VIDEO,
     // 16 777 216 Hz clock, 280 896 cycles per frame ≈ 59.73 fps.
     frameRate: 16777216 / 280896,
+    buttons: [...basicButtons, "l", "r"],
     cores: [
       {
         id: "mgba",
@@ -123,6 +131,7 @@ function gameBoy(
     ...info,
     video: GB_VIDEO,
     frameRate: 4194304 / 70224,
+    buttons: basicButtons,
     cores: [
       {
         id: "sameboy",
@@ -166,5 +175,35 @@ export function coreLabel(systemId: string, coreId: string): string {
     system(systemId)
       ?.cores.find((c) => c.id === coreId)
       ?.label.split(" · ")[0] ?? coreId
+  );
+}
+
+/** The buttons of `order` used by at least one available system. */
+export function controlButtons(order: readonly Action[]): Action[] {
+  const used = new Set(availableSystems().flatMap((s) => s.buttons));
+  return order.filter((action) => used.has(action));
+}
+
+const listJoin = (items: string[]) =>
+  items.length < 2
+    ? items.join("")
+    : `${items.slice(0, -1).join(", ")} y ${items.at(-1)}`;
+
+/**
+ * Notes for buttons that only some consoles use, grouped by those consoles,
+ * e.g. «L y R solo los usa Game Boy Advance.».
+ */
+export function buttonNotes(label: (action: Action) => string): string[] {
+  const consoles = availableSystems();
+  const groups = new Map<string, Action[]>();
+  for (const action of new Set(consoles.flatMap((s) => s.buttons))) {
+    const users = consoles.filter((s) => s.buttons.includes(action));
+    if (users.length === consoles.length) continue;
+    const names = listJoin(users.map((s) => s.name));
+    groups.set(names, [...(groups.get(names) ?? []), action]);
+  }
+  return [...groups].map(
+    ([names, buttons]) =>
+      `${listJoin(buttons.map(label))} solo ${names.includes(" y ") ? "los usan" : "los usa"} ${names}.`,
   );
 }

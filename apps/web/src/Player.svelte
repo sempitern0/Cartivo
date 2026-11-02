@@ -179,7 +179,8 @@
   let screen = $state.raw<HTMLCanvasElement>();
   let frameElement = $state.raw<HTMLDivElement>();
   let actionsElement = $state.raw<HTMLDivElement>();
-  let client: EmulatorClient | undefined;
+  // Reactive: BackupPanel receives it as a prop.
+  let client = $state.raw<EmulatorClient>();
   const sound = new GameSound();
   let active = true;
   let loop = 0;

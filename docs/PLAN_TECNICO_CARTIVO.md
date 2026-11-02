@@ -1,205 +1,176 @@
 # Cartivo — Plan técnico
 
-> **Revisión 3 · 1 de noviembre de 2026.** Sustituye a la revisión 2 (30-10-2026), que era una propuesta sin código. Esta revisión parte de lo implementado en la PR #2 y ordena el trabajo restante.
+> **Revisión 4 · 2 de noviembre de 2026.** Sustituye a la revisión 3. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
-> **Fuente de verdad del estado:** README y `docs/compatibility/`. Reglas de trabajo: `AGENTS.md`. Decisiones: `docs/adr/`.
+> **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
+
+**Para agentes de IA:** antes de proponer o escribir código, lee §2. Todo lo que aparece allí existe, está probado y se **reutiliza**, no se reescribe. Elige trabajo solo de §3, en su orden, y sigue la skill `cartivo-increment` (y `cartivo-core-gate` si hay núcleo nuevo).
 
 ## 1. Objetivo y reglas innegociables
 
-El usuario abre una URL o la app instalada, **elige consola, elige juego y juega**, con teclado o mando, sin configurar nada. Todo lo avanzado existe, pero fuera del recorrido principal.
+El usuario abre la app, **elige consola, elige juego y juega**, con teclado o mando, sin configurar nada ni decidir nada técnico.
 
-1. **Instalable y offline.** HTTPS, manifest y service worker propio. La app y los núcleos usados funcionan sin red; los juegos los aporta el usuario y nunca salen de su dispositivo.
-2. **Sin BIOS propietarias externas.** Solo núcleos sin BIOS, con firmware libre o con HLE. Si un sistema no lo cumple, no se publica.
-3. **Licencias: uso privado.** Cartivo usa PolyForm Noncommercial 1.0.0 para su código y hoy no se distribuye a terceros (ADR-005, revisión 2026-11-01): se admiten núcleos con cualquier licencia libre o de código disponible identificada, conservando licencias y avisos. Cada núcleo pasa el gate CORE-LEGAL-01 como registro; antes de publicar se revisa la compatibilidad.
-4. **Partidas a salvo.** Generaciones recuperables, escritor único, exportación siempre disponible. Ninguna actualización recarga una sesión activa ni borra partidas.
-5. **Fidelidad por defecto.** Aspecto y velocidad originales; las mejoras que alteren la imagen o el tiempo son opcionales y vienen desactivadas.
-6. **Solo capacidades reales.** La UI no ofrece lo que el núcleo y la build no hacen (rewind, threads, resolución interna…). Guardar partida en cualquier momento es un requisito de producto: cada núcleo debe ofrecer instantáneas para la capa «Partidas» (ADR-009).
+1. **Instalable y offline.** La app instalada trae **todos** los núcleos. El jugador nunca elige qué descargar; los juegos los aporta él y no salen de su dispositivo.
+2. **Sin BIOS propietarias externas.** Solo núcleos sin BIOS, con firmware libre o con HLE.
+3. **Licencias: uso privado** (ADR-005). Se admite cualquier licencia libre o de código disponible identificada, con sus avisos. Cada núcleo pasa el gate CORE-LEGAL-01. Antes de publicar se revisa la compatibilidad.
+4. **Partidas a salvo.** Generaciones recuperables, escritor único y exportación. Ninguna actualización recarga una sesión activa ni borra partidas.
+5. **Fidelidad por defecto.** Aspecto y velocidad originales; las mejoras que alteren la imagen o el tiempo son opcionales.
+6. **Solo capacidades reales.** Cada núcleo ofrece instantáneas para «Partidas» (ADR-009) o declara que no puede.
 
-**Fuera de V1:** escribir emuladores propios, netplay, cuentas o nube, logros, catálogo o descarga de ROMs, telemetría identificable.
+**Fuera de V1:** emuladores propios, netplay, catálogo o descarga de ROMs y telemetría identificable. Las cuentas online, la nube y los logros son el hito futuro H6 (§3), posterior a V1.
 
-## 2. Estado actual
+## 2. Hecho — no reimplementar
 
-| Área | Implementado | Pendiente para cerrar H1 |
+| Capacidad | Dónde vive | Decisión | Evidencia |
+|---|---|---|---|
+| Contrato de núcleo, registro y protocolo v1 genérico (`load`, `advance`, `pause`, `save`, `import`, `reset`, `state-*`, `library-add`) | `packages/adapters/src/contract.ts`, `registry.ts`; `packages/runtime/src/protocol.ts`, `client.ts`; `apps/web/src/emulator.worker.ts` | ADR-002 | `tests/core-conformance.test.ts`, `worker.test.ts`, `client.test.ts` |
+| Plantilla para núcleos C → WASM con Emscripten (ABI `cartivo_*`, imports permitidos, `BridgeCore`) | `packages/adapters/src/wasm-host.ts`; `cores/sameboy`, `cores/mgba` | ADR-010/011 | `tests/wasm-host.test.ts` |
+| Builds de núcleo reproducibles, solo bajo petición (`.build-request` en una rama de trabajo o `workflow_dispatch`; nunca en `main` al fusionar) | `.github/workflows/core-*.yml`, `tools/build-*.mjs`, `tools/verify-*.mjs` | ADR-008 | `pnpm verify:core` en cada CI |
+| **NES:** TetaNES 0.17.0 (WASM, por defecto) y JSNES 2.1.0 (alternativa); iNES NTSC, mappers 0–4 | `packages/adapters/src/tetanes.ts`, `jsnes.ts`, `ines.ts` | ADR-007/008 | `tests/nes.test.ts`, `tetanes.test.ts`, `tests/e2e/nes.spec.ts` |
+| **GB/GBC:** SameBoy 1.0.4; DMG o CGB según la cabecera; MBC1/2/3/5 | `packages/adapters/src/sameboy.ts`, `gb-header.ts` | ADR-010 | `tests/gb.test.ts`, `tests/e2e/gb.spec.ts`, [H2-GB](compatibility/H2-GB.md) |
+| **GBA:** mGBA 0.10.5 con BIOS HLE; SRAM, Flash y EEPROM | `packages/adapters/src/mgba.ts`, `gba-header.ts` | ADR-011 | `tests/gba-saves.test.ts`, `tests/e2e/gba.spec.ts`, [H2-GBA](compatibility/H2-GBA.md) |
+| Fixtures originales con hash y oráculo (NES, GB/GBC, GBA) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
+| SRAM con dos generaciones, Web Lock y exportación/importación | `packages/storage/src/sram.ts`, `formats.ts` | ADR-003/007 | `tests/storage.test.ts`, `tests/e2e/integrity.spec.ts` (100 ciclos) |
+| «Partidas»: 3 ranuras + «Al salir», miniaturas, F5/F9, ligadas a núcleo y versión | `packages/storage/src/states.ts`, `apps/web/src/SavePanel.svelte` | ADR-009 | `tests/snapshots.test.ts`, `tests/e2e/saves.spec.ts` |
+| Biblioteca local y «Continuar» (ROM en OPFS con consentimiento) | `packages/storage/src/library.ts`, `apps/web/src/{ContinueCard,Library,RememberPrompt}.svelte`, `game-source.ts` | ADR-012 | `tests/library.test.ts`, `tests/e2e/library.spec.ts`, [H1-LIB](compatibility/H1-LIB.md) |
+| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; diez acciones (con L/R); botones declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
+| Pantalla: Ajustar, Píxel entero y entero por proporción; aspecto del sistema; suavizado; preferencias por sistema | `packages/media/src/display-scaler.ts`, `display-preferences.ts`; `apps/web/src/GraphicsPanel.svelte`, `display.svelte.ts` | — | `tests/display-*.test.ts` |
+| Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts`, `session.spec.ts` |
+| PWA: SW propio que precarga **todo** el build (núcleos incluidos); una actualización solo descarga lo que cambió; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
+| Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
+| CI: `verify:core`, Prettier, svelte-check, unitarias, build y E2E en dev y en preview; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
+
+## 3. Pendiente (lista de trabajo, en orden)
+
+Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
+
+1. **SNES con Snes9x (H2).**
+   - Gate CORE-LEGAL-01 y ADR-013. Chips con firmware propio (DSP-n, ST010…) excluidos con un mensaje claro.
+   - `cores/snes9x/` sobre la plantilla `wasm-host.ts`, con el puente `cartivo_*` sobre la API libretro enlazada estáticamente.
+   - Acciones `x`/`y` en `packages/input`, migrando los perfiles como se hizo con L/R; `buttons` del sistema.
+   - Validador LoROM/HiROM con cabecera copier, y fixture 65816 original.
+   - **Terminado:** demo y archivo jugables, SRAM y Partidas, X/Y y L/R comprobados en E2E (dev y preview), ms/frame medido en CI.
+2. **Master System y Mega Drive con Genesis Plus GX (H2).**
+   - Gate y ADR-014. Un núcleo y dos `CoreModule`; sin BIOS; Mega-CD, 32X y Game Gear fuera.
+   - Botones:
+     - SMS: 1/2 sobre B/A y Pause en Start.
+     - Mega Drive: A/B/C sobre Y/B/A, X/Y/Z sobre L/X/R y Mode en Select.
+     - Las etiquetas por sistema van en `systems.ts`.
+   - Validadores «TMR SEGA» y «SEGA» en `$100`; fixtures Z80 y 68000 originales.
+   - `.bin` solo desde la tarjeta de Mega Drive o con confirmación.
+   - **Terminado:** como SNES, por sistema.
+3. **Cerrar H1.**
+   - Exportar e importar Partidas (instantáneas), con formato versionado.
+   - E2E en Firefox además de Chromium.
+   - QA física del titular: mando, audio, instalación y suspensión en móvil ([H1-QA](compatibility/H1-QA.md)).
+4. **H1.5 · sin fricción.**
+   - UI navegable con mando: la cruceta mueve el foco, A acepta, B vuelve, menú de pausa.
+   - Despliegue en Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
+5. **Deuda técnica conocida.**
+   - Cadencia por núcleo: hoy el host avanza al `frameRate` del sistema, con lotes de 1–3 frames, sin sincronía A/V fina.
+   - Ajustes de núcleo declarados por schema.
+   - P2–P4 con perfiles.
+   - GBA: RTC y sensores.
+   - Paletas DMG opcionales.
+   - Perfiles de pantalla por sistema.
+   - Presupuestos de rendimiento medidos por núcleo (§7).
+6. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
+7. **H4 · 3D.**
+   - N64 (Mupen64Plus-Next o ares), PS1 (PCSX-ReARMed o Beetle PSX) y PSP (PPSSPP).
+   - Lectura por bloques de discos sin copiar la imagen al heap WASM.
+   - Renderer propio (WebGL u OffscreenCanvas). Hilos solo si se miden, con COOP/COEP.
+8. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
+9. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
+10. **Laboratorio PS2.** Play! opcional con límites publicados.
+
+## 4. Hito futuro H6 — Cuentas online con Supabase
+
+**Objetivo:** que el jugador pueda, si quiere, tener una cuenta para:
+- conservar sus partidas en la nube y recuperarlas en otro dispositivo;
+- desbloquear logros;
+- aparecer en rankings por juego.
+
+Sin cuenta, Cartivo sigue funcionando igual: local y offline.
+
+**Requisitos previos:**
+- **Regla de AGENTS.md.** El titular revisa «Archivos, partidas y rutas del usuario permanecen locales» para que diga «locales por defecto; nube solo con cuenta y consentimiento explícito».
+- **ADR propio de H6:** proveedor (Supabase: Auth, Postgres con RLS y Storage), modelo de datos, retención, borrado de cuenta y costes.
+- **Partidas sincronizadas:** SRAM y «Partidas», nunca ROMs ni BIOS. Cifradas en tránsito, aisladas por usuario (RLS) y versionadas con el mismo formato y checksum que la exportación local. Ante un conflicto, se conservan las dos versiones y elige el jugador.
+- **Logros:** decidir con ADR entre integrar rcheevos/RetroAchievements (cuenta y condiciones de ese servicio, lectura de memoria por núcleo) o un sistema propio. Ningún logro se ofrece para un núcleo que no exponga la memoria necesaria.
+- **Rankings:** por hash de juego y modo. Cliente no fiable: puntuaciones validadas en el servidor o marcadas como no verificadas. Sin datos personales públicos más allá del alias.
+
+**Terminado cuando:**
+- funciona con y sin cuenta;
+- borrar la cuenta borra los datos remotos;
+- la sincronización sobrevive a desconexión y conflicto con pruebas E2E;
+- no se sube nada sin consentimiento.
+
+## 5. Catálogo V1 y núcleos
+
+Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se integra.
+
+| Sistema | Núcleo | Estado |
 |---|---|---|
-| Shell y UX | Svelte 5 + Vite; inicio «Elige una consola», reproductor con barra (Gráficos, Cargar ROM, Salir), Focus, pantalla completa, panel Gráficos con preferencias por sistema | Navegación completa de la UI con mando |
-| PWA | Manifest, iconos originales, SW generado en build (`tools/pwa-plugin.mjs`), offline, actualización que espera a no tener juego activo, «Abrir con» `.nes`, arrastrar y soltar | QA de instalación en Android/iOS y despliegue HTTPS (Cloudflare Worker, decidido por el titular) |
-| NES | **TetaNES 0.17.0 en WebAssembly** por defecto (ADR-008); JSNES 2.1.0 como alternativa (ADR-007). iNES NTSC, mappers 0–4 | QA física con mando y audio; Firefox/Safari; ampliar mappers con pruebas |
-| Game Boy / Color | **SameBoy 1.0.4 en WebAssembly** (ADR-010), dos tarjetas; hardware DMG o CGB según la cabecera; sin mapper, MBC1/2/3/5; SRAM por cartucho, Partidas y ritmo de 59,73 Hz | QA con juegos propios, mando y audio reales; paletas DMG opcionales |
-| Game Boy Advance | **mGBA 0.10.5 en WebAssembly** (ADR-011), BIOS HLE; SRAM/Flash/EEPROM en búfer fijo de 128 KB; botones L/R comunes (I/O, LB/RB) | QA con juegos propios; RTC y sensores; mando con LB/RB |
-| Entrada | Teclado (WASD/flechas, L/K/Q/Enter) y Gamepad API con perfiles, remapeo, zona muerta, neutralización al perder foco | Mando físico certificado; P2 |
-| Partidas | «Partidas» para cualquier juego: instantáneas en 3 ranuras + «Al salir», «Continuar donde lo dejaste», F5/F9 (ADR-009). SRAM de batería con dos generaciones, Web Lock, export/import, compartida entre núcleos. E2E de 100 ciclos alternando núcleos y de estados dañados o de otra versión | Exportar instantáneas |
-| Calidad | CI: verify:core, lint, svelte-check, tests unitarios (Node), build, E2E Playwright en dev y en build de producción, capturas de UI. Reproductor dividido (`PlayerToolbar`, `GraphicsPanel`, `SavePanel`, `InputCapture`) | Matriz de navegadores real ([H1-QA](compatibility/H1-QA.md)); presupuestos de rendimiento medidos |
+| NES | TetaNES 0.17.0 (WASM); JSNES 2.1.0 alternativa | **accepted** |
+| Game Boy / Color | SameBoy 1.0.4 (Expat, boot ROMs libres) | **accepted** |
+| Game Boy Advance | mGBA 0.10.5 (MPL-2.0, BIOS HLE) | **accepted (uso privado)** |
+| SNES | **Snes9x** (licencia no comercial propia) | **elegido**; gate pendiente (§3.1) |
+| Master System / Mega Drive | **Genesis Plus GX** (condiciones no comerciales) | **elegido**; gate pendiente (§3.2) |
+| N64 | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado) |
+| PlayStation | PCSX-ReARMed / Beetle PSX (GPL-2.0, HLE/OpenBIOS) | candidate (uso privado) |
+| PSP | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) |
+| PS2 | Play! (BSD-2, HLE) | laboratorio opt-in |
 
-Detalle y evidencias: [H1-QA](compatibility/H1-QA.md), [H1-B NES (JSNES)](compatibility/H1-B-NES.md), [H1-B Entrada](compatibility/H1-B-INPUT.md), [H1-C PWA](compatibility/H1-C-PWA.md), [H0-WASM-NES (TetaNES)](compatibility/H0-WASM-NES.md).
+- **Pospuestos:** Game Gear, DS y Dreamcast.
+- **Fuera:** Saturn, 32X, Mega-CD, arcade y accesorios especiales.
+- **Matriz:** [CORE_LICENSE_AND_FIRMWARE_MATRIX](research/CORE_LICENSE_AND_FIRMWARE_MATRIX.md).
 
-## 3. Catálogo V1 y núcleos candidatos
-
-Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` puede publicarse, siempre como `experimental`, `beta` o `stable` por build y plataforma. La popularidad no demuestra viabilidad web ni derecho a distribuir.
-
-| Sistema | Objetivo | Núcleo | Estado | Notas para el gate |
-|---|---|---|---|---|
-| NES | V1 estable | TetaNES 0.17.0 (WASM); JSNES 2.1.0 comparador | **accepted** | Ampliar mappers solo con fixtures y expediente; FDS excluido |
-| Game Boy / Color | V1 estable | **SameBoy 1.0.4** (Expat, boot ROMs libres) | **accepted** | Integrado en H2-GB (ADR-010); mGBA queda para GBA |
-| Game Boy Advance | V1 estable | **mGBA 0.10.5** (MPL-2.0, BIOS HLE) | **accepted (uso privado)** | Integrado en H2-GBA (ADR-011); blip_buf LGPL-2.1+ enlazado estáticamente |
-| SNES | V1 estable | ares (ISC) o Snes9x (licencia no comercial propia) | candidate | Chips especiales con firmware por título: excluirlos si lo requieren; medir rendimiento de ares en WASM |
-| Master System / Mega Drive | V1 estable | Genesis Plus GX (condiciones no comerciales) u otra alternativa | candidate | Riesgo de licencia; Mega-CD fuera de V1 |
-| N64 | V1 beta | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado) | Backend gráfico web, Controller Pak, instantáneas |
-| PlayStation | V1 beta | PCSX-ReARMed / Beetle PSX (GPL-2.0, HLE/OpenBIOS) | candidate (uso privado) | Memory cards, multidisco, lectura por bloques |
-| PSP | V1 beta | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) | Port web, Memory Stick, rendimiento |
-| PS2 | Laboratorio opt-in | Play! (BSD-2, HLE) | candidate | Fuera del compromiso V1; sin soporte móvil general |
-
-Pospuestos: Game Gear, DS (V1.1), Dreamcast. Fuera: Saturn, 32X, Mega-CD, arcade, accesorios especiales. Matriz y fuentes: [CORE_LICENSE_AND_FIRMWARE_MATRIX](research/CORE_LICENSE_AND_FIRMWARE_MATRIX.md).
-
-**Licencias:** con la política de uso privado, GPL (N64, PS1, PSP), MPL (mGBA) y licencias no comerciales (Snes9x, Genesis Plus GX) son admisibles. Si algún día se publica Cartivo, esos núcleos requieren revisión previa (retirarlos, sustituirlos o resolver la licencia). Para elegir núcleo pesan ahora el rendimiento en WASM, la calidad y que ofrezca **instantáneas** para «Partidas».
-
-**Política de firmware:** auditar por sistema + modo + formato + juego. Se admite firmware libre reimplementado y HLE. No se extrapola la compatibilidad nativa de un emulador a su port web.
-
-## 4. Experiencia de usuario
-
-Recorrido: **Elegir consola → Jugar (abrir juego) → partida**. Mando o teclado se detectan solos; pantalla y rendimiento en «Automático». Guía visual en [DESIGN.md](DESIGN.md): paleta propia (coral, azul, turquesa, dorado), sin logos ni arte de terceros, una acción principal por pantalla.
-
-Pantallas actuales: inicio con tarjetas de consola, «Configurar controles», reproductor con paneles Gráficos y Partidas, aviso «Continuar donde lo dejaste» al reabrir un juego, «Acerca de esta prueba» (núcleo y licencias) y, en inicio, tarjeta **Continuar** y lista **Tus juegos** con los juegos recordados bajo consentimiento (ADR-012). Próximas, por orden:
-
-1. **UI navegable con mando:** foco con cruceta, A acepta, B vuelve, menú de pausa con mando.
-2. **Carátulas e identidad regional** (H3), siempre opcionales y con fallback local.
-
-Requisitos permanentes: contraste AA, objetivos de 44 px, foco visible, `prefers-reduced-motion`, español (inglés en H3), sin conceptos técnicos en el recorrido principal.
-
-## 5. Arquitectura
-
-**Monorepo pnpm, TypeScript estricto, Svelte 5 + Vite sin SSR.** El framework no participa en el bucle de emulación. Cada núcleo corre en un Worker con un protocolo versionado; la UI solo conoce identificadores de núcleo.
+## 6. Arquitectura (resumen)
 
 ```text
-apps/web/src/            UI (App, Player, ControlsPanel, GameStage), worker NES, AudioWorklet, PWA
-packages/adapters/       contract.ts (contrato de núcleo), registry.ts (módulos por sistema), ines.ts, jsnes.ts, tetanes.ts
-packages/runtime/        systems.ts (registro de sistemas para la UI), protocol.ts (v1 genérico), client.ts, preferencias
-packages/input/          normalización de teclado y Gamepad API, perfiles
-packages/media/          audio, escalado de vídeo, preferencias de pantalla
-packages/storage/        SRAM con generaciones (IndexedDB + Web Locks)
-packages/fixtures/       ROM de prueba original (control-demo)
-cores/jsnes/             manifiesto y hashes de JSNES (npm, sin parches)
-cores/tetanes/           envoltorio Rust + dist/ WASM, manifest, SBOM (generados por CI)
-tools/                   verify-jsnes, verify-tetanes, build-tetanes, pwa-plugin
-tests/  tests/e2e/       unitarios (node:test) y E2E (Playwright)
+apps/web/src/        UI Svelte 5 (App, Player y sus componentes, ControlsPanel), emulator.worker.ts, AudioWorklet, PWA
+packages/adapters/   contrato, registro, wasm-host.ts, adaptadores y validadores por sistema
+packages/runtime/    systems.ts (sistemas, botones), protocol.ts (v1), client.ts, preferencias de núcleo
+packages/input/      teclado, Gamepad API, perfiles y captura
+packages/media/      audio, escalado y preferencias de pantalla
+packages/storage/    idb.ts, sram.ts, states.ts, library.ts, formats.ts
+packages/fixtures/   ROMs de prueba originales
+cores/<id>/          envoltorio, dist/ WASM, manifest, SBOM (generados por CI bajo petición)
+tools/               build y verificación de núcleos, pwa-plugin
 ```
 
-Paquetes nuevos solo con consumidor real. Dirección de dependencias: `apps → runtime/adaptadores → input/media/storage`; los adaptadores no se importan entre sí. **Añadir una consola** sigue la checklist de [ADDING_A_SYSTEM](ADDING_A_SYSTEM.md): registrar un `CoreModule` y una entrada en `systems.ts`; inicio, reproductor, Gráficos, Partidas y selección de núcleo salen del registro.
+- Dependencias: `apps → runtime/adapters → input/media/storage`; los adaptadores no se importan entre sí.
+- La UI solo conoce `systems.ts`; el Worker resuelve los núcleos con `registry.ts`.
+- **Añadir una consola:** [ADDING_A_SYSTEM](ADDING_A_SYSTEM.md).
 
-### Ruta de un núcleo
+## 7. Rendimiento, seguridad y QA
 
-1. **Selección y gate legal** (skill `cartivo-core-gate`): versión fijada, SBOM, licencias, firmware, decisión registrada.
-2. **Build en CI bajo petición explícita** (una vez por cambio del núcleo, nunca por commit), nunca en el equipo del desarrollador: toolchain fijada, lockfile, rutas reasignadas, `cargo deny` o equivalente. Rust usa `wasm-bindgen` (TetaNES); C/C++ usará Emscripten con la misma disciplina.
-3. **Artefactos versionados** en `cores/<id>/dist` con `manifest.json` (SHA-256, toolchain) y `sbom.json`; `pnpm verify:core` comprueba hashes y licencias en cada CI sin recompilar; la recompilación de verificación (mismos hashes) se lanza solo a mano.
-4. **Adaptador** con la superficie común (`input`, `advance`, `save`, `dispose`) y validación de formato compartida por sistema.
-5. **Pruebas:** unitarias en Node contra el WASM versionado con fixtures propias, E2E en dev y build de producción, y expediente en `docs/compatibility/`.
+- **Rendimiento:**
+  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9.
+  - Presupuestos: shell < 100 ms sin tareas > 50 ms en el hilo principal; velocidad emulada 0,98–1,02× durante 10 minutos para promover un sistema a estable.
+- **Seguridad:**
+  - Validar cabeceras y tamaños antes de cargar; núcleos auditados y fijados en el Worker, con timeout.
+  - CSP mínima al desplegar (`script-src 'self' 'wasm-unsafe-eval'`).
+  - Sin analítica identificable.
+- **QA:**
+  - Gate para promover un sistema a estable: build reproducible, 10 casos legales, 100 ciclos de guardado sin corrupción, offline tras 20 reinicios y QA en hardware real.
+  - Chromium headless no sustituye Firefox, Safari ni iOS instalado.
 
-### Ejecución
+## 8. Definición de terminado
 
-- Una sesión activa; cerrar o cambiar de ROM pasa siempre por pausa con flush de SRAM y `dispose` del núcleo (libera memoria WASM).
-- El host marca el ritmo: lotes de 1–3 frames a 60 pasos/s; una pausa larga no acelera el juego.
-- Vídeo RGBA transferido al canvas 2D (`GameStage`, escalado sin tocar el framebuffer). Los núcleos 3D futuros presentarán con su propio renderer (WebGL/OffscreenCanvas), sin forzar lecturas GPU→CPU.
-- Audio mono a 48 kHz por AudioWorklet con cola acotada; se activa tras un gesto del usuario sin bloquear el arranque.
-- Hilos y SIMD son builds distintas y requieren COOP/COEP; no se usan hasta que un núcleo lo necesite y se mida.
-- Un Worker del mismo origen no es un sandbox: solo se ejecutan núcleos auditados y fijados.
+- Pruebas proporcionales (unitarias y E2E de flujos críticos) en verde en CI.
+- TypeScript estricto y contratos validados.
+- Nada pesado en el hilo principal.
+- Alternativa ante APIs ausentes o permisos denegados.
+- Ninguna migración destructiva de partidas.
+- README, `docs/compatibility/`, CHANGELOG y el ADR afectado actualizados.
+- Sin ROMs, BIOS ni arte sin derechos.
+- Lo no verificado queda marcado como pendiente.
 
-### Despliegue
+## 9. Riesgos abiertos
 
-Hosting estático HTTPS (Cloudflare Worker previsto) con `application/wasm`, caché inmutable para assets con hash y revalidación de HTML y `sw.js`. Cuando haya hilos: `Cross-Origin-Opener-Policy: same-origin` y `Cross-Origin-Embedder-Policy: require-corp`, verificados con `crossOriginIsolated`. Hoy todo el bundle se precachea; los packs de núcleo bajo demanda llegarán cuando el tamaño lo justifique (núcleos 3D).
-
-## 6. Contrato de núcleos
-
-**Implementado (protocolo v1 genérico, ADR-002):** mensajes con versión, sesión e ID de petición, validación en ambos lados, una petición activa, timeout de 10 s, descarte de respuestas obsoletas. Comandos: `load` (con `system` y `core`), `advance` (devuelve RGBA con `width`/`height`), `pause`, `save`, `import`, `reset` y `state-list/save/load/delete`. Un único Worker resuelve el `CoreModule` en `registry.ts`; la UI usa `systems.ts`. Todo núcleo pasa `tests/core-conformance.test.ts`.
-
-**Siguiente:** acciones de entrada por sistema (L/R, X/Y, C), ajustes de núcleo declarados por schema y capacidades opcionales. Ciclo de vida `idle → loading → running ↔ paused → stopping → stopped`, con `failed` desde cualquier fase y `dispose` idempotente. Capacidades opcionales (`save-state`, `rewind`, `disc-swap`, `multiplayer`, `internal-resolution`…) solo cuando el núcleo y la build las implementen y estén probadas.
-
-Precedencia de ajustes: `valores verificados → sistema → núcleo → juego exacto → usuario → sesión`, con restablecer por juego y global. Las opciones se marcan `live`, `requires-reset` o `unsupported`; nada fuera del schema llega al WASM.
-
-## 7. Datos, partidas y archivos
-
-- **Hoy:** SRAM de 8 KB por hash de ROM, dos generaciones en una transacción IndexedDB, Web Lock por juego, commit cada 120 frames y al pausar o cerrar, copias JSON versionadas con checksum. No depende de `beforeunload`.
-- **Biblioteca (ADR-012):** con consentimiento único, copia de la ROM en OPFS (`roms/<sha256>`, escrita y verificada en el Worker) e índice en IndexedDB `cartivo-library`. «Continuar» carga la copia comprobando su SHA-256; quitar un juego no toca Partidas ni SRAM. `navigator.storage.persist()` en la app instalada; uso y estimación de cuota visibles en «Tus juegos».
-- **Discos grandes (H4):** lectura por bloques sin copiar la imagen entera al heap WASM; el adaptador debe demostrar una ruta síncrona válida (OPFS síncrono en Worker, Asyncify/JSPI o puente de IO). Hash incremental en Worker.
-- **Partidas (instantáneas, ADR-009):** IndexedDB `cartivo-states`, ranuras «Al salir» + 3 por hash de ROM, SHA-256, tope 8 MB, miniatura; ligadas a núcleo y versión (un estado de otro núcleo o versión se rechaza sin borrarse). Guardado automático al salir, al cambiar de ROM y al ocultarse la pestaña. Separadas de la SRAM, que sigue siendo la partida interna del cartucho.
-
-## 8. Identidad de juegos y carátulas (H3)
-
-Detección por cabecera y estructura, no por extensión. Cartuchos por hash (CRC32/SHA-1, conservando el hash original); discos por serial interno (`SYSTEM.CNF`, `PARAM.SFO`). Resolución `(sistema, serial, región, revisión, disco, hash)` hacia una edición concreta. Proveedores (Libretro DB/Thumbnails, ScreenScraper con credenciales en un gateway, nunca en el cliente) solo tras revisar sus condiciones para una web pública. Sin coincidencia: carátula genérica o la del usuario; nunca otra región sin avisar.
-
-## 9. Entrada
-
-Implementado: abstracción en `packages/input` (teclado y Gamepad API `standard`, perfiles manuales, zona muerta, neutralización al perder foco o desconectar, D-pad sin direcciones opuestas). Pendiente: navegación de UI con mando, P2–P4 donde el núcleo lo permita, controles táctiles para móvil en sistemas 2D, vibración opcional. Los tests con mando sintético no certifican hardware.
-
-## 10. Vídeo y audio
-
-Implementado: escalado puro (`display-scaler.ts`: Ajustar, Píxel entero, 4:3 entero; 4:3 de televisor o píxeles cuadrados), suavizado opcional, preferencias por sistema, aviso cuando el escalado no cabe. Pendiente: perfiles por sistema (GB/GBA conservan su proporción portátil), filtros CRT opcionales con coste medido, latencia extremo a extremo medida aparte de los FPS.
-
-## 11. Rendimiento
-
-Detectar capacidades en runtime (WASM SIMD/threads, WebGL2, `crossOriginIsolated`, AudioWorklet) sin fiarse del User-Agent. Perfiles `compatibilidad`, `equilibrado` (por defecto), `calidad` y `personalizado`; el ajuste adaptativo baja primero postprocesado y resolución interna, con histéresis, y nunca altera la velocidad del juego ni el audio en silencio.
-
-Dato actual (informativo, CI en Node): TetaNES ≈ 2,0 ms/frame y JSNES ≈ 1,1 ms/frame con la fixture. Presupuestos a validar en H1/H2: shell con respuesta < 100 ms y sin tareas > 50 ms en el hilo principal; bundle inicial sin núcleos ≤ 350 KiB gzip; velocidad emulada 0,98–1,02× durante 10 minutos para promover un sistema a estable.
-
-## 12. Seguridad y privacidad
-
-Validar cabeceras, tamaños y referencias antes de cargar; límites de descompresión. Núcleos auditados y fijados en Worker con timeout. CSP mínima al desplegar (`script-src 'self' 'wasm-unsafe-eval'`, `worker-src 'self'`). Sin claves de proveedores en el cliente. Sin analítica identificable; diagnóstico local exportable a voluntad. Avisos de terceros en `LICENSES.md` y `apps/web/public/licenses/`.
-
-## 13. QA y gates
-
-**CI actual** (`Foundation CI`): `pnpm install --frozen-lockfile`, `verify:core`, `lint`, `check`, `test`, `build`, E2E en dev y en preview, capturas de UI como artefacto. La CI omite cambios solo de documentación y cancela ejecuciones superadas. **Núcleos** (`Core TetaNES`): solo a petición (`workflow_dispatch` o `cores/tetanes/.build-request`): gate de licencias, build y commit de artefactos; la recompilación de verificación es otra petición manual.
-
-Gate por sistema para promover a estable: build reproducible y licencia `accepted`; arranque, entrada, audio y partida probados con fixtures autorizadas; al menos 10 casos representativos legales (incluido estrés y un caso de fallo); 100 ciclos de guardado/reinicio/import sin corrupción; offline tras 20 reinicios; QA en hardware real (mando, audio, instalación, suspensión móvil). Chromium headless no sustituye Firefox, Safari ni iOS instalado.
-
-Matriz de QA manual: Chrome/Edge, Firefox, Safari · Windows, macOS, Linux, Android, iOS · teclado, mando Xbox, PlayStation y genérico · pestaña e instalada.
-
-## 14. Roadmap
-
-| Hito | Estado | Salida |
-|---|---|---|
-| H0-NES | **Hecho** | TetaNES WASM aceptado y reproducible; JSNES como comparador |
-| H1 — Primera ruta jugable | **En curso (PR #2)** | Falta: QA física (mando, audio), Firefox/Safari, 100 ciclos de partida automatizados, instalación en móvil |
-| H1.5 — Sin fricción | En curso | Continuar y biblioteca local hechos (ADR-012, experimental); falta UI con mando y despliegue HTTPS |
-| H2 — 8/16 bits | En curso | GB/GBC y GBA hechos (experimental, ADR-010/011) → SNES → SMS/Mega Drive, un sistema por incremento con su gate |
-| H3 — Biblioteca y experiencia | Pendiente | Identidad regional, carátulas con licencia y fallback, ajustes por juego, inglés |
-| H4 — 3D | Pendiente | N64, PS1, PSP con núcleos GPL admitidos por uso privado; rendimiento web por medir |
-| H5 — Publicación V1 | Pendiente | Sistemas aceptados, despliegue real, rollback, avisos completos |
-| Laboratorio PS2 | Pendiente | Play! opt-in con límites publicados |
-
-### Próximos incrementos recomendados
-
-1. **Cerrar H1:** exportar/importar Partidas; E2E en Firefox además de Chromium; completar la QA física de [H1-QA](compatibility/H1-QA.md).
-2. **SNES:** gate (Snes9x o ares), botones X/Y (la entrada ya tiene L/R) y la plantilla Emscripten con `wasm-host.ts`. GB, GBC y GBA ya están integrados (H2).
-3. **Despliegue en Cloudflare** con cabeceras reales y smoke test offline del dominio.
-
-## 15. Backlog
-
-| ID | Épica | Estado | Terminado cuando |
-|---|---|---|---|
-| E-01 | Licencias y firmware | En curso | Expediente por build; decisión sobre GPL registrada |
-| E-02 | Contrato y runtime | Hecho (contrato, registros, protocolo genérico) | Ajustes de núcleo por schema; cadencia por núcleo (hoy 60 Hz fijos) y sincronía A/V; framebuffer variable; carga diferida por núcleo; `EmulatorSession` (RAF, Worker, audio) fuera de `Player` si las pruebas lo justifican |
-| E-03 | PWA y despliegue | Parcial | **Precache selectivo de núcleos** (shell crítico aparte; núcleos instalados al elegirlos) antes de integrar núcleos pesados; instalación verificada en plataformas y dominio HTTPS con cabeceras |
-| E-04 | Persistencia | Parcial (SRAM + Partidas; ROMs en OPFS con consentimiento, ADR-012) | Exportar Partidas; formatos de copia versionados por sistema; QA de cuota real en móvil |
-| E-05 | Entrada y foco | Parcial (`InputCapture`; diez acciones con L/R) | **Descriptor de entrada por sistema** (acciones, nombres, dibujo y asignaciones por defecto) antes de SNES (X/Y) y Mega Drive (C); P1–P4 con perfiles migrados; separar vista y escaneo en `ControlsPanel`; UI completa con mando; mando físico certificado |
-| E-06 | NES | Experimental | QA física y mappers ampliados con pruebas |
-| E-07 | GB/GBC/GBA | Experimental: SameBoy (GB/GBC, ADR-010) y mGBA (GBA, ADR-011) | QA física; RTC y sensores de GBA; paletas DMG opcionales |
-| E-08 | SNES, SMS, Mega Drive | Pendiente | Gate de licencia y rendimiento |
-| E-09 | Biblioteca, identidad y carátulas | Parcial (biblioteca local por archivo, ADR-012) | Identidad del juego sin falsos positivos, corrección manual, carátulas con fallback |
-| E-10 | Perfiles de pantalla y ajustes por juego | Parcial (pantalla NES) | Schema, precedencia y restablecer |
-| E-11 | N64, PS1, PSP | Pendiente (uso privado) | Gate por sistema, rendimiento web e instantáneas |
-| E-12 | Rendimiento y diagnóstico | Pendiente | Presupuestos medidos por build |
-| E-13 | QA, seguridad y releases | Parcial | Matriz real, SBOM por núcleo, rollback |
-| E-14 | PS2 laboratorio | Pendiente | Prueba web reproducible y canal opt-in |
-
-## 16. Definición de terminado
-
-Un incremento está terminado cuando: tiene pruebas proporcionales (unitarias y E2E de flujos críticos) verdes en CI; respeta TypeScript estricto y contratos validados; no bloquea el hilo principal; tiene fallback ante APIs ausentes o permisos denegados; no pierde ni migra partidas destructivamente; actualiza README, `docs/compatibility/`, CHANGELOG y el ADR afectado; y no introduce ROMs, BIOS ni arte sin derechos. Lo no verificado se marca pendiente con su criterio de aceptación.
-
-## 17. Riesgos abiertos
-
-1. Publicar en el futuro exigiría revisar los núcleos GPL, MPL y no comerciales admitidos por la política de uso privado.
-2. Rendimiento de núcleos más pesados (ares, 3D) en WASM sin hilos, sobre todo en móvil.
+1. Publicar exigiría revisar los núcleos GPL, MPL y no comerciales admitidos por la política de uso privado.
+2. Rendimiento de los núcleos pesados (Snes9x en móvil, ares y 3D) en WASM sin hilos.
 3. iOS/Safari: memoria, Gamepad API, almacenamiento y PWA offline.
-4. Lectura de imágenes de disco grandes sin copiarlas al heap.
-5. Permisos de uso de carátulas y metadatos en una web pública.
-6. Desalojo de almacenamiento del navegador: la exportación de partidas sigue siendo necesaria.
-
-Fuentes primarias de licencias y firmware: matriz de `docs/research/` y expedientes por núcleo. Las referencias de la revisión 2 que no se han revalidado se consideran pistas, no evidencia.
+4. Tamaño de la instalación al crecer el catálogo (instalarlo todo es una decisión del titular). Las actualizaciones ya solo descargan lo que cambia; con los núcleos 3D habrá que vigilar la cuota en móvil.
+5. H6 introduce servidor, cuentas y datos personales: cambia el modelo de privacidad y requiere su propio ADR antes de cualquier código.

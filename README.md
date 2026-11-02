@@ -8,7 +8,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 |---|---|
 | **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 · Game Boy y Game Boy Color (experimental): sin mapper, MBC1/2/3/5 · Game Boy Advance (experimental): SRAM, Flash y EEPROM |
 | **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly · GBA: mGBA 0.10.5 en WebAssembly (BIOS HLE) |
-| **App** | Instalable como PWA y funciona sin conexión (build de producción) |
+| **App** | Instalable como PWA con todos los núcleos incluidos; funciona sin conexión (build de producción) y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA (I/O, LB/RB) |
 | **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9) y conserva la memoria de batería del cartucho |
 | **Pendiente** | QA con mando físico, Firefox/Safari, móviles, continuar último juego, más consolas |
@@ -71,7 +71,7 @@ docs/              plan técnico, diseño, ADRs, compatibilidad e investigación
 
 ## Documentación
 
-- [Plan técnico](docs/PLAN_TECNICO_CARTIVO.md): objetivos, estado, arquitectura, roadmap y backlog.
+- [Plan técnico](docs/PLAN_TECNICO_CARTIVO.md): qué está hecho (no reimplementar) y la lista ordenada de lo pendiente, incluido el hito futuro de cuentas online.
 - [Añadir una consola](docs/ADDING_A_SYSTEM.md): checklist para integrar un sistema nuevo.
 - [Diseño](docs/DESIGN.md): paleta, principios y pantallas.
 - [Compatibilidad](docs/compatibility/README.md): qué está probado y cómo.
