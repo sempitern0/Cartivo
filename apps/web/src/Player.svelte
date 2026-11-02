@@ -203,6 +203,8 @@
   }
   let resumeButton = $state.raw<HTMLButtonElement>();
   let screen = $state.raw<HTMLCanvasElement>();
+  let frameElement = $state.raw<HTMLDivElement>();
+  let actionsElement = $state.raw<HTMLDivElement>();
   let importInput = $state.raw<HTMLInputElement>();
   let client: EmulatorClient | undefined;
   let audio: GameAudio | undefined;
@@ -295,7 +297,7 @@
     remainder = 0;
     phase = "running";
     await tick();
-    screen?.scrollIntoView({ block: "center" });
+    (actionsElement ?? screen)?.scrollIntoView({ block: "nearest" });
     screen?.focus({ preventScroll: true });
     loop = requestAnimationFrame(pump);
   }
@@ -470,14 +472,6 @@
         "No se pudo activar pantalla completa. Puedes seguir jugando en esta ventana.";
     }
   }
-  $effect(() => {
-    if (phase !== "running" || !visible) return;
-    const old = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = old;
-    };
-  });
   async function enableSound() {
     if (audioReady) return;
     audio?.close();
@@ -613,7 +607,13 @@
       screen?.focus({ preventScroll: true });
     };
     const wheel = (e: WheelEvent) => {
-      if (phase === "running" && visible && !e.ctrlKey) e.preventDefault();
+      // Over the picture the wheel belongs to the game; elsewhere the page
+      // scrolls so the controls below stay reachable.
+      if (
+        phase === "running" && visible && !e.ctrlKey &&
+        e.target instanceof Node && frameElement?.contains(e.target)
+      )
+        e.preventDefault();
     };
     document.addEventListener("keydown", keydown, true);
     document.addEventListener("focusin", focus, true);
@@ -697,21 +697,7 @@
     onchange={romChosen}
     hidden
   />
-  {#if askRemember}<div
-      class="remember-ask"
-      role="group"
-      aria-labelledby="remember-ask-text"
-      data-player-chrome
-    >
-      <p id="remember-ask-text">
-        ¿Recordar tus juegos en este dispositivo para continuar con un clic?
-      </p>
-      <button data-player-action onclick={() => answerRemember(true)}
-        >Sí, recordar</button
-      ><button data-player-action onclick={() => answerRemember(false)}
-        >No</button
-      >
-    </div>{/if}
+
   {#if !file && !stored && phase !== "running"}<p class="demo-info" data-player-chrome>
       WASD o flechas para moverte · L = A · K = B.
     </p>{/if}
@@ -766,7 +752,7 @@
       {problem}
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
-  <div class="frame" class:presenting={frames > 0 || !!resumeOffer}>
+  <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer}>
     {#if resumeOffer && phase === "paused"}
       <div class="resume-offer" role="dialog" aria-labelledby="resume-title">
         <SnapshotThumb pixels={resumeOffer.preview} />
@@ -801,7 +787,7 @@
       />
     </div>
   </div>
-  <div class="buttons player-actions" data-player-chrome>
+  <div bind:this={actionsElement} class="buttons player-actions" data-player-chrome>
     {#if phase === "running"}<button
         data-player-action
         onclick={() => pause()}>Pausar juego</button
@@ -851,6 +837,21 @@
       >{/if}
     <a data-player-action href="#controles">Configurar controles</a>
   </div>
+  {#if askRemember}<div
+      class="remember-ask"
+      role="group"
+      aria-labelledby="remember-ask-text"
+      data-player-chrome
+    >
+      <p id="remember-ask-text">
+        ¿Recordar tus juegos en este dispositivo para continuar con un clic?
+      </p>
+      <button data-player-action onclick={() => answerRemember(true)}
+        >Sí, recordar</button
+      ><button data-player-action onclick={() => answerRemember(false)}
+        >No</button
+      >
+    </div>{/if}
   {#if toast}<p class="toast" role="status" data-testid="toast">{toast}</p>{/if}
   <ul class="status" data-player-chrome aria-label="Dispositivos">
     <li data-testid="pad-status" class:on={padConnected}>
@@ -949,7 +950,8 @@
   .player.focus-mode :global([data-player-chrome]), .player.focus-mode > details { display: none; }
   .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
   .frame.presenting { opacity: 1; }
-  .game-stage-wrapper { width: 100%; height: min(60vh, 560px); min-height: 200px; border-radius: 14px; overflow: hidden; }
+  /* Leaves room for the title, toolbar and actions so the whole player fits. */
+  .game-stage-wrapper { width: 100%; height: clamp(200px, calc(100dvh - 320px), 560px); border-radius: 14px; overflow: hidden; }
   @media (prefers-reduced-motion: no-preference) {
     .frame { transition: opacity 180ms ease-out; }
     .player:not(.focus-mode) { animation: player-enter 180ms ease-out both; }

@@ -354,6 +354,8 @@ test("running game captures navigation keys and scroll until Escape", async ({
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Space");
   await page.keyboard.press("ArrowDown");
+  // Over the picture the wheel belongs to the game.
+  await page.locator("canvas").hover();
   await page.mouse.wheel(0, 500);
   await expect(page.locator("canvas")).toBeFocused();
   expect(await page.evaluate(() => scrollY)).toBe(initial);
@@ -366,6 +368,21 @@ test("running game captures navigation keys and scroll until Escape", async ({
   await page.keyboard.press("Tab");
   await expect(page.locator("canvas")).not.toBeFocused();
 });
+test("the whole player fits a laptop screen and the page still scrolls", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await start(page);
+  await expect(page.getByRole("button", { name: "Pausar juego" })).toBeInViewport();
+  await expect(page.locator("canvas")).toBeInViewport({ ratio: 1 });
+  // Outside the picture the wheel scrolls the page as usual.
+  await page.mouse.move(5, 5);
+  const before = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, before > 0 ? -300 : 300);
+  await expect.poll(() => page.evaluate(() => scrollY)).not.toBe(before);
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+});
+
 test("fullscreen shows only the game and returns safely to paused window", async ({
   page,
 }) => {
