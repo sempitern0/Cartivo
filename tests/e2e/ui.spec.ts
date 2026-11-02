@@ -175,14 +175,23 @@ test("the logo returns to the start and the console cards line up", async ({
   ).toBeVisible();
   const url = new URL(page.url());
   expect(url.pathname + url.hash).toBe("/");
-  // Four cards in one row: their «Jugar» buttons share the same line.
-  const tops = await page
+  // Four cards per row on a laptop; within a row the «Jugar» buttons line up.
+  const rows = await page
     .getByRole("list", { name: "Consolas" })
-    .getByRole("button", { name: "Jugar", exact: true })
-    .evaluateAll((buttons) =>
-      buttons.map((b) => Math.round(b.getBoundingClientRect().top)),
+    .getByRole("article")
+    .evaluateAll((cards) =>
+      cards.map((card) => ({
+        row: Math.round(card.getBoundingClientRect().top),
+        button: Math.round(
+          card
+            .querySelector("button.play")!
+            .getBoundingClientRect().top,
+        ),
+      })),
     );
-  expect(tops.length).toBeGreaterThanOrEqual(4);
-  expect(new Set(tops).size).toBe(1);
+  const byRow = Map.groupBy(rows, (r) => r.row);
+  expect([...byRow.values()][0].length).toBe(4);
+  for (const cards of byRow.values())
+    expect(new Set(cards.map((c) => c.button)).size).toBe(1);
   await noHorizontalScroll(page);
 });

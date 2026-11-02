@@ -6,6 +6,7 @@ import {
   GBA_VIDEO,
   GB_VIDEO,
   NES_VIDEO,
+  SNES_VIDEO,
   type VideoDescriptor,
 } from "../../media/src/display-scaler.ts";
 
@@ -121,6 +122,35 @@ export const systems: readonly SystemInfo[] = [
     demo: true,
     available: true,
   },
+  {
+    id: "snes",
+    name: "SNES",
+    longName: "Super Nintendo Entertainment System",
+    extensions: [".sfc", ".smc"],
+    video: SNES_VIDEO,
+    // NTSC: 21 477 272 Hz master clock, 357 366 cycles per frame ≈ 60.10 fps.
+    frameRate: 21477272 / 357366,
+    buttons: ["a", "b", "x", "y", "start", "select", "l", "r"],
+    cores: [
+      {
+        id: "snes9x",
+        label: "Snes9x · WebAssembly",
+        version: "1.63",
+        licenses: [
+          { name: "Licencia Snes9x", href: "/licenses/snes9x-LICENSE.txt" },
+          {
+            name: "Licencia snes_spc y snes_ntsc",
+            href: "/licenses/snes9x-LGPL-2.1.txt",
+          },
+        ],
+      },
+    ],
+    defaultCore: "snes9x",
+    formatNote:
+      "cartuchos NTSC LoROM, HiROM y ExHiROM, incluidos chips como Super FX, SA-1 o DSP",
+    demo: true,
+    available: true,
+  },
 ];
 
 /** GB and GBC share SameBoy; the cartridge header picks the hardware. */
@@ -184,10 +214,11 @@ export function controlButtons(order: readonly Action[]): Action[] {
   return order.filter((action) => used.has(action));
 }
 
+/** «A, B y C»; «e» before a word that sounds /i/ («X e Y»). */
 const listJoin = (items: string[]) =>
   items.length < 2
     ? items.join("")
-    : `${items.slice(0, -1).join(", ")} y ${items.at(-1)}`;
+    : `${items.slice(0, -1).join(", ")} ${/^(y$|h?i)/i.test(items.at(-1)!) ? "e" : "y"} ${items.at(-1)}`;
 
 /**
  * Notes for buttons that only some consoles use, grouped by those consoles,

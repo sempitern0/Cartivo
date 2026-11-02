@@ -43,6 +43,8 @@
     start: "Start",
     l: "L",
     r: "R",
+    x: "X",
+    y: "Y",
   };
   let pads = $state<Pad[]>([]);
   let selected = $state(-1);
@@ -71,7 +73,16 @@
   let advancedOpen = $state(false);
   const directions = ["up", "down", "left", "right"] as const;
   // Only the buttons some available console uses, in a fixed order.
-  const buttonsRow = controlButtons(["a", "b", "start", "select", "l", "r"]);
+  const buttonsRow = controlButtons([
+    "a",
+    "b",
+    "x",
+    "y",
+    "start",
+    "select",
+    "l",
+    "r",
+  ]);
   const notes = buttonNotes((action) => labels[action]);
   const padConnected = $derived(selected !== -1 && !!last);
   const keyboardStore = "cartivo:keyboard:v1";
@@ -174,7 +185,9 @@
   }
   function beginMapping() {
     if (!last) return;
-    pause("Asigna los diez controles (L y R al final). Escape cancela.");
+    pause(
+      `Asigna los ${actions.length} controles (L, R, X e Y al final). Escape cancela.`,
+    );
     draft = {};
     capture = actions[0];
     waitingRelease = true;
@@ -494,10 +507,15 @@
         <rect class="shoulder" class:lit={inputState.r} x="202" y="10" width="56" height="12" rx="6" />
         <rect class="mini" class:lit={inputState.select} x="130" y="74" width="26" height="10" rx="5" />
         <rect class="mini" class:lit={inputState.start} x="164" y="74" width="26" height="10" rx="5" />
-        <circle class="face" class:lit={inputState.b} cx="232" cy="88" r="15" />
-        <circle class="face" class:lit={inputState.a} cx="266" cy="66" r="15" />
-        <text x="232" y="93" text-anchor="middle">B</text>
-        <text x="266" y="71" text-anchor="middle">A</text>
+        <!-- Face buttons in a diamond, by position: X north, Y west, B south, A east. -->
+        <circle class="face" class:lit={inputState.x} cx="249" cy="49" r="13" />
+        <circle class="face" class:lit={inputState.y} cx="225" cy="72" r="13" />
+        <circle class="face" class:lit={inputState.b} cx="249" cy="95" r="13" />
+        <circle class="face" class:lit={inputState.a} cx="273" cy="72" r="13" />
+        <text x="249" y="54" text-anchor="middle">X</text>
+        <text x="225" y="77" text-anchor="middle">Y</text>
+        <text x="249" y="100" text-anchor="middle">B</text>
+        <text x="273" y="77" text-anchor="middle">A</text>
       </svg>
       <label for="input-pad" class="pad-label">Mando</label><select
         id="input-pad"

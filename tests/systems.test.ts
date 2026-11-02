@@ -50,7 +50,10 @@ test("files are routed by extension", () => {
   assert.equal(systemForFile("Juego.GB")?.id, "gb");
   assert.equal(systemForFile("juego.gbc")?.id, "gbc");
   assert.equal(systemForFile("juego.GBA")?.id, "gba");
-  assert.equal(acceptFor(availableSystems()), ".nes,.gb,.gbc,.gba");
+  assert.equal(systemForFile("juego.sfc")?.id, "snes");
+  assert.equal(systemForFile("Juego.SMC")?.id, "snes");
+  assert.equal(acceptFor(availableSystems()), ".nes,.gb,.gbc,.gba,.sfc,.smc");
+  assert.equal(coreLabel("snes", "snes9x"), "Snes9x");
   assert.equal(coreLabel("gba", "mgba"), "mGBA");
   assert.equal(coreLabel("nes", "tetanes"), "TetaNES");
   assert.equal(coreLabel("gbc", "sameboy"), "SameBoy");
@@ -109,6 +112,9 @@ test("each system declares the buttons of its controller", () => {
   assert.deepEqual(controlButtons(["l", "a", "r"]), ["l", "a", "r"]);
   assert.deepEqual(
     buttonNotes((a) => a.toUpperCase()),
-    ["L y R solo los usa Game Boy Advance."],
+    [
+      "L y R solo los usan Game Boy Advance y SNES.",
+      "X e Y solo los usa SNES.",
+    ],
   );
 });

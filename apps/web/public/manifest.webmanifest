@@ -28,7 +28,8 @@
         "application/x-nes-rom": [".nes"],
         "application/x-gameboy-rom": [".gb"],
         "application/x-gameboy-color-rom": [".gbc"],
-        "application/x-gba-rom": [".gba"]
+        "application/x-gba-rom": [".gba"],
+        "application/x-snes-rom": [".sfc", ".smc"]
       }
     }
   ],

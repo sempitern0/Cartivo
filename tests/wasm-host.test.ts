@@ -1,4 +1,4 @@
-// Shared host for the standalone Emscripten cores (SameBoy, mGBA).
+// Shared host for the standalone Emscripten cores (SameBoy, mGBA, Snes9x).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -16,6 +16,12 @@ import {
   prepareMgba,
   provideMgbaBinary,
 } from "../packages/adapters/src/mgba.ts";
+import {
+  Snes9xAdapter,
+  prepareSnes9x,
+  provideSnes9xBinary,
+} from "../packages/adapters/src/snes9x.ts";
+import { snesControlDemo } from "../packages/fixtures/src/snes-control-demo.ts";
 import { gbControlDemo } from "../packages/fixtures/src/gb-control-demo.ts";
 import { gbaControlDemo } from "../packages/fixtures/src/gba-control-demo.ts";
 
@@ -26,7 +32,11 @@ const mgba = readFileSync(
   new URL("../cores/mgba/dist/mgba.wasm", import.meta.url),
 );
 provideSameBoyBinary(sameboy);
+const snes9x = readFileSync(
+  new URL("../cores/snes9x/dist/snes9x.wasm", import.meta.url),
+);
 provideMgbaBinary(mgba);
+provideSnes9xBinary(snes9x);
 
 /** Smallest module importing one function the host does not offer. */
 const mystery = Uint8Array.from([
@@ -66,6 +76,7 @@ const mystery = Uint8Array.from([
 test("committed cores only import what the host provides", async () => {
   assert.deepEqual(unsupportedImports(await WebAssembly.compile(sameboy)), []);
   assert.deepEqual(unsupportedImports(await WebAssembly.compile(mgba)), []);
+  assert.deepEqual(unsupportedImports(await WebAssembly.compile(snes9x)), []);
 });
 
 test("a core needing an unknown import is refused by name", async () => {
@@ -85,6 +96,11 @@ for (const { name, prepare, make } of [
     name: "mGBA",
     prepare: prepareMgba,
     make: () => new MgbaAdapter(gbaControlDemo()),
+  },
+  {
+    name: "Snes9x",
+    prepare: prepareSnes9x,
+    make: () => new Snes9xAdapter(snesControlDemo()),
   },
 ]) {
   test(`${name}: bad states and closed cores fail safely`, async () => {

@@ -24,16 +24,17 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Capacidad | Dónde vive | Decisión | Evidencia |
 |---|---|---|---|
 | Contrato de núcleo, registro y protocolo v1 genérico (`load`, `advance`, `pause`, `save`, `import`, `reset`, `state-*`, `library-add`) | `packages/adapters/src/contract.ts`, `registry.ts`; `packages/runtime/src/protocol.ts`, `client.ts`; `apps/web/src/emulator.worker.ts` | ADR-002 | `tests/core-conformance.test.ts`, `worker.test.ts`, `client.test.ts` |
-| Plantilla para núcleos C → WASM con Emscripten (ABI `cartivo_*`, imports permitidos, `BridgeCore`) | `packages/adapters/src/wasm-host.ts`; `cores/sameboy`, `cores/mgba` | ADR-010/011 | `tests/wasm-host.test.ts` |
+| Plantilla para núcleos C/C++ → WASM con Emscripten (ABI `cartivo_*`, imports permitidos, `BridgeCore`); carga diferida común (`onDemand` en `registry.ts`) | `packages/adapters/src/wasm-host.ts`, `registry.ts`; `cores/sameboy`, `cores/mgba`, `cores/snes9x` (puente sobre libretro) | ADR-010/011/013 | `tests/wasm-host.test.ts` |
 | Builds de núcleo reproducibles, solo bajo petición (`.build-request` en una rama de trabajo o `workflow_dispatch`; nunca en `main` al fusionar) | `.github/workflows/core-*.yml`, `tools/build-*.mjs`, `tools/verify-*.mjs` | ADR-008 | `pnpm verify:core` en cada CI |
 | **NES:** TetaNES 0.17.0 (WASM, por defecto) y JSNES 2.1.0 (alternativa); iNES NTSC, mappers 0–4 | `packages/adapters/src/tetanes.ts`, `jsnes.ts`, `ines.ts` | ADR-007/008 | `tests/nes.test.ts`, `tetanes.test.ts`, `tests/e2e/nes.spec.ts` |
 | **GB/GBC:** SameBoy 1.0.4; DMG o CGB según la cabecera; MBC1/2/3/5 | `packages/adapters/src/sameboy.ts`, `gb-header.ts` | ADR-010 | `tests/gb.test.ts`, `tests/e2e/gb.spec.ts`, [H2-GB](compatibility/H2-GB.md) |
 | **GBA:** mGBA 0.10.5 con BIOS HLE; SRAM, Flash y EEPROM | `packages/adapters/src/mgba.ts`, `gba-header.ts` | ADR-011 | `tests/gba-saves.test.ts`, `tests/e2e/gba.spec.ts`, [H2-GBA](compatibility/H2-GBA.md) |
-| Fixtures originales con hash y oráculo (NES, GB/GBC, GBA) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
+| **SNES:** Snes9x 1.63 (C++ sobre su frontend libretro); NTSC LoROM/HiROM/ExHiROM, chips emulados; botones X/Y | `packages/adapters/src/snes9x.ts`, `snes-header.ts`; `cores/snes9x` | ADR-013 | `tests/snes.test.ts`, `tests/e2e/snes.spec.ts`, [H2-SNES](compatibility/H2-SNES.md) |
+| Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | SRAM con dos generaciones, Web Lock y exportación/importación | `packages/storage/src/sram.ts`, `formats.ts` | ADR-003/007 | `tests/storage.test.ts`, `tests/e2e/integrity.spec.ts` (100 ciclos) |
 | «Partidas»: 3 ranuras + «Al salir», miniaturas, F5/F9, ligadas a núcleo y versión | `packages/storage/src/states.ts`, `apps/web/src/SavePanel.svelte` | ADR-009 | `tests/snapshots.test.ts`, `tests/e2e/saves.spec.ts` |
 | Biblioteca local y «Continuar» (ROM en OPFS con consentimiento) | `packages/storage/src/library.ts`, `apps/web/src/{ContinueCard,Library,RememberPrompt}.svelte`, `game-source.ts` | ADR-012 | `tests/library.test.ts`, `tests/e2e/library.spec.ts`, [H1-LIB](compatibility/H1-LIB.md) |
-| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; diez acciones (con L/R); botones declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
+| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; doce acciones (L/R, X/Y); botones declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
 | Pantalla: Ajustar, Píxel entero y entero por proporción; aspecto del sistema; suavizado; preferencias por sistema | `packages/media/src/display-scaler.ts`, `display-preferences.ts`; `apps/web/src/GraphicsPanel.svelte`, `display.svelte.ts` | — | `tests/display-*.test.ts` |
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts`, `session.spec.ts` |
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos); una actualización solo descarga lo que cambió; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
@@ -44,44 +45,38 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 
 Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
 
-1. **SNES con Snes9x (H2).**
-   - Gate CORE-LEGAL-01 y ADR-013. Chips con firmware propio (DSP-n, ST010…) excluidos con un mensaje claro.
-   - `cores/snes9x/` sobre la plantilla `wasm-host.ts`, con el puente `cartivo_*` sobre la API libretro enlazada estáticamente.
-   - Acciones `x`/`y` en `packages/input`, migrando los perfiles como se hizo con L/R; `buttons` del sistema.
-   - Validador LoROM/HiROM con cabecera copier, y fixture 65816 original.
-   - **Terminado:** demo y archivo jugables, SRAM y Partidas, X/Y y L/R comprobados en E2E (dev y preview), ms/frame medido en CI.
-2. **Master System y Mega Drive con Genesis Plus GX (H2).**
-   - Gate y ADR-014. Un núcleo y dos `CoreModule`; sin BIOS; Mega-CD, 32X y Game Gear fuera.
+1. **Master System y Mega Drive con Genesis Plus GX (H2).**
+   - Gate y ADR-014. Un núcleo y dos `CoreModule`; sin BIOS; Mega-CD, 32X y Game Gear fuera. Mismo camino que Snes9x: puente C sobre el frontend libretro de GPGX con `wasm-host.ts`, arnés nativo antes de la única compilación en CI.
    - Botones:
      - SMS: 1/2 sobre B/A y Pause en Start.
      - Mega Drive: A/B/C sobre Y/B/A, X/Y/Z sobre L/X/R y Mode en Select.
      - Las etiquetas por sistema van en `systems.ts`.
    - Validadores «TMR SEGA» y «SEGA» en `$100`; fixtures Z80 y 68000 originales.
    - `.bin` solo desde la tarjeta de Mega Drive o con confirmación.
-   - **Terminado:** como SNES, por sistema.
-3. **Cerrar H1.**
+   - **Terminado:** demo y archivo jugables, SRAM y Partidas, botones comprobados en E2E (dev y preview), ms/frame medido en CI, por sistema.
+2. **Cerrar H1.**
    - Exportar e importar Partidas (instantáneas), con formato versionado.
    - E2E en Firefox además de Chromium.
    - QA física del titular: mando, audio, instalación y suspensión en móvil ([H1-QA](compatibility/H1-QA.md)).
-4. **H1.5 · sin fricción.**
+3. **H1.5 · sin fricción.**
    - UI navegable con mando: la cruceta mueve el foco, A acepta, B vuelve, menú de pausa.
    - Despliegue en Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
-5. **Deuda técnica conocida.**
-   - Cadencia por núcleo: hoy el host avanza al `frameRate` del sistema, con lotes de 1–3 frames, sin sincronía A/V fina.
+4. **Deuda técnica conocida.**
+   - Cadencia por juego: hoy el host avanza al `frameRate` del sistema; por eso SNES rechaza los cartuchos PAL (50 Hz). Sincronía A/V fina.
    - Ajustes de núcleo declarados por schema.
    - P2–P4 con perfiles.
    - GBA: RTC y sensores.
    - Paletas DMG opcionales.
    - Perfiles de pantalla por sistema.
    - Presupuestos de rendimiento medidos por núcleo (§7).
-6. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
-7. **H4 · 3D.**
+5. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
+6. **H4 · 3D.**
    - N64 (Mupen64Plus-Next o ares), PS1 (PCSX-ReARMed o Beetle PSX) y PSP (PPSSPP).
    - Lectura por bloques de discos sin copiar la imagen al heap WASM.
    - Renderer propio (WebGL u OffscreenCanvas). Hilos solo si se miden, con COOP/COEP.
-8. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
-9. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
-10. **Laboratorio PS2.** Play! opcional con límites publicados.
+7. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
+8. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
+9. **Laboratorio PS2.** Play! opcional con límites publicados.
 
 ## 4. Hito futuro H6 — Cuentas online con Supabase
 
@@ -114,8 +109,8 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se i
 | NES | TetaNES 0.17.0 (WASM); JSNES 2.1.0 alternativa | **accepted** |
 | Game Boy / Color | SameBoy 1.0.4 (Expat, boot ROMs libres) | **accepted** |
 | Game Boy Advance | mGBA 0.10.5 (MPL-2.0, BIOS HLE) | **accepted (uso privado)** |
-| SNES | **Snes9x** (licencia no comercial propia) | **elegido**; gate pendiente (§3.1) |
-| Master System / Mega Drive | **Genesis Plus GX** (condiciones no comerciales) | **elegido**; gate pendiente (§3.2) |
+| SNES | Snes9x 1.63 (licencia no comercial propia) | **accepted (uso privado)** |
+| Master System / Mega Drive | **Genesis Plus GX** (condiciones no comerciales) | **elegido**; gate pendiente (§3.1) |
 | N64 | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado) |
 | PlayStation | PCSX-ReARMed / Beetle PSX (GPL-2.0, HLE/OpenBIOS) | candidate (uso privado) |
 | PSP | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) |
@@ -146,7 +141,7 @@ tools/               build y verificación de núcleos, pwa-plugin
 ## 7. Rendimiento, seguridad y QA
 
 - **Rendimiento:**
-  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9.
+  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9, Snes9x ≈ 1,2.
   - Presupuestos: shell < 100 ms sin tareas > 50 ms en el hilo principal; velocidad emulada 0,98–1,02× durante 10 minutos para promover un sistema a estable.
 - **Seguridad:**
   - Validar cabeceras y tamaños antes de cargar; núcleos auditados y fijados en el Worker, con timeout.
@@ -170,7 +165,7 @@ tools/               build y verificación de núcleos, pwa-plugin
 ## 9. Riesgos abiertos
 
 1. Publicar exigiría revisar los núcleos GPL, MPL y no comerciales admitidos por la política de uso privado.
-2. Rendimiento de los núcleos pesados (Snes9x en móvil, ares y 3D) en WASM sin hilos.
+2. Rendimiento de los núcleos pesados (Snes9x en móvil, núcleos 3D) en WASM sin hilos.
 3. iOS/Safari: memoria, Gamepad API, almacenamiento y PWA offline.
 4. Tamaño de la instalación al crecer el catálogo (instalarlo todo es una decisión del titular). Las actualizaciones ya solo descargan lo que cambia; con los núcleos 3D habrá que vigilar la cuota en móvil.
 5. H6 introduce servidor, cuentas y datos personales: cambia el modelo de privacidad y requiere su propio ADR antes de cualquier código.

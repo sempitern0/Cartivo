@@ -10,40 +10,53 @@ import { gbControlDemo } from "../../fixtures/src/gb-control-demo.ts";
 import { MAX_GB_ROM_BYTES, validateGbRom } from "./gb-header.ts";
 import { MAX_GBA_ROM_BYTES, validateGbaRom } from "./gba-header.ts";
 import { gbaControlDemo } from "../../fixtures/src/gba-control-demo.ts";
+import { MAX_SNES_ROM_BYTES, validateSnesRom } from "./snes-header.ts";
+import { snesControlDemo } from "../../fixtures/src/snes-control-demo.ts";
 
-// SameBoy loads on demand: NES players never download its glue or wasm.
-type SameBoy = typeof import("./sameboy.ts");
-let sameboy: SameBoy | undefined;
-let sameboyReady: Promise<void> | undefined;
-function prepareSameBoy() {
-  sameboyReady ??= import("./sameboy.ts")
-    .then(async (lib) => {
-      await lib.prepareSameBoy();
-      sameboy = lib;
-    })
-    .catch((error: unknown) => {
-      sameboyReady = undefined;
-      throw error;
-    });
-  return sameboyReady;
+/**
+ * Loads an adapter module the first time its system starts: players of other
+ * systems never download its glue or wasm. A failed load can be retried.
+ */
+function onDemand<T>(
+  name: string,
+  load: () => Promise<T>,
+  prepare: (lib: T) => Promise<void>,
+) {
+  let lib: T | undefined;
+  let ready: Promise<void> | undefined;
+  return {
+    prepare: () =>
+      (ready ??= load()
+        .then(async (loaded) => {
+          await prepare(loaded);
+          lib = loaded;
+        })
+        .catch((error: unknown) => {
+          ready = undefined;
+          throw error;
+        })),
+    get(): T {
+      if (!lib) throw Error(`El núcleo ${name} no está preparado.`);
+      return lib;
+    },
+  };
 }
 
-// mGBA (Game Boy Advance) loads on demand too.
-type Mgba = typeof import("./mgba.ts");
-let mgba: Mgba | undefined;
-let mgbaReady: Promise<void> | undefined;
-function prepareMgba() {
-  mgbaReady ??= import("./mgba.ts")
-    .then(async (lib) => {
-      await lib.prepareMgba();
-      mgba = lib;
-    })
-    .catch((error: unknown) => {
-      mgbaReady = undefined;
-      throw error;
-    });
-  return mgbaReady;
-}
+const sameboy = onDemand(
+  "SameBoy",
+  () => import("./sameboy.ts"),
+  (lib) => lib.prepareSameBoy(),
+);
+const mgba = onDemand(
+  "mGBA",
+  () => import("./mgba.ts"),
+  (lib) => lib.prepareMgba(),
+);
+const snes9x = onDemand(
+  "Snes9x",
+  () => import("./snes9x.ts"),
+  (lib) => lib.prepareSnes9x(),
+);
 
 /** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
 const sameboyModule = (system: string, color: boolean): CoreModule => ({
@@ -54,11 +67,8 @@ const sameboyModule = (system: string, color: boolean): CoreModule => ({
   maxRomBytes: MAX_GB_ROM_BYTES,
   validate: validateGbRom,
   demo: () => gbControlDemo(color),
-  prepare: prepareSameBoy,
-  create(rom, save) {
-    if (!sameboy) throw Error("El núcleo SameBoy no está preparado.");
-    return new sameboy.SameBoyAdapter(rom, save);
-  },
+  prepare: sameboy.prepare,
+  create: (rom, save) => new (sameboy.get().SameBoyAdapter)(rom, save),
 });
 
 let tetanesReady: Promise<void> | undefined;
@@ -109,11 +119,19 @@ export const coreModules: readonly CoreModule[] = [
     maxRomBytes: MAX_GBA_ROM_BYTES,
     validate: validateGbaRom,
     demo: gbaControlDemo,
-    prepare: prepareMgba,
-    create(rom, save) {
-      if (!mgba) throw Error("El núcleo mGBA no está preparado.");
-      return new mgba.MgbaAdapter(rom, save);
-    },
+    prepare: mgba.prepare,
+    create: (rom, save) => new (mgba.get().MgbaAdapter)(rom, save),
+  },
+  {
+    system: "snes",
+    id: "snes9x",
+    version: "1.63",
+    video: { width: 256, height: 224 },
+    maxRomBytes: MAX_SNES_ROM_BYTES,
+    validate: validateSnesRom,
+    demo: snesControlDemo,
+    prepare: snes9x.prepare,
+    create: (rom, save) => new (snes9x.get().Snes9xAdapter)(rom, save),
   },
 ];
 
