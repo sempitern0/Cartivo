@@ -368,6 +368,22 @@ test("running game captures navigation keys and scroll until Escape", async ({
   await page.keyboard.press("Tab");
   await expect(page.locator("canvas")).not.toBeFocused();
 });
+test("page controls outside the player work while a game runs", async ({
+  page,
+}) => {
+  await start(page);
+  await expect(page.locator("canvas")).toBeFocused();
+  // A click on empty space keeps the game captured…
+  await page.mouse.click(2, 300);
+  await expect(page.locator("canvas")).toBeFocused();
+  // …but the header link is a control: it opens Controles and pauses.
+  await page.getByRole("link", { name: "Ajustes", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Configurar controles" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Volver al juego" }).click();
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+});
 test("the whole player fits a laptop screen and the page still scrolls", async ({
   page,
 }) => {

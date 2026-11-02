@@ -165,12 +165,14 @@ async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "state-list") return { states: await states!.list() };
   if (r.command === "state-save") {
     const bytes = core.snapshot();
-    // Battery RAM is committed too, so both kinds of save agree.
+    // Battery RAM is committed too, so both kinds of save agree. Its result
+    // is reported on its own: the snapshot is kept even if it fails.
     let saved = false;
+    let saveError: string | undefined;
     try {
       saved = await flush();
-    } catch {
-      saved = false;
+    } catch (e) {
+      saveError = e instanceof Error ? e.message : "Guardado fallido";
     }
     const frame = core.lastFrame();
     const { width, height } = module.video;
@@ -189,7 +191,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       await updateGame(hash, { preview, lastPlayedAt: Date.now() }).catch(
         () => false,
       );
-    return { saved, states: await states!.list() };
+    return { saved, saveError, states: await states!.list() };
   }
   if (r.command === "state-load") {
     const bytes = await states!.load(r.slot!, module.id, module.version, (id) =>

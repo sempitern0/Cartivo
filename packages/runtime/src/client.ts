@@ -17,8 +17,18 @@ export class EmulatorClient {
       }
     | undefined;
   private timeoutMs: number;
-  constructor(worker: Worker, timeoutMs = 10000) {
+  private loadTimeoutMs: number;
+  /**
+   * `timeoutMs` bounds every quick request (a frame, a save); `load` also
+   * downloads and compiles the core and hashes the ROM, so it gets longer.
+   */
+  constructor(
+    worker: Worker,
+    timeoutMs = 10000,
+    loadTimeoutMs = timeoutMs * 6,
+  ) {
     this.timeoutMs = timeoutMs;
+    this.loadTimeoutMs = loadTimeoutMs;
     this.worker = worker;
     worker.addEventListener("message", this.message);
     worker.addEventListener("error", this.error);
@@ -82,7 +92,7 @@ export class EmulatorClient {
             const timer = setTimeout(
               () =>
                 this.dispose("El núcleo no responde. Vuelve a abrir el juego."),
-              this.timeoutMs,
+              command === "load" ? this.loadTimeoutMs : this.timeoutMs,
             );
             this.pending = { id, resolve, reject, timer };
             try {

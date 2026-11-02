@@ -2,13 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   byRecent,
+  ensureRomCopy,
   isSha256,
+  ORPHAN_AGE_MS,
+  pruneOrphanRoms,
   parseEntry,
   readRemember,
   writeRemember,
   REMEMBER_KEY,
 } from "../packages/storage/src/library.ts";
 import { parseRequest } from "../packages/runtime/src/protocol.ts";
+import { digest } from "../packages/storage/src/sram.ts";
 
 const hash = "a".repeat(64);
 const entry = {
@@ -116,4 +120,104 @@ test("only games opened from a file can be remembered", () => {
     parseRequest({ ...base, command: "library-add" }).command,
     "library-add",
   );
+});
+
+// A minimal in-memory OPFS directory with fault injection (ADR-012).
+class FakeDir {
+  files = new Map<string, { bytes: Uint8Array; lastModified: number }>();
+  failWrites = false;
+  writes = 0;
+  async getFileHandle(name: string, options?: { create?: boolean }) {
+    if (!this.files.has(name)) {
+      if (!options?.create) throw new DOMException("missing", "NotFoundError");
+      this.files.set(name, { bytes: new Uint8Array(), lastModified: 0 });
+    }
+    const dir = this;
+    return {
+      kind: "file",
+      async getFile() {
+        const f = dir.files.get(name)!;
+        return new File([f.bytes as BlobPart], name, {
+          lastModified: f.lastModified,
+        });
+      },
+      async createWritable() {
+        dir.writes++;
+        // Like a real truncate-and-write, a failure leaves a broken file.
+        dir.files.set(name, { bytes: new Uint8Array(1), lastModified: 0 });
+        return {
+          write: async (bytes: Uint8Array) => {
+            if (dir.failWrites)
+              throw new DOMException("full", "QuotaExceededError");
+            dir.files.set(name, { bytes, lastModified: 0 });
+          },
+          close: async () => {},
+          abort: async () => {},
+        };
+      },
+    } as unknown as FileSystemFileHandle;
+  }
+  async removeEntry(name: string) {
+    this.files.delete(name);
+  }
+  async *entries(): AsyncIterableIterator<[string, FileSystemHandle]> {
+    for (const name of [...this.files.keys()])
+      yield [name, (await this.getFileHandle(name)) as FileSystemHandle];
+  }
+}
+
+const romOf = async (text: string) => {
+  const rom = new TextEncoder().encode(text);
+  return { rom, hash: await digest(rom) };
+};
+
+test("a verified ROM copy is never rewritten, so a failure cannot erase it", async () => {
+  const dir = new FakeDir();
+  const { rom, hash } = await romOf("juego válido");
+  await ensureRomCopy(dir, hash, rom);
+  assert.equal(dir.writes, 1);
+  dir.failWrites = true;
+  await ensureRomCopy(dir, hash, rom); // remembering it again
+  assert.equal(dir.writes, 1, "no second write");
+  assert.deepEqual(dir.files.get(hash)!.bytes, rom);
+});
+
+test("a damaged copy is replaced; a failed write leaves no broken copy", async () => {
+  const dir = new FakeDir();
+  const { rom, hash } = await romOf("otro juego");
+  dir.files.set(hash, { bytes: new Uint8Array([1, 2, 3]), lastModified: 0 });
+  await ensureRomCopy(dir, hash, rom);
+  assert.deepEqual(dir.files.get(hash)!.bytes, rom);
+
+  const broken = new FakeDir();
+  broken.failWrites = true;
+  await assert.rejects(ensureRomCopy(broken, hash, rom), {
+    name: "QuotaExceededError",
+  });
+  assert.equal(broken.files.has(hash), false);
+});
+
+test("only old files without an index entry are pruned", async () => {
+  const dir = new FakeDir();
+  const now = 10 * ORPHAN_AGE_MS;
+  const old = now - ORPHAN_AGE_MS - 1;
+  dir.files.set("a".repeat(64), {
+    bytes: new Uint8Array(1),
+    lastModified: old,
+  });
+  dir.files.set("b".repeat(64), {
+    bytes: new Uint8Array(1),
+    lastModified: old,
+  });
+  dir.files.set("c".repeat(64), {
+    bytes: new Uint8Array(1),
+    lastModified: now,
+  });
+  dir.files.set("tmp", { bytes: new Uint8Array(1), lastModified: old });
+  const removed = await pruneOrphanRoms(new Set(["a".repeat(64)]), now, dir);
+  assert.equal(removed, 2);
+  assert.deepEqual([...dir.files.keys()].sort(), [
+    "a".repeat(64),
+    "c".repeat(64),
+  ]);
 });
