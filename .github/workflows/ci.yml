@@ -63,3 +63,22 @@ jobs:
           path: screenshots/
           if-no-files-found: ignore
           retention-days: 7
+  # Same E2E suite in Firefox, in parallel with the Chromium job (H1-QA).
+  e2e-firefox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps firefox
+      - run: pnpm test:e2e:firefox
+      - if: ${{ !cancelled() }}
+        run: pnpm test:e2e:preview:firefox
