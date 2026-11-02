@@ -133,7 +133,7 @@ tools/               build y verificación de núcleos, pwa-plugin
 ## 7. Rendimiento, seguridad y QA
 
 - **Rendimiento:**
-  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9, Snes9x ≈ 1,2, Genesis Plus GX ≈ 0,7 (Mega Drive) y 0,4 (Master System), medido en local; pendiente el dato del runner.
+  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9, Snes9x ≈ 1,2, Genesis Plus GX ≈ 0,6 (Mega Drive) y 0,3 (Master System).
   - Presupuestos: shell < 100 ms sin tareas > 50 ms en el hilo principal; velocidad emulada 0,98–1,02× durante 10 minutos para promover un sistema a estable.
 - **Seguridad:**
   - Validar cabeceras y tamaños antes de cargar; núcleos auditados y fijados en el Worker, con timeout.

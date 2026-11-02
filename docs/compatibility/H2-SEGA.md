@@ -32,9 +32,9 @@ Las dos son programas propios de Cartivo, de 64 KB y con RAM de batería.
 | Prueba | Resultado |
 |---|---|
 | Arnés C nativo (gcc, mismas fuentes y opciones) | Ver el expediente, apartado 6: Mega Drive 0,43 ms/frame, Master System 0,23 |
-| `tests/sega.test.ts` (WASM del bot) | Cabeceras (Mega-CD, 32X, SMD, PAL, Game Gear, archivos dañados); orden de bits libretro; oráculos completos de las dos consolas; ≈ 48 000 muestras/s; la batería se relee al reabrir; 0,70 (MD) y 0,38 (SMS) ms/frame en Node local |
+| `tests/sega.test.ts` (WASM del bot) | Cabeceras (Mega-CD, 32X, SMD, PAL, Game Gear, archivos dañados); orden de bits libretro; oráculos completos de las dos consolas; ≈ 48 000 muestras/s; la batería se relee al reabrir; 0,57 (MD) y 0,27 (SMS) ms/frame en el runner de CI |
 | `tests/core-conformance.test.ts`, `wasm-host.test.ts` | Contrato completo en los dos sistemas; solo imports permitidos (incluida la etiqueta `__c_longjmp`); estados de tamaño erróneo rechazados; `dispose` seguro |
-| E2E `tests/e2e/sega.spec.ts` | Demo de Mega Drive 320×224 con A/B/C/X/Y/Z comprobados en el canvas y ayuda de pausa con las etiquetas propias; demo de Master System 256×192; SRAM exportada (`cartivo-md-sram-v1`, `cartivo-sms-sram-v1`, 65 536 bytes) y conservada al reabrir; F5/F9; `.gen` soltado; `.md` dañado; notas en Controles. Pendiente de CI |
+| E2E `tests/e2e/sega.spec.ts` | Demo de Mega Drive 320×224 con A/B/C/X/Y/Z comprobados en el canvas y ayuda de pausa con las etiquetas propias; demo de Master System 256×192; SRAM exportada (`cartivo-md-sram-v1`, `cartivo-sms-sram-v1`, 65 536 bytes) y conservada al reabrir; F5/F9; `.gen` soltado; `.md` dañado; notas en Controles. **CI sobre `56f61fb`** (Foundation CI, run 41426542801): 5/5 Sega en dev y en preview; suite completa 71 superadas en dev y 71 en preview (2 omitidas por diseño), `svelte-check` sin errores ni avisos; precarga total 36 archivos, 6,7 MB |
 
 ## QA manual pendiente
 
