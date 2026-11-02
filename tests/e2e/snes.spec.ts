@@ -148,7 +148,7 @@ test("a damaged SNES file is refused with a clear message", async ({
   await expect(page.getByRole("alert")).toContainText("cabecera");
 });
 
-test("Controles shows X and Y and says only SNES uses them", async ({
+test("Controles shows X and Y and says which consoles use them", async ({
   page,
 }) => {
   await page.goto("/#controles");
@@ -158,5 +158,5 @@ test("Controles shows X and Y and says only SNES uses them", async ({
   await expect(
     page.getByRole("button", { name: "Asignar tecla Y", exact: true }),
   ).toContainText("J");
-  await expect(page.getByText("X e Y solo los usa SNES.")).toBeVisible();
+  await expect(page.getByText("X e Y solo los usan SNES y Mega Drive.")).toBeVisible();
 });
