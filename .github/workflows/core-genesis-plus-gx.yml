@@ -74,7 +74,7 @@ jobs:
             M=cores/genesis-plus-gx/build/genesis-plus-gx
             cmp $M/LICENSE.txt apps/web/public/licenses/genesis-plus-gx-LICENSE.txt
             cmp $M/core/m68k/readme.txt apps/web/public/licenses/musashi-readme.txt
-            node tools/verify-genesis-plus-gx.mjs
+            node tools/verify-core.mjs genesis-plus-gx
           fi
       - name: Commit artefacts
         if: env.MODE == 'build'

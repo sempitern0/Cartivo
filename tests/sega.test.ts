@@ -12,10 +12,10 @@ import {
   GenesisPlusGxAdapter,
   prepareGenesis,
   provideGenesisBinary,
-  segaInputBits,
 } from "../packages/adapters/src/genesis-plus-gx.ts";
 import { mdControlDemo } from "../packages/fixtures/src/md-control-demo.ts";
 import { smsControlDemo } from "../packages/fixtures/src/sms-control-demo.ts";
+import { libretroInputBits } from "../packages/adapters/src/wasm-host.ts";
 import { neutral, type InputState } from "../packages/input/src/nes-input.ts";
 
 provideGenesisBinary(
@@ -70,7 +70,7 @@ test("unsupported or damaged Sega cartridges are refused with a reason", () => {
 
 test("buttons follow the libretro joypad order", () => {
   const only = (action: keyof InputState) =>
-    segaInputBits({ ...neutral(), [action]: true });
+    libretroInputBits({ ...neutral(), [action]: true });
   assert.equal(only("b"), 1 << 0);
   assert.equal(only("y"), 1 << 1);
   assert.equal(only("select"), 1 << 2);

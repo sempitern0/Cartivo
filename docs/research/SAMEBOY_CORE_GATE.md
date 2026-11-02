@@ -48,7 +48,7 @@ SameBoy expone `GB_save_state_to_buffer`/`GB_load_state_from_buffer`. El arnés 
 ## 7. Trazabilidad
 
 - Build reproducible en CI, **solo bajo petición** (`.github/workflows/core-sameboy.yml`: `cores/sameboy/.build-request` o `workflow_dispatch`): clonado por tag con el commit comprobado, rutas deterministas (`-ffile-prefix-map`), hashes del binario y de las boot ROMs en `manifest.json`.
-- `pnpm verify:core` (`tools/verify-sameboy.mjs`) comprueba hashes y licencias sin recompilar.
+- `pnpm verify:core` (`tools/verify-core.mjs sameboy`) comprueba hashes y licencias sin recompilar.
 - Actualizaciones: cada versión nueva de SameBoy o del toolchain repite este gate y una compilación explícita.
 
 ## 8. Decisión

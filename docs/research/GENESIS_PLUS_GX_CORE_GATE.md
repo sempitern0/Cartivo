@@ -91,7 +91,7 @@ Arnés C nativo (gcc, mismas fuentes y opciones) con las fixtures originales `md
 - **Build en CI solo bajo petición:** `.github/workflows/core-genesis-plus-gx.yml`, con `.build-request` en una rama de trabajo o `workflow_dispatch`; `branches-ignore: [main]`.
 - El commit se descarga exacto (sin tags), con rutas deterministas y hash en `manifest.json`.
 - Los avisos se comparan byte a byte con los del commit fijado (`LICENSE.txt` y `core/m68k/readme.txt`).
-- `pnpm verify:core` (`tools/verify-genesis-plus-gx.mjs`) comprueba hashes y licencias sin compilar.
+- `pnpm verify:core` (`tools/verify-core.mjs genesis-plus-gx`) comprueba hashes y licencias sin compilar.
 
 ## 8. Decisión
 
