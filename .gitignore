@@ -34,5 +34,7 @@ cores/sameboy/build/
 !cores/sameboy/dist/
 cores/mgba/build/
 cores/snes9x/build/
+cores/genesis-plus-gx/build/
+!cores/genesis-plus-gx/dist/
 !cores/snes9x/dist/
 !cores/mgba/dist/

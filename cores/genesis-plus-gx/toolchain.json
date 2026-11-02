@@ -1,0 +1,12 @@
+{
+  "genesisPlusGx": {
+    "commit": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX",
+    "spdx": "LicenseRef-GenesisPlusGX-noncommercial"
+  },
+  "emsdk": {
+    "version": "6.0.12",
+    "commit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+    "repository": "https://github.com/emscripten-core/emsdk"
+  }
+}

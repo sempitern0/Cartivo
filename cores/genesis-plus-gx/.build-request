@@ -1,0 +1,2 @@
+Bump this file only to build Genesis Plus GX once in CI (core-genesis-plus-gx.yml).
+Reason: first build of Genesis Plus GX a5834b3 for Cartivo (Master System and Mega Drive, ADR-014).
