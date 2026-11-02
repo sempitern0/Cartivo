@@ -1,7 +1,7 @@
 // Generic emulator Worker: one session, any registered system and core.
 import {
   coreModule,
-  coreModules,
+  findCoreModule,
 } from "../../../packages/adapters/src/registry.ts";
 import type {
   CoreModule,
@@ -217,9 +217,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     const imported = await parseStateFile(r.stateFile, {
       system: module.system,
       game: hash,
-      coreVersion: (id) =>
-        coreModules.find((m) => m.system === module.system && m.id === id)
-          ?.version,
+      coreVersion: (id) => findCoreModule(module.system, id)?.version,
     });
     await states!.put(imported);
     return { states: await states!.list() };

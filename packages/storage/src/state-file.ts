@@ -114,8 +114,6 @@ export async function parseStateFile(
   } catch {
     throw Error("La partida está dañada.");
   }
-  if (!bytes.length || bytes.length > MAX_STATE_BYTES)
-    throw Error("La partida supera el tamaño admitido (8 MB).");
   if (preview && preview.length !== PREVIEW_WIDTH * PREVIEW_HEIGHT * 4)
     throw Error("La partida tiene un formato incompatible.");
   if ((await digest(bytes)) !== f.sha256)
