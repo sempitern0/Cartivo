@@ -5,6 +5,7 @@
   import GraphicsPanel from "./GraphicsPanel.svelte";
   import SavePanel from "./SavePanel.svelte";
   import SnapshotThumb from "./SnapshotThumb.svelte";
+  import RememberPrompt from "./RememberPrompt.svelte";
   import { slotNames, when } from "./saves.ts";
   import {
     backupFormat,
@@ -35,11 +36,16 @@
   import { GameAudio } from "../../../packages/media/src/audio.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
   import {
+    readRemember,
+    writeRemember,
+  } from "../../../packages/storage/src/library.ts";
+  import { loadFields, sourceTitle, type GameSource } from "./game-source.ts";
+  import {
     getPadPreference,
     readKeyboard,
   } from "../../../packages/input/src/preferences.ts";
   let {
-    file,
+    source,
     visible = true,
     autostart = false,
     onclose,
@@ -48,7 +54,7 @@
   }: {
     /** System being played (packages/runtime/src/systems.ts). */
     system: SystemInfo;
-    file?: File;
+    source: GameSource;
     visible?: boolean;
     autostart?: boolean;
     onclose: () => void;
@@ -77,6 +83,25 @@
   let savesOpen = $state(false);
   let savesButton = $state.raw<HTMLButtonElement>();
   let resumeOffer = $state.raw<StateMeta>();
+  // One-time question: remember games on this device? (ADR-012)
+  let askRemember = $state(false);
+  async function answerRemember(yes: boolean) {
+    askRemember = false;
+    const kept = writeRemember(yes);
+    if (!yes) {
+      notify("No se recordarán juegos. Puedes cambiarlo en Tus juegos.");
+      return;
+    }
+    if (!kept) notify("El navegador no permite guardar esta preferencia.");
+    try {
+      const r = await client?.request("library-add");
+      if (r?.libraryError) problem = r.libraryError;
+      else if (r?.remembered)
+        notify("Juego recordado: podrás continuar desde el inicio.");
+    } catch (e) {
+      problem = e instanceof Error ? e.message : "No se pudo recordar el juego";
+    }
+  }
   let toast = $state("");
   let toastTimer = 0;
   function notify(message: string) {
@@ -173,6 +198,8 @@
   }
   let resumeButton = $state.raw<HTMLButtonElement>();
   let screen = $state.raw<HTMLCanvasElement>();
+  let frameElement = $state.raw<HTMLDivElement>();
+  let actionsElement = $state.raw<HTMLDivElement>();
   let importInput = $state.raw<HTMLInputElement>();
   let client: EmulatorClient | undefined;
   let audio: GameAudio | undefined;
@@ -217,12 +244,12 @@
       }),
     );
     try {
-      const r = await client.request(
-        "load",
-        file
-          ? { file, system: system.id, core: coreChoice }
-          : { demo: true, system: system.id, core: coreChoice },
-      );
+      const choice = readRemember();
+      const r = await client.request("load", {
+        ...loadFields(source, choice === true),
+        system: system.id,
+        core: coreChoice,
+      });
       runningCore = r.core;
       if (!active) return;
       battery = !!r.battery;
@@ -233,9 +260,18 @@
           ? "Guardado automático preparado."
           : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
-      // Offer to continue from the exit snapshot instead of starting over.
-      resumeOffer = saves.find((s) => s.slot === "auto");
-      if (!resumeOffer) await resume();
+      if (r.libraryError) problem = r.libraryError;
+      askRemember =
+        source.kind === "file" && choice === undefined && !r.remembered;
+      const exit = saves.find((s) => s.slot === "auto");
+      // «Continuar» from the home screen goes straight to the exit snapshot.
+      if (source.kind === "library" && source.resume && exit)
+        await loadSlot("auto");
+      else {
+        // Offer to continue from the exit snapshot instead of starting over.
+        resumeOffer = exit;
+        if (!resumeOffer) await resume();
+      }
     } catch (e) {
       client?.dispose();
       if (active) fail(e);
@@ -255,7 +291,7 @@
     remainder = 0;
     phase = "running";
     await tick();
-    screen?.scrollIntoView({ block: "center" });
+    (actionsElement ?? screen)?.scrollIntoView({ block: "nearest" });
     screen?.focus({ preventScroll: true });
     loop = requestAnimationFrame(pump);
   }
@@ -399,35 +435,34 @@
       const result = await client!.request("reset");
       frames = result.frames ?? 0;
       controls.clear();
+      // Never leave the previous game's last frame on screen.
+      screen?.getContext("2d")?.clearRect(0, 0, screen.width, screen.height);
       saveStatus = result.saved ? "Partida guardada antes de reiniciar." : saveStatus;
       problem = "";
+      resumeOffer = undefined;
     } catch (error) {
       problem = error instanceof Error ? error.message : "No se pudo reiniciar la consola";
+      return;
     } finally {
       busy = false;
     }
+    // A reset is a power cycle: the console starts running again.
+    notify("Consola reiniciada.");
+    await resume();
   }
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement === viewport)
         await document.exitFullscreen();
       else {
-        focusMode = true;
         await viewport?.requestFullscreen();
+        notify("Pulsa Escape para salir de pantalla completa.");
       }
     } catch (e) {
       problem =
         "No se pudo activar pantalla completa. Puedes seguir jugando en esta ventana.";
     }
   }
-  $effect(() => {
-    if (phase !== "running" || !visible) return;
-    const old = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = old;
-    };
-  });
   async function enableSound() {
     if (audioReady) return;
     audio?.close();
@@ -563,7 +598,13 @@
       screen?.focus({ preventScroll: true });
     };
     const wheel = (e: WheelEvent) => {
-      if (phase === "running" && visible && !e.ctrlKey) e.preventDefault();
+      // Over the picture the wheel belongs to the game; elsewhere the page
+      // scrolls so the controls below stay reachable.
+      if (
+        phase === "running" && visible && !e.ctrlKey &&
+        e.target instanceof Node && frameElement?.contains(e.target)
+      )
+        e.preventDefault();
     };
     document.addEventListener("keydown", keydown, true);
     document.addEventListener("focusin", focus, true);
@@ -609,7 +650,8 @@
   bind:this={viewport}
   class="player"
   class:playing={phase === "running"}
-  class:focus-mode={focusMode && phase === "running"}
+  class:focus-mode={focusMode && phase === "running" && !fullscreen}
+  class:immersive={fullscreen}
   aria-label={`Reproductor ${system.name}`}
 >
   {#if focusMode && phase === "running"}
@@ -627,7 +669,7 @@
   {/if}
   <PlayerToolbar
     systemName={system.name}
-    title={file?.name ?? "Demo de controles"}
+    title={sourceTitle(source)}
     {phase}
     {busy}
     {graphicsOpen}
@@ -646,7 +688,8 @@
     onchange={romChosen}
     hidden
   />
-  {#if !file && phase !== "running"}<p class="demo-info" data-player-chrome>
+
+  {#if source.kind === "demo" && phase !== "running"}<p class="demo-info" data-player-chrome>
       WASD o flechas para moverte · L = A · K = B.
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
@@ -700,7 +743,7 @@
       {problem}
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
-  <div class="frame" class:presenting={frames > 0 || !!resumeOffer}>
+  <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer}>
     {#if resumeOffer && phase === "paused"}
       <div class="resume-offer" role="dialog" aria-labelledby="resume-title">
         <SnapshotThumb pixels={resumeOffer.preview} />
@@ -713,6 +756,13 @@
             ><button onclick={() => resume()}>Empezar de nuevo</button>
           </div>
         </div>
+      </div>
+    {/if}
+    {#if fullscreen && phase === "paused" && !resumeOffer}
+      <div class="fullscreen-pause" role="group" aria-label="En pausa">
+        <button class="primary" onclick={resume} disabled={busy}
+          >Reanudar juego</button
+        ><button onclick={toggleFullscreen}>Salir de pantalla completa</button>
       </div>
     {/if}
     <div class="game-stage-wrapper">
@@ -728,7 +778,7 @@
       />
     </div>
   </div>
-  <div class="buttons player-actions" data-player-chrome>
+  <div bind:this={actionsElement} class="buttons player-actions" data-player-chrome>
     {#if phase === "running"}<button
         data-player-action
         onclick={() => pause()}>Pausar juego</button
@@ -778,6 +828,7 @@
       >{/if}
     <a data-player-action href="#controles">Configurar controles</a>
   </div>
+  {#if askRemember}<RememberPrompt onanswer={answerRemember} />{/if}
   {#if toast}<p class="toast" role="status" data-testid="toast">{toast}</p>{/if}
   <ul class="status" data-player-chrome aria-label="Dispositivos">
     <li data-testid="pad-status" class:on={padConnected}>
@@ -876,7 +927,8 @@
   .player.focus-mode :global([data-player-chrome]), .player.focus-mode > details { display: none; }
   .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
   .frame.presenting { opacity: 1; }
-  .game-stage-wrapper { width: 100%; height: min(60vh, 560px); min-height: 200px; border-radius: 14px; overflow: hidden; }
+  /* Leaves room for the title, toolbar and actions so the whole player fits. */
+  .game-stage-wrapper { width: 100%; height: clamp(200px, calc(100dvh - 320px), 560px); border-radius: 14px; overflow: hidden; }
   @media (prefers-reduced-motion: no-preference) {
     .frame { transition: opacity 180ms ease-out; }
     .player:not(.focus-mode) { animation: player-enter 180ms ease-out both; }
@@ -887,28 +939,55 @@
   }
   .player.focus-mode .frame, .player:fullscreen .frame { flex: 1; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; display: flex; }
   .player.focus-mode .game-stage-wrapper { flex: 1; height: auto; min-height: 0; margin: 0; border-radius: 0; }
+  /* Fullscreen: only the game. Chrome stays hidden even in pause; a small
+     overlay offers Reanudar and the way out (Escape also exits). */
   .player:fullscreen {
-    background: var(--bg);
+    position: relative;
     width: 100%;
     max-width: none;
     height: 100%;
     margin: 0;
-    padding: 16px 24px;
-    overflow: auto;
+    padding: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: #050507;
   }
-  .player:fullscreen p {
-    margin: 4px 0;
-    font-size: 12px;
-  }
-  .player.playing:fullscreen .demo-info,
-  .player.playing:fullscreen > details {
+  .player:fullscreen :global([data-player-chrome]),
+  .player:fullscreen > details {
     display: none;
   }
   .player:fullscreen .game-stage-wrapper { flex: 1; min-height: 0; height: auto; margin: 0; border-radius: 0; }
-  .player:fullscreen > details {
-    flex: none;
+  .player:fullscreen .notice {
+    position: absolute;
+    z-index: 3;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(640px, 90%);
+    margin: 0;
+  }
+  .player:fullscreen .toast {
+    position: absolute;
+    z-index: 3;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: 10px;
+    background: #0a0c12d9;
+  }
+  .fullscreen-pause {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #050507b3;
   }
 
   .player {

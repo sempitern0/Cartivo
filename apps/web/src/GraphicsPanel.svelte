@@ -169,7 +169,7 @@
   .option.checked { border-color: var(--blue); box-shadow: var(--glow); }
   /* The invisible input covers the whole card so pointer and keyboard both hit it. */
   .option input, .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
-  .option:has(input:focus-visible), .switch:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .option:has(input:focus-visible), .switch:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 3px; }
   .diagram { width: 100%; max-width: 120px; height: auto; margin-bottom: 6px; }
   .diagram .screen { fill: #0b0d13; stroke: #3a3f52; stroke-width: 1.5; }
   .diagram .image { fill: #24324b; stroke: var(--blue); stroke-width: 1.5; }

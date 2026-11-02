@@ -57,3 +57,17 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
     fullPage: true,
   });
 });
+
+test("the test bar sits right above the drawings that light up", async ({
+  page,
+}) => {
+  await page.goto("/#controles");
+  const bar = await page
+    .getByRole("button", { name: "Activar prueba" })
+    .boundingBox();
+  const keyboard = await page
+    .getByRole("article", { name: "Teclado activo" })
+    .boundingBox();
+  expect(bar!.y).toBeLessThan(keyboard!.y);
+  expect(keyboard!.y - (bar!.y + bar!.height)).toBeLessThan(160);
+});

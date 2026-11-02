@@ -146,3 +146,20 @@
 
 - Los workflows de núcleo ya no se disparan por `.build-request` en `main` (al fusionar una PR); allí se usa `workflow_dispatch`.
 - Reproducibilidad confirmada: las compilaciones de SameBoy y mGBA relanzadas en `main` dieron los mismos hashes que los artefactos versionados.
+
+### H1-LIB: biblioteca local y «Continuar»
+
+- Pregunta única al abrir el primer juego desde archivo: «¿Recordar tus juegos en este dispositivo?»; se cambia en «Tus juegos». Las demos no se recuerdan.
+- Copia de la ROM en OPFS (`roms/<sha256>`), escrita, releída y verificada en el Worker antes de registrarla en IndexedDB `cartivo-library`; sin espacio, el juego sigue y se avisa.
+- Tarjeta **Continuar** en inicio: carga el último juego desde el dispositivo y sigue desde «Al salir» sin aviso. Una copia dañada o desaparecida se rechaza con un mensaje claro.
+- **Tus juegos**: lista por fecha con Jugar y Quitar (con confirmación; las Partidas y la SRAM se conservan), espacio ocupado e interruptor.
+- Protocolo v1: `load { stored }`, `remember` y `library-add`, con validación. ADR-012 y [H1-LIB](docs/compatibility/H1-LIB.md).
+
+### Ajustes de experiencia (PR #7)
+
+- Anillo de foco más discreto (2 px, translúcido) y sin borde sobre la imagen del juego.
+- Pantalla completa separada de Focus: solo el juego, también en pausa, con una capa mínima para reanudar o salir.
+- Reiniciar consola reinicia y vuelve a jugar al momento, sin dejar el último fotograma congelado.
+- El logo enlaza al inicio.
+- En Controles, la barra de prueba va junto a los dibujos que se iluminan.
+- Tarjetas de consola alineadas, de igual altura y con títulos más contenidos.

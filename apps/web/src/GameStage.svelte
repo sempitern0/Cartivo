@@ -42,5 +42,6 @@
 .stage { position: relative; width: 100%; height: 100%; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #050507; }
 canvas { display: block; max-width: 100%; max-height: 100%; flex: none; background: #000; image-rendering: pixelated; border: 0; }
 canvas.smooth { image-rendering: auto; }
-canvas:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
+/* The game itself shows that it has the input: no ring over the picture. */
+canvas:focus, canvas:focus-visible { outline: none; }
 </style>

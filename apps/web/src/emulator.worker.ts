@@ -16,6 +16,11 @@ import {
   makePreview,
 } from "../../../packages/storage/src/states.ts";
 import {
+  rememberGame,
+  storedRom,
+  updateGame,
+} from "../../../packages/storage/src/library.ts";
+import {
   parseRequest,
   type EmuRequest,
   type EmuResult,
@@ -35,6 +40,8 @@ let store: SramStore | undefined;
 let states: StateStore | undefined;
 let rom: Uint8Array;
 let hash = "";
+/** File name of the running game, needed to remember it; empty otherwise. */
+let title = "";
 let session = "";
 let busy = false;
 let lastSaveFrame = 0;
@@ -45,22 +52,56 @@ async function flush() {
   }
   return false;
 }
+/** Adds the running game to the library; a failure never stops the game. */
+async function remember(): Promise<
+  Pick<EmuResult, "remembered" | "libraryError">
+> {
+  if (!title) return { remembered: false };
+  try {
+    await rememberGame({ hash, system: module.system, name: title, rom });
+    return { remembered: true };
+  } catch (e) {
+    return {
+      remembered: false,
+      libraryError: e instanceof Error ? e.message : "No se pudo recordar",
+    };
+  }
+}
+/**
+ * The ROM bytes for the requested source: the core's demo, an opened file or
+ * the remembered copy, which must be byte-identical to the game it was saved as.
+ */
+async function readRom(r: EmuRequest): Promise<Uint8Array> {
+  if (r.demo) {
+    if (!module.demo) throw Error("Este sistema no tiene demo integrada.");
+    return module.demo();
+  }
+  const source = r.file ?? (await storedRom(r.stored!));
+  if (!source)
+    throw Error(
+      "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
+    );
+  if (source.size > module.maxRomBytes)
+    throw Error("Archivo demasiado grande para este sistema.");
+  const bytes = new Uint8Array(await source.arrayBuffer());
+  if (r.stored && (await digest(bytes)) !== r.stored)
+    throw Error(
+      "La copia guardada de este juego está dañada. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
+    );
+  return bytes;
+}
 async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
     const system = r.system ?? "nes";
     // Protocol v1 without `core` meant JSNES; keep that for old clients.
     module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
-    if (r.file && r.file.size > module.maxRomBytes)
-      throw Error("Archivo demasiado grande para este sistema.");
-    if (r.demo && !module.demo)
-      throw Error("Este sistema no tiene demo integrada.");
+    // Size and integrity are checked before compiling the core.
+    rom = await readRom(r);
     await module.prepare();
-    rom = r.demo
-      ? module.demo!()
-      : new Uint8Array(await r.file!.arrayBuffer());
     module.validate(rom);
     hash = await digest(rom);
+    title = r.file?.name ?? "";
     // Per-game writer lock first: snapshots exist for every game.
     states = await StateStore.open(hash);
     // SRAM is keyed by ROM hash only, so a save moves between cores.
@@ -71,12 +112,22 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       if (saved) use(module.create(rom, saved));
     }
     session = r.session;
+    // Remembered games move to the top of the library when played; for any
+    // other game (demos included) updateGame finds no entry and does nothing.
+    const library = r.remember
+      ? await remember()
+      : {
+          remembered: await updateGame(hash, {
+            lastPlayedAt: Date.now(),
+          }).catch(() => false),
+        };
     return {
       hash,
       core: module.id,
       states: await states.list(),
       battery: core!.battery,
       recovered: store?.recovered ?? false,
+      ...library,
     };
   }
   if (!core || session !== r.session)
@@ -110,6 +161,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     return { ...result, saved, saveError };
   }
   core.input(neutral());
+  if (r.command === "library-add") return remember();
   if (r.command === "state-list") return { states: await states!.list() };
   if (r.command === "state-save") {
     const bytes = core.snapshot();
@@ -122,15 +174,21 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     }
     const frame = core.lastFrame();
     const { width, height } = module.video;
+    const preview =
+      frame.length === width * height * 4
+        ? makePreview(frame, width, height)
+        : undefined;
     await states!.save(r.slot!, bytes, {
       core: module.id,
       coreVersion: module.version,
       frames: core.frames,
-      preview:
-        frame.length === width * height * 4
-          ? makePreview(frame, width, height)
-          : undefined,
+      preview,
     });
+    // The «Continuar» card shows where the player left off.
+    if (r.slot === "auto" && preview)
+      await updateGame(hash, { preview, lastPlayedAt: Date.now() }).catch(
+        () => false,
+      );
     return { saved, states: await states!.list() };
   }
   if (r.command === "state-load") {

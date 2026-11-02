@@ -3,11 +3,20 @@
   import Player from "./Player.svelte";
   import ControlsPanel from "./ControlsPanel.svelte";
   import DiagnosticLab from "./DiagnosticLab.svelte";
+  import ContinueCard from "./ContinueCard.svelte";
+  import Library from "./Library.svelte";
+  import { demo, type GameSource } from "./game-source.ts";
+  import {
+    listGames,
+    readRemember,
+    type LibraryEntry,
+  } from "../../../packages/storage/src/library.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
   import { icons } from "./icons.ts";
   import {
     acceptFor,
     availableSystems,
+    system as findSystem,
     systemForFile,
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
@@ -15,12 +24,30 @@
   let controlsPage = $state(false);
   const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
-  let game = $state<{ file?: File; system: SystemInfo; id: number }>();
+  let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
   let nextGameId = 0;
-  const startGame = (system: SystemInfo, file?: File) => {
+  const startGame = (system: SystemInfo, source: GameSource = demo) => {
     openError = "";
-    game = { file, system, id: ++nextGameId };
+    game = { source, system, id: ++nextGameId };
   };
+  // Local library: remembered games, most recent first.
+  let games = $state.raw<LibraryEntry[]>([]);
+  let showLibrary = $state(false);
+  async function refreshLibrary() {
+    try {
+      games = await listGames();
+    } catch {
+      games = [];
+    }
+    showLibrary = games.length > 0 || readRemember() !== undefined;
+  }
+  const latest = $derived.by(() => {
+    for (const entry of games) {
+      const system = findSystem(entry.system);
+      if (system) return { entry, system };
+    }
+    return undefined;
+  });
   let fileInput = $state.raw<HTMLInputElement>();
   /** System whose card opened the file picker. */
   let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
@@ -40,7 +67,7 @@
     if (game) pending = { file, system };
     else {
       pending = undefined;
-      startGame(system, file);
+      startGame(system, { kind: "file", file });
     }
   }
   function pick(system: SystemInfo) {
@@ -72,12 +99,28 @@
     if (file && !controlsPage) openFile(file);
   }
   let pageHeading = $state.raw<HTMLHeadingElement>();
+  async function showPage() {
+    controlsPage = location.hash === "#controles";
+    await tick();
+    pageHeading?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
+  /** The logo returns to the start without reloading (a running game stays). */
+  function goHome(event: MouseEvent) {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
+      return;
+    event.preventDefault();
+    if (location.pathname !== "/" || location.hash)
+      history.pushState(null, "", "/");
+    void showPage();
+  }
   type LaunchParams = { files: readonly FileSystemFileHandle[] };
   type LaunchQueue = {
     setConsumer: (consumer: (params: LaunchParams) => void) => void;
   };
   onMount(() => {
     startPwa();
+    void refreshLibrary();
     // "Open with Cartivo" from the operating system (installed PWA).
     const queue = (window as Window & { launchQueue?: LaunchQueue })
       .launchQueue;
@@ -85,15 +128,14 @@
       const handle = files[0];
       if (handle) openFile(await handle.getFile());
     });
-    const sync = async () => {
-      controlsPage = location.hash === "#controles";
-      await tick();
-      pageHeading?.focus({ preventScroll: true });
-      window.scrollTo(0, 0);
-    };
-    void sync();
+    void showPage();
+    const sync = () => void showPage();
     window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
+    window.addEventListener("popstate", sync);
+    return () => {
+      window.removeEventListener("hashchange", sync);
+      window.removeEventListener("popstate", sync);
+    };
   });
 </script>
 
@@ -112,10 +154,10 @@
 >
 <main>
   <header>
-    <span class="brand"
+    <a class="brand" href="/" onclick={goHome} aria-label="Cartivo, inicio"
       >cartivo<span class="palette" aria-hidden="true"
         ><i></i><i></i><i></i><i></i></span
-      ></span
+      ></a
     >
     <nav aria-label="Principal">
       {#if pwa.canInstall && !pwa.installed}
@@ -164,6 +206,19 @@
         </div>
       {/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
+      {#if latest}
+        <ContinueCard
+          entry={latest.entry}
+          system={latest.system}
+          oncontinue={() =>
+            latest &&
+            startGame(latest.system, {
+              kind: "library",
+              entry: latest.entry,
+              resume: true,
+            })}
+        />
+      {/if}
       <ul class="consoles" aria-label="Consolas">
         {#each consoles as item (item.id)}
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
@@ -225,22 +280,34 @@
         onchange={chooseGame}
         hidden
       />
+      {#if showLibrary}
+        <Library
+          {games}
+          onplay={(entry, system) =>
+            startGame(system, { kind: "library", entry, resume: false })}
+          onchange={refreshLibrary}
+        />
+      {/if}
     </section>
   {/if}
   {#if game}<div hidden={controlsPage}>
       {#key game.id}
         <Player
           system={game.system}
-          file={game.file}
+          source={game.source}
           visible={!controlsPage}
           autostart
           onclose={() => {
             game = undefined;
+            void refreshLibrary();
           }}
           onreplace={(file: File) => {
             pending = undefined;
             const current = game!.system;
-            startGame(systemForFile(file.name) ?? current, file);
+            startGame(systemForFile(file.name) ?? current, {
+              kind: "file",
+              file,
+            });
           }}
         />
       {/key}
@@ -276,6 +343,9 @@
     color: var(--teal);
   }
   .brand {
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 8px;
     font-size: 30px;
     font-weight: 760;
     letter-spacing: -1px;
@@ -323,15 +393,19 @@
     padding: 0;
     margin: 48px 0 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
-    justify-content: center;
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
+    gap: 20px;
+  }
+  .consoles > li {
+    display: flex;
   }
   .console-card {
     position: relative;
     overflow: hidden;
-    min-height: 300px;
-    padding: 26px;
+    flex: 1;
+    min-width: 0;
+    min-height: 248px;
+    padding: 22px;
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -345,7 +419,7 @@
   .console-art {
     position: absolute;
     inset: -18px -28px auto auto;
-    width: 190px;
+    width: 150px;
     /* Fade towards the text so labels and buttons stay legible. */
     mask-image: linear-gradient(225deg, #000 30%, transparent 78%);
     display: grid;
@@ -377,16 +451,18 @@
   }
   .console-text h2 {
     margin: 0;
-    font-size: 64px;
-    font-weight: 820;
-    letter-spacing: -0.06em;
-    line-height: 1;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    text-wrap: balance;
+    max-width: 9ch;
   }
   .console-text p {
     margin: 8px 0 0;
     color: var(--muted);
-    font-size: 15px;
-    max-width: 18ch;
+    font-size: 14px;
+    max-width: 22ch;
     line-height: 1.35;
   }
   .console-actions {

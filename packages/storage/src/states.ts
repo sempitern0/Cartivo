@@ -1,6 +1,7 @@
 // «Partidas»: full-console snapshots stored per game and slot (ADR-009).
 // Separate from battery RAM (sram.ts): a snapshot is tied to one core and
 // version, battery RAM is shared by every core.
+import { done, request } from "./idb.ts";
 import { digest } from "./sram.ts";
 
 export const stateSlots = ["auto", "1", "2", "3"] as const;
@@ -64,13 +65,6 @@ export function snapshotFits(
 
 const meta = ({ bytes: _b, sha256: _s, ...rest }: StateRecord): StateMeta =>
   rest;
-
-function request<T>(req: IDBRequest<T>) {
-  return new Promise<T>((resolve, reject) => {
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
 
 export class StateStore {
   private db: IDBDatabase;
@@ -196,10 +190,7 @@ export class StateStore {
   async delete(slot: StateSlot) {
     const tx = this.db.transaction("states", "readwrite");
     tx.objectStore("states").delete(this.key(slot));
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+    await done(tx);
   }
 
   close() {

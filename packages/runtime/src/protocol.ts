@@ -12,6 +12,7 @@ import {
   type StateMeta,
   type StateSlot,
 } from "../../storage/src/states.ts";
+import { isSha256 } from "../../storage/src/library.ts";
 export type EmuCommand =
   | "load"
   | "advance"
@@ -22,7 +23,8 @@ export type EmuCommand =
   | "state-list"
   | "state-save"
   | "state-load"
-  | "state-delete";
+  | "state-delete"
+  | "library-add";
 export type EmuRequest = {
   v: 1;
   session: string;
@@ -30,6 +32,10 @@ export type EmuRequest = {
   command: EmuCommand;
   file?: File;
   demo?: boolean;
+  /** `load` from the local library: SHA-256 of the remembered ROM. */
+  stored?: string;
+  /** `load` from a file: also remember it in the local library. */
+  remember?: boolean;
   count?: number;
   input?: InputState;
   backup?: unknown;
@@ -61,17 +67,23 @@ export function parseRequest(value: unknown): EmuRequest {
       "state-save",
       "state-load",
       "state-delete",
+      "library-add",
     ].includes(r.command)
   )
     throw Error("Protocolo de emulación inválido");
+  const fromFile = typeof File !== "undefined" && r.file instanceof File;
   if (
     r.command === "load" &&
-    !(
-      r.demo === true ||
-      (typeof File !== "undefined" && r.file instanceof File)
-    )
+    !(r.demo === true || fromFile || isSha256(r.stored))
   )
     throw Error("Falta archivo local");
+  if (r.stored !== undefined && (!isSha256(r.stored) || fromFile || r.demo))
+    throw Error("Juego guardado inválido");
+  if (
+    r.remember !== undefined &&
+    (typeof r.remember !== "boolean" || !fromFile)
+  )
+    throw Error("Solo se recuerdan juegos abiertos desde un archivo");
   if (r.command === "load") {
     const target = findSystem(r.system ?? "nes");
     if (!target) throw Error("Sistema desconocido");
@@ -117,4 +129,8 @@ export type EmuResult = {
   saveHash?: string;
   /** Snapshot slots for this game (metadata and previews only). */
   states?: StateMeta[];
+  /** The game is now in the local library (load with remember, library-add). */
+  remembered?: boolean;
+  /** Why the game could not be remembered; the session goes on. */
+  libraryError?: string;
 };

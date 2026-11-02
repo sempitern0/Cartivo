@@ -354,6 +354,8 @@ test("running game captures navigation keys and scroll until Escape", async ({
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Space");
   await page.keyboard.press("ArrowDown");
+  // Over the picture the wheel belongs to the game.
+  await page.locator("canvas").hover();
   await page.mouse.wheel(0, 500);
   await expect(page.locator("canvas")).toBeFocused();
   expect(await page.evaluate(() => scrollY)).toBe(initial);
@@ -366,7 +368,22 @@ test("running game captures navigation keys and scroll until Escape", async ({
   await page.keyboard.press("Tab");
   await expect(page.locator("canvas")).not.toBeFocused();
 });
-test("fullscreen includes toolbar and returns safely to paused window", async ({
+test("the whole player fits a laptop screen and the page still scrolls", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await start(page);
+  await expect(page.getByRole("button", { name: "Pausar juego" })).toBeInViewport();
+  await expect(page.locator("canvas")).toBeInViewport({ ratio: 1 });
+  // Outside the picture the wheel scrolls the page as usual.
+  await page.mouse.move(5, 5);
+  const before = await page.evaluate(() => scrollY);
+  await page.mouse.wheel(0, before > 0 ? -300 : 300);
+  await expect.poll(() => page.evaluate(() => scrollY)).not.toBe(before);
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+});
+
+test("fullscreen shows only the game and returns safely to paused window", async ({
   page,
 }) => {
   await start(page);
@@ -376,8 +393,14 @@ test("fullscreen includes toolbar and returns safely to paused window", async ({
   await expect
     .poll(() => page.evaluate(() => !!document.fullscreenElement))
     .toBe(true);
-  await expect(page.locator(".player")).toHaveClass(/focus-mode/);
+  // Its own mode, not Focus: no toolbar, actions or floating exit button.
+  await expect(page.locator(".player")).toHaveClass(/immersive/);
+  await expect(page.locator(".player")).not.toHaveClass(/focus-mode/);
   await expect(page.locator(".player .heading")).toBeHidden();
+  await expect(page.locator(".player-actions")).toBeHidden();
+  await expect(
+    page.getByRole("button", { name: "Salir del modo Focus" }),
+  ).toHaveCount(0);
   const box = await page.locator("canvas").boundingBox();
   expect(box!.width / box!.height).toBeCloseTo(4 / 3, 1);
   expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
@@ -385,6 +408,14 @@ test("fullscreen includes toolbar and returns safely to paused window", async ({
     path: "test-results/nes-fullscreen.png",
     fullPage: true,
   });
+  // Pausing inside fullscreen keeps the chrome hidden: a small overlay only.
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  const overlay = page.getByRole("group", { name: "En pausa" });
+  await expect(overlay.getByRole("button", { name: "Reanudar juego" })).toBeVisible();
+  await expect(page.locator(".player .heading")).toBeHidden();
+  await overlay.getByRole("button", { name: "Reanudar juego" }).click();
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await page.evaluate(() => document.exitFullscreen());
   await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
   await expect
@@ -468,8 +499,9 @@ test("visible NES Start/Select buttons and safe reset preserve the session", asy
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByRole("button", { name: "Reiniciar consola" }).click();
-  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
-  await page.getByRole("button", { name: "Reanudar juego" }).click();
+  // A reset powers the console on again: it runs from frame 0 by itself.
+  await expect(page.getByTestId("toast")).toContainText("Consola reiniciada");
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await expect.poll(async () => Number(await page.locator("canvas").getAttribute("data-frames"))).toBeGreaterThan(5);
 });
 
@@ -480,6 +512,8 @@ test("console reset keeps verified cartridge SRAM before returning to title", as
   await page.keyboard.up("KeyL");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByRole("button", { name: "Reiniciar consola" }).click();
+  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
+  await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByText("Copias de partida", { exact: true }).click();
   const downloading = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exportar partida" }).click();
