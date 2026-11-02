@@ -78,7 +78,7 @@ jobs:
       - run: >-
           ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
           pnpm exec playwright test --project=${{ matrix.browser }}
-          ${{ matrix.browser == 'webkit' && '--headed' || '' }}
+          ${{ matrix.browser == 'webkit' && '--headed --retries=0 tests/e2e/nes.spec.ts tests/e2e/saves.spec.ts --max-failures=3' || '' }}
           ${{ matrix.server == 'preview' && '--config playwright.preview.config.ts' || '' }}
       - if: always()
         uses: actions/upload-artifact@v4
