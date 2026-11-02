@@ -40,7 +40,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts`, `session.spec.ts` |
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
-| CI: `verify:core`, Prettier, svelte-check, unitarias, build y E2E en dev y en preview, en Chromium y en Firefox (job paralelo con audio virtual); omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
+| CI: job `verify` (`verify:core`, Prettier, svelte-check, unitarias) y matriz `e2e` en paralelo (Chromium y Firefox × dev y preview, build solo en preview, audio virtual en Firefox, un reintento con traza), con preparación común en `.github/actions/setup`; unos 4 min en total; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
 
 ## 3. Pendiente (lista de trabajo, en orden)
 
