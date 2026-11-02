@@ -216,3 +216,8 @@
 - La preparación (pnpm, Node, instalación) vive en una acción común, `.github/actions/setup`, en lugar de copiarse en cada job.
 - El build se hace solo donde se usa (preview).
 - En la CI, una prueba que falla una vez se reintenta y se marca como «flaky», con traza. Los resultados de cada tanda, capturas incluidas, se suben como artefacto.
+
+### La memoria de batería se guarda sin frenar la imagen
+
+- El guardado automático de la memoria del cartucho (cada 120 frames) ya no retiene el siguiente frame mientras IndexedDB escribe. Antes, una escritura lenta podía pausar el juego con «La ejecución se ha retrasado».
+- Las operaciones que dependen del guardado (pausa, Partidas, reinicio, importar, salir) siguen esperando a que termine. Nunca hay dos escrituras a la vez y el éxito solo se informa tras confirmarse. ADR-007 revisado.

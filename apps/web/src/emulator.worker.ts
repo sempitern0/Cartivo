@@ -19,6 +19,10 @@ import {
   makePreview,
 } from "../../../packages/storage/src/states.ts";
 import {
+  BackgroundCommit,
+  type CommitReport,
+} from "../../../packages/storage/src/background-commit.ts";
+import {
   parseStateFile,
   serializeState,
 } from "../../../packages/storage/src/state-file.ts";
@@ -51,7 +55,6 @@ let hash = "";
 let title = "";
 let session = "";
 let busy = false;
-let lastSaveFrame = 0;
 async function flush() {
   if (core?.battery && store) {
     await store.commit(core.save());
@@ -63,7 +66,7 @@ async function flush() {
  * Commits battery RAM and reports the outcome instead of throwing, so the
  * caller's own work (a frame, a snapshot) is never lost to a failed write.
  */
-async function tryFlush(): Promise<Pick<EmuResult, "saved" | "saveError">> {
+async function tryFlush(): Promise<CommitReport> {
   try {
     return { saved: await flush() };
   } catch (e) {
@@ -73,6 +76,8 @@ async function tryFlush(): Promise<Pick<EmuResult, "saved" | "saveError">> {
     };
   }
 }
+/** Periodic battery-RAM commits in the background while the game runs. */
+const saves = new BackgroundCommit(tryFlush);
 /** Adds the running game to the library; a failure never stops the game. */
 async function remember(): Promise<
   Pick<EmuResult, "remembered" | "libraryError">
@@ -153,26 +158,26 @@ async function run(r: EmuRequest): Promise<EmuResult> {
   }
   if (!core || session !== r.session)
     throw Error("Sesión obsoleta o no cargada");
+  if (r.command === "advance") {
+    core.input(r.input!);
+    return {
+      ...core.advance(r.count!),
+      width: module.video.width,
+      height: module.video.height,
+      ...saves.tick(core.frames),
+    };
+  }
+  // Everything else may read or write battery RAM, or replace the core:
+  // never while a background commit is still writing.
+  await saves.settle();
   if (r.command === "reset") {
     // Flush the previous session before replacing the CPU/PPU/APU instance.
     // A reset must not erase battery-backed SRAM or its previous generation.
     const saved = await flush();
     const previousSave = core.battery ? core.save() : undefined;
     use(module.create(rom, previousSave));
-    lastSaveFrame = 0;
+    saves.restart();
     return { saved, frames: 0 };
-  }
-  if (r.command === "advance") {
-    core.input(r.input!);
-    const result = {
-      ...core.advance(r.count!),
-      width: module.video.width,
-      height: module.video.height,
-    };
-    if (core.frames - lastSaveFrame < 120) return { ...result, saved: false };
-    const flushed = await tryFlush();
-    if (!flushed.saveError) lastSaveFrame = core.frames;
-    return { ...result, ...flushed };
   }
   core.input(neutral());
   if (r.command === "library-add") return remember();
@@ -251,7 +256,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     const replacement = module.create(rom, save);
     await store.commit(save);
     use(replacement);
-    lastSaveFrame = 0;
+    saves.restart();
     return { saved: true };
   }
   if (r.command === "save") {

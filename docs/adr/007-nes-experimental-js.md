@@ -37,3 +37,14 @@ Se amplía el gate experimental a mappers 1 (MMC1), 2 (UxROM), 3 (CNROM) y 4 (MM
 Pruebas originales derivadas de la demo, generadas en memoria, verifican arranque, imagen, input y SRAM/restauración en los cuatro mappers; un E2E carga un archivo MMC1 de más de 40 KB. Son pruebas de integración inicial: no validan cambios de banco exhaustivos, IRQ MMC3 ni compatibilidad de títulos comerciales. No cambian licencia, dependencia ni toolchain; el manifiesto actualiza la lista admitida.
 
 WASD actúa como alias de movimiento junto a las flechas predeterminadas. Las asignaciones primarias del usuario tienen prioridad; al remapear una dirección su alias deja de aplicarse. Se comparten las mismas reglas entre Controles y el reproductor.
+
+## Revisión 2026-11-02: confirmación en segundo plano
+
+El commit periódico de cada 120 frames ya no se espera dentro de `advance`. `BackgroundCommit` (`packages/storage/src/background-commit.ts`) lo lanza sin bloquear y entrega el resultado (`saved` o `saveError`) con un frame posterior.
+- **Motivo:** una escritura lenta de IndexedDB (más de unos 200 ms) retenía el frame y el reproductor pausaba con «La ejecución se ha retrasado». Se vio una vez en CI con Firefox.
+- **Lo que no cambia:**
+  - los bytes se toman de forma síncrona al lanzar el commit;
+  - nunca hay dos escrituras a la vez;
+  - `SramStore.commit` sigue confirmando solo con `oncomplete` y con dos generaciones.
+- **Órdenes que esperan:** pausa, Partidas, reinicio, importar, exportar y cualquier otra orden de la sesión esperan (`settle`) a la escritura en curso antes de leer, escribir o sustituir el núcleo.
+- **Si un commit falla:** se informa y se reintenta, y el reproductor pausa con el error, como antes.
