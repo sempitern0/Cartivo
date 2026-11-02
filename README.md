@@ -6,14 +6,16 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 · Game Boy y Game Boy Color (experimental): sin mapper, MBC1/2/3/5 · Game Boy Advance (experimental): SRAM, Flash y EEPROM · SNES (experimental): NTSC LoROM/HiROM/ExHiROM · Master System y Mega Drive (experimental): cartuchos NTSC, mando de seis botones |
-| **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly · GBA: mGBA 0.10.5 en WebAssembly (BIOS HLE) · SNES: Snes9x 1.63 en WebAssembly · Master System y Mega Drive: Genesis Plus GX en WebAssembly |
-| **App** | Instalable como PWA con todos los núcleos incluidos; funciona sin conexión (build de producción) y cada actualización solo descarga lo que cambia |
-| **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA y SNES (I/O, LB/RB), X/Y para SNES y Mega Drive (U/J, botones norte y oeste); en Mega Drive A/B/C van en J/K/L y X/Y/Z en I/U/O |
-| **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9), exporta e importa cada ranura como archivo y conserva la memoria de batería del cartucho |
-| **Pendiente** | QA con mando físico, Safari y móviles; UI navegable con mando; consolas 3D (N64, PS1, PSP) |
+| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive (todas **experimentales**, cartuchos NTSC) |
+| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive). Todos en WebAssembly y sin BIOS propietarias |
+| **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |
+| **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho se guarda sola sin frenar la imagen |
+| **Biblioteca** | «Continuar» y «Tus juegos»: con tu permiso, la copia del juego se guarda en el navegador |
+| **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium y Firefox (dev y build de producción) |
+| **Pendiente** | QA física (mando real, móviles, Safari, audio), UI navegable con mando y consolas 3D (N64, PS1, PSP) |
 
-Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema se publica solo cuando su núcleo supera el gate técnico y de licencia. Plan completo: [docs/PLAN_TECNICO_CARTIVO.md](docs/PLAN_TECNICO_CARTIVO.md).
+Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
 ## Empezar
 
@@ -52,7 +54,7 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados 
 ## Jugar
 
 - **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
-- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus.
+- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L. La ayuda de cada demo y la pantalla de Controles lo indican.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar, cargar, exportar e importar ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.
@@ -65,9 +67,10 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados 
 apps/web/          PWA (Svelte 5 + Vite): UI por componentes, Worker de emulación, AudioWorklet, service worker
 packages/          adapters (contrato y registro de núcleos), runtime (sistemas, protocolo), input, media, storage, fixtures
 cores/             jsnes (manifiesto), tetanes (envoltorio Rust), sameboy, mgba y genesis-plus-gx (C) y snes9x (C++); WASM generado por CI
-tools/             verificación de núcleos, build de TetaNES, generador del service worker
+tools/             build y verificación de núcleos (verify-core.mjs), generador del service worker
 tests/             unitarios (node:test) y e2e (Playwright)
-docs/              plan técnico, diseño, ADRs, compatibilidad e investigación
+docs/              plan técnico, diseño, ADRs, compatibilidad y expedientes de núcleos (research/)
+.github/           CI (verify + matriz E2E Chromium/Firefox × dev/preview) y builds de núcleo bajo petición
 ```
 
 ## Documentación

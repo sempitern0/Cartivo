@@ -6,16 +6,15 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 |---|---|---|
 | NES · TetaNES (WASM, por defecto) | Experimental: iNES NTSC, mappers 0–4 | [H0-WASM-NES](H0-WASM-NES.md) |
 | NES · ruta común y JSNES | Experimental; JSNES como alternativa | [H1-B-NES](H1-B-NES.md) |
-| Entrada | Teclado y mando con perfiles; hardware pendiente | [H1-B-INPUT](H1-B-INPUT.md) |
+| Entrada | Teclado y mando con perfiles, doce acciones y botones por sistema; hardware pendiente | [H1-B-INPUT](H1-B-INPUT.md) |
 | PWA | Instalable y offline; QA en móviles pendiente | [H1-C-PWA](H1-C-PWA.md) |
 | Biblioteca local y «Continuar» | Experimental: ROM en OPFS con consentimiento | [H1-LIB](H1-LIB.md) |
-| QA de la base NES | Automático en CI; manual parcial | [H1-QA](H1-QA.md) |
+| QA de H1 (todos los sistemas, Chromium y Firefox) | Automático en CI; manual pendiente | [H1-QA](H1-QA.md) |
 | GB y GBC · SameBoy (WASM) | Experimental: sin mapper, MBC1/2/3/5 | [H2-GB](H2-GB.md) |
 | GBA · mGBA (WASM) | Experimental: SRAM, Flash y EEPROM; BIOS HLE | [H2-GBA](H2-GBA.md) |
 | SNES · Snes9x (WASM) | Experimental: NTSC LoROM/HiROM/ExHiROM, chips emulados | [H2-SNES](H2-SNES.md) |
 | Master System y Mega Drive · Genesis Plus GX (WASM) | Experimental: cartuchos NTSC, mando de seis botones, SVP | [H2-SEGA](H2-SEGA.md) |
-| SMS, Mega Drive | Pendiente (Genesis Plus GX elegido) | — |
-| N64, PS1, PSP | Pendiente; riesgo de licencia GPL | — |
+| N64, PS1, PSP | Pendiente (H4); núcleos GPL admitidos en uso privado, revisión antes de publicar | — |
 | PS2 | Laboratorio pendiente | — |
 
 ## Plantilla de informe por núcleo o build

@@ -44,4 +44,4 @@ Unitarios (`tests/nes.test.ts`, `tests/tetanes.test.ts`, `tests/snapshots.test.t
 5. Contra o cualquier juego sin batería: Partidas → Guardar aquí, Salir, volver a abrir → Continuar; F5/F9.
 6. Mando físico (modelo, conexión, navegador) registrado en [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md).
 
-Abiertos: escucha física, Firefox/Safari, suspensión móvil, presupuestos de rendimiento, exportar Partidas. Un jugador, audio mono.
+Abiertos: escucha física, Safari, suspensión móvil y presupuestos de rendimiento. Firefox ya corre la suite E2E en CI y las Partidas se exportan (ADR-009). Un jugador, audio mono.

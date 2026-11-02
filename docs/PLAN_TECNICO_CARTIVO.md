@@ -1,6 +1,6 @@
 # Cartivo — Plan técnico
 
-> **Revisión 4 · 2 de noviembre de 2026.** Sustituye a la revisión 3. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 5 · 2 de noviembre de 2026.** H2 completo (siete consolas jugables) y la parte automática de H1 cerrada: exportar Partidas, E2E en Firefox, fiabilidad de almacenamiento y CI en paralelo. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
@@ -46,13 +46,12 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 
 Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
 
-1. **Cerrar H1.**
-   - QA física del titular: mando, audio, instalación y suspensión en móvil ([H1-QA](compatibility/H1-QA.md)).
+1. **Cerrar H1.** Solo queda la QA física del titular: mando real, audio en altavoces, instalación, Safari y suspensión en móvil ([H1-QA](compatibility/H1-QA.md), sección Manual). Lo automático está hecho.
 2. **Fiabilidad y portabilidad** (de la auditoría del titular, 2026-11-02).
    - **Hecho:** escrituras recuperables de la biblioteca, captura acotada, resultado de guardado separado, carga WASM con alternativa, timeouts por operación y «sin conexión» verificado.
    - **Pendiente:**
      - E2E en WebKit (Firefox ya corre la suite completa en CI);
-     - pruebas de fallo en navegador real: cierre durante una escritura, `QuotaExceededError`, dos pestañas, actualización con otra pestaña jugando, estado incompatible, suspensión larga;
+     - pruebas de fallo en navegador real (las de lógica pura ya existen: biblioteca, guardado en segundo plano, caché offline): cierre durante una escritura, `QuotaExceededError`, dos pestañas, actualización con otra pestaña jugando, estado incompatible, suspensión larga;
      - modo degradado visible cuando no hay almacenamiento persistente (ventana privada);
      - despliegue bajo una subruta (rutas absolutas como `/licenses/...`);
      - matriz de QA por navegador y sistema en [H1-QA](compatibility/H1-QA.md).
@@ -146,7 +145,7 @@ tools/               build y verificación de núcleos, pwa-plugin
 ## 7. Rendimiento, seguridad y QA
 
 - **Rendimiento:**
-  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9, Snes9x ≈ 1,2, Genesis Plus GX ≈ 0,6 (Mega Drive) y 0,3 (Master System).
+  - Dato en CI (Node), con la fixture: TetaNES ≈ 2,0 ms/frame, JSNES ≈ 1,1, mGBA ≈ 0,9, Snes9x ≈ 0,8–1,2, Genesis Plus GX ≈ 0,6 (Mega Drive) y 0,3 (Master System).
   - Presupuestos: shell < 100 ms sin tareas > 50 ms en el hilo principal; velocidad emulada 0,98–1,02× durante 10 minutos para promover un sistema a estable.
 - **Seguridad:**
   - Validar cabeceras y tamaños antes de cargar; núcleos auditados y fijados en el Worker, con timeout.
@@ -154,7 +153,7 @@ tools/               build y verificación de núcleos, pwa-plugin
   - Sin analítica identificable.
 - **QA:**
   - Gate para promover un sistema a estable: build reproducible, 10 casos legales, 100 ciclos de guardado sin corrupción, offline tras 20 reinicios y QA en hardware real.
-  - Chromium headless no sustituye Firefox, Safari ni iOS instalado.
+  - Las E2E headless (Chromium y Firefox) no sustituyen un navegador real, Safari ni iOS instalado.
 
 ## 8. Definición de terminado
 
