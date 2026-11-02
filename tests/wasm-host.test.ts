@@ -1,4 +1,5 @@
-// Shared host for the standalone Emscripten cores (SameBoy, mGBA, Snes9x).
+// Shared host for the standalone Emscripten cores (SameBoy, mGBA, Snes9x,
+// Genesis Plus GX).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -22,6 +23,12 @@ import {
   provideSnes9xBinary,
 } from "../packages/adapters/src/snes9x.ts";
 import { snesControlDemo } from "../packages/fixtures/src/snes-control-demo.ts";
+import {
+  GenesisPlusGxAdapter,
+  prepareGenesis,
+  provideGenesisBinary,
+} from "../packages/adapters/src/genesis-plus-gx.ts";
+import { mdControlDemo } from "../packages/fixtures/src/md-control-demo.ts";
 import { gbControlDemo } from "../packages/fixtures/src/gb-control-demo.ts";
 import { gbaControlDemo } from "../packages/fixtures/src/gba-control-demo.ts";
 
@@ -37,6 +44,13 @@ const snes9x = readFileSync(
 );
 provideMgbaBinary(mgba);
 provideSnes9xBinary(snes9x);
+const genesis = readFileSync(
+  new URL(
+    "../cores/genesis-plus-gx/dist/genesis-plus-gx.wasm",
+    import.meta.url,
+  ),
+);
+provideGenesisBinary(genesis);
 
 /** Smallest module importing one function the host does not offer. */
 const mystery = Uint8Array.from([
@@ -77,6 +91,7 @@ test("committed cores only import what the host provides", async () => {
   assert.deepEqual(unsupportedImports(await WebAssembly.compile(sameboy)), []);
   assert.deepEqual(unsupportedImports(await WebAssembly.compile(mgba)), []);
   assert.deepEqual(unsupportedImports(await WebAssembly.compile(snes9x)), []);
+  assert.deepEqual(unsupportedImports(await WebAssembly.compile(genesis)), []);
 });
 
 test("a core needing an unknown import is refused by name", async () => {
@@ -101,6 +116,11 @@ for (const { name, prepare, make } of [
     name: "Snes9x",
     prepare: prepareSnes9x,
     make: () => new Snes9xAdapter(snesControlDemo()),
+  },
+  {
+    name: "Genesis Plus GX",
+    prepare: prepareGenesis,
+    make: () => new GenesisPlusGxAdapter("md", mdControlDemo()),
   },
 ]) {
   test(`${name}: bad states and closed cores fail safely`, async () => {

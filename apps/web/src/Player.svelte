@@ -29,6 +29,7 @@
   import { GameSound } from "./sound.svelte.ts";
   import { captureGameInput } from "./game-capture.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
+  import { keyLabel } from "../../../packages/input/src/nes-input.ts";
   import {
     readRemember,
     writeRemember,
@@ -151,6 +152,16 @@
     savesOpen = false;
     savesButton?.focus({ preventScroll: true });
   }
+  // Demo hint: the first face buttons with this console's own names.
+  // svelte-ignore state_referenced_locally
+  const demoHint = (() => {
+    const keys = readKeyboard();
+    const face = system.buttons
+      .filter((a) => a !== "start" && a !== "select")
+      .slice(0, 3)
+      .map((a) => `${keyLabel(keys[a])} = ${system.labels?.[a] ?? a.toUpperCase()}`);
+    return `WASD o flechas para moverte · ${face.join(" · ")}.`;
+  })();
   let runningCore = $state<string>();
   function chooseCore(id: string) {
     coreChoice = id;
@@ -538,7 +549,7 @@
   />
 
   {#if source.kind === "demo" && phase !== "running"}<p class="demo-info" data-player-chrome>
-      WASD o flechas para moverte · L = A · K = B.
+      {demoHint}
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
       El archivo permanece en tu dispositivo. Esta primera versión ejecuta

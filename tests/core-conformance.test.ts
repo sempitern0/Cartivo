@@ -9,6 +9,7 @@ import { coreModules } from "../packages/adapters/src/registry.ts";
 import { provideSameBoyBinary } from "../packages/adapters/src/sameboy.ts";
 import { provideMgbaBinary } from "../packages/adapters/src/mgba.ts";
 import { provideSnes9xBinary } from "../packages/adapters/src/snes9x.ts";
+import { provideGenesisBinary } from "../packages/adapters/src/genesis-plus-gx.ts";
 import { neutral } from "../packages/input/src/nes-input.ts";
 
 // Node cannot fetch file URLs: instantiate wasm cores up front so their
@@ -26,6 +27,14 @@ provideMgbaBinary(
 );
 provideSnes9xBinary(
   readFileSync(new URL("../cores/snes9x/dist/snes9x.wasm", import.meta.url)),
+);
+provideGenesisBinary(
+  readFileSync(
+    new URL(
+      "../cores/genesis-plus-gx/dist/genesis-plus-gx.wasm",
+      import.meta.url,
+    ),
+  ),
 );
 
 const hash = (b: Uint8ClampedArray) =>

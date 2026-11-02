@@ -5,7 +5,9 @@ import type { Action } from "../../input/src/nes-input.ts";
 import {
   GBA_VIDEO,
   GB_VIDEO,
+  MD_VIDEO,
   NES_VIDEO,
+  SMS_VIDEO,
   SNES_VIDEO,
   type VideoDescriptor,
 } from "../../media/src/display-scaler.ts";
@@ -31,6 +33,8 @@ export type SystemInfo = {
   frameRate: number;
   /** Buttons of the original controller besides the D-pad, as Cartivo actions. */
   buttons: readonly Action[];
+  /** The console's own names when they differ from Cartivo's (Mega Drive C on A). */
+  labels?: Partial<Record<Action, string>>;
   cores: CoreInfo[];
   defaultCore: string;
   /** Formats the current build accepts, in user terms. */
@@ -151,7 +155,71 @@ export const systems: readonly SystemInfo[] = [
     demo: true,
     available: true,
   },
+  sega({
+    id: "sms",
+    name: "Master System",
+    longName: "Sega Master System",
+    extensions: [".sms"],
+    video: SMS_VIDEO,
+    buttons: ["b", "a", "start"],
+    labels: { b: "1", a: "2", start: "Pause" },
+    formatNote: "cartuchos de Master System, con o sin mapper de Sega",
+  }),
+  sega({
+    id: "md",
+    name: "Mega Drive",
+    longName: "Sega Mega Drive / Genesis",
+    extensions: [".md", ".gen", ".bin"],
+    video: MD_VIDEO,
+    // Six-button pad by position: A/B/C on Y/B/A, X/Y/Z on L/X/R.
+    buttons: ["y", "b", "a", "l", "x", "r", "start", "select"],
+    labels: { y: "A", b: "B", a: "C", l: "X", x: "Y", r: "Z", select: "Mode" },
+    formatNote:
+      "cartuchos NTSC o multirregión, con mando de 3 o 6 botones y SVP (Virtua Racing)",
+  }),
 ];
+
+/** Master System and Mega Drive share Genesis Plus GX. */
+function sega(
+  info: Pick<
+    SystemInfo,
+    | "id"
+    | "name"
+    | "longName"
+    | "extensions"
+    | "video"
+    | "buttons"
+    | "labels"
+    | "formatNote"
+  >,
+): SystemInfo {
+  return {
+    ...info,
+    // NTSC: 53 693 175 Hz / (3420 × 262) ≈ 59.92 fps (both consoles).
+    frameRate: 53693175 / (3420 * 262),
+    cores: [
+      {
+        id: "genesis-plus-gx",
+        label: "Genesis Plus GX · WebAssembly",
+        version: "a5834b3",
+        licenses: [
+          {
+            name: "Licencia Genesis Plus GX (incluye Nuked OPN2, Tremor y minimp3)",
+            href: "/licenses/genesis-plus-gx-LICENSE.txt",
+          },
+          { name: "Licencia Musashi", href: "/licenses/musashi-readme.txt" },
+          {
+            name: "LGPL-2.1 (blip_buf, Nuked OPN2, filtros NTSC)",
+            href: "/licenses/blip_buf-LGPL-2.1.txt",
+          },
+        ],
+      },
+    ],
+    defaultCore: "genesis-plus-gx",
+    demo: true,
+    available: true,
+  };
+}
 
 /** GB and GBC share SameBoy; the cartridge header picks the hardware. */
 function gameBoy(
@@ -221,20 +289,29 @@ const listJoin = (items: string[]) =>
     : `${items.slice(0, -1).join(", ")} ${/^(y$|h?i)/i.test(items.at(-1)!) ? "e" : "y"} ${items.at(-1)}`;
 
 /**
- * Notes for buttons that only some consoles use, grouped by those consoles,
- * e.g. «L y R solo los usa Game Boy Advance.».
+ * Notes for Controles: buttons that only a minority of consoles use, grouped
+ * by those consoles («X e Y solo los usan SNES y Mega Drive.»), then where
+ * consoles with their own button names find them («En Master System, 1, 2 y
+ * Pause están en B, A y Start.»).
  */
 export function buttonNotes(label: (action: Action) => string): string[] {
   const consoles = availableSystems();
-  const groups = new Map<string, Action[]>();
+  const groups = new Map<string, { users: number; buttons: Action[] }>();
   for (const action of new Set(consoles.flatMap((s) => s.buttons))) {
     const users = consoles.filter((s) => s.buttons.includes(action));
-    if (users.length === consoles.length) continue;
+    if (users.length * 2 > consoles.length) continue;
     const names = listJoin(users.map((s) => s.name));
-    groups.set(names, [...(groups.get(names) ?? []), action]);
+    const group = groups.get(names) ?? { users: users.length, buttons: [] };
+    groups.set(names, { ...group, buttons: [...group.buttons, action] });
   }
-  return [...groups].map(
-    ([names, buttons]) =>
-      `${listJoin(buttons.map(label))} solo ${names.includes(" y ") ? "los usan" : "los usa"} ${names}.`,
+  const minority = [...groups].map(
+    ([names, { users, buttons }]) =>
+      `${listJoin(buttons.map(label))} solo ${buttons.length > 1 ? "los" : "lo"} ${users > 1 ? "usan" : "usa"} ${names}.`,
   );
+  const named = consoles.flatMap((s) => {
+    const own = s.buttons.filter((a) => s.labels?.[a]);
+    if (!own.length) return [];
+    return `En ${s.name}, ${listJoin(own.map((a) => s.labels![a]!))} ${own.length > 1 ? "están" : "está"} en ${listJoin(own.map(label))}.`;
+  });
+  return [...minority, ...named];
 }

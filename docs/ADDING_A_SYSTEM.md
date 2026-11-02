@@ -56,7 +56,7 @@ Por lo demás, `App`, `Player` (salvo `frameRate`), `PlayerToolbar`, `SavePanel`
 - `STANDALONE_WASM` sin JS de Emscripten y un adaptador TS que aporte los imports de sistema (ver `packages/adapters/src/sameboy.ts`).
 - Probar antes el envoltorio con un arnés nativo (gcc): cada compilación en CI cuesta minutos.
 
-**Límites conocidos:** la entrada tiene diez acciones (las ocho de NES/GB más L/R desde GBA); SNES (X/Y) y Mega Drive (C, 6 botones) necesitan ampliarla antes. El vídeo del núcleo es de tamaño fijo.
+**Límites conocidos:** la entrada tiene doce acciones (cruceta, A, B, X, Y, L, R, Select y Start); un sistema declara las que usa (`buttons`) y sus nombres propios (`labels`), como Mega Drive. Si el núcleo usa `setjmp`/`longjmp`, compilar con `-sSUPPORT_LONGJMP=wasm` (Genesis Plus GX). El vídeo del núcleo es de tamaño fijo.
 
 ## 6. Documentación
 Crear `docs/compatibility/<SISTEMA>.md` y un ADR del núcleo, y actualizar README, el plan técnico (catálogo y backlog), `LICENSES.md`, `apps/web/public/licenses/` y CHANGELOG.

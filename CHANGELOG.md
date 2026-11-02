@@ -178,3 +178,12 @@
 - Botones X (U, norte) e Y (J, oeste) con migración de perfiles; Controles los muestra con su nota y dibuja los botones frontales en rombo.
 - `wasm-host.ts` resuelve con ENOSYS dos imports de archivos que Snes9x nunca usa; el registro carga los núcleos con un `onDemand` común.
 - Fixture 65816 original y pruebas: cabecera, oráculo completo en WASM, conformidad y E2E. ADR-013 y [H2-SNES](docs/compatibility/H2-SNES.md).
+
+### H2-SEGA: Master System y Mega Drive con Genesis Plus GX
+
+- Genesis Plus GX `a5834b3` compilado por CI a WebAssembly (`core-genesis-plus-gx.yml`, solo bajo petición), con un puente C propio sobre su frontend libretro. Un solo WASM sirve a las dos consolas: vídeo 256×192 o 320×224, audio a 48 kHz, batería e instantáneas.
+- Expediente CORE-LEGAL-01: **accepted (uso privado)**. Varios componentes son no comerciales (Genesis Plus GX, Musashi, Z80 de MAME, SVP, Nuked OPLL) y otros LGPL. Sin BIOS. Mega-CD, 32X, Game Gear, volcados SMD y cartuchos de Mega Drive solo PAL se rechazan con un mensaje claro.
+- Mega Drive con mando de seis botones y Master System con 1/2/Pause, sin acciones nuevas: cada sistema declara sus etiquetas, que aparecen en las notas de Controles y en la ayuda de pausa de la demo.
+- `wasm-host.ts` admite `setjmp`/`longjmp` nativos de WebAssembly (la etiqueta `env.__c_longjmp`), que Musashi necesita para los errores de dirección del 68000.
+- `.sms`, `.md`, `.gen` y `.bin` en el selector, al soltar y en «Abrir con».
+- Fixtures Z80 y 68000 originales y pruebas: cabeceras, oráculos completos en WASM, conformidad y E2E. ADR-014 y [H2-SEGA](docs/compatibility/H2-SEGA.md).

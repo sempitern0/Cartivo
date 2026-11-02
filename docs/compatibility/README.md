@@ -13,6 +13,7 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 | GB y GBC · SameBoy (WASM) | Experimental: sin mapper, MBC1/2/3/5 | [H2-GB](H2-GB.md) |
 | GBA · mGBA (WASM) | Experimental: SRAM, Flash y EEPROM; BIOS HLE | [H2-GBA](H2-GBA.md) |
 | SNES · Snes9x (WASM) | Experimental: NTSC LoROM/HiROM/ExHiROM, chips emulados | [H2-SNES](H2-SNES.md) |
+| Master System y Mega Drive · Genesis Plus GX (WASM) | Experimental: cartuchos NTSC, mando de seis botones, SVP | [H2-SEGA](H2-SEGA.md) |
 | SMS, Mega Drive | Pendiente (Genesis Plus GX elegido) | — |
 | N64, PS1, PSP | Pendiente; riesgo de licencia GPL | — |
 | PS2 | Laboratorio pendiente | — |
