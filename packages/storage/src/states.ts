@@ -151,8 +151,6 @@ export class StateStore {
     bytes: Uint8Array,
     info: Omit<StateMeta, "slot" | "size" | "createdAt">,
   ): Promise<StateMeta> {
-    if (!bytes.length || bytes.length > MAX_STATE_BYTES)
-      throw Error("La partida supera el tamaño admitido (8 MB)");
     return this.put({
       meta: { ...info, slot, size: bytes.length, createdAt: Date.now() },
       bytes: Uint8Array.from(bytes),
@@ -165,6 +163,9 @@ export class StateStore {
    * replacing what was there. Success only once the transaction is durable.
    */
   async put({ meta: info, bytes, sha256 }: StoredState): Promise<StateMeta> {
+    // The one write path, so the size limit holds for saves and imports.
+    if (!bytes.length || bytes.length > MAX_STATE_BYTES)
+      throw Error("La partida supera el tamaño admitido (8 MB)");
     const record: StateRecord = { ...info, bytes, sha256 };
     const tx = this.db.transaction("states", "readwrite");
     tx.objectStore("states").put(record, this.key(info.slot));
