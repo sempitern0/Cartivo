@@ -11,6 +11,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Integridad de partidas | 100 ciclos abrir → jugar → guardar → cerrar alternando TetaNES y JSNES: la SRAM sobrevive, la instantánea de otro núcleo se rechaza, sin Workers huérfanos | `tests/e2e/integrity.spec.ts` (dev) |
 | Partidas dañadas o de otra versión | Se rechazan con mensaje y el registro se conserva | `integrity.spec.ts`, `tests/storage.test.ts` |
 | Sin Web Locks | SRAM y Partidas se niegan a abrir (nunca modo multipestaña inseguro) | `tests/storage.test.ts` |
+| Exportar e importar Partidas | Ida y vuelta exacta con y sin miniatura; rechazo de otro juego, otra versión, checksum, tamaño y formato; otro núcleo aceptado. E2E: exportar ranura 1 → sustituir pide confirmación → borrar → importar → cargar; archivo de otro juego rechazado sin tocar la ranura. **CI sobre `a8e0579`** (run 41453068889): 73 superadas en dev y 73 en preview | `tests/state-file.test.ts`, `tests/e2e/saves.spec.ts` |
 | Ciclo de vida | Cancelar «Cargar ROM» mantiene la partida; ocultar la pestaña pausa y guarda «Al salir»; 5 ciclos F5 + Salir sin Workers huérfanos | `tests/e2e/saves.spec.ts` |
 | Núcleos | Conformidad de todo módulo registrado (arranque, imagen, entrada, audio, SRAM, instantáneas, `dispose`) | `tests/core-conformance.test.ts` |
 | Registros | UI ↔ Worker (ids, versiones, vídeo), manifest ↔ `systems.ts`, sin ids de sistema escritos a mano en la interfaz | `tests/systems.test.ts` |
