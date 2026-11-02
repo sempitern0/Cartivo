@@ -203,3 +203,9 @@
 - Cada ranura de **Partidas** se puede exportar como archivo (`cartivo-state-v1`: JSON con la instantánea en base64, su SHA-256 y la miniatura) e importar después, también en otro navegador o dispositivo con el mismo juego.
 - Importar devuelve la partida a su ranura de origen y pide confirmación si está ocupada. Rechaza con un mensaje claro una partida de otro juego, de otra versión del núcleo o dañada; acepta la de otro núcleo del mismo sistema.
 - La descarga de archivos es común a Partidas y Copias de partida. ADR-009 revisado.
+
+### Cerrar H1: E2E en Firefox
+
+- Playwright tiene los proyectos `chromium` y `firefox`. La CI ejecuta la suite completa en Firefox, en dev y en preview, en un job paralelo; los scripts nuevos son `pnpm test:e2e:firefox` y `pnpm test:e2e:preview:firefox`.
+- Firefox necesita un servidor de sonido en Linux: la CI usa PulseAudio con un sumidero nulo, así que el audio también se comprueba en Firefox.
+- La prueba de pantalla completa compara con la altura real de la ventana en ese modo, en lugar de con el viewport configurado. Ninguna prueba se omite por ser Firefox.

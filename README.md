@@ -11,7 +11,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **App** | Instalable como PWA con todos los núcleos incluidos; funciona sin conexión (build de producción) y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA y SNES (I/O, LB/RB), X/Y para SNES y Mega Drive (U/J, botones norte y oeste); en Mega Drive A/B/C van en J/K/L y X/Y/Z en I/U/O |
 | **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9), exporta e importa cada ranura como archivo y conserva la memoria de batería del cartucho |
-| **Pendiente** | QA con mando físico, Firefox/Safari y móviles; UI navegable con mando; consolas 3D (N64, PS1, PSP) |
+| **Pendiente** | QA con mando físico, Safari y móviles; UI navegable con mando; consolas 3D (N64, PS1, PSP) |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema se publica solo cuando su núcleo supera el gate técnico y de licencia. Plan completo: [docs/PLAN_TECNICO_CARTIVO.md](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -43,7 +43,8 @@ Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligada
 | `pnpm check` | Tipos (svelte-check) |
 | `pnpm lint` | Formato (Prettier) |
 | `pnpm test` | Tests unitarios, incluida la conformidad de todos los núcleos WASM |
-| `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en dev / en la build de producción |
+| `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en Chromium, en dev / en la build de producción |
+| `pnpm test:e2e:firefox` / `pnpm test:e2e:preview:firefox` | La misma suite en Firefox (en la CI, en un job paralelo) |
 | `pnpm verify:core` | Integridad de todos los núcleos contra sus manifiestos, sin recompilar |
 
 Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml` o `core-genesis-plus-gx.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md), [ADR-013](docs/adr/013-snes-snes9x.md) y [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md)). La CI omite los cambios que solo tocan documentación.
