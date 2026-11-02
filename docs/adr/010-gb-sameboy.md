@@ -19,6 +19,7 @@ GB/GBC es el siguiente sistema del roadmap y la primera prueba real de la base m
   - WebAssembly autónomo (`STANDALONE_WASM`, `dist/sameboy.wasm`, ~190 KB), sin JS de Emscripten. `packages/adapters/src/sameboy.ts` lo instancia sobre el host común `wasm-host.ts` (desde ADR-011), que aporta los imports de sistema: reloj, log descartado y stubs «no soportado».
   - Toolchain fijada en `cores/sameboy/toolchain.json`: emsdk 6.0.12 y rgbds v1.0.4.
   - `core-sameboy.yml` compila **solo bajo petición** (`cores/sameboy/.build-request` o `workflow_dispatch`); `pnpm verify:core` comprueba hashes y licencias sin compilar.
+- **Compilación:** el disparo por `.build-request` solo actúa en ramas de trabajo (ver ADR-008, «Disparo solo en ramas de trabajo»). Una compilación independiente en `main` reprodujo el mismo binario.
 - **Contrato:**
   - El tamaño de la SRAM pasa del módulo al núcleo (`EmulatorCore.saveBytes`): en Game Boy varía por cartucho (0–128 KB, más el reloj de MBC3). NES sigue con 8 KB y sus partidas no cambian.
   - `SystemInfo.frameRate` hace que el reproductor avance al ritmo del hardware: 4 194 304 / 70 224 ≈ 59,73 Hz en GB, mientras que NES sigue a 60. Sin esto, el audio a 48 kHz se acumularía.
