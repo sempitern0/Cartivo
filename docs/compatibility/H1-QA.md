@@ -16,6 +16,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Núcleos | Conformidad de todo módulo registrado (arranque, imagen, entrada, audio, SRAM, instantáneas, `dispose`) | `tests/core-conformance.test.ts` |
 | Registros | UI ↔ Worker (ids, versiones, vídeo), manifest ↔ `systems.ts`, sin ids de sistema escritos a mano en la interfaz | `tests/systems.test.ts` |
 | PWA | Manifiesto, SW sin `skipWaiting` automático, precache estable, offline tras recarga | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts` |
+| Firefox | La suite E2E completa también en Firefox, en dev y en preview, en un job paralelo con salida de audio virtual (PulseAudio con sumidero nulo: Firefox necesita un servidor de sonido en Linux). Ninguna prueba se omite por ser Firefox. **CI sobre `352382c`** (run 41455858387): 73 superadas en dev y 73 en preview, igual que en Chromium | `playwright.config.ts` (proyecto `firefox`), job `e2e-firefox` de `ci.yml` |
 | Entrada | Teclado, mando sintético, remapeo, neutralización | `tests/input.test.ts`, E2E de controles |
 
 ## Manual
@@ -25,7 +26,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | PWA instalada en local y jugando | Hecho | Titular, durante la PR #2 (navegador y versión sin registrar) |
 | Contra (USA), TetaNES: guardar y cargar Partida | Hecho | Titular, durante la PR #2 (ROM propia, solo local) |
 | Brave/Chromium escritorio: teclado (flechas/WASD, Q/Enter/L/K), Focus, pantalla completa, escalado 16:9/16:10/HiDPI | Pendiente | — |
-| Firefox escritorio (pestaña, offline) | Pendiente | — |
+| Firefox escritorio real (pestaña, offline, audio en altavoces, mando) | Pendiente; las E2E automáticas ya pasan en Firefox headless | — |
 | Safari macOS, iOS/iPadOS (añadir a inicio, offline) | Pendiente | — |
 | Android Chrome: instalación, suspensión, presión de almacenamiento | Pendiente | — |
 | Mando real USB/Bluetooth (Xbox/PlayStation): conexión, remapeo, navegación, pausa | Pendiente | [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md) |

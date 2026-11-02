@@ -40,19 +40,18 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts`, `session.spec.ts` |
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
-| CI: `verify:core`, Prettier, svelte-check, unitarias, build y E2E en dev y en preview; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
+| CI: `verify:core`, Prettier, svelte-check, unitarias, build y E2E en dev y en preview, en Chromium y en Firefox (job paralelo con audio virtual); omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
 
 ## 3. Pendiente (lista de trabajo, en orden)
 
 Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
 
 1. **Cerrar H1.**
-   - E2E en Firefox además de Chromium.
    - QA física del titular: mando, audio, instalación y suspensión en móvil ([H1-QA](compatibility/H1-QA.md)).
 2. **Fiabilidad y portabilidad** (de la auditoría del titular, 2026-11-02).
    - **Hecho:** escrituras recuperables de la biblioteca, captura acotada, resultado de guardado separado, carga WASM con alternativa, timeouts por operación y «sin conexión» verificado.
    - **Pendiente:**
-     - E2E básicas en Firefox y WebKit, junto a «Cerrar H1»;
+     - E2E en WebKit (Firefox ya corre la suite completa en CI);
      - pruebas de fallo en navegador real: cierre durante una escritura, `QuotaExceededError`, dos pestañas, actualización con otra pestaña jugando, estado incompatible, suspensión larga;
      - modo degradado visible cuando no hay almacenamiento persistente (ventana privada);
      - despliegue bajo una subruta (rutas absolutas como `/licenses/...`);

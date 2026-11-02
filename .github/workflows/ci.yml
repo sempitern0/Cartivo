@@ -63,3 +63,29 @@ jobs:
           path: screenshots/
           if-no-files-found: ignore
           retention-days: 7
+  # Same E2E suite in Firefox, in parallel with the Chromium job (H1-QA).
+  e2e-firefox:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps firefox
+      # Firefox needs a sound server to open an AudioContext on Linux; the
+      # runner has no sound card, so a null sink stands in for speakers.
+      - name: Virtual audio output
+        run: |
+          sudo apt-get install -y -q pulseaudio
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=cartivo
+      - run: pnpm test:e2e:firefox
+      - if: ${{ !cancelled() }}
+        run: pnpm test:e2e:preview:firefox
