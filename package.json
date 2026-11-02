@@ -11,9 +11,11 @@
     "lint": "prettier --check \"packages/*/src/*.ts\" \"tests/*.ts\"",
     "test:e2e": "playwright test --project=chromium",
     "test:e2e:firefox": "playwright test --project=firefox",
+    "test:e2e:webkit": "playwright test --project=webkit",
     "preview": "vite preview apps/web --host 127.0.0.1 --port 4173",
     "test:e2e:preview": "playwright test --config playwright.preview.config.ts --project=chromium",
     "test:e2e:preview:firefox": "playwright test --config playwright.preview.config.ts --project=firefox",
+    "test:e2e:preview:webkit": "playwright test --config playwright.preview.config.ts --project=webkit",
     "verify:core": "node tools/verify-jsnes.mjs && node tools/verify-tetanes.mjs && node tools/verify-core.mjs sameboy mgba snes9x genesis-plus-gx"
   },
   "devDependencies": {

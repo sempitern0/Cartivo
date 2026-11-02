@@ -3,6 +3,15 @@ import { test, expect, type Page } from "@playwright/test";
 // Local library and «Continuar» (ADR-012) with Cartivo's own NES fixture.
 const NAME = "mi-juego.nes";
 
+// Playwright's WebKit runs every test in an ephemeral profile where OPFS is
+// unavailable (navigator.storage.getDirectory() fails), like a Safari private
+// window. Cartivo then keeps playing and explains it cannot remember the game;
+// the library itself needs a normal Safari profile (manual QA, H1-QA).
+test.skip(
+  ({ browserName }) => browserName === "webkit",
+  "OPFS is unavailable in Playwright's ephemeral WebKit profile.",
+);
+
 async function game() {
   const { controlDemo } =
     await import("../../packages/fixtures/src/control-demo.ts");

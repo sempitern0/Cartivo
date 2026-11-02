@@ -7,8 +7,9 @@ export default defineConfig({
   // trace in the job artefact), so a slow runner does not hide real results.
   retries: process.env.CI ? 1 : 0,
   use: { baseURL: "http://127.0.0.1:5173", trace: "on-first-retry" },
-  // Chromium is the main engine; Firefox runs the same suite (H1-QA). Tests
-  // that need a Chromium-only capability skip Firefox with their reason.
+  // Chromium is the main engine; Firefox and WebKit run the same suite
+  // (H1-QA). A test that needs an engine-specific capability skips the
+  // others with its reason.
   projects: [
     {
       name: "chromium",
@@ -23,6 +24,9 @@ export default defineConfig({
       },
     },
     { name: "firefox", use: { browserName: "firefox" } },
+    // Safari's engine as Playwright builds it for Linux: close to Safari,
+    // not a substitute for it (H1-QA).
+    { name: "webkit", use: { browserName: "webkit" } },
   ],
   webServer: {
     command: "pnpm dev",

@@ -55,7 +55,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox]
+        browser: [chromium, firefox, webkit]
         server: [dev, preview]
     steps:
       - uses: actions/checkout@v4
@@ -72,8 +72,13 @@ jobs:
           sudo apt-get install -y -q pulseaudio
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=cartivo
+      # Headless WebKit on Linux fires requestAnimationFrame about twice a
+      # second (no display), so the game loop falls behind and pauses. With
+      # a virtual display it runs at 60 Hz like Safari.
       - run: >-
+          ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
           pnpm exec playwright test --project=${{ matrix.browser }}
+          ${{ matrix.browser == 'webkit' && '--headed' || '' }}
           ${{ matrix.server == 'preview' && '--config playwright.preview.config.ts' || '' }}
       - if: always()
         uses: actions/upload-artifact@v4

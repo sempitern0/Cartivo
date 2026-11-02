@@ -1,6 +1,6 @@
 # H1 — Matriz de QA (todos los sistemas, PWA y entrada)
 
-Actualizado: 2026-11-02. Lo automático se ejecuta en GitHub Actions (Node 24; Chromium y Firefox headless de Playwright, en dev y en preview). Lo manual solo cuenta cuando alguien lo ha hecho en hardware real, y entonces se anota quién, con qué y cuándo. Cerrar H1 solo depende ya de la sección **Manual**.
+Actualizado: 2026-11-02. Lo automático se ejecuta en GitHub Actions (Node 24; Chromium, Firefox y WebKit de Playwright, en dev y en preview). Lo manual solo cuenta cuando alguien lo ha hecho en hardware real, y entonces se anota quién, con qué y cuándo. Cerrar H1 solo depende ya de la sección **Manual**.
 
 ## Automático (CI, workflow `ci`)
 
@@ -18,6 +18,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Registros | UI ↔ Worker (ids, versiones, vídeo), manifest ↔ `systems.ts`, sin ids de sistema escritos a mano en la interfaz | `tests/systems.test.ts` |
 | PWA | Manifiesto, SW sin `skipWaiting` automático, precache estable, offline tras recarga | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts` |
 | Firefox | La suite E2E completa también en Firefox, en dev y en preview (matriz paralela `e2e` de `ci.yml`), con salida de audio virtual (PulseAudio con sumidero nulo: Firefox necesita un servidor de sonido en Linux). Ninguna prueba se omite por ser Firefox. **CI sobre `352382c`** (run 41455858387): 73 superadas en dev y 73 en preview, igual que en Chromium | `playwright.config.ts` (proyecto `firefox`), matriz `e2e` de `ci.yml` |
+| WebKit (motor de Safari) | La suite E2E en el WebKit de Playwright para Linux, en dev y en preview, con pantalla virtual (`xvfb-run --headed`: sin pantalla, WebKit dispara `requestAnimationFrame` unas 2 veces por segundo). Destapó y se corrigieron dos fallos que también afectaban a Safari: el Worker se reevaluaba al cargar un núcleo en un chunk dinámico (ahora es un solo archivo) y una parada puntual del primer fotograma pausaba el juego (ahora `FramePacer` la absorbe). **Omitida en WebKit:** `library.spec.ts`, porque el perfil efímero de Playwright no ofrece OPFS, como una ventana privada de Safari. **CI sobre `cd547cd`** (run 41540097684): 67 y 68 superadas, 8 y 7 omitidas por diseño | `playwright.config.ts` (proyecto `webkit`), matriz `e2e` de `ci.yml` |
 | Entrada | Teclado, mando sintético, remapeo, neutralización | `tests/input.test.ts`, E2E de controles |
 
 ## Manual
@@ -28,7 +29,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Contra (USA), TetaNES: guardar y cargar Partida | Hecho | Titular, durante la PR #2 (ROM propia, solo local) |
 | Brave/Chromium escritorio: teclado (flechas/WASD, Q/Enter/L/K), Focus, pantalla completa, escalado 16:9/16:10/HiDPI | Pendiente | — |
 | Firefox escritorio real (pestaña, offline, audio en altavoces, mando) | Pendiente; las E2E automáticas ya pasan en Firefox headless | — |
-| Safari macOS, iOS/iPadOS (añadir a inicio, offline) | Pendiente | — |
+| Safari macOS, iOS/iPadOS (añadir a inicio, offline, biblioteca con OPFS) | Pendiente; las E2E automáticas ya pasan en WebKit | — |
 | Android Chrome: instalación, suspensión, presión de almacenamiento | Pendiente | — |
 | Mando real USB/Bluetooth (Xbox/PlayStation): conexión, remapeo, navegación, pausa | Pendiente | [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md) |
 | Audio en altavoces reales (latencia, cortes) | Pendiente | — |
