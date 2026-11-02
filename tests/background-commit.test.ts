@@ -2,21 +2,23 @@
 // IndexedDB, one write at a time, outcomes reported once.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BackgroundCommit } from "../packages/storage/src/background-commit.ts";
+import {
+  BackgroundCommit,
+  type CommitReport,
+} from "../packages/storage/src/background-commit.ts";
 
 /** A commit the test finishes by hand. */
 function controlled() {
-  const calls: { resolve: (v: boolean) => void; reject: (e: Error) => void }[] =
-    [];
+  const calls: { resolve: (r: CommitReport) => void }[] = [];
   const commit = () =>
-    new Promise<boolean>((resolve, reject) => calls.push({ resolve, reject }));
+    new Promise<CommitReport>((resolve) => calls.push({ resolve }));
   return { calls, commit };
 }
 const turn = () => new Promise((resolve) => setImmediate(resolve));
 
 test("frames never wait for a slow commit, and commits never overlap", async () => {
   const slow = () =>
-    new Promise<boolean>((r) => setTimeout(() => r(true), 500));
+    new Promise<CommitReport>((r) => setTimeout(() => r({ saved: true }), 500));
   const saves = new BackgroundCommit(slow);
   const start = performance.now();
   assert.deepEqual(saves.tick(120), { saved: false });
@@ -36,7 +38,7 @@ test("the outcome comes once, with the frame after the write", async () => {
   assert.deepEqual(saves.tick(10), { saved: false });
   assert.equal(calls.length, 0, "not yet 120 frames");
   saves.tick(120);
-  calls[0].resolve(true);
+  calls[0].resolve({ saved: true });
   await turn();
   assert.deepEqual(saves.tick(121), { saved: true });
   assert.deepEqual(saves.tick(122), { saved: false }, "reported once");
@@ -50,7 +52,7 @@ test("a failed commit is reported and retried on the next tick", async () => {
   const { calls, commit } = controlled();
   const saves = new BackgroundCommit(commit);
   saves.tick(120);
-  calls[0].reject(Error("Disco lleno"));
+  calls[0].resolve({ saved: false, saveError: "Disco lleno" });
   await turn();
   assert.deepEqual(saves.tick(121), { saved: false, saveError: "Disco lleno" });
   assert.equal(calls.length, 2, "retried at once");
@@ -64,7 +66,7 @@ test("settle waits for the write in flight; restart counts from zero", async () 
   const waiting = saves.settle().then(() => (settled = true));
   await turn();
   assert.equal(settled, false);
-  calls[0].resolve(true);
+  calls[0].resolve({ saved: true });
   await waiting;
   assert.equal(settled, true);
   assert.deepEqual(saves.tick(130), { saved: true }, "kept for the next tick");
@@ -73,6 +75,6 @@ test("settle waits for the write in flight; restart counts from zero", async () 
   assert.equal(calls.length, 1);
   saves.tick(120);
   assert.equal(calls.length, 2);
-  calls[1].resolve(true);
+  calls[1].resolve({ saved: true });
   await saves.settle();
 });

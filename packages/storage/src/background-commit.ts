@@ -6,17 +6,18 @@
 export type CommitReport = { saved: boolean; saveError?: string };
 
 export class BackgroundCommit {
-  #commit: () => Promise<boolean>;
+  #commit: () => Promise<CommitReport>;
   #every: number;
   #last = 0;
   #pending: Promise<void> | undefined;
   #report: CommitReport | undefined;
 
   /**
-   * `commit` must take its bytes synchronously when called (before its
-   * first await), so the frames that follow cannot change what is written.
+   * `commit` reports failures instead of throwing, and must take its bytes
+   * synchronously when called (before its first await), so the frames that
+   * follow cannot change what is written.
    */
-  constructor(commit: () => Promise<boolean>, every = 120) {
+  constructor(commit: () => Promise<CommitReport>, every = 120) {
     this.#commit = commit;
     this.#every = every;
   }
@@ -32,19 +33,11 @@ export class BackgroundCommit {
     if (!this.#pending && frames - this.#last >= this.#every) {
       const previous = this.#last;
       this.#last = frames;
-      this.#pending = this.#commit().then(
-        (saved) => {
-          this.#report = { saved };
-        },
-        (e: unknown) => {
-          this.#last = previous;
-          this.#report = {
-            saved: false,
-            saveError: e instanceof Error ? e.message : "Guardado fallido",
-          };
-        },
-      );
-      void this.#pending.finally(() => (this.#pending = undefined));
+      this.#pending = this.#commit().then((report) => {
+        if (report.saveError) this.#last = previous;
+        this.#report = report;
+        this.#pending = undefined;
+      });
     }
     return report;
   }

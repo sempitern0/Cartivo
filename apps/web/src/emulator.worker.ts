@@ -59,8 +59,6 @@ async function flush() {
   }
   return false;
 }
-/** Periodic battery-RAM commits in the background while the game runs. */
-const saves = new BackgroundCommit(flush);
 /**
  * Commits battery RAM and reports the outcome instead of throwing, so the
  * caller's own work (a frame, a snapshot) is never lost to a failed write.
@@ -75,6 +73,8 @@ async function tryFlush(): Promise<Pick<EmuResult, "saved" | "saveError">> {
     };
   }
 }
+/** Periodic battery-RAM commits in the background while the game runs. */
+const saves = new BackgroundCommit(tryFlush);
 /** Adds the running game to the library; a failure never stops the game. */
 async function remember(): Promise<
   Pick<EmuResult, "remembered" | "libraryError">
