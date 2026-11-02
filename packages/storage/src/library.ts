@@ -250,7 +250,9 @@ export async function pruneOrphanRoms(
   now = Date.now(),
   dir?: RomDirectory,
 ): Promise<number> {
-  const roms = dir ?? (await romsDir(false).catch(() => undefined));
+  // entries() is in every target browser but not in all DOM typings.
+  const roms: RomDirectory | undefined =
+    dir ?? (await romsDir(false).catch(() => undefined));
   if (!roms?.entries) return 0;
   const stale: string[] = [];
   for await (const [name, handle] of roms.entries()) {
