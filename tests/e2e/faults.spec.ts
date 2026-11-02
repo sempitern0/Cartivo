@@ -73,8 +73,11 @@ test("no space to remember a game: it keeps playing and says why", async ({
   // Nothing half-written reaches the library.
   await page.getByRole("button", { name: "Salir", exact: true }).click();
   await expect(
-    page.getByRole("region", { name: "Tus juegos" }),
-  ).not.toContainText("juego.nes");
+    page.getByRole("heading", { name: "Elige una consola" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("article", { name: "juego.nes", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("closing the tab mid-game leaves a save that reopens cleanly", async ({

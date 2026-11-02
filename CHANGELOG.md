@@ -240,3 +240,11 @@
 - En una ventana privada sin OPFS, el inicio explica que no se guardan copias de los juegos y recomienda exportar las partidas. Cartivo ya no pregunta por recordar juegos que no podría guardar.
 - Sin Web Locks o IndexedDB, el juego arranca igual y avisa de que no se guardará el progreso: Partidas se desactiva, F5 explica por qué y salir no pide confirmación. Las tiendas siguen negándose a abrir sin escritor único, y un juego abierto en otra pestaña se sigue rechazando.
 - `idb.ts` reúne la comprobación de Web Locks y la apertura de IndexedDB que repetían las dos tiendas. ADR-003 revisado.
+
+### Fiabilidad: fallos inyectados en navegador real
+
+- Nuevas E2E (`tests/e2e/faults.spec.ts`) con fallos provocados a propósito:
+  - un núcleo servido con el MIME incorrecto arranca igual;
+  - sin espacio al recordar un juego, se sigue jugando, se explica y no queda nada a medias;
+  - al cerrar la pestaña a mitad de partida, la memoria de batería se reabre sin errores.
+- Con esto, el punto «Fiabilidad y portabilidad» del plan técnico pasa a hecho. Lo que no se puede forzar en un navegador automático (actualizar la app con otra pestaña jugando, suspensión larga en móvil) queda en la QA manual de H1.
