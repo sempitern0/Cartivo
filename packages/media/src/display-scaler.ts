@@ -38,6 +38,24 @@ export const GB_VIDEO: VideoDescriptor = {
 };
 
 /** Game Boy Advance: square pixels, 3:2. */
+/** Master System: 256×192, shown at 4:3. */
+export const SMS_VIDEO: VideoDescriptor = {
+  sourceWidth: 256,
+  sourceHeight: 192,
+  displayAspect: 4 / 3,
+  pixelArt: true,
+  dynamicResolution: false,
+};
+
+/** Mega Drive: 320×224 (H32 modes stretched to 320), shown at 4:3. */
+export const MD_VIDEO: VideoDescriptor = {
+  sourceWidth: 320,
+  sourceHeight: 224,
+  displayAspect: 4 / 3,
+  pixelArt: true,
+  dynamicResolution: false,
+};
+
 /** SNES: 256×224 (overscan cropped), shown at 4:3 like the NES. */
 export const SNES_VIDEO: VideoDescriptor = {
   sourceWidth: 256,

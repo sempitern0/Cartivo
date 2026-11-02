@@ -50,6 +50,24 @@ libc++abi (Apache-2.0 WITH LLVM-exception). The reproducible build recipe
 (tools/build-snes9x.mjs) allows relinking. No Nintendo BIOS or game is
 distributed.
 
+Genesis Plus GX a5834b3 (Master System, Mega Drive) — Copyright (c) 1998-2003
+Charles MacDonald, (c) 2007-2026 Eke-Eke (see genesis-plus-gx-LICENSE.txt,
+adjacent file). Non-commercial licence; modified redistributions must include
+their full source code. Source code:
+https://github.com/ekeeke/Genesis-Plus-GX/tree/a5834b3df455c49bb97bfaa328c20845831f576b
+Unmodified files listed in cores/genesis-plus-gx/sources.txt (its libretro
+target without CHD) compiled to standalone WebAssembly by Cartivo's CI
+(cores/genesis-plus-gx). It includes: Musashi 3.3 68000 core, Copyright
+1998-2001 Karl Stenerud, free for non-commercial use (musashi-readme.txt);
+the MAME Z80 core by Juergen Buchmueller, freeware for non-commercial use;
+the SVP/SSP1601 core by notaz, free for non-commercial use; Nuked OPLL and
+Nuked OPN2 by Nuke.YKT (OPN2 under GNU LGPL 2.1 or later); blip_buf, sms_ntsc
+and md_ntsc by Shay Green, GNU LGPL 2.1 or later (blip_buf-LGPL-2.1.txt);
+Tremor (Xiph.org, BSD-3-Clause); minimp3 (CC0-1.0); zlib 1.3.1 (Zlib); and
+libretro-common (MIT). The reproducible build recipe
+(tools/build-genesis-plus-gx.mjs) allows relinking. No Sega BIOS or game is
+distributed.
+
 Svelte 5.57.3 — MIT. Full copyright and license: svelte-MIT.txt.
 
 Cartivo's original code: PolyForm Noncommercial 1.0.0. That restriction is not

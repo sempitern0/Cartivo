@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Genesis Plus GX (core and libretro frontend; MAME-derived YM2612/YM2413/SN76489 portions)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LicenseRef-GenesisPlusGX-noncommercial",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Musashi 3.3 68000 core by Karl Stenerud (core/m68k)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LicenseRef-Musashi-noncommercial",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Z80 core by Juergen Buchmueller (core/z80)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LicenseRef-MAME-Z80-noncommercial",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "SVP/SSP1601 core by notaz (core/cart_hw/svp)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LicenseRef-notaz-SVP-noncommercial",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Nuked OPLL by Nuke.YKT (core/sound/opll.c)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LicenseRef-NukedOPLL-noncommercial",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Nuked OPN2 by Nuke.YKT (core/sound/ym3438.c)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LGPL-2.1-or-later",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "blip_buf, sms_ntsc and md_ntsc by Shay Green",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LGPL-2.1-or-later",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Tremor (core/sound/tremor)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "BSD-3-Clause",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "minimp3 (core/sound/minimp3)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "CC0-1.0",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Equalizer (core/sound/eq.c)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "LicenseRef-public-domain",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "zlib 1.3.1 (core/cd_hw/libchdr/deps)",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "Zlib",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "libretro API header and libretro-common",
+    "version": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "license": "MIT",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX"
+  },
+  {
+    "name": "Emscripten system libraries",
+    "version": "6.0.12",
+    "license": "MIT OR NCSA",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "musl libc (Emscripten)",
+    "version": "6.0.12",
+    "license": "MIT",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "compiler-rt (Emscripten)",
+    "version": "6.0.12",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "dlmalloc (Emscripten)",
+    "version": "6.0.12",
+    "license": "CC0-1.0",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  }
+]

@@ -74,7 +74,7 @@ jobs:
           if [ "$MODE" = build ]; then
             # The committed notice must match the pinned upstream licence.
             cmp cores/sameboy/build/sameboy/LICENSE apps/web/public/licenses/sameboy-LICENSE.txt
-            node tools/verify-sameboy.mjs
+            node tools/verify-core.mjs sameboy
           fi
       - name: Commit artefacts
         if: env.MODE == 'build'

@@ -12,6 +12,14 @@ import { MAX_GBA_ROM_BYTES, validateGbaRom } from "./gba-header.ts";
 import { gbaControlDemo } from "../../fixtures/src/gba-control-demo.ts";
 import { MAX_SNES_ROM_BYTES, validateSnesRom } from "./snes-header.ts";
 import { snesControlDemo } from "../../fixtures/src/snes-control-demo.ts";
+import {
+  MAX_MD_ROM_BYTES,
+  MAX_SMS_ROM_BYTES,
+  validateMdRom,
+  validateSmsRom,
+} from "./sega-header.ts";
+import { smsControlDemo } from "../../fixtures/src/sms-control-demo.ts";
+import { mdControlDemo } from "../../fixtures/src/md-control-demo.ts";
 
 /**
  * Loads an adapter module the first time its system starts: players of other
@@ -57,6 +65,11 @@ const snes9x = onDemand(
   () => import("./snes9x.ts"),
   (lib) => lib.prepareSnes9x(),
 );
+const genesis = onDemand(
+  "Genesis Plus GX",
+  () => import("./genesis-plus-gx.ts"),
+  (lib) => lib.prepareGenesis(),
+);
 
 /** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
 const sameboyModule = (system: string, color: boolean): CoreModule => ({
@@ -72,6 +85,9 @@ const sameboyModule = (system: string, color: boolean): CoreModule => ({
 });
 
 let tetanesReady: Promise<void> | undefined;
+
+/** Genesis Plus GX has no releases: the snapshot version is the commit. */
+const GENESIS_VERSION = "a5834b3";
 
 const nesVideo = { width: 256, height: 240 };
 
@@ -132,6 +148,30 @@ export const coreModules: readonly CoreModule[] = [
     demo: snesControlDemo,
     prepare: snes9x.prepare,
     create: (rom, save) => new (snes9x.get().Snes9xAdapter)(rom, save),
+  },
+  {
+    system: "sms",
+    id: "genesis-plus-gx",
+    version: GENESIS_VERSION,
+    video: { width: 256, height: 192 },
+    maxRomBytes: MAX_SMS_ROM_BYTES,
+    validate: validateSmsRom,
+    demo: smsControlDemo,
+    prepare: genesis.prepare,
+    create: (rom, save) =>
+      new (genesis.get().GenesisPlusGxAdapter)("sms", rom, save),
+  },
+  {
+    system: "md",
+    id: "genesis-plus-gx",
+    version: GENESIS_VERSION,
+    video: { width: 320, height: 224 },
+    maxRomBytes: MAX_MD_ROM_BYTES,
+    validate: validateMdRom,
+    demo: mdControlDemo,
+    prepare: genesis.prepare,
+    create: (rom, save) =>
+      new (genesis.get().GenesisPlusGxAdapter)("md", rom, save),
   },
 ];
 

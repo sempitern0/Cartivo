@@ -60,10 +60,10 @@ Revisión previa al merge (`tests/gba-saves.test.ts`): variantes propias de la f
 
 - Build en CI **solo bajo petición** (`.github/workflows/core-mgba.yml`: `cores/mgba/.build-request` o `workflow_dispatch`).
 - Commit comprobado, rutas deterministas, hash en `manifest.json` y avisos comparados con los del commit fijado.
-- `pnpm verify:core` (`tools/verify-mgba.mjs`) comprueba hashes y licencias sin compilar.
+- `pnpm verify:core` (`tools/verify-core.mjs mgba`) comprueba hashes y licencias sin compilar.
 
 ## 8. Decisión
 
 **accepted (uso privado).** Se integra para GBA (ADR-011).
 
-Primer build (`core-mgba.yml`, run sobre `8caee2b`, commit del bot `122bdd6`): `dist/mgba.wasm` de 574 942 bytes, SHA-256 `a655c20f1331…` (completo en `manifest.json`). Los tres avisos de licencia coinciden con los del commit fijado y `verify-mgba` pasa sin errores. Imports del binario: `clock_time_get`, `fd_write`, `fd_close`, `environ_sizes_get`, `environ_get` y `emscripten_notify_memory_growth`, todos resueltos por `wasm-host.ts`. Reproducibilidad: al fusionar la PR #5, una compilación independiente en `main` (run 41338891480) dio el mismo SHA-256 `a655c20f1331…`, y el bot no hizo commit (artefactos sin cambios).
+Primer build (`core-mgba.yml`, run sobre `8caee2b`, commit del bot `122bdd6`): `dist/mgba.wasm` de 574 942 bytes, SHA-256 `a655c20f1331…` (completo en `manifest.json`). Los tres avisos de licencia coinciden con los del commit fijado y `verify-core.mjs mgba` pasa sin errores. Imports del binario: `clock_time_get`, `fd_write`, `fd_close`, `environ_sizes_get`, `environ_get` y `emscripten_notify_memory_growth`, todos resueltos por `wasm-host.ts`. Reproducibilidad: al fusionar la PR #5, una compilación independiente en `main` (run 41338891480) dio el mismo SHA-256 `a655c20f1331…`, y el bot no hizo commit (artefactos sin cambios).

@@ -17,3 +17,4 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [011](011-gba-mgba.md) | Game Boy Advance con mGBA en WebAssembly; botones L/R | Aceptado (experimental) |
 | [012](012-library-continue.md) | Biblioteca local y «Continuar» (ROM en OPFS con consentimiento) | Aceptado (experimental) |
 | [013](013-snes-snes9x.md) | SNES con Snes9x en WebAssembly; botones X/Y | Aceptado (experimental) |
+| [014](014-sms-md-genesis-plus-gx.md) | Master System y Mega Drive con Genesis Plus GX en WebAssembly | Aceptado (experimental) |

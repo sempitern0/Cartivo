@@ -1,0 +1,46 @@
+{
+  "id": "genesis-plus-gx-sms-md-wasm",
+  "engine": "WebAssembly (standalone)",
+  "upstream": {
+    "name": "Genesis Plus GX",
+    "commit": "a5834b3df455c49bb97bfaa328c20845831f576b",
+    "repository": "https://github.com/ekeeke/Genesis-Plus-GX",
+    "spdx": "LicenseRef-GenesisPlusGX-noncommercial"
+  },
+  "toolchain": {
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)",
+    "emsdk": "6.0.12 (35ff8a6d150541276abbc6bae512ca90bcfbe220)"
+  },
+  "platforms": [
+    "Master System",
+    "Mega Drive"
+  ],
+  "biosRequired": false,
+  "bios": "None: cartridges boot directly (TMSS and Master System BIOS are optional and never loaded); Mega-CD, Game Gear and SG-1000 are refused by Cartivo",
+  "sources": 82,
+  "patchedFiles": [],
+  "exports": [
+    "malloc",
+    "free",
+    "cartivo_create",
+    "cartivo_free",
+    "cartivo_reset",
+    "cartivo_save_size",
+    "cartivo_load_save",
+    "cartivo_save",
+    "cartivo_set_input",
+    "cartivo_frames",
+    "cartivo_pixels",
+    "cartivo_audio",
+    "cartivo_state_size",
+    "cartivo_save_state",
+    "cartivo_load_state"
+  ],
+  "dependencies": 16,
+  "files": [
+    {
+      "path": "dist/genesis-plus-gx.wasm",
+      "sha256": "58c38e7bcf34faca277b5c51f24f20dbd8a0e7e2b2bc0c6bae34dd90b9886c4e"
+    }
+  ]
+}

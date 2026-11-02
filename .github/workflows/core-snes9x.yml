@@ -74,7 +74,7 @@ jobs:
             M=cores/snes9x/build/snes9x
             cmp $M/LICENSE apps/web/public/licenses/snes9x-LICENSE.txt
             cmp $M/filter/snes_ntsc-license.txt apps/web/public/licenses/snes9x-LGPL-2.1.txt
-            node tools/verify-snes9x.mjs
+            node tools/verify-core.mjs snes9x
           fi
       - name: Commit artefacts
         if: env.MODE == 'build'

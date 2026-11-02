@@ -75,7 +75,7 @@ jobs:
             cmp $M/LICENSE apps/web/public/licenses/mgba-MPL-2.0.txt
             cmp $M/src/third-party/blip_buf/license.txt apps/web/public/licenses/blip_buf-LGPL-2.1.txt
             cmp $M/src/third-party/inih/LICENSE.txt apps/web/public/licenses/inih-BSD-3-Clause.txt
-            node tools/verify-mgba.mjs
+            node tools/verify-core.mjs mgba
           fi
       - name: Commit artefacts
         if: env.MODE == 'build'

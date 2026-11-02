@@ -76,7 +76,7 @@ Detalle: Snes9x acepta incluso 512 bytes de ceros como «ROM». La validación d
 
 - **Build en CI solo bajo petición:** `.github/workflows/core-snes9x.yml`, con `cores/snes9x/.build-request` en una rama de trabajo o `workflow_dispatch`; `branches-ignore: [main]`.
 - Commit comprobado, rutas deterministas, hash en `manifest.json` y avisos comparados byte a byte con los del commit fijado.
-- `pnpm verify:core` (`tools/verify-snes9x.mjs`) comprueba hashes y licencias sin compilar.
+- `pnpm verify:core` (`tools/verify-core.mjs snes9x`) comprueba hashes y licencias sin compilar.
 
 ## 8. Decisión
 
@@ -85,7 +85,7 @@ Detalle: Snes9x acepta incluso 512 bytes de ceros como «ROM». La validación d
 **Primer build:**
 - Ejecución `core-snes9x.yml` 41418272714 sobre `7d02636`; commit del bot `ac8ab35`.
 - `dist/snes9x.wasm`: 2 268 757 bytes, SHA-256 `10477cc67fcd…` (completo en `manifest.json`).
-- Los dos avisos coinciden con los del commit fijado y `verify-snes9x` pasa.
+- Los dos avisos coinciden con los del commit fijado y `verify-core.mjs snes9x` pasa.
 
 **Imports:**
 - Los de mGBA, más `fd_read` y `env.__syscall_ftruncate64`, que vienen del código de archivos de Snes9x (películas, streams) que Cartivo no usa.

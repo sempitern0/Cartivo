@@ -6,12 +6,12 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 · Game Boy y Game Boy Color (experimental): sin mapper, MBC1/2/3/5 · Game Boy Advance (experimental): SRAM, Flash y EEPROM |
-| **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly · GBA: mGBA 0.10.5 en WebAssembly (BIOS HLE) · SNES: Snes9x 1.63 en WebAssembly |
+| **Consolas** | NES (experimental): iNES NTSC, mappers 0–4 · Game Boy y Game Boy Color (experimental): sin mapper, MBC1/2/3/5 · Game Boy Advance (experimental): SRAM, Flash y EEPROM · SNES (experimental): NTSC LoROM/HiROM/ExHiROM · Master System y Mega Drive (experimental): cartuchos NTSC, mando de seis botones |
+| **Núcleos** | NES: TetaNES 0.17.0 en WebAssembly por defecto, JSNES 2.1.0 como alternativa (Acerca de esta prueba) · GB/GBC: SameBoy 1.0.4 en WebAssembly · GBA: mGBA 0.10.5 en WebAssembly (BIOS HLE) · SNES: Snes9x 1.63 en WebAssembly · Master System y Mega Drive: Genesis Plus GX en WebAssembly |
 | **App** | Instalable como PWA con todos los núcleos incluidos; funciona sin conexión (build de producción) y cada actualización solo descarga lo que cambia |
-| **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA y SNES (I/O, LB/RB), X/Y para SNES (U/J, botones norte y oeste) |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo; L/R para GBA y SNES (I/O, LB/RB), X/Y para SNES y Mega Drive (U/J, botones norte y oeste); en Mega Drive A/B/C van en J/K/L y X/Y/Z en I/U/O |
 | **Partidas** | Guarda en cualquier juego (3 ranuras + «Al salir», continuar al reabrir, F5/F9) y conserva la memoria de batería del cartucho |
-| **Pendiente** | QA con mando físico, Firefox/Safari, móviles, continuar último juego, más consolas |
+| **Pendiente** | QA con mando físico, Firefox/Safari y móviles; exportar Partidas; UI navegable con mando; consolas 3D (N64, PS1, PSP) |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema se publica solo cuando su núcleo supera el gate técnico y de licencia. Plan completo: [docs/PLAN_TECNICO_CARTIVO.md](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -44,13 +44,13 @@ Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligada
 | `pnpm lint` | Formato (Prettier) |
 | `pnpm test` | Tests unitarios, incluida la conformidad de todos los núcleos WASM |
 | `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en dev / en la build de producción |
-| `pnpm verify:core` | Integridad de JSNES y TetaNES contra sus manifiestos |
+| `pnpm verify:core` | Integridad de todos los núcleos contra sus manifiestos, sin recompilar |
 
-Los WASM de TetaNES, SameBoy, mGBA y Snes9x están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml` o `core-snes9x.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md) y [ADR-013](docs/adr/013-snes-snes9x.md)). La CI omite los cambios que solo tocan documentación.
+Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml` o `core-genesis-plus-gx.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md), [ADR-013](docs/adr/013-snes-snes9x.md) y [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md)). La CI omite los cambios que solo tocan documentación.
 
 ## Jugar
 
-- **Jugar** en la tarjeta NES abre un `.nes`; también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
+- **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
 - Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar y cargar en ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
@@ -63,7 +63,7 @@ Los WASM de TetaNES, SameBoy, mGBA y Snes9x están versionados en `cores/*/dist`
 ```text
 apps/web/          PWA (Svelte 5 + Vite): UI por componentes, Worker de emulación, AudioWorklet, service worker
 packages/          adapters (contrato y registro de núcleos), runtime (sistemas, protocolo), input, media, storage, fixtures
-cores/             jsnes (manifiesto), tetanes (envoltorio Rust), sameboy y mgba (C) y snes9x (C++); WASM generado por CI
+cores/             jsnes (manifiesto), tetanes (envoltorio Rust), sameboy, mgba y genesis-plus-gx (C) y snes9x (C++); WASM generado por CI
 tools/             verificación de núcleos, build de TetaNES, generador del service worker
 tests/             unitarios (node:test) y e2e (Playwright)
 docs/              plan técnico, diseño, ADRs, compatibilidad e investigación

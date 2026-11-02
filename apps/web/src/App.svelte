@@ -396,19 +396,24 @@
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
     gap: 20px;
   }
+  /* Each card spans three rows of a shared subgrid (text, actions, foot), so
+     a longer title or extension list in one card moves the whole row and the
+     «Jugar» buttons stay aligned. */
   .consoles > li {
-    display: flex;
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    row-gap: 18px;
   }
   .console-card {
     position: relative;
     overflow: hidden;
-    flex: 1;
     min-width: 0;
-    min-height: 248px;
+    grid-row: 1 / -1;
     padding: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+    display: grid;
+    grid-template-rows: subgrid;
+    row-gap: 18px;
     box-shadow: var(--glow);
   }
   .console-card.dragging {
@@ -448,6 +453,8 @@
   }
   .console-text {
     position: relative;
+    /* Keeps the original card height (248 px) when titles are short. */
+    min-height: 88px;
   }
   .console-text h2 {
     margin: 0;

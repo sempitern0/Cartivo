@@ -52,7 +52,15 @@ test("files are routed by extension", () => {
   assert.equal(systemForFile("juego.GBA")?.id, "gba");
   assert.equal(systemForFile("juego.sfc")?.id, "snes");
   assert.equal(systemForFile("Juego.SMC")?.id, "snes");
-  assert.equal(acceptFor(availableSystems()), ".nes,.gb,.gbc,.gba,.sfc,.smc");
+  assert.equal(systemForFile("juego.sms")?.id, "sms");
+  assert.equal(systemForFile("Juego.MD")?.id, "md");
+  assert.equal(systemForFile("juego.gen")?.id, "md");
+  assert.equal(systemForFile("juego.bin")?.id, "md");
+  assert.equal(
+    acceptFor(availableSystems()),
+    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin",
+  );
+  assert.equal(coreLabel("md", "genesis-plus-gx"), "Genesis Plus GX");
   assert.equal(coreLabel("snes", "snes9x"), "Snes9x");
   assert.equal(coreLabel("gba", "mgba"), "mGBA");
   assert.equal(coreLabel("nes", "tetanes"), "TetaNES");
@@ -113,8 +121,10 @@ test("each system declares the buttons of its controller", () => {
   assert.deepEqual(
     buttonNotes((a) => a.toUpperCase()),
     [
-      "L y R solo los usan Game Boy Advance y SNES.",
-      "X e Y solo los usa SNES.",
+      "L y R solo los usan Game Boy Advance, SNES y Mega Drive.",
+      "X e Y solo los usan SNES y Mega Drive.",
+      "En Master System, 1, 2 y Pause están en B, A y START.",
+      "En Mega Drive, A, B, C, X, Y, Z y Mode están en Y, B, A, L, X, R y SELECT.",
     ],
   );
 });

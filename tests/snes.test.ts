@@ -9,9 +9,9 @@ import {
   Snes9xAdapter,
   prepareSnes9x,
   provideSnes9xBinary,
-  snesInputBits,
 } from "../packages/adapters/src/snes9x.ts";
 import { snesControlDemo } from "../packages/fixtures/src/snes-control-demo.ts";
+import { libretroInputBits } from "../packages/adapters/src/wasm-host.ts";
 import { neutral, type InputState } from "../packages/input/src/nes-input.ts";
 
 provideSnes9xBinary(
@@ -62,7 +62,7 @@ test("unsupported or damaged cartridges are refused with a reason", () => {
 
 test("buttons follow the libretro joypad order", () => {
   const only = (action: keyof InputState) =>
-    snesInputBits({ ...neutral(), [action]: true });
+    libretroInputBits({ ...neutral(), [action]: true });
   assert.equal(only("b"), 1 << 0);
   assert.equal(only("y"), 1 << 1);
   assert.equal(only("right"), 1 << 7);
