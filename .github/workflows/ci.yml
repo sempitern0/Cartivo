@@ -66,9 +66,7 @@ jobs:
       - uses: ./.github/actions/setup
       # Only the production build has a service worker (PWA tests).
       - if: matrix.server != 'dev'
-        run: pnpm build
-        env:
-          CARTIVO_BASE: ${{ matrix.server == 'subpath' && '/cartivo/' || '/' }}
+        run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
       - run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.

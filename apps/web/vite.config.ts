@@ -2,8 +2,6 @@ import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { cartivoPwa } from "../../tools/pwa-plugin.mjs";
 export default defineConfig({
-  // Deploy under a sub-path with CARTIVO_BASE=/cartivo/ (default: the root).
-  base: process.env.CARTIVO_BASE ?? "/",
   plugins: [svelte(), cartivoPwa()],
   // One file for the emulator Worker: WebKit (Safari) evaluates a module
   // worker's entry again when a dynamic chunk imports from it, which reset
