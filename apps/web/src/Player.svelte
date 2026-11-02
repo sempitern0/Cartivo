@@ -435,16 +435,26 @@
     if (phase !== "paused" || busy || saveStatus === "Guardado sin confirmar.")
       return;
     busy = true;
+    let restarted = false;
     try {
       const result = await client!.request("reset");
       frames = result.frames ?? 0;
       controls.clear();
+      // Never leave the previous game's last frame on screen.
+      screen?.getContext("2d")?.clearRect(0, 0, screen.width, screen.height);
       saveStatus = result.saved ? "Partida guardada antes de reiniciar." : saveStatus;
       problem = "";
+      resumeOffer = undefined;
+      restarted = true;
     } catch (error) {
       problem = error instanceof Error ? error.message : "No se pudo reiniciar la consola";
     } finally {
       busy = false;
+    }
+    // A reset is a power cycle: the console starts running again.
+    if (restarted) {
+      notify("Consola reiniciada.");
+      await resume();
     }
   }
   async function toggleFullscreen() {
@@ -452,8 +462,8 @@
       if (document.fullscreenElement === viewport)
         await document.exitFullscreen();
       else {
-        focusMode = true;
         await viewport?.requestFullscreen();
+        notify("Pulsa Escape para salir de pantalla completa.");
       }
     } catch (e) {
       problem =
@@ -649,7 +659,8 @@
   bind:this={viewport}
   class="player"
   class:playing={phase === "running"}
-  class:focus-mode={focusMode && phase === "running"}
+  class:focus-mode={focusMode && phase === "running" && !fullscreen}
+  class:immersive={fullscreen}
   aria-label={`Reproductor ${system.name}`}
 >
   {#if focusMode && phase === "running"}
@@ -768,6 +779,13 @@
             ><button onclick={() => resume()}>Empezar de nuevo</button>
           </div>
         </div>
+      </div>
+    {/if}
+    {#if fullscreen && phase === "paused" && !resumeOffer}
+      <div class="fullscreen-pause" role="group" aria-label="En pausa">
+        <button class="primary" onclick={resume} disabled={busy}
+          >Reanudar juego</button
+        ><button onclick={toggleFullscreen}>Salir de pantalla completa</button>
       </div>
     {/if}
     <div class="game-stage-wrapper">
@@ -942,28 +960,55 @@
   }
   .player.focus-mode .frame, .player:fullscreen .frame { flex: 1; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; display: flex; }
   .player.focus-mode .game-stage-wrapper { flex: 1; height: auto; min-height: 0; margin: 0; border-radius: 0; }
+  /* Fullscreen: only the game. Chrome stays hidden even in pause; a small
+     overlay offers Reanudar and the way out (Escape also exits). */
   .player:fullscreen {
-    background: var(--bg);
+    position: relative;
     width: 100%;
     max-width: none;
     height: 100%;
     margin: 0;
-    padding: 16px 24px;
-    overflow: auto;
+    padding: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: #050507;
   }
-  .player:fullscreen p {
-    margin: 4px 0;
-    font-size: 12px;
-  }
-  .player.playing:fullscreen .demo-info,
-  .player.playing:fullscreen > details {
+  .player:fullscreen :global([data-player-chrome]),
+  .player:fullscreen > details {
     display: none;
   }
   .player:fullscreen .game-stage-wrapper { flex: 1; min-height: 0; height: auto; margin: 0; border-radius: 0; }
-  .player:fullscreen > details {
-    flex: none;
+  .player:fullscreen .notice {
+    position: absolute;
+    z-index: 3;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(640px, 90%);
+    margin: 0;
+  }
+  .player:fullscreen .toast {
+    position: absolute;
+    z-index: 3;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    padding: 6px 14px;
+    border-radius: 10px;
+    background: #0a0c12d9;
+  }
+  .fullscreen-pause {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    background: #050507b3;
   }
 
   .player {

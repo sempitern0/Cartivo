@@ -9,7 +9,7 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 | Coral | `#ED5871` | Acento; error siempre acompañado de texto |
 | Azul | `#619DE5` | Acción principal, enlaces, brillo de selección |
 | Turquesa | `#40C2AE` | Acento secundario, estados activos |
-| Dorado | `#E9C45E` | Foco visible |
+| Dorado | `#E9C45E` | Acento (capturas de tecla, paleta) |
 | Fondo | `#111218` | Base, con degradado azul tenue arriba |
 | Superficie | `#1B1D26` | Tarjetas y paneles |
 | Texto / Secundario | `#F3F1ED` / `#B3B5C2` | Lectura / explicaciones |
@@ -20,23 +20,24 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 
 - **Una acción principal por pantalla.** Lo técnico (núcleo, diagnóstico, laboratorio) vive plegado en opciones avanzadas.
 - **Automático primero, corrección manual accesible.** Mando y teclado se detectan; pantalla con valores fieles al original.
-- **Accesible:** contraste AA, objetivos de 44 px, foco dorado visible, estados con texto además de color, `prefers-reduced-motion`.
+- **Accesible:** contraste AA, objetivos de 44 px, anillo de foco discreto (2 px, blanco cálido translúcido) y nunca sobre la imagen del juego, estados con texto además de color, `prefers-reduced-motion`.
 - **Movimiento sobrio:** solo transiciones breves de entrada de vista y respuestas a acciones del usuario.
 
 ## Pantallas
 
 ### Inicio · «Elige una consola»
-Rejilla centrada que crece con cada sistema aceptado; hoy, NES, Game Boy, Game Boy Color y Game Boy Advance. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre las extensiones de esa consola: `.nes`, `.gb`, `.gbc`, `.gba`), icono **Controles de {consola}**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida.
+El logo de la cabecera lleva siempre al inicio. Rejilla de tarjetas de igual altura (cuatro por fila en escritorio, una en móvil) que crece con cada sistema aceptado; hoy, NES, Game Boy, Game Boy Color y Game Boy Advance. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre las extensiones de esa consola: `.nes`, `.gb`, `.gbc`, `.gba`), icono **Controles de {consola}**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida.
 
 Con juegos recordados (ADR-012), encima de la rejilla aparece la tarjeta **Continuar**: miniatura de «Al salir», nombre, consola y fecha; un clic carga el juego desde el dispositivo y sigue desde «Al salir» sin aviso. Debajo, **Tus juegos**: lista por fecha con **Jugar** y **Quitar** (confirmación en línea que recuerda que las partidas se conservan), el espacio ocupado y el interruptor «Recordar juegos nuevos en este dispositivo».
 
 ### Configurar controles (`#controles`, desde **Ajustes**)
+La barra **Activar prueba** y la zona de prueba van justo encima de los dibujos del teclado y del mando, para ver qué se ilumina sin desplazarse.
 Tarjeta de teclado y tarjeta de mando genérico (dibujos propios) que se iluminan durante la prueba. Chips para reasignar A, B, Start, Select, L y R (estos dos solo los usa Game Boy Advance); **Mover** despliega **Avanzado** con las direcciones. Selector de mando, asignación manual y zona muerta en la tarjeta del mando. Salir desmonta el sondeo; al volver no queda ninguna tecla pulsada. Abrirla durante una partida pausa y neutraliza la entrada.
 
 ### Reproductor
 - Barra superior: **Gráficos**, **Partidas**, **Cargar ROM** (cierre seguro con guardado y nueva ROM) y **Salir**.
-- Vídeo 4:3 en un marco con brillo azul; acciones compactas debajo (Pausar/Reanudar, Select, Start, sonido, Focus, pantalla completa, Reiniciar consola en pausa) y pie de estado «Mando conectado / Sin mando · Teclado conectado».
-- **Focus** (F) y **pantalla completa** retiran el marco y la interfaz; salir de pantalla completa pausa. Durante el juego se capturan las teclas y la rueda; Escape pausa y devuelve el foco a Reanudar. Los atajos del navegador con Ctrl/Meta/Alt no se bloquean.
+- Vídeo 4:3 en un marco con brillo azul; acciones compactas debajo (Pausar/Reanudar, Select, Start, sonido, Focus, pantalla completa, Reiniciar consola en pausa, que reinicia y vuelve a jugar) y pie de estado «Mando conectado / Sin mando · Teclado conectado».
+- **Focus** (F) oculta la página dentro de la ventana mientras se juega; en pausa vuelve la interfaz y un botón flotante permite salir. **Pantalla completa** es otro modo: solo el juego, sin barra ni acciones ni siquiera en pausa; al pausar aparece una capa mínima con **Reanudar juego** y **Salir de pantalla completa**, y Escape sale y pausa. Durante el juego se capturan las teclas y la rueda; Escape pausa y devuelve el foco a Reanudar. Los atajos del navegador con Ctrl/Meta/Alt no se bloquean.
 - Errores en un aviso por encima del vídeo, llevado a la vista.
 - «Copias de partida» (exportar/importar la memoria de batería) y «Acerca de esta prueba» (núcleo TetaNES/JSNES y licencias) plegados, solo en pausa o error.
 - Al reabrir un juego con partida «Al salir», un aviso sobre el vídeo ofrece **Continuar** o **Empezar de nuevo**, con miniatura y fecha.

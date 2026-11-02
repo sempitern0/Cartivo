@@ -111,6 +111,21 @@
     if (file && !controlsPage) openFile(file);
   }
   let pageHeading = $state.raw<HTMLHeadingElement>();
+  async function showPage() {
+    controlsPage = location.hash === "#controles";
+    await tick();
+    pageHeading?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
+  /** The logo returns to the start without reloading (a running game stays). */
+  function goHome(event: MouseEvent) {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
+      return;
+    event.preventDefault();
+    if (location.pathname !== "/" || location.hash)
+      history.pushState(null, "", "/");
+    void showPage();
+  }
   type LaunchParams = { files: readonly FileSystemFileHandle[] };
   type LaunchQueue = {
     setConsumer: (consumer: (params: LaunchParams) => void) => void;
@@ -125,15 +140,14 @@
       const handle = files[0];
       if (handle) openFile(await handle.getFile());
     });
-    const sync = async () => {
-      controlsPage = location.hash === "#controles";
-      await tick();
-      pageHeading?.focus({ preventScroll: true });
-      window.scrollTo(0, 0);
-    };
-    void sync();
+    void showPage();
+    const sync = () => void showPage();
     window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
+    window.addEventListener("popstate", sync);
+    return () => {
+      window.removeEventListener("hashchange", sync);
+      window.removeEventListener("popstate", sync);
+    };
   });
 </script>
 
@@ -152,10 +166,10 @@
 >
 <main>
   <header>
-    <span class="brand"
+    <a class="brand" href="/" onclick={goHome} aria-label="Cartivo, inicio"
       >cartivo<span class="palette" aria-hidden="true"
         ><i></i><i></i><i></i><i></i></span
-      ></span
+      ></a
     >
     <nav aria-label="Principal">
       {#if pwa.canInstall && !pwa.installed}
@@ -339,6 +353,9 @@
     color: var(--teal);
   }
   .brand {
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 8px;
     font-size: 30px;
     font-weight: 760;
     letter-spacing: -1px;
@@ -386,15 +403,19 @@
     padding: 0;
     margin: 48px 0 0;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
-    justify-content: center;
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
+    gap: 20px;
+  }
+  .consoles > li {
+    display: flex;
   }
   .console-card {
     position: relative;
     overflow: hidden;
-    min-height: 300px;
-    padding: 26px;
+    flex: 1;
+    min-width: 0;
+    min-height: 248px;
+    padding: 22px;
     display: flex;
     flex-direction: column;
     gap: 18px;
@@ -408,7 +429,7 @@
   .console-art {
     position: absolute;
     inset: -18px -28px auto auto;
-    width: 190px;
+    width: 150px;
     /* Fade towards the text so labels and buttons stay legible. */
     mask-image: linear-gradient(225deg, #000 30%, transparent 78%);
     display: grid;
@@ -440,16 +461,18 @@
   }
   .console-text h2 {
     margin: 0;
-    font-size: 64px;
-    font-weight: 820;
-    letter-spacing: -0.06em;
-    line-height: 1;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    text-wrap: balance;
+    max-width: 9ch;
   }
   .console-text p {
     margin: 8px 0 0;
     color: var(--muted);
-    font-size: 15px;
-    max-width: 18ch;
+    font-size: 14px;
+    max-width: 22ch;
     line-height: 1.35;
   }
   .console-actions {

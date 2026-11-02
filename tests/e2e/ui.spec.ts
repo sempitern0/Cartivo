@@ -163,3 +163,26 @@ test("home, controls and player fit a 375px phone", async ({
     fullPage: true,
   });
 });
+
+test("the logo returns to the start and the console cards line up", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto("/#controles");
+  await page.getByRole("link", { name: "Cartivo, inicio" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Elige una consola" }),
+  ).toBeVisible();
+  const url = new URL(page.url());
+  expect(url.pathname + url.hash).toBe("/");
+  // Four cards in one row: their «Jugar» buttons share the same line.
+  const tops = await page
+    .getByRole("list", { name: "Consolas" })
+    .getByRole("button", { name: "Jugar", exact: true })
+    .evaluateAll((buttons) =>
+      buttons.map((b) => Math.round(b.getBoundingClientRect().top)),
+    );
+  expect(tops.length).toBeGreaterThanOrEqual(4);
+  expect(new Set(tops).size).toBe(1);
+  await noHorizontalScroll(page);
+});

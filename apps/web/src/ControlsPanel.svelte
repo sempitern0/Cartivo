@@ -79,7 +79,7 @@
   function assignKey(action: Action) {
     pause("Pulsa una tecla para " + labels[action] + ". Escape cancela.");
     keyCapture = action;
-    target.focus();
+    target.focus({ preventScroll: true });
   }
   function resetKeyboard() {
     pause("Teclado restablecido.");
@@ -131,7 +131,7 @@
     inputState = neutral();
     active = true;
     message = "Prueba activa. Suelta todos los controles antes de empezar.";
-    target.focus();
+    target.focus({ preventScroll: true });
   }
   function keydown(event: KeyboardEvent) {
     if (keyCapture) {
@@ -172,7 +172,7 @@
     draft = {};
     capture = actions[0];
     waitingRelease = true;
-    target.focus();
+    target.focus({ preventScroll: true });
   }
   function restore() {
     if (!last) return;
@@ -380,6 +380,50 @@
 
 <section class="controls" aria-labelledby="input-title">
   <h2 id="input-title" class="visually-hidden">Prueba y asignación</h2>
+  <div class="test card">
+    <div class="buttons">
+      <button
+        class="primary"
+        onclick={activate}
+        disabled={!!capture || !!keyCapture}>Activar prueba</button
+      ><button
+        onclick={() => pause("Prueba detenida.")}
+        disabled={!active && !capture && !keyCapture}>Detener prueba</button
+      >
+    </div>
+    <!-- A focused region separates emulator input from UI navigation. Tab always remains available. -->
+    <button
+      type="button"
+      class="pad"
+      class:armed={active}
+      onclick={() => {
+        if (!active && !capture && !keyCapture) activate();
+      }}
+      aria-label="Zona de prueba de controles"
+      tabindex="0"
+      bind:this={target}
+      onkeydown={keydown}
+      onblur={() => {
+        if (active || capture || keyCapture)
+          pause("Prueba pausada. Actívala para continuar.");
+      }}
+    >
+      <span class="pad-hint" aria-hidden="true"
+        >{active
+          ? "Pulsa tus controles: se iluminan aquí abajo"
+          : "Zona de prueba"}</span
+      >
+      {#each actions as action}<span
+          class="visually-hidden"
+          data-action={action}
+          >{labels[action]}<small
+            >{inputState[action] ? "Pulsado" : "Libre"}</small
+          ></span
+        >{/each}
+    </button>
+    <p data-testid="input-status" aria-live="polite">{message}</p>
+  </div>
+
   <div class="devices">
     <article class="device card" aria-labelledby="keyboard-title">
       <header>
@@ -526,50 +570,6 @@
       {waitingRelease ? "Suelta todos los controles. " : ""}Pulsa el control
       para: <strong>{labels[capture]}</strong>
     </p>{/if}
-
-  <div class="test card">
-    <div class="buttons">
-      <button
-        class="primary"
-        onclick={activate}
-        disabled={!!capture || !!keyCapture}>Activar prueba</button
-      ><button
-        onclick={() => pause("Prueba detenida.")}
-        disabled={!active && !capture && !keyCapture}>Detener prueba</button
-      >
-    </div>
-    <!-- A focused region separates emulator input from UI navigation. Tab always remains available. -->
-    <button
-      type="button"
-      class="pad"
-      class:armed={active}
-      onclick={() => {
-        if (!active && !capture && !keyCapture) activate();
-      }}
-      aria-label="Zona de prueba de controles"
-      tabindex="0"
-      bind:this={target}
-      onkeydown={keydown}
-      onblur={() => {
-        if (active || capture || keyCapture)
-          pause("Prueba pausada. Actívala para continuar.");
-      }}
-    >
-      <span class="pad-hint" aria-hidden="true"
-        >{active
-          ? "Pulsa tus controles: se iluminan arriba"
-          : "Zona de prueba"}</span
-      >
-      {#each actions as action}<span
-          class="visually-hidden"
-          data-action={action}
-          >{labels[action]}<small
-            >{inputState[action] ? "Pulsado" : "Libre"}</small
-          ></span
-        >{/each}
-    </button>
-    <p data-testid="input-status" aria-live="polite">{message}</p>
-  </div>
 
   <details class="advanced" id="advanced-controls" bind:open={advancedOpen}>
     <summary>Avanzado</summary>
@@ -767,7 +767,7 @@
   select:focus-visible,
   input:focus-visible,
   .pad:focus-visible {
-    outline: 3px solid var(--gold);
+    outline: 2px solid var(--focus);
     outline-offset: 4px;
   }
   .buttons {
@@ -872,16 +872,32 @@
     font-size: 14px;
     padding: 8px 0;
   }
+  /* The test bar sits right above the drawings that light up, so the
+     player sees both at once without scrolling. */
   .test {
-    margin-top: 20px;
-    padding: 18px 22px;
+    margin: 0 0 20px;
+    padding: 14px 18px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 6px 16px;
   }
   .test .buttons {
     margin-top: 0;
   }
+  .test p {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 14px;
+  }
+  @media (max-width: 640px) {
+    .test {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
   .pad {
     width: 100%;
-    margin: 14px 0 0;
+    margin: 0;
     min-height: 56px;
     border-style: dashed;
     color: var(--muted);
