@@ -4,26 +4,20 @@
   import PlayerToolbar from "./PlayerToolbar.svelte";
   import GraphicsPanel from "./GraphicsPanel.svelte";
   import SavePanel from "./SavePanel.svelte";
-  import SnapshotThumb from "./SnapshotThumb.svelte";
   import RememberPrompt from "./RememberPrompt.svelte";
-  import { slotNames, when } from "./saves.ts";
-  import {
-    backupFormat,
-    MAX_BACKUP_FILE,
-  } from "../../../packages/storage/src/formats.ts";
-  import type { ScaleMode, AspectMode } from "../../../packages/media/src/display-scaler.ts";
-  import {
-    readDisplay,
-    writeDisplay,
-    type DisplayPreferences,
-  } from "../../../packages/media/src/display-preferences.ts";
+  import ResumeOffer from "./ResumeOffer.svelte";
+  import FullscreenPause from "./FullscreenPause.svelte";
+  import PlayerActions from "./PlayerActions.svelte";
+  import DeviceStatus from "./DeviceStatus.svelte";
+  import BackupPanel from "./BackupPanel.svelte";
+  import AboutCore from "./AboutCore.svelte";
+  import { DisplaySettings } from "./display.svelte.ts";
+  import { slotNames } from "./saves.ts";
   import { EmulatorClient } from "../../../packages/runtime/src/client.ts";
   import {
     acceptFor,
-    coreLabel,
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
-  import { icons } from "./icons.ts";
   import {
     readCore,
     writeCore,
@@ -32,8 +26,8 @@
     StateMeta,
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
-  import audioWorkletUrl from "./audio.worklet.ts?worker&url";
-  import { GameAudio } from "../../../packages/media/src/audio.ts";
+  import { GameSound } from "./sound.svelte.ts";
+  import { captureGameInput } from "./game-capture.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
   import {
     readRemember,
@@ -68,8 +62,6 @@
   let problem = $state("");
   let saveStatus = $state("");
   let battery = $state(false);
-  let muted = $state(false);
-  let audioReady = $state(false);
   let frames = $state(0);
   let padStatus = $state("Sin mando");
   let padConnected = $state(false);
@@ -170,23 +162,10 @@
   let fullscreenAvailable = $state(false);
   let focusMode = $state(false);
   // svelte-ignore state_referenced_locally
-  const savedDisplay = readDisplay(system.id);
-  let scaleMode = $state<ScaleMode>(savedDisplay.scale);
-  let aspectMode = $state<AspectMode>(savedDisplay.aspect);
-  let smooth = $state(savedDisplay.smooth);
+  const display = new DisplaySettings(system);
   let scaleFallback = $state(false);
-  let displayNote = $state("");
   let graphicsOpen = $state(false);
   let graphicsButton = $state.raw<HTMLButtonElement>();
-  function setDisplay(patch: Partial<DisplayPreferences>) {
-    const next = { scale: scaleMode, aspect: aspectMode, smooth, ...patch };
-    scaleMode = next.scale;
-    aspectMode = next.aspect;
-    smooth = next.smooth;
-    displayNote = writeDisplay(system.id, next)
-      ? `Se recordará para ${system.name} en este dispositivo.`
-      : "Aplicado solo en esta sesión: el navegador no permite guardarlo.";
-  }
   async function toggleGraphics() {
     if (phase === "running") await pause();
     graphicsOpen = !graphicsOpen;
@@ -200,9 +179,9 @@
   let screen = $state.raw<HTMLCanvasElement>();
   let frameElement = $state.raw<HTMLDivElement>();
   let actionsElement = $state.raw<HTMLDivElement>();
-  let importInput = $state.raw<HTMLInputElement>();
-  let client: EmulatorClient | undefined;
-  let audio: GameAudio | undefined;
+  // Reactive: BackupPanel receives it as a prop.
+  let client = $state.raw<EmulatorClient>();
+  const sound = new GameSound();
   let active = true;
   let loop = 0;
   let time = 0;
@@ -216,28 +195,14 @@
     phase = "error";
     if (battery) saveStatus = "Guardado sin confirmar.";
     problem = e instanceof Error ? e.message : "No se pudo iniciar la sesión";
-    audio?.pause();
+    sound.pause();
     controls.clear();
   }
   async function start() {
     if (phase !== "ready") return;
     phase = "loading";
     problem = "";
-    audio = new GameAudio();
-    // Audio is optional: the ROM must start even if autoplay is blocked.
-    const pendingAudio = audio;
-    void pendingAudio
-      .open(new URL(audioWorkletUrl, location.href))
-      .then(() => {
-        if (active && audio === pendingAudio) audioReady = true;
-      })
-      .catch(() => {
-        pendingAudio.close();
-        if (audio === pendingAudio) {
-          audio = undefined;
-          audioReady = false;
-        }
-      });
+    sound.start();
     client = new EmulatorClient(
       new Worker(new URL("./emulator.worker.ts", import.meta.url), {
         type: "module",
@@ -279,10 +244,7 @@
   }
   async function resume() {
     if (phase !== "paused" || busy || !visible) return;
-    // Audio unlock can remain pending until a user gesture; never await it.
-    void audio?.resume().catch(() => {
-      audioReady = false;
-    });
+    sound.resume();
     if (!active || !visible) return;
     // Playing without choosing «Continuar» starts over from power-on.
     resumeOffer = undefined;
@@ -300,7 +262,7 @@
     phase = "paused";
     cancelAnimationFrame(loop);
     controls.clear();
-    audio?.pause();
+    sound.pause();
     busy = true;
     try {
       const r = await client?.request("pause");
@@ -380,47 +342,31 @@
         return;
       }
       if (r.saved) saveStatus = "Partida guardada en este dispositivo.";
-      if (phase === "running" && visible && r.audio) audio?.push(r.audio);
+      if (phase === "running" && visible && r.audio) sound.push(r.audio);
     } catch (e) {
       fail(e);
       return;
     }
     if (phase === "running") loop = requestAnimationFrame(pump);
   }
-  function keydown(e: KeyboardEvent) {
-    if (phase !== "running" || !visible) return;
+  /** Player shortcuts while playing; the rest of the keys go to the game. */
+  function shortcut(e: KeyboardEvent) {
     if (e.code === "KeyF" && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
-      e.stopPropagation();
       focusMode = !focusMode;
-      return;
+      return true;
     }
     if ((e.code === "F5" || e.code === "F9") && !e.repeat) {
       // Never let F5 reload the page during a game.
-      e.preventDefault();
-      e.stopPropagation();
-      if (e.code === "F5") void saveSlot("1");
-      else void loadSlot("1");
-      return;
+      void (e.code === "F5" ? saveSlot("1") : loadSlot("1"));
+      return true;
     }
     if (e.code === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
       if (document.fullscreenElement === viewport)
         void document.exitFullscreen().catch(() => {});
       void pause();
-      return;
+      return true;
     }
-    if (e.ctrlKey || e.metaKey || e.altKey) return;
-    // Never block native activation of game toolbar controls or form fields.
-    // Only gameplay focus (canvas/body) is captured.
-    if (
-      e.target instanceof Element &&
-      e.target.closest("button, a, input, select, textarea, summary, [role=button]")
-    ) return;
-    e.preventDefault();
-    e.stopPropagation();
-    controls.keyDown(e.code, e.repeat);
+    return false;
   }
   function tapControl(action: "start" | "select") {
     if (phase !== "running") return;
@@ -464,73 +410,8 @@
     }
   }
   async function enableSound() {
-    if (audioReady) return;
-    audio?.close();
-    const next = new GameAudio();
-    audio = next;
-    try {
-      await next.open(new URL(audioWorkletUrl, location.href));
-      if (!active || audio !== next) {
-        next.close();
-        return;
-      }
-      audioReady = true;
-      if (phase === "running") void next.resume();
-    } catch {
-      next.close();
-      if (audio === next) audio = undefined;
+    if (!(await sound.enable(phase === "running")))
       problem = "El navegador no ha podido activar el sonido.";
-    }
-  }
-  async function exportSave() {
-    if ((phase !== "paused" && phase !== "error") || busy) return;
-    busy = true;
-    try {
-      const r = await client!.request("save");
-      if (!r.save) throw Error("No hay partida exportable");
-      const blob = new Blob(
-        [
-          JSON.stringify({
-            format: backupFormat(system.id),
-            game: r.hash,
-            sha256: r.saveHash,
-            bytes: Array.from(r.save),
-          }),
-        ],
-        { type: "application/json" },
-      );
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "cartivo-partida.json";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      saveStatus = "Copia exportada.";
-    } catch (e) {
-      problem = e instanceof Error ? e.message : "Exportación fallida";
-    } finally {
-      busy = false;
-    }
-  }
-  async function importSave(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const backup = input.files?.[0];
-    input.value = "";
-    if (!backup || phase !== "paused" || busy) return;
-    busy = true;
-    try {
-      if (backup.size > MAX_BACKUP_FILE) throw Error("Copia demasiado grande");
-      await client!.request("import", {
-        backup: JSON.parse(await backup.text()),
-      });
-      frames = 0;
-      saveStatus = "Copia importada. Reanuda para reiniciar con ese progreso.";
-      problem = "";
-    } catch (e) {
-      problem = e instanceof Error ? e.message : "Importación fallida";
-    } finally {
-      busy = false;
-    }
   }
   // Closing always goes through the same path: pause (SRAM flush confirmed by
   // the worker), then dispose. `next` starts another ROM afterwards.
@@ -538,7 +419,7 @@
     const finish = () => (next && onreplace ? onreplace(next) : onclose());
     if (phase === "loading") {
       client?.dispose();
-      audio?.close();
+      sound.close();
       finish();
       return;
     }
@@ -556,7 +437,7 @@
       return;
     }
     client?.dispose();
-    audio?.close();
+    sound.close();
     finish();
   }
   async function chooseRom() {
@@ -578,40 +459,13 @@
       fullscreen = document.fullscreenElement === viewport;
       if (was && !fullscreen) void pause();
     };
-    // Explicit player controls are real interactive elements. Do not steal
-    // their pointer/focus events, or click activation can fail in Firefox.
-    const isPlayerAction = (target: EventTarget | null) =>
-      target instanceof Element && !!target.closest("[data-player-action]");
-    const focus = (e: FocusEvent) => {
-      if (
-        phase === "running" && visible && e.target !== screen &&
-        !isPlayerAction(e.target)
-      ) screen?.focus({ preventScroll: true });
-    };
-    const pointer = (e: PointerEvent) => {
-      if (phase !== "running" || !visible || e.target === screen) return;
-      if (isPlayerAction(e.target)) return;
-      // Keep the game captured when clicking outside the player; never
-      // cancel the button events belonging to the player itself.
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      screen?.focus({ preventScroll: true });
-    };
-    const wheel = (e: WheelEvent) => {
-      // Over the picture the wheel belongs to the game; elsewhere the page
-      // scrolls so the controls below stay reachable.
-      if (
-        phase === "running" && visible && !e.ctrlKey &&
-        e.target instanceof Node && frameElement?.contains(e.target)
-      )
-        e.preventDefault();
-    };
-    document.addEventListener("keydown", keydown, true);
-    document.addEventListener("focusin", focus, true);
-    document.addEventListener("pointerdown", pointer, true);
-    document.addEventListener("wheel", wheel, {
-      passive: false,
-      capture: true,
+    const release = captureGameInput({
+      playing: () => phase === "running" && visible,
+      screen: () => screen,
+      picture: () => frameElement,
+      shortcut,
+      keyDown: (code, repeat) => controls.keyDown(code, repeat),
+      keyUp: (code) => controls.keyUp(code),
     });
     document.addEventListener("fullscreenchange", fullscreenChange);
     const blur = () => {
@@ -622,26 +476,20 @@
       // Mobile may kill a hidden tab: keep an exit snapshot as well.
       void pause().then(() => saveSlot("auto", true));
     };
-    const up = (e: KeyboardEvent) => controls.keyUp(e.code);
     window.addEventListener("blur", blur);
     document.addEventListener("visibilitychange", hide);
-    window.addEventListener("keyup", up);
     return () => {
       active = false;
       cancelAnimationFrame(loop);
       controls.clear();
-      audio?.close();
+      sound.close();
       client?.dispose();
-      document.removeEventListener("keydown", keydown, true);
-      document.removeEventListener("focusin", focus, true);
-      document.removeEventListener("pointerdown", pointer, true);
-      document.removeEventListener("wheel", wheel, true);
+      release();
       document.removeEventListener("fullscreenchange", fullscreenChange);
       if (document.fullscreenElement === viewport)
         void document.exitFullscreen().catch(() => {});
       window.removeEventListener("blur", blur);
       document.removeEventListener("visibilitychange", hide);
-      window.removeEventListener("keyup", up);
     };
   });
 </script>
@@ -701,12 +549,12 @@
   {#if graphicsOpen && phase !== "running"}
     <GraphicsPanel
       video={system.video}
-      {scaleMode}
-      {aspectMode}
-      {smooth}
+      scaleMode={display.scale}
+      aspectMode={display.aspect}
+      smooth={display.smooth}
       fallback={scaleFallback}
-      note={displayNote}
-      onchange={setDisplay}
+      note={display.note}
+      onchange={(patch) => display.set(patch)}
       onclose={closeGraphics}
     />
   {/if}
@@ -745,25 +593,14 @@
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
   <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer}>
     {#if resumeOffer && phase === "paused"}
-      <div class="resume-offer" role="dialog" aria-labelledby="resume-title">
-        <SnapshotThumb pixels={resumeOffer.preview} />
-        <div>
-          <h2 id="resume-title">Continuar donde lo dejaste</h2>
-          <p class="hint">Guardada el {when(resumeOffer.createdAt)}</p>
-          <div class="buttons">
-            <button class="primary" onclick={() => loadSlot("auto")}
-              >Continuar</button
-            ><button onclick={() => resume()}>Empezar de nuevo</button>
-          </div>
-        </div>
-      </div>
+      <ResumeOffer
+        offer={resumeOffer}
+        oncontinue={() => loadSlot("auto")}
+        onrestart={() => resume()}
+      />
     {/if}
     {#if fullscreen && phase === "paused" && !resumeOffer}
-      <div class="fullscreen-pause" role="group" aria-label="En pausa">
-        <button class="primary" onclick={resume} disabled={busy}
-          >Reanudar juego</button
-        ><button onclick={toggleFullscreen}>Salir de pantalla completa</button>
-      </div>
+      <FullscreenPause {busy} onresume={resume} onexit={toggleFullscreen} />
     {/if}
     <div class="game-stage-wrapper">
       <GameStage
@@ -772,138 +609,63 @@
         bind:screen
         bind:fallback={scaleFallback}
         {frames}
-        {scaleMode}
-        {aspectMode}
-        {smooth}
+        scaleMode={display.scale}
+        aspectMode={display.aspect}
+        smooth={display.smooth}
       />
     </div>
   </div>
-  <div bind:this={actionsElement} class="buttons player-actions" data-player-chrome>
-    {#if phase === "running"}<button
-        data-player-action
-        onclick={() => pause()}>Pausar juego</button
-      ><button data-player-action onclick={() => tapControl("select")}
-        >Select · Q</button
-      ><button data-player-action onclick={() => tapControl("start")}
-        >Start · Enter</button
-      >{/if}
-    {#if phase === "paused"}<button
-        bind:this={resumeButton}
-        class="primary"
-        onclick={resume}
-        disabled={busy}>Reanudar juego</button
-      ><button
-        data-player-action
-        onclick={resetConsole}
-        disabled={busy}>Reiniciar consola</button
-      >{/if}
-    {#if !audioReady && phase === "running"}<button
-        data-player-action
-        onclick={enableSound}>Activar sonido</button
-      >{/if}
-    {#if audioReady}<button
-        data-player-action
-        aria-pressed={muted}
-        onclick={() => {
-          muted = !muted;
-          audio?.mute(muted);
-        }}>{muted ? "Activar sonido" : "Silenciar"}</button
-      >{/if}
-    <button
-      data-player-action
-      class:focus-selected={focusMode}
-      onclick={() => {
-        focusMode = !focusMode;
-      }}
-      aria-pressed={focusMode}
-      aria-label={focusMode ? "Desactivar Focus" : "Activar Focus"}
-      >{focusMode ? "Focus activado" : "Activar Focus"}</button
-    >
-    {#if fullscreenAvailable}<button
-        data-player-action
-        onclick={toggleFullscreen}
-        >{fullscreen
-          ? "Salir de pantalla completa"
-          : "Pantalla completa"}</button
-      >{/if}
-    <a data-player-action href="#controles">Configurar controles</a>
-  </div>
+  <PlayerActions
+    bind:element={actionsElement}
+    bind:resumeButton
+    {phase}
+    {busy}
+    audioReady={sound.ready}
+    muted={sound.muted}
+    {focusMode}
+    {fullscreen}
+    {fullscreenAvailable}
+    onpause={() => pause()}
+    onresume={resume}
+    onreset={resetConsole}
+    ontap={tapControl}
+    onsound={enableSound}
+    onmute={() => sound.toggleMute()}
+    onfocus={() => (focusMode = !focusMode)}
+    onfullscreen={toggleFullscreen}
+  />
   {#if askRemember}<RememberPrompt onanswer={answerRemember} />{/if}
   {#if toast}<p class="toast" role="status" data-testid="toast">{toast}</p>{/if}
-  <ul class="status" data-player-chrome aria-label="Dispositivos">
-    <li data-testid="pad-status" class:on={padConnected}>
-      {@html icons.gamepad}<span>{padStatus}</span>
-    </li>
-    <li data-testid="keyboard-status" class="on">
-      {@html icons.keyboard}<span>Teclado conectado</span>
-    </li>
-  </ul>
-  {#if battery && (phase === "paused" || phase === "error")}<details>
-      <summary>Copias de partida</summary>
-      <p>
-        Importar reinicia el juego con la copia seleccionada. Se conserva una
-        generación anterior del guardado local.
-      </p>
-      <div class="buttons">
-        <button onclick={exportSave} disabled={busy}>Exportar partida</button
-        ><button
-          onclick={() => importInput?.click()}
-          disabled={busy || phase === "error"}>Importar partida</button
-        >
-      </div>
-      <input
-        bind:this={importInput}
-        type="file"
-        accept="application/json,.json"
-        onchange={importSave}
-        hidden
-      />
-    </details>{/if}
+  <DeviceStatus {padStatus} {padConnected} />
+  {#if battery && (phase === "paused" || phase === "error")}
+    <BackupPanel
+      {client}
+      systemId={system.id}
+      paused={phase === "paused"}
+      bind:busy
+      onstatus={(message) => (saveStatus = message)}
+      onproblem={(message) => (problem = message)}
+      onimported={() => {
+        frames = 0;
+        saveStatus = "Copia importada. Reanuda para reiniciar con ese progreso.";
+        problem = "";
+      }}
+    />
+  {/if}
 
   {#if saveStatus === "Guardado sin confirmar."}<button
       onclick={() => {
         client?.dispose();
-        audio?.close();
+        sound.close();
         onclose();
       }}>Cerrar descartando los cambios sin guardar</button
     >{/if}
-  <details>
-    <summary>Acerca de esta prueba</summary>
-    <fieldset class="core-choice">
-      <legend>Núcleo {system.name}</legend>
-      {#each system.cores as option (option.id)}<label
-          ><input
-            type="radio"
-            name="core"
-            value={option.id}
-            checked={coreChoice === option.id}
-            onchange={() => chooseCore(option.id)}
-          />
-          {option.label}{#if runningCore === option.id}<span class="secondary"
-              >{" · en uso"}</span
-            >{/if}</label
-        >{/each}
-      {#if runningCore && coreChoice !== runningCore}<p
-          class="secondary"
-          data-testid="core-pending"
-        >
-          Se usará al abrir el próximo juego o con Cargar ROM.
-        </p>{/if}
-    </fieldset>
-    <p class="secondary">
-      Los núcleos se ejecutan en un Worker y comparten la memoria de batería
-      del cartucho.
-      {#each system.cores.flatMap((c) => c.licenses) as license (license.href)}<a
-          href={license.href}
-          target="_blank"
-          rel="noreferrer">{license.name}</a
-        >
-        ·
-      {/each}<a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer"
-        >Avisos de terceros</a
-      >
-    </p>
-  </details>
+  <AboutCore
+    {system}
+    choice={coreChoice}
+    running={runningCore}
+    onchoose={chooseCore}
+  />
 </section>
 
 <style>
@@ -924,7 +686,7 @@
   .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
   @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
   /* Chrome may live in child components (toolbar, panels): match globally. */
-  .player.focus-mode :global([data-player-chrome]), .player.focus-mode > details { display: none; }
+  .player.focus-mode :global([data-player-chrome]) { display: none; }
   .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
   .frame.presenting { opacity: 1; }
   /* Leaves room for the title, toolbar and actions so the whole player fits. */
@@ -953,8 +715,7 @@
     flex-direction: column;
     background: #050507;
   }
-  .player:fullscreen :global([data-player-chrome]),
-  .player:fullscreen > details {
+  .player:fullscreen :global([data-player-chrome]) {
     display: none;
   }
   .player:fullscreen .game-stage-wrapper { flex: 1; min-height: 0; height: auto; margin: 0; border-radius: 0; }
@@ -978,53 +739,10 @@
     border-radius: 10px;
     background: #0a0c12d9;
   }
-  .fullscreen-pause {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    background: #050507b3;
-  }
 
   .player {
     margin: 28px auto;
     max-width: 1040px;
-  }
-  .player-actions {
-    justify-content: center;
-  }
-  .player-actions button,
-  .player-actions a {
-    min-height: 40px;
-    padding: 8px 14px;
-    font-size: 14px;
-  }
-  .status {
-    list-style: none;
-    padding: 0;
-    margin: 18px 0 6px;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 10px 0;
-    color: var(--muted);
-    font-size: 15px;
-  }
-  .status li {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 22px;
-  }
-  .status li + li {
-    border-left: 1px solid var(--border);
-  }
-  .status li.on {
-    color: var(--text);
   }
   @media (max-width: 640px) {
     .frame {
@@ -1040,65 +758,16 @@
   p {
     line-height: 1.6;
   }
-  .focus-selected { border-color: var(--teal); color: var(--teal); background: #17312e; }
-  .buttons {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .secondary {
-    font-size: 12px;
-    color: var(--muted);
-  }
   [role="alert"] {
     color: var(--coral);
   }
-  summary {
-    cursor: pointer;
-    padding: 12px 0;
-  }
   .frame {
     position: relative;
-  }
-  .resume-offer {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 22px;
-    flex-wrap: wrap;
-    padding: 20px;
-    border-radius: 14px;
-    background: #0a0c12e6;
-  }
-  .resume-offer h2 {
-    margin: 0;
-    font-size: 22px;
   }
   .toast {
     text-align: center;
     margin: 8px 0 0;
     color: var(--teal);
     font-size: 14px;
-  }
-  .core-choice {
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 16px;
-    display: grid;
-    gap: 8px;
-  }
-  .core-choice legend {
-    font-size: 13px;
-    color: var(--muted);
-  }
-  .core-choice label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 32px;
   }
 </style>

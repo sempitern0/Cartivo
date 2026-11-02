@@ -6,7 +6,10 @@ import {
   systemForFile,
   acceptFor,
   coreLabel,
+  buttonNotes,
+  controlButtons,
 } from "../packages/runtime/src/systems.ts";
+import * as inputModule from "../packages/input/src/nes-input.ts";
 import { coreModules } from "../packages/adapters/src/registry.ts";
 import { readFileSync, readdirSync } from "node:fs";
 
@@ -90,5 +93,22 @@ test("each system runs at its own hardware frame rate", () => {
   assert.ok(
     Math.abs((systems.find((s) => s.id === "gba")?.frameRate ?? 0) - 59.7275) <
       0.001,
+  );
+});
+
+test("each system declares the buttons of its controller", () => {
+  const actions: readonly string[] = inputModule.actions;
+  for (const s of availableSystems()) {
+    assert.ok(s.buttons.length >= 2, s.id);
+    for (const b of s.buttons) assert.ok(actions.includes(b), `${s.id}: ${b}`);
+    assert.ok(
+      !s.buttons.some((b) => ["up", "down", "left", "right"].includes(b)),
+      "the D-pad is implicit",
+    );
+  }
+  assert.deepEqual(controlButtons(["l", "a", "r"]), ["l", "a", "r"]);
+  assert.deepEqual(
+    buttonNotes((a) => a.toUpperCase()),
+    ["L y R solo los usa Game Boy Advance."],
   );
 });

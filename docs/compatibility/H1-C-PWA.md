@@ -34,6 +34,8 @@ El SW precachea todo (≈1,3 MB sin comprimir) para jugar offline tras la instal
 
 **Actualización H2-GB ([ADR-010](../adr/010-gb-sameboy.md)):** SameBoy ya se carga con `import()` dentro del Worker (Workers como módulos ES), así que quien juega a NES no descarga su adaptador ni compila su WASM. El SW sigue precacheando todo: son unos 190 KB más, y así cualquier consola funciona sin conexión tras instalar. Separar el precache por núcleo queda pendiente hasta que un núcleo pese lo suficiente para justificarlo. Con mGBA (H2-GBA, ~575 KB, también diferido), el total precacheado de núcleos ronda 1,9 MB sin comprimir.
 
+**Decisión del titular (2026-11-02): instalar todo.** La app instalada trae todos los núcleos y el jugador solo elige a qué jugar; no habrá precache selectivo ni packs que decidir. Para que crecer no cueste en cada versión, el SW guarda en su caché un manifiesto con el SHA-256 de cada archivo (`__cartivo-precache.json`). Al instalar una versión nueva copia de la caché anterior los archivos que no cambiaron y solo descarga el resto. El build imprime el número de archivos y los MB precargados. Evidencia: `tests/pwa.test.ts` ejecuta el SW generado con cachés y red simuladas: la primera instalación descarga todo, núcleos incluidos, y una actualización que solo cambia `index.html` descarga solo ese archivo.
+
 ## Validación manual pendiente (QA real)
 
 1. `pnpm build && pnpm preview`, abrir http://127.0.0.1:4173 en Chrome/Edge/Brave: aparece **Instalar app** en la cabecera. Instalar y abrir la ventana independiente.
@@ -48,4 +50,4 @@ El SW precachea todo (≈1,3 MB sin comprimir) para jugar offline tras la instal
 - La instalación real exige un despliegue HTTPS (o `localhost`). No hay todavía hosting ni workflow de publicación.
 - Sin E2E de instalación, `file_handlers`, suspensión móvil ni cuota de almacenamiento; Chromium headless no cierra esos gates.
 - Sin COOP/COEP: no hacen falta mientras no haya núcleos con hilos WASM.
-- No hay packs de núcleos bajo demanda: todo el bundle actual se precachea (medición arriba).
+- No hay packs de núcleos bajo demanda, por decisión: todo se precachea y las actualizaciones solo bajan lo que cambia.

@@ -28,6 +28,10 @@
     Profile,
   } from "../../../packages/input/src/nes-input.ts";
   import { icons } from "./icons.ts";
+  import {
+    buttonNotes,
+    controlButtons,
+  } from "../../../packages/runtime/src/systems.ts";
   const labels: Record<Action, string> = {
     up: "Arriba",
     down: "Abajo",
@@ -66,7 +70,9 @@
   let connection = $state("Buscando mando…");
   let advancedOpen = $state(false);
   const directions = ["up", "down", "left", "right"] as const;
-  const buttonsRow = ["a", "b", "start", "select", "l", "r"] as const;
+  // Only the buttons some available console uses, in a fixed order.
+  const buttonsRow = controlButtons(["a", "b", "start", "select", "l", "r"]);
+  const notes = buttonNotes((action) => labels[action]);
   const padConnected = $derived(selected !== -1 && !!last);
   const keyboardStore = "cartivo:keyboard:v1";
   function saveKeyboard() {
@@ -557,7 +563,7 @@
         ></button
       >{/each}
   </div>
-  <p class="hint">L y R solo los usa Game Boy Advance.</p>
+  {#each notes as note}<p class="hint">{note}</p>{/each}
   <div class="row-end">
     <button class="link" onclick={resetKeyboard}>Restablecer teclado</button>
   </div>
