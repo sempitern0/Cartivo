@@ -173,10 +173,14 @@ export function mdControlDemo(): Uint8Array {
 
   // Sprite 0 ($F800): y+128, size 8×8 and no link, tile 1, x+128.
   moveL(0x78000003, VDP_CTRL);
-  (w(0x33f9), l(Y), l(VDP_DATA)); // MOVE.W Y,VDP_DATA
+  w(0x33f9); // MOVE.W Y,VDP_DATA
+  l(Y);
+  l(VDP_DATA);
   moveW(0x0000, VDP_DATA);
   moveW(0x0001, VDP_DATA);
-  (w(0x33f9), l(X), l(VDP_DATA));
+  w(0x33f9);
+  l(X);
+  l(VDP_DATA);
   branchWord(0x6000, "main");
   label("rte");
   w(0x4e73);
