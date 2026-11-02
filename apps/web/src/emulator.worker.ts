@@ -18,7 +18,10 @@ import {
   StateStore,
   makePreview,
 } from "../../../packages/storage/src/states.ts";
-import { BackgroundCommit } from "../../../packages/storage/src/background-commit.ts";
+import {
+  BackgroundCommit,
+  type CommitReport,
+} from "../../../packages/storage/src/background-commit.ts";
 import {
   parseStateFile,
   serializeState,
@@ -63,7 +66,7 @@ async function flush() {
  * Commits battery RAM and reports the outcome instead of throwing, so the
  * caller's own work (a frame, a snapshot) is never lost to a failed write.
  */
-async function tryFlush(): Promise<Pick<EmuResult, "saved" | "saveError">> {
+async function tryFlush(): Promise<CommitReport> {
   try {
     return { saved: await flush() };
   } catch (e) {
