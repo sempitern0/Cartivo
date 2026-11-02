@@ -11,7 +11,7 @@ import {
 } from "../packages/runtime/src/systems.ts";
 import * as inputModule from "../packages/input/src/nes-input.ts";
 import { coreModules } from "../packages/adapters/src/registry.ts";
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 test("system ids and extensions are unique", () => {
   assert.equal(new Set(systems.map((s) => s.id)).size, systems.length);
@@ -127,4 +127,13 @@ test("each system declares the buttons of its controller", () => {
       "En Mega Drive, A, B, C, X, Y, Z y Mode están en Y, B, A, L, X, R y SELECT.",
     ],
   );
+});
+
+test("license links are relative to the app's base and exist", () => {
+  for (const s of systems)
+    for (const core of s.cores)
+      for (const { href } of core.licenses) {
+        assert.ok(!href.startsWith("/"), `${href} is base-relative`);
+        assert.ok(existsSync(`apps/web/public/${href}`), `${href} exists`);
+      }
 });

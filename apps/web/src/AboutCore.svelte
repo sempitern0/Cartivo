@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { SystemInfo } from "../../../packages/runtime/src/systems.ts";
+  /** Public files live under the app's base (the root or a sub-path). */
+  const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`;
   // «Acerca de esta prueba»: core choice for the next game and licences.
   let {
     system,
@@ -41,12 +43,12 @@
     Los núcleos se ejecutan en un Worker y comparten la memoria de batería del
     cartucho.
     {#each system.cores.flatMap((c) => c.licenses) as license (license.href)}<a
-        href={license.href}
+        href={asset(license.href)}
         target="_blank"
         rel="noreferrer">{license.name}</a
       >
       ·
-    {/each}<a href="/licenses/NOTICE.txt" target="_blank" rel="noreferrer"
+    {/each}<a href={asset("licenses/NOTICE.txt")} target="_blank" rel="noreferrer"
       >Avisos de terceros</a
     >
   </p>

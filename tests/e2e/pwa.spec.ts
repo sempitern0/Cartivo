@@ -14,7 +14,6 @@ async function startOver(page: import("@playwright/test").Page) {
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
 }
 
-
 test("web app manifest is installable and its icons load", async ({
   page,
   request,
@@ -22,7 +21,9 @@ test("web app manifest is installable and its icons load", async ({
   await page.goto("/");
   const href = await page.locator('link[rel="manifest"]').getAttribute("href");
   expect(href).toBeTruthy();
-  const response = await request.get(href!);
+  // Manifest URLs resolve against the manifest itself (root or sub-path).
+  const manifestUrl = new URL(href!, page.url()).href;
+  const response = await request.get(manifestUrl);
   expect(response.ok()).toBe(true);
   const manifest = await response.json();
   expect(manifest.name).toBe("Cartivo");
@@ -35,7 +36,7 @@ test("web app manifest is installable and its icons load", async ({
     manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable"),
   ).toBe(true);
   for (const icon of manifest.icons) {
-    const r = await request.get(icon.src);
+    const r = await request.get(new URL(icon.src, manifestUrl).href);
     expect(r.ok(), icon.src).toBe(true);
   }
   expect(manifest.file_handlers[0].accept["application/x-nes-rom"]).toContain(
@@ -93,7 +94,9 @@ test("installed shell reopens offline and plays the demo", async ({
   await context.setOffline(true);
   await page.reload();
   await expect(
-    page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }),
+    page
+      .getByRole("article", { name: "NES", exact: true })
+      .getByRole("button", { name: "Probar demo" }),
     problems.join("\n"),
   )
     .toBeVisible({ timeout: 10000 })
@@ -101,7 +104,10 @@ test("installed shell reopens offline and plays the demo", async ({
       const html = (await page.content()).slice(0, 800);
       throw new Error(`${e.message}\n${problems.join("\n")}\n${html}`);
     });
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await page
+    .getByRole("article", { name: "NES", exact: true })
+    .getByRole("button", { name: "Probar demo" })
+    .click();
   await startOver(page);
   await expect
     .poll(async () =>
