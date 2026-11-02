@@ -228,3 +228,9 @@
 - **Arreglado (afectaba a Safari):** en la build de producción, al cargar el núcleo de Game Boy, GBA, SNES o Sega, WebKit volvía a evaluar el Worker y la partida se cortaba con «Sesión obsoleta o no cargada». El Worker de emulación es ahora un solo archivo; el WebAssembly de cada núcleo se sigue descargando solo al empezar un juego de ese sistema.
 - **Arreglado:** una parada puntual (el primer fotograma mientras el navegador compila el núcleo, el recolector de basura) ya no pausa el juego con «La ejecución se ha retrasado». Se descarta el retraso, sin acelerar nunca, y solo tres paradas en cinco segundos pausan con un aviso (`FramePacer`).
 - La biblioteca no se prueba en WebKit, porque el perfil efímero de Playwright no tiene OPFS, como una ventana privada de Safari. Queda en la QA manual.
+
+### Portabilidad: publicar bajo una subruta
+
+- Cartivo funciona publicado en una subcarpeta del dominio: `pnpm build --base /cartivo/`. El manifest (`id`, `start_url`, `scope`, iconos, «Abrir con») usa rutas relativas a sí mismo, y en la raíz se resuelven igual que antes. Las licencias y el logo usan la base de la app.
+- Prueba E2E de la build bajo `/cartivo/` en la matriz de CI: demo, manifest, licencias, logo, service worker con su ámbito, juego sin conexión y ninguna petición fuera de la subruta. Una prueba unitaria comprueba que cada licencia es relativa y existe.
+- Plan técnico: Safari, macOS e iOS pasan a prioridad baja por decisión del titular.

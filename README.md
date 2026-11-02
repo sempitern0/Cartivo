@@ -13,7 +13,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho se guarda sola sin frenar la imagen |
 | **Biblioteca** | «Continuar» y «Tus juegos»: con tu permiso, la copia del juego se guarda en el navegador |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
-| **Pendiente** | QA física (mando real, móviles, Safari, audio), UI navegable con mando y consolas 3D (N64, PS1, PSP) |
+| **Pendiente** | QA física (mando real, móviles Android, audio), UI navegable con mando y consolas 3D (N64, PS1, PSP); Safari/iOS con prioridad baja |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -35,6 +35,8 @@ pnpm build && pnpm preview    # http://127.0.0.1:4173 → «Instalar app» en la
 ```
 
 Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligadas a ese origen.
+
+Para publicarla en una subcarpeta del dominio (por ejemplo `https://ejemplo.com/cartivo/`), construye con `pnpm build --base /cartivo/` y sirve `apps/web/dist` en esa ruta. Por defecto se publica en la raíz.
 
 ## Comandos
 
@@ -71,7 +73,7 @@ cores/             jsnes (manifiesto), tetanes (envoltorio Rust), sameboy, mgba 
 tools/             build y verificación de núcleos (verify-core.mjs), generador del service worker
 tests/             unitarios (node:test) y e2e (Playwright)
 docs/              plan técnico, diseño, ADRs, compatibilidad y expedientes de núcleos (research/)
-.github/           CI (verify + matriz E2E Chromium/Firefox/WebKit × dev/preview) y builds de núcleo bajo petición
+.github/           CI (verify + matriz E2E Chromium/Firefox/WebKit × dev/preview + subruta) y builds de núcleo bajo petición
 ```
 
 ## Documentación

@@ -54,6 +54,7 @@ El SW precachea todo (≈1,3 MB sin comprimir) para jugar offline tras la instal
 
 ## Límites
 
+- **Subruta:** la app funciona publicada bajo una subcarpeta del dominio (`pnpm build --base /cartivo/`). El manifest usa rutas relativas a sí mismo (`id`, `start_url`, `scope`, iconos y `file_handlers`), las licencias y el logo usan la base, y el SW toma su ámbito de `registration.scope`. Lo prueba `tests/e2e/subpath.spec.ts` (matriz `e2e`, tanda «chromium, subpath»): demo, manifest, licencias, logo, SW con ámbito `/cartivo/`, juego sin conexión y ninguna petición fuera de la subruta.
 - La instalación real exige un despliegue HTTPS (o `localhost`). No hay todavía hosting ni workflow de publicación.
 - Sin E2E de instalación, `file_handlers`, suspensión móvil ni cuota de almacenamiento; Chromium headless no cierra esos gates.
 - Sin COOP/COEP: no hacen falta mientras no haya núcleos con hilos WASM.
