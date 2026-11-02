@@ -100,6 +100,21 @@ test("previews, slots and protocol validation", () => {
   assert.throws(() =>
     parseNesRequest({ ...base, command: "state-delete", slot: "x" }),
   );
+  assert.ok(
+    parseNesRequest({ ...base, command: "state-export", slot: "auto" }),
+  );
+  assert.throws(() => parseNesRequest({ ...base, command: "state-export" }));
+  assert.ok(
+    parseNesRequest({
+      ...base,
+      command: "state-import",
+      stateFile: { slot: "1" },
+    }),
+  );
+  assert.throws(
+    () => parseNesRequest({ ...base, command: "state-import" }),
+    /importar/,
+  );
 });
 
 test("protocol v1 input without L/R is still accepted (released)", () => {

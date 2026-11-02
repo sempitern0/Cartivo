@@ -6,10 +6,12 @@
   import SnapshotThumb from "./SnapshotThumb.svelte";
   import { allSlots, slotNames, when } from "./saves.ts";
   import { coreLabel } from "../../../packages/runtime/src/systems.ts";
-  import type {
-    StateMeta,
-    StateSlot,
+  import {
+    isStateSlot,
+    type StateMeta,
+    type StateSlot,
   } from "../../../packages/storage/src/states.ts";
+  import { MAX_STATE_FILE } from "../../../packages/storage/src/state-file.ts";
   let {
     saves,
     systemId,
@@ -17,6 +19,9 @@
     onsave,
     onload,
     ondelete,
+    onexport,
+    onimport,
+    onproblem,
     onclose,
   }: {
     saves: StateMeta[];
@@ -25,12 +30,43 @@
     onsave: (slot: StateSlot) => void;
     onload: (slot: StateSlot) => void;
     ondelete: (slot: StateSlot) => void;
+    onexport: (slot: StateSlot) => void;
+    /** A parsed exported file; the Worker validates it and stores it. */
+    onimport: (stateFile: object) => void;
+    onproblem: (message: string) => void;
     onclose: () => void;
   } = $props();
   let panel = $state.raw<HTMLElement>();
   /** Loading replaces unsaved progress, so it takes a second click. */
   let confirmLoad = $state<StateSlot>();
   const slotOf = (slot: StateSlot) => saves.find((s) => s.slot === slot);
+  let importInput = $state.raw<HTMLInputElement>();
+  /** An imported file aimed at an occupied slot waits for confirmation. */
+  let pendingImport = $state.raw<{ slot: StateSlot; file: object }>();
+  async function pickImport(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const chosen = input.files?.[0];
+    input.value = "";
+    pendingImport = undefined;
+    if (!chosen) return;
+    try {
+      if (chosen.size > MAX_STATE_FILE) throw Error("Archivo demasiado grande.");
+      const file = JSON.parse(await chosen.text()) as unknown;
+      const slot = (file as { slot?: unknown } | null)?.slot;
+      if (!file || typeof file !== "object" || !isStateSlot(slot))
+        throw Error("El archivo no es una partida de Cartivo.");
+      if (slotOf(slot)) pendingImport = { slot, file };
+      else onimport(file);
+    } catch (error) {
+      onproblem(
+        error instanceof SyntaxError
+          ? "El archivo no es una partida de Cartivo."
+          : error instanceof Error
+            ? error.message
+            : "No se pudo importar la partida",
+      );
+    }
+  }
   onMount(() => {
     panel?.querySelector<HTMLButtonElement>("button")?.focus({
       preventScroll: true,
@@ -100,6 +136,10 @@
                 aria-label={`Cargar ${slotNames[slot]}`}>Cargar</button
               >{/if}
             <button
+              onclick={() => onexport(slot)}
+              aria-label={`Exportar ${slotNames[slot]}`}>Exportar</button
+            >
+            <button
               class="link-danger"
               onclick={() => ondelete(slot)}
               aria-label={`Borrar ${slotNames[slot]}`}>Borrar</button
@@ -112,6 +152,30 @@
   {#if confirmLoad}<p class="hint" role="status">
       Cargar sustituye el progreso actual que no hayas guardado.
     </p>{/if}
+  <footer>
+    {#if pendingImport}
+      {@const target = pendingImport}
+      <p class="hint" role="status">
+        {slotNames[target.slot]} ya tiene una partida.
+      </p>
+      <button
+        class="primary"
+        onclick={() => {
+          pendingImport = undefined;
+          onimport(target.file);
+        }}>Sustituir {slotNames[target.slot]}</button
+      ><button onclick={() => (pendingImport = undefined)}>Cancelar</button>
+    {:else}
+      <button onclick={() => importInput?.click()}>Importar partida…</button>
+    {/if}
+    <input
+      bind:this={importInput}
+      type="file"
+      accept="application/json,.json"
+      onchange={pickImport}
+      hidden
+    />
+  </footer>
 </section>
 
 <style>
@@ -144,6 +208,17 @@
     min-height: 38px;
     padding: 6px 12px;
     font-size: 14px;
+  }
+  footer {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  footer .hint {
+    margin: 0;
+    flex-basis: 100%;
   }
   .link-danger {
     background: transparent;

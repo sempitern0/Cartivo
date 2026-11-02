@@ -1,5 +1,8 @@
 // Generic emulator Worker: one session, any registered system and core.
-import { coreModule } from "../../../packages/adapters/src/registry.ts";
+import {
+  coreModule,
+  coreModules,
+} from "../../../packages/adapters/src/registry.ts";
 import type {
   CoreModule,
   EmulatorCore,
@@ -15,6 +18,10 @@ import {
   StateStore,
   makePreview,
 } from "../../../packages/storage/src/states.ts";
+import {
+  parseStateFile,
+  serializeState,
+} from "../../../packages/storage/src/state-file.ts";
 import {
   rememberGame,
   storedRom,
@@ -200,6 +207,22 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     );
     core.restore(bytes);
     return { frames: core.frames, states: await states!.list() };
+  }
+  if (r.command === "state-export") {
+    const record = await states!.record(r.slot!);
+    return { stateFile: serializeState(record, module.system, hash) };
+  }
+  if (r.command === "state-import") {
+    // Into the slot it was exported from; the panel confirms replacing it.
+    const imported = await parseStateFile(r.stateFile, {
+      system: module.system,
+      game: hash,
+      coreVersion: (id) =>
+        coreModules.find((m) => m.system === module.system && m.id === id)
+          ?.version,
+    });
+    await states!.put(imported);
+    return { states: await states!.list() };
   }
   if (r.command === "state-delete") {
     await states!.delete(r.slot!);

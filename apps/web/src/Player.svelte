@@ -13,6 +13,8 @@
   import AboutCore from "./AboutCore.svelte";
   import { DisplaySettings } from "./display.svelte.ts";
   import { slotNames } from "./saves.ts";
+  import { downloadJson } from "./download.ts";
+  import { stateFileName } from "../../../packages/storage/src/state-file.ts";
   import { EmulatorClient } from "../../../packages/runtime/src/client.ts";
   import {
     acceptFor,
@@ -142,6 +144,28 @@
       saves = r.states ?? saves;
     } catch (e) {
       problem = e instanceof Error ? e.message : "No se pudo borrar la partida";
+    }
+  }
+  async function exportSlot(slot: StateSlot) {
+    if (!client) return;
+    try {
+      const { stateFile } = await client.request("state-export", { slot });
+      if (!stateFile) throw Error("No hay partida que exportar");
+      downloadJson(stateFileName(system.id, slot, stateFile.createdAt), stateFile);
+      notify("Partida exportada.");
+    } catch (e) {
+      problem = e instanceof Error ? e.message : "No se pudo exportar la partida";
+    }
+  }
+  async function importState(stateFile: object) {
+    if (!client) return;
+    try {
+      const r = await client.request("state-import", { stateFile });
+      saves = r.states ?? saves;
+      problem = "";
+      notify("Partida importada.");
+    } catch (e) {
+      problem = e instanceof Error ? e.message : "No se pudo importar la partida";
     }
   }
   async function toggleSaves() {
@@ -581,6 +605,9 @@
       onsave={(slot) => saveSlot(slot)}
       onload={loadSlot}
       ondelete={deleteSlot}
+      onexport={exportSlot}
+      onimport={importState}
+      onproblem={(message) => (problem = message)}
       onclose={closeSaves}
     />
   {/if}

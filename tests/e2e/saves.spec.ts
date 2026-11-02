@@ -57,6 +57,67 @@ test("slots save and load the exact moment of a game without battery", async ({
   await expect(panel.locator('[data-slot="2"]')).toContainText("Vacía");
 });
 
+test("a slot is exported to a file and imported back", async ({ page }) => {
+  await page.goto("/");
+  await open(page);
+  await running(page);
+  await page.getByRole("button", { name: "Partidas" }).click();
+  const panel = page.getByRole("region", { name: "Partidas" });
+  await page.getByRole("button", { name: "Guardar en Ranura 1" }).click();
+  await expect(panel.locator('[data-slot="1"]')).toContainText("TetaNES");
+
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Exportar Ranura 1" }).click();
+  const download = await downloading;
+  expect(download.suggestedFilename()).toMatch(
+    /^cartivo-nes-ranura-1-\d{8}-\d{4}\.json$/,
+  );
+  const chunks: Buffer[] = [];
+  for await (const chunk of (await download.createReadStream())!)
+    chunks.push(chunk as Buffer);
+  const exported = Buffer.concat(chunks);
+  const file = JSON.parse(exported.toString("utf8"));
+  expect(file.format).toBe("cartivo-state-v1");
+  expect(file.slot).toBe("1");
+  expect(file.core).toBe("tetanes");
+
+  const importFile = (buffer: Buffer) =>
+    panel.locator("input[type=file]").setInputFiles({
+      name: "partida.json",
+      mimeType: "application/json",
+      buffer,
+    });
+
+  // Into an occupied slot: it asks first.
+  await importFile(exported);
+  await expect(panel).toContainText("Ranura 1 ya tiene una partida.");
+  await page.getByRole("button", { name: "Cancelar" }).click();
+
+  // Empty slot: it goes straight back to where it came from, and loads.
+  await page.getByRole("button", { name: "Borrar Ranura 1" }).click();
+  await expect(panel.locator('[data-slot="1"]')).toContainText("Vacía");
+  await importFile(exported);
+  await expect(page.getByTestId("toast")).toContainText("Partida importada");
+  await expect(panel.locator('[data-slot="1"]')).toContainText("TetaNES");
+  await page.getByRole("button", { name: "Cargar Ranura 1" }).click();
+  await page
+    .getByRole("button", { name: "Confirmar carga de Ranura 1" })
+    .click();
+  await expect(page.getByTestId("toast")).toContainText("Partida cargada");
+  await running(page);
+
+  // A snapshot of another game is refused and nothing changes.
+  await page.getByRole("button", { name: "Partidas" }).click();
+  await page.getByRole("button", { name: "Borrar Ranura 1" }).click();
+  await importFile(
+    Buffer.from(JSON.stringify({ ...file, game: "b".repeat(64) })),
+  );
+  await expect(page.getByRole("alert")).toContainText(
+    "Esta partida es de otro juego.",
+  );
+  await expect(panel.locator('[data-slot="1"]')).toContainText("Vacía");
+});
+
 test("leaving saves automatically and reopening offers to continue", async ({
   page,
 }) => {
