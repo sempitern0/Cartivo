@@ -157,7 +157,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     };
   }
   if (!core || session !== r.session)
-    throw Error(`Sesión obsoleta o no cargada [core=${!!core} s=${session.slice(0, 6)} r=${r.session.slice(0, 6)} cmd=${r.command}]`);
+    throw Error("Sesión obsoleta o no cargada");
   if (r.command === "advance") {
     core.input(r.input!);
     return {
