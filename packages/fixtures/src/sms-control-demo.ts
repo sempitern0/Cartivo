@@ -63,8 +63,10 @@ export function smsControlDemo(): Uint8Array {
     [8, 0x00],
     [9, 0x00],
     [10, 0xff],
-  ])
-    out(0xbf, value), out(0xbf, 0x80 | reg);
+  ]) {
+    out(0xbf, value);
+    out(0xbf, 0x80 | reg);
+  }
   // Clear the 16 KiB of VRAM: tile 0 blank, empty name table.
   vdpAddress(0x4000);
   emit(0x01, 0x00, 0x40); // LD BC,$4000

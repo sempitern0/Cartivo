@@ -32,8 +32,15 @@ export function mdControlDemo(): Uint8Array {
   };
   const VDP_DATA = 0xc00000,
     VDP_CTRL = 0xc00004;
-  const moveL = (value: number, address: number) => (w(0x23fc), l(value), l(address));
-  const moveW = (value: number, address: number) => (w(0x33fc, value), l(address));
+  const moveL = (value: number, address: number) => {
+    w(0x23fc);
+    l(value);
+    l(address);
+  };
+  const moveW = (value: number, address: number) => {
+    w(0x33fc, value);
+    l(address);
+  };
   /** Writes a 9-bit colour at CRAM byte address `at`. */
   const color = (at: number, value: number) => {
     moveL(0xc0000000 | (at << 16), VDP_CTRL);
@@ -45,7 +52,12 @@ export function mdControlDemo(): Uint8Array {
     PREV = 0xff0004,
     SRAM = 0x200001;
   /** If bit `bit` of Dn is clear (pressed: pads are active low): `then`. */
-  const ifPressed = (dn: number, bit: number, skip: string, then: () => void) => {
+  const ifPressed = (
+    dn: number,
+    bit: number,
+    skip: string,
+    then: () => void,
+  ) => {
     w(0x0800 | dn, bit); // BTST #bit,Dn
     branch(0x66, skip); // BNE: released
     then();
@@ -70,18 +82,22 @@ export function mdControlDemo(): Uint8Array {
   for (let i = 0; i < 8; i++) moveL(0x11111111, VDP_DATA);
   moveW(128 + 156, X);
   moveW(128 + 104, Y);
-  w(0x4239), l(PREV); // CLR.B PREV
-  w(0x41f9), l(0xa10003); // LEA $A10003,A0 (pad 1 data)
+  w(0x4239);
+  l(PREV); // CLR.B PREV
+  w(0x41f9);
+  l(0xa10003); // LEA $A10003,A0 (pad 1 data)
   w(0x117c, 0x0040, 0x0006); // MOVE.B #$40,6(A0): TH as output
   moveW(0x8144, VDP_CTRL); // display on
 
   label("main");
   label("leaveVblank");
-  w(0x3039), l(VDP_CTRL); // MOVE.W VDP_CTRL,D0
+  w(0x3039);
+  l(VDP_CTRL); // MOVE.W VDP_CTRL,D0
   w(0x0800, 3); // BTST #3,D0 (vertical blank)
   branch(0x66, "leaveVblank");
   label("waitVblank");
-  w(0x3039), l(VDP_CTRL);
+  w(0x3039);
+  l(VDP_CTRL);
   w(0x0800, 3);
   branch(0x67, "waitVblank");
   // Six-button read: TH high → C B R L D U; TH low → Start A;
@@ -111,12 +127,15 @@ export function mdControlDemo(): Uint8Array {
   w(0x7800); // MOVEQ #0,D4
   ifPressed(1, 5, "noC", () => w(0x7801)); // MOVEQ #1,D4
   label("noC");
-  w(0xb839), l(PREV); // CMP.B PREV,D4
+  w(0xb839);
+  l(PREV); // CMP.B PREV,D4
   branch(0x67, "same");
-  w(0x13c4), l(PREV); // MOVE.B D4,PREV
+  w(0x13c4);
+  l(PREV); // MOVE.B D4,PREV
   w(0x4a04); // TST.B D4
   branch(0x67, "same");
-  w(0x5239), l(SRAM); // ADDQ.B #1,SRAM
+  w(0x5239);
+  l(SRAM); // ADDQ.B #1,SRAM
   label("same");
 
   // Backdrop (CRAM 0): red while B is held, else the counter's parity.
@@ -125,7 +144,8 @@ export function mdControlDemo(): Uint8Array {
     branch(0x60, "backdropDone");
   });
   label("notB");
-  w(0x1039), l(SRAM); // MOVE.B SRAM,D0
+  w(0x1039);
+  l(SRAM); // MOVE.B SRAM,D0
   w(0x0800, 0); // BTST #0,D0
   branch(0x67, "even");
   color(0, 0x00e0);
@@ -153,10 +173,10 @@ export function mdControlDemo(): Uint8Array {
 
   // Sprite 0 ($F800): y+128, size 8×8 and no link, tile 1, x+128.
   moveL(0x78000003, VDP_CTRL);
-  w(0x33f9), l(Y), l(VDP_DATA); // MOVE.W Y,VDP_DATA
+  (w(0x33f9), l(Y), l(VDP_DATA)); // MOVE.W Y,VDP_DATA
   moveW(0x0000, VDP_DATA);
   moveW(0x0001, VDP_DATA);
-  w(0x33f9), l(X), l(VDP_DATA);
+  (w(0x33f9), l(X), l(VDP_DATA));
   branchWord(0x6000, "main");
   label("rte");
   w(0x4e73);

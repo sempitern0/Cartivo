@@ -153,15 +153,17 @@
     savesButton?.focus({ preventScroll: true });
   }
   // Demo hint: the first face buttons with this console's own names.
-  // svelte-ignore state_referenced_locally
-  const demoHint = (() => {
+  const demoHint = $derived.by(() => {
     const keys = readKeyboard();
     const face = system.buttons
       .filter((a) => a !== "start" && a !== "select")
       .slice(0, 3)
-      .map((a) => `${keyLabel(keys[a])} = ${system.labels?.[a] ?? a.toUpperCase()}`);
+      .map(
+        (a) =>
+          `${keyLabel(keys[a])} = ${system.labels?.[a] ?? a.toUpperCase()}`,
+      );
     return `WASD o flechas para moverte · ${face.join(" · ")}.`;
-  })();
+  });
   let runningCore = $state<string>();
   function chooseCore(id: string) {
     coreChoice = id;
