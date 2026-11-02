@@ -73,7 +73,9 @@ jobs:
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=cartivo
       - run: >-
+          ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
           pnpm exec playwright test --project=${{ matrix.browser }}
+          ${{ matrix.browser == 'webkit' && '--headed' || '' }}
           ${{ matrix.server == 'preview' && '--config playwright.preview.config.ts' || '' }}
           ${{ matrix.browser == 'webkit' && '--retries=0 tests/e2e/zz-diag.spec.ts' || '' }}
       - if: always()
