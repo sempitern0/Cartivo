@@ -209,3 +209,8 @@
 - Playwright tiene los proyectos `chromium` y `firefox`. La CI ejecuta la suite completa en Firefox, en dev y en preview, en un job paralelo; los scripts nuevos son `pnpm test:e2e:firefox` y `pnpm test:e2e:preview:firefox`.
 - Firefox necesita un servidor de sonido en Linux: la CI usa PulseAudio con un sumidero nulo, así que el audio también se comprueba en Firefox.
 - La prueba de pantalla completa compara con la altura real de la ventana en ese modo, en lugar de con el viewport configurado. Ninguna prueba se omite por ser Firefox.
+
+### La memoria de batería se guarda sin frenar la imagen
+
+- El guardado automático de la memoria del cartucho (cada 120 frames) ya no retiene el siguiente frame mientras IndexedDB escribe. Antes, una escritura lenta podía pausar el juego con «La ejecución se ha retrasado».
+- Las operaciones que dependen del guardado (pausa, Partidas, reinicio, importar, salir) siguen esperando a que termine. Nunca hay dos escrituras a la vez y el éxito solo se informa tras confirmarse. ADR-007 revisado.
