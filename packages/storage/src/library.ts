@@ -3,6 +3,7 @@
 // copies live in OPFS as roms/<sha256> and are written and read only by the
 // emulator Worker. Partidas and battery RAM are keyed by the same hash in
 // their own stores, so forgetting a game never touches them.
+import { done, request } from "./idb.ts";
 import { digest } from "./sram.ts";
 
 export type LibraryEntry = {
@@ -87,21 +88,6 @@ export function writeRemember(
   }
 }
 
-function request<T>(req: IDBRequest<T>) {
-  return new Promise<T>((resolve, reject) => {
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-function done(tx: IDBTransaction) {
-  return new Promise<void>((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? Error("Biblioteca no disponible"));
-    tx.onabort = () => reject(tx.error ?? Error("Operación cancelada"));
-  });
-}
-
 function openIndex() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const req = indexedDB.open("cartivo-library", 1);
@@ -128,16 +114,6 @@ export function listGames(): Promise<LibraryEntry[]> {
     );
     return byRecent(all.map(parseEntry).filter((e): e is LibraryEntry => !!e));
   });
-}
-
-export function getGame(hash: string): Promise<LibraryEntry | undefined> {
-  return withIndex(async (db) =>
-    parseEntry(
-      await request(
-        db.transaction("games", "readonly").objectStore("games").get(hash),
-      ),
-    ),
-  );
 }
 
 /** Merges `patch` into an existing entry; does nothing if it is not there. */

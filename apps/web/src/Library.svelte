@@ -26,20 +26,25 @@
   let remember = $state(readRemember() === true);
   let note = $state("");
   let confirming = $state<string>();
-  let usage = $state("");
   const megabytes = (bytes: number) =>
     `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
+  // The browser's own estimate, refreshed whenever the list changes.
+  let estimate = $state.raw<{ used: number; quota: number }>();
   $effect(() => {
-    const own = games.reduce((sum, g) => sum + g.size, 0);
-    usage = `Ocupan ${megabytes(own)}.`;
+    void games;
     void navigator.storage
       ?.estimate?.()
       .then(({ usage: used, quota }) => {
-        if (used !== undefined && quota)
-          usage = `Ocupan ${megabytes(own)}. Cartivo usa ${megabytes(used)} de ${megabytes(quota)} disponibles en este navegador.`;
+        estimate = used !== undefined && quota ? { used, quota } : undefined;
       })
       .catch(() => {});
   });
+  const usage = $derived(
+    `Ocupan ${megabytes(games.reduce((sum, g) => sum + g.size, 0))}.` +
+      (estimate
+        ? ` Cartivo usa ${megabytes(estimate.used)} de ${megabytes(estimate.quota)} disponibles en este navegador.`
+        : ""),
+  );
   function toggle(event: Event) {
     remember = (event.target as HTMLInputElement).checked;
     note = writeRemember(remember)

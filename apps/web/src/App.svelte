@@ -5,6 +5,7 @@
   import DiagnosticLab from "./DiagnosticLab.svelte";
   import ContinueCard from "./ContinueCard.svelte";
   import Library from "./Library.svelte";
+  import { demo, type GameSource } from "./game-source.ts";
   import {
     listGames,
     readRemember,
@@ -23,24 +24,11 @@
   let controlsPage = $state(false);
   const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
-  type Game = {
-    file?: File;
-    /** A remembered game, loaded from this device (ADR-012). */
-    stored?: LibraryEntry;
-    /** Continue from «Al salir» without the offer. */
-    resume?: boolean;
-    system: SystemInfo;
-    id: number;
-  };
-  let game = $state.raw<Game>();
+  let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
   let nextGameId = 0;
-  const startGame = (
-    system: SystemInfo,
-    file?: File,
-    from: Pick<Game, "stored" | "resume"> = {},
-  ) => {
+  const startGame = (system: SystemInfo, source: GameSource = demo) => {
     openError = "";
-    game = { file, system, ...from, id: ++nextGameId };
+    game = { source, system, id: ++nextGameId };
   };
   // Local library: remembered games, most recent first.
   let games = $state.raw<LibraryEntry[]>([]);
@@ -79,7 +67,7 @@
     if (game) pending = { file, system };
     else {
       pending = undefined;
-      startGame(system, file);
+      startGame(system, { kind: "file", file });
     }
   }
   function pick(system: SystemInfo) {
@@ -224,8 +212,9 @@
           system={latest.system}
           oncontinue={() =>
             latest &&
-            startGame(latest.system, undefined, {
-              stored: latest.entry,
+            startGame(latest.system, {
+              kind: "library",
+              entry: latest.entry,
               resume: true,
             })}
         />
@@ -295,7 +284,7 @@
         <Library
           {games}
           onplay={(entry, system) =>
-            startGame(system, undefined, { stored: entry })}
+            startGame(system, { kind: "library", entry, resume: false })}
           onchange={refreshLibrary}
         />
       {/if}
@@ -305,9 +294,7 @@
       {#key game.id}
         <Player
           system={game.system}
-          file={game.file}
-          stored={game.stored}
-          resume={game.resume}
+          source={game.source}
           visible={!controlsPage}
           autostart
           onclose={() => {
@@ -317,7 +304,10 @@
           onreplace={(file: File) => {
             pending = undefined;
             const current = game!.system;
-            startGame(systemForFile(file.name) ?? current, file);
+            startGame(systemForFile(file.name) ?? current, {
+              kind: "file",
+              file,
+            });
           }}
         />
       {/key}

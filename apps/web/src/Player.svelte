@@ -5,6 +5,7 @@
   import GraphicsPanel from "./GraphicsPanel.svelte";
   import SavePanel from "./SavePanel.svelte";
   import SnapshotThumb from "./SnapshotThumb.svelte";
+  import RememberPrompt from "./RememberPrompt.svelte";
   import { slotNames, when } from "./saves.ts";
   import {
     backupFormat,
@@ -37,16 +38,14 @@
   import {
     readRemember,
     writeRemember,
-    type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
+  import { loadFields, sourceTitle, type GameSource } from "./game-source.ts";
   import {
     getPadPreference,
     readKeyboard,
   } from "../../../packages/input/src/preferences.ts";
   let {
-    file,
-    stored,
-    resume: continueNow = false,
+    source,
     visible = true,
     autostart = false,
     onclose,
@@ -55,11 +54,7 @@
   }: {
     /** System being played (packages/runtime/src/systems.ts). */
     system: SystemInfo;
-    file?: File;
-    /** A remembered game, read from this device by the Worker (ADR-012). */
-    stored?: LibraryEntry;
-    /** Continue from «Al salir» directly, without the offer. */
-    resume?: boolean;
+    source: GameSource;
     visible?: boolean;
     autostart?: boolean;
     onclose: () => void;
@@ -250,14 +245,11 @@
     );
     try {
       const choice = readRemember();
-      const r = await client.request(
-        "load",
-        file
-          ? { file, system: system.id, core: coreChoice, remember: choice === true }
-          : stored
-            ? { stored: stored.hash, system: system.id, core: coreChoice }
-            : { demo: true, system: system.id, core: coreChoice },
-      );
+      const r = await client.request("load", {
+        ...loadFields(source, choice === true),
+        system: system.id,
+        core: coreChoice,
+      });
       runningCore = r.core;
       if (!active) return;
       battery = !!r.battery;
@@ -269,10 +261,12 @@
           : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
       if (r.libraryError) problem = r.libraryError;
-      askRemember = !!file && choice === undefined && !r.remembered;
+      askRemember =
+        source.kind === "file" && choice === undefined && !r.remembered;
       const exit = saves.find((s) => s.slot === "auto");
       // «Continuar» from the home screen goes straight to the exit snapshot.
-      if (continueNow && exit) await loadSlot("auto");
+      if (source.kind === "library" && source.resume && exit)
+        await loadSlot("auto");
       else {
         // Offer to continue from the exit snapshot instead of starting over.
         resumeOffer = exit;
@@ -437,7 +431,6 @@
     if (phase !== "paused" || busy || saveStatus === "Guardado sin confirmar.")
       return;
     busy = true;
-    let restarted = false;
     try {
       const result = await client!.request("reset");
       frames = result.frames ?? 0;
@@ -447,17 +440,15 @@
       saveStatus = result.saved ? "Partida guardada antes de reiniciar." : saveStatus;
       problem = "";
       resumeOffer = undefined;
-      restarted = true;
     } catch (error) {
       problem = error instanceof Error ? error.message : "No se pudo reiniciar la consola";
+      return;
     } finally {
       busy = false;
     }
     // A reset is a power cycle: the console starts running again.
-    if (restarted) {
-      notify("Consola reiniciada.");
-      await resume();
-    }
+    notify("Consola reiniciada.");
+    await resume();
   }
   async function toggleFullscreen() {
     try {
@@ -678,7 +669,7 @@
   {/if}
   <PlayerToolbar
     systemName={system.name}
-    title={file?.name ?? stored?.name ?? "Demo de controles"}
+    title={sourceTitle(source)}
     {phase}
     {busy}
     {graphicsOpen}
@@ -698,7 +689,7 @@
     hidden
   />
 
-  {#if !file && !stored && phase !== "running"}<p class="demo-info" data-player-chrome>
+  {#if source.kind === "demo" && phase !== "running"}<p class="demo-info" data-player-chrome>
       WASD o flechas para moverte · L = A · K = B.
     </p>{/if}
   {#if phase === "ready" && !autostart}<p data-player-chrome>
@@ -837,21 +828,7 @@
       >{/if}
     <a data-player-action href="#controles">Configurar controles</a>
   </div>
-  {#if askRemember}<div
-      class="remember-ask"
-      role="group"
-      aria-labelledby="remember-ask-text"
-      data-player-chrome
-    >
-      <p id="remember-ask-text">
-        ¿Recordar tus juegos en este dispositivo para continuar con un clic?
-      </p>
-      <button data-player-action onclick={() => answerRemember(true)}
-        >Sí, recordar</button
-      ><button data-player-action onclick={() => answerRemember(false)}
-        >No</button
-      >
-    </div>{/if}
+  {#if askRemember}<RememberPrompt onanswer={answerRemember} />{/if}
   {#if toast}<p class="toast" role="status" data-testid="toast">{toast}</p>{/if}
   <ul class="status" data-player-chrome aria-label="Dispositivos">
     <li data-testid="pad-status" class:on={padConnected}>
@@ -1100,23 +1077,6 @@
   .resume-offer h2 {
     margin: 0;
     font-size: 22px;
-  }
-  .remember-ask {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    margin: 12px 0 0;
-    font-size: 14px;
-  }
-  .remember-ask p {
-    margin: 0;
-  }
-  .remember-ask button {
-    min-height: 36px;
-    padding: 6px 14px;
-    font-size: 14px;
   }
   .toast {
     text-align: center;
