@@ -62,7 +62,9 @@ test.describe("without Web Locks", () => {
       )
       .toBeGreaterThan(10);
     await expect(
-      page.getByText("Puedes jugar, pero no se guardará el progreso."),
+      page
+        .getByRole("status")
+        .filter({ hasText: "Puedes jugar, pero no se guardará el progreso." }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Partidas" })).toBeDisabled();
     // F5 explains instead of failing silently.
