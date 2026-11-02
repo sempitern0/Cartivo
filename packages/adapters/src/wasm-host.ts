@@ -89,13 +89,32 @@ const allowed: Record<string, readonly string[]> = {
   ],
 };
 
+/**
+ * Exception tags a core may import: the one native WebAssembly setjmp/longjmp
+ * uses (`-sSUPPORT_LONGJMP=wasm`, Genesis Plus GX's 68000 address errors).
+ */
+const allowedTags: Record<string, readonly string[]> = {
+  env: ["__c_longjmp"],
+};
+
+type Tag = { readonly __tag: unique symbol };
+const TagConstructor = (
+  WebAssembly as unknown as {
+    Tag?: new (type: { parameters: string[] }) => Tag;
+  }
+).Tag;
+
+const supported = (space: string, name: string, kind: string) =>
+  kind === "function"
+    ? !!allowed[space]?.includes(name)
+    : kind === "tag" &&
+      !!TagConstructor &&
+      !!allowedTags[space]?.includes(name);
+
 /** Imports outside the allow-list, as "module.name". */
 export function unsupportedImports(module: WebAssembly.Module): string[] {
   return WebAssembly.Module.imports(module)
-    .filter(
-      ({ module: space, name, kind }) =>
-        kind !== "function" || !allowed[space]?.includes(name),
-    )
+    .filter(({ module: space, name, kind }) => !supported(space, name, kind))
     .map(({ module: space, name }) => `${space}.${name}`);
 }
 
@@ -141,9 +160,16 @@ function hostImports(
     emscripten_notify_memory_growth: () => undefined,
   };
   const imports: Record<string, Record<string, WebAssembly.ImportValue>> = {};
-  for (const { module: space, name: item } of WebAssembly.Module.imports(
+  for (const { module: space, name: item, kind } of WebAssembly.Module.imports(
     module,
   )) {
+    if (kind === "tag" && supported(space, item, kind)) {
+      // The longjmp payload is a jmp_buf pointer (wasm32).
+      (imports[space] ??= {})[item] = new TagConstructor!({
+        parameters: ["i32"],
+      }) as unknown as WebAssembly.ImportValue;
+      continue;
+    }
     const fn = allowed[space]?.includes(item) ? host[item] : undefined;
     if (!fn)
       throw Error(`Import no previsto del núcleo ${name}: ${space}.${item}`);

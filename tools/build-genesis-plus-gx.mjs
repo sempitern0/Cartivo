@@ -59,6 +59,10 @@ const flags = [
   "-DUSE_16BPP_RENDERING", "-DFRONTEND_SUPPORTS_RGB565", "-D__LIBRETRO__", "-DUSE_LIBRETRO_VFS",
   "-DM68K_OVERCLOCK_SHIFT=20", "-DZ80_OVERCLOCK_SHIFT=20", "-DHAVE_YM3438_CORE", "-DHAVE_OPLL_CORE",
   "-DINLINE=static inline",
+  // Musashi emulates 68000 address errors with setjmp/longjmp: use native
+  // WebAssembly exceptions instead of Emscripten's JavaScript invoke_* glue,
+  // which a standalone module cannot have.
+  "-sSUPPORT_LONGJMP=wasm",
   `-I${join(gpgx, "libretro")}`, `-I${join(gpgx, "libretro/libretro-common/include")}`,
   ...dirs.map((d) => `-I${join(gpgx, d)}`),
   `-I${join(gpgx, "core/cd_hw/libchdr/deps/zlib-1.3.1")}`,
@@ -85,7 +89,7 @@ const out = verify ? mkdtempSync(join(tmpdir(), "gpgx-")) : join(core, "dist");
 if (!verify) rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 run("emcc", [
-  "-O3", "--no-entry",
+  "-O3", "--no-entry", "-sSUPPORT_LONGJMP=wasm",
   "-sSTANDALONE_WASM=1", "-sFILESYSTEM=0", "-sALLOW_MEMORY_GROWTH=1",
   "-sINITIAL_MEMORY=32MB", "-sSTACK_SIZE=1MB",
   `-sEXPORTED_FUNCTIONS=${exports.map((e) => `_${e}`).join(",")}`,

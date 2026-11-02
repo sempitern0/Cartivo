@@ -1,3 +1,4 @@
 Bump this file only to build Genesis Plus GX once in CI (core-genesis-plus-gx.yml).
 Reason: first build of Genesis Plus GX a5834b3 for Cartivo (Master System and Mega Drive, ADR-014).
 Retry: the first run failed to compile (CHD-only fseeko/ftello defines removed).
+Retry 2: the second run built, but setjmp/longjmp (Musashi address errors) needed JavaScript glue; now -sSUPPORT_LONGJMP=wasm.
