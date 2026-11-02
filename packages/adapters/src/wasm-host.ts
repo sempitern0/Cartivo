@@ -163,7 +163,8 @@ function hostImports(
   for (const { module: space, name: item, kind } of WebAssembly.Module.imports(
     module,
   )) {
-    if (kind === "tag" && supported(space, item, kind)) {
+    // TypeScript's ImportExportKind predates exception-handling tags.
+    if ((kind as string) === "tag" && supported(space, item, kind)) {
       // The longjmp payload is a jmp_buf pointer (wasm32).
       (imports[space] ??= {})[item] = new TagConstructor!({
         parameters: ["i32"],
