@@ -143,12 +143,16 @@ type SyncHandle = {
   close(): void;
 };
 
-async function writeRom(hash: string, bytes: Uint8Array) {
-  const file = await (
-    await romsDir(true)
-  ).getFileHandle(hash, {
-    create: true,
-  });
+/** The part of an OPFS directory the library uses (tests pass a fake). */
+export type RomDirectory = Pick<
+  FileSystemDirectoryHandle,
+  "getFileHandle" | "removeEntry"
+> & {
+  entries?(): AsyncIterableIterator<[string, FileSystemHandle]>;
+};
+
+async function writeRom(dir: RomDirectory, hash: string, bytes: Uint8Array) {
+  const file = await dir.getFileHandle(hash, { create: true });
   const sync = (
     file as unknown as { createSyncAccessHandle?: () => Promise<SyncHandle> }
   ).createSyncAccessHandle;
@@ -176,28 +180,93 @@ async function writeRom(hash: string, bytes: Uint8Array) {
   }
 }
 
-/** The stored ROM copy as a File, or undefined when it is not there. */
-export async function storedRom(hash: string): Promise<File | undefined> {
-  if (!isSha256(hash)) return undefined;
+async function readCopy(dir: RomDirectory, hash: string) {
   try {
-    return await (await (await romsDir(false)).getFileHandle(hash)).getFile();
+    return await (await dir.getFileHandle(hash)).getFile();
   } catch {
     return undefined;
   }
 }
 
-async function removeRom(hash: string) {
+/** True when the copy exists and is exactly the game with this hash. */
+async function verified(copy: File | undefined, hash: string, size: number) {
+  return (
+    !!copy &&
+    copy.size === size &&
+    (await digest(new Uint8Array(await copy.arrayBuffer()))) === hash
+  );
+}
+
+/** The stored ROM copy as a File, or undefined when it is not there. */
+export async function storedRom(hash: string): Promise<File | undefined> {
+  if (!isSha256(hash)) return undefined;
   try {
-    await (await romsDir(false)).removeEntry(hash);
+    return await readCopy(await romsDir(false), hash);
+  } catch {
+    return undefined;
+  }
+}
+
+async function removeRom(dir: RomDirectory, name: string) {
+  try {
+    await dir.removeEntry(name);
   } catch {
     // Already gone.
   }
 }
 
 /**
- * Copies a ROM to OPFS, reads it back to check its hash and only then adds
- * (or refreshes) its entry. Throws a readable message; leaves no copy behind
- * on failure.
+ * Makes sure roms/<hash> holds this exact ROM. Copies are content-addressed,
+ * so a verified copy is kept as it is: a failed rewrite can never destroy a
+ * good one. Only a missing or damaged copy is (re)written, and removed again
+ * if it cannot be verified.
+ */
+export async function ensureRomCopy(
+  dir: RomDirectory,
+  hash: string,
+  rom: Uint8Array,
+) {
+  if (await verified(await readCopy(dir, hash), hash, rom.length)) return;
+  try {
+    await writeRom(dir, hash, rom);
+    if (!(await verified(await readCopy(dir, hash), hash, rom.length)))
+      throw Error("Copia no verificada");
+  } catch (error) {
+    await removeRom(dir, hash);
+    throw error;
+  }
+}
+
+/** Copies older than this with no index entry are leftovers (ADR-012). */
+export const ORPHAN_AGE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Removes ROM files that no index entry points to: what an interrupted
+ * remember or forget may leave. Recent files are kept, since the Worker
+ * may be writing one right now. Returns how many were removed.
+ */
+export async function pruneOrphanRoms(
+  known: ReadonlySet<string>,
+  now = Date.now(),
+  dir?: RomDirectory,
+): Promise<number> {
+  // entries() is in every target browser but not in all DOM typings.
+  const roms: RomDirectory | undefined =
+    dir ?? (await romsDir(false).catch(() => undefined));
+  if (!roms?.entries) return 0;
+  const stale: string[] = [];
+  for await (const [name, handle] of roms.entries()) {
+    if (handle.kind !== "file" || known.has(name)) continue;
+    const file = await (handle as FileSystemFileHandle).getFile();
+    if (now - file.lastModified > ORPHAN_AGE_MS) stale.push(name);
+  }
+  for (const name of stale) await removeRom(roms, name);
+  return stale.length;
+}
+
+/**
+ * Copies a ROM to OPFS (unless a verified copy is already there) and only
+ * then adds or refreshes its entry. Throws a readable message.
  */
 export async function rememberGame(game: {
   hash: string;
@@ -207,16 +276,8 @@ export async function rememberGame(game: {
 }) {
   if (!isSha256(game.hash)) throw Error("Juego no identificado");
   try {
-    await writeRom(game.hash, game.rom);
-    const copy = await storedRom(game.hash);
-    if (
-      !copy ||
-      copy.size !== game.rom.length ||
-      (await digest(new Uint8Array(await copy.arrayBuffer()))) !== game.hash
-    )
-      throw Error("Copia no verificada");
+    await ensureRomCopy(await romsDir(true), game.hash, game.rom);
   } catch (error) {
-    await removeRom(game.hash);
     throw Error(
       error instanceof DOMException && error.name === "QuotaExceededError"
         ? "No hay espacio para recordar este juego. Puedes seguir jugando; tus partidas se guardan igual."
@@ -244,15 +305,18 @@ export async function rememberGame(game: {
 }
 
 /**
- * Removes the ROM copy and its entry. Partidas («cartivo-states») and
+ * Removes the entry and its ROM copy. Partidas («cartivo-states») and
  * battery RAM («cartivo-saves») are separate stores and stay untouched.
  */
 export async function forgetGame(hash: string) {
   if (!isSha256(hash)) return;
-  await removeRom(hash);
+  // Entry first: an interruption leaves an orphan file (pruned later), never
+  // an entry pointing to a missing copy.
   await withIndex(async (db) => {
     const tx = db.transaction("games", "readwrite");
     tx.objectStore("games").delete(hash);
     await done(tx);
   });
+  const roms = await romsDir(false).catch(() => undefined);
+  if (roms) await removeRom(roms, hash);
 }

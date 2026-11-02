@@ -1,4 +1,5 @@
-// Shared host for Cartivo's standalone Emscripten cores (SameBoy, mGBA, Snes9x).
+// Shared host for Cartivo's standalone Emscripten cores (SameBoy, mGBA,
+// Snes9x, Genesis Plus GX).
 // Each core is a single .wasm built by CI with the same cartivo_* bridge
 // (cores/<id>/src/cartivo.c); this file loads it, supplies its system
 // imports and implements EmulatorCore on top of that bridge.
@@ -26,6 +27,37 @@ export type Bridge = {
 
 const MAX_AUDIO = 48000;
 
+/** The core file could not be fetched (network, offline cache, HTTP). */
+export class CoreDownloadError extends Error {}
+
+/**
+ * Downloads and compiles a core. Streaming needs the server to send
+ * `application/wasm`; if it does not (or streaming is missing), the same
+ * response is compiled from its bytes. A failed download gets its own message.
+ */
+export async function compileFrom(
+  name: string,
+  url: URL,
+  load: typeof fetch = fetch,
+): Promise<WebAssembly.Module> {
+  let response: Response;
+  try {
+    response = await load(url);
+    if (!response.ok) throw Error(`HTTP ${response.status}`);
+  } catch (error) {
+    throw new CoreDownloadError(
+      `No se pudo descargar el núcleo ${name}. Comprueba la conexión o reinstala la app.`,
+      { cause: error },
+    );
+  }
+  try {
+    return await WebAssembly.compileStreaming(response.clone());
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    return WebAssembly.compile(await response.arrayBuffer());
+  }
+}
+
 /** Compiles a core once per Worker; Node tests hand the bytes in first. */
 export function wasmLoader(name: string, url: URL) {
   let binary: Uint8Array | undefined;
@@ -39,9 +71,10 @@ export function wasmLoader(name: string, url: URL) {
       compiled ??= (
         binary
           ? WebAssembly.compile(binary as BufferSource)
-          : WebAssembly.compileStreaming(fetch(url))
+          : compileFrom(name, url)
       ).catch((error: unknown) => {
         compiled = undefined;
+        if (error instanceof CoreDownloadError) throw error;
         throw Error(`No se pudo iniciar el núcleo ${name} (WebAssembly).`, {
           cause: error,
         });

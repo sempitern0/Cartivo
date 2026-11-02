@@ -5,7 +5,13 @@ import {
   precacheVersion,
   shouldPrecache,
   CACHE_PREFIX,
+  MANIFEST_PATH,
 } from "../tools/pwa-plugin.mjs";
+import {
+  offlineCacheComplete,
+  PRECACHE_MANIFEST,
+  SHELL_CACHE_PREFIX,
+} from "../apps/web/src/offline-cache.ts";
 
 const entries = [
   { path: "index.html", hash: "a" },
@@ -61,6 +67,7 @@ test("cache lookups ignore Vary so crossorigin module requests hit offline", () 
 async function installWith(
   source: string,
   stores: Map<string, Map<string, Response>>,
+  network = async (target: string) => new Response(`body of ${target}`),
 ) {
   const fetched: string[] = [];
   const handlers: Record<string, (event: unknown) => void> = {};
@@ -83,7 +90,7 @@ async function installWith(
     caches: { keys: async () => [...stores.keys()], open },
     fetch: async (target: string) => {
       fetched.push(target.replace("https://cartivo.test/", ""));
-      return new Response(`body of ${target}`);
+      return network(target);
     },
     Response,
     URL,
@@ -122,4 +129,70 @@ test("an update downloads only the files whose content changed", async () => {
     await newest.get("https://cartivo.test/assets/core-1.wasm")!.text(),
     "body of https://cartivo.test/assets/core-1.wasm",
   );
+});
+
+test("installs a few files at a time and only completes with all of them", async () => {
+  const many = Array.from({ length: 20 }, (_, i) => ({
+    path: `assets/file-${i}.js`,
+    hash: String(i),
+  }));
+  let inFlight = 0;
+  let peak = 0;
+  const slow = async (target: string) => {
+    peak = Math.max(peak, ++inFlight);
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    inFlight--;
+    return new Response(`body of ${target}`);
+  };
+  const stores = new Map<string, Map<string, Response>>();
+  assert.equal(
+    (await installWith(buildServiceWorker(many), stores, slow)).length,
+    20,
+  );
+  assert.ok(peak <= 6, `at most 6 downloads at once (${peak})`);
+
+  // One missing file: the install fails and the cache has no manifest, so
+  // the browser keeps the previous version.
+  const broken = new Map<string, Map<string, Response>>();
+  const missing = async (target: string) =>
+    target.endsWith("file-7.js")
+      ? new Response("", { status: 404 })
+      : new Response("ok");
+  await assert.rejects(installWith(buildServiceWorker(many), broken, missing));
+  const cache = broken.get(CACHE_PREFIX + precacheVersion(many))!;
+  assert.equal(cache.has(`https://cartivo.test/${MANIFEST_PATH}`), false);
+});
+
+test("offline is reported only for a complete cache", async () => {
+  assert.equal(SHELL_CACHE_PREFIX, CACHE_PREFIX);
+  assert.equal(PRECACHE_MANIFEST, MANIFEST_PATH);
+  const scope = "https://cartivo.test/";
+  const fake = (files: string[], manifest?: string[]) => {
+    const store = new Map<string, Response>(
+      files.map((f) => [scope + f, new Response("x")]),
+    );
+    if (manifest)
+      store.set(
+        scope + MANIFEST_PATH,
+        new Response(
+          JSON.stringify(Object.fromEntries(manifest.map((f) => [f, "h"]))),
+        ),
+      );
+    return {
+      keys: async () => [CACHE_PREFIX + "v1", "other-cache"],
+      open: async () =>
+        ({
+          match: async (key: string) => store.get(key)?.clone(),
+          keys: async () => [...store.keys()].map((url) => new Request(url)),
+        }) as unknown as Cache,
+    };
+  };
+  const files = ["index.html", "assets/core-1.wasm"];
+  assert.equal(await offlineCacheComplete(scope, fake(files, files)), true);
+  // A core missing, or an install that never wrote its manifest.
+  assert.equal(
+    await offlineCacheComplete(scope, fake(["index.html"], files)),
+    false,
+  );
+  assert.equal(await offlineCacheComplete(scope, fake(files)), false);
 });

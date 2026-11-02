@@ -52,6 +52,20 @@ async function flush() {
   }
   return false;
 }
+/**
+ * Commits battery RAM and reports the outcome instead of throwing, so the
+ * caller's own work (a frame, a snapshot) is never lost to a failed write.
+ */
+async function tryFlush(): Promise<Pick<EmuResult, "saved" | "saveError">> {
+  try {
+    return { saved: await flush() };
+  } catch (e) {
+    return {
+      saved: false,
+      saveError: e instanceof Error ? e.message : "Guardado fallido",
+    };
+  }
+}
 /** Adds the running game to the library; a failure never stops the game. */
 async function remember(): Promise<
   Pick<EmuResult, "remembered" | "libraryError">
@@ -148,30 +162,19 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       width: module.video.width,
       height: module.video.height,
     };
-    let saved = false;
-    let saveError: string | undefined;
-    if (core.frames - lastSaveFrame >= 120) {
-      try {
-        saved = await flush();
-        lastSaveFrame = core.frames;
-      } catch (e) {
-        saveError = e instanceof Error ? e.message : "Guardado fallido";
-      }
-    }
-    return { ...result, saved, saveError };
+    if (core.frames - lastSaveFrame < 120) return { ...result, saved: false };
+    const flushed = await tryFlush();
+    if (!flushed.saveError) lastSaveFrame = core.frames;
+    return { ...result, ...flushed };
   }
   core.input(neutral());
   if (r.command === "library-add") return remember();
   if (r.command === "state-list") return { states: await states!.list() };
   if (r.command === "state-save") {
     const bytes = core.snapshot();
-    // Battery RAM is committed too, so both kinds of save agree.
-    let saved = false;
-    try {
-      saved = await flush();
-    } catch {
-      saved = false;
-    }
+    // Battery RAM is committed too, so both kinds of save agree. Its result
+    // is reported on its own: the snapshot is kept even if it fails.
+    const flushed = await tryFlush();
     const frame = core.lastFrame();
     const { width, height } = module.video;
     const preview =
@@ -189,7 +192,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       await updateGame(hash, { preview, lastPlayedAt: Date.now() }).catch(
         () => false,
       );
-    return { saved, states: await states!.list() };
+    return { ...flushed, states: await states!.list() };
   }
   if (r.command === "state-load") {
     const bytes = await states!.load(r.slot!, module.id, module.version, (id) =>

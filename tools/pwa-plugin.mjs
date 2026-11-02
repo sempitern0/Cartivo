@@ -38,6 +38,8 @@ const CACHE = ${JSON.stringify(CACHE_PREFIX)} + VERSION;
 // console offline. Value: SHA-256 of the content.
 const FILES = ${JSON.stringify(files)};
 const MANIFEST = ${JSON.stringify(MANIFEST_PATH)};
+// Downloads at a time: the whole catalogue in one burst can stall phones.
+const PARALLEL = 6;
 const url = (path) => new URL(path, self.registration.scope).href;
 
 /** The newest previous Cartivo cache whose manifest says what it holds. */
@@ -56,13 +58,17 @@ async function previousCache() {
 /**
  * Stores every file, copying unchanged ones (same path and hash) from the
  * previous version instead of downloading them again: an update only
- * fetches what changed. The manifest is written last, once all files are in.
+ * fetches what changed. The manifest is written last, once all files are in:
+ * a cache without it is an incomplete install, and a failed install leaves
+ * the previous version serving the app.
  */
 async function install() {
   const cache = await caches.open(CACHE);
   const previous = await previousCache().catch(() => undefined);
-  await Promise.all(
-    Object.entries(FILES).map(async ([path, hash]) => {
+  const queue = Object.entries(FILES);
+  const next = async () => {
+    for (let item = queue.shift(); item; item = queue.shift()) {
+      const [path, hash] = item;
       const reused =
         previous?.hashes[path] === hash
           ? await previous.cache.match(url(path))
@@ -70,8 +76,9 @@ async function install() {
       const response = reused ?? (await fetch(url(path)));
       if (!response.ok) throw new Error("Precache failed: " + path);
       await cache.put(url(path), response);
-    }),
-  );
+    }
+  };
+  await Promise.all(Array.from({ length: PARALLEL }, next));
   await cache.put(url(MANIFEST), new Response(JSON.stringify(FILES)));
 }
 

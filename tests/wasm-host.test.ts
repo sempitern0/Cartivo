@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
+  compileFrom,
+  CoreDownloadError,
   unsupportedImports,
   wasmLoader,
 } from "../packages/adapters/src/wasm-host.ts";
@@ -145,3 +147,29 @@ for (const { name, prepare, make } of [
     next.dispose();
   });
 }
+
+test("a core served with the wrong MIME type still compiles; a failed download says so", async () => {
+  const bytes = readFileSync(
+    new URL("../cores/sameboy/dist/sameboy.wasm", import.meta.url),
+  );
+  const url = new URL("https://cartivo.test/sameboy.wasm");
+  const wrongMime = async () =>
+    new Response(bytes, { headers: { "content-type": "text/plain" } });
+  const module = await compileFrom("SameBoy", url, wrongMime as typeof fetch);
+  assert.ok(WebAssembly.Module.exports(module).length > 0);
+
+  const missing = async () => new Response("", { status: 404 });
+  await assert.rejects(
+    compileFrom("SameBoy", url, missing as typeof fetch),
+    (error: Error) =>
+      error instanceof CoreDownloadError &&
+      /descargar el núcleo SameBoy/.test(error.message),
+  );
+  const offline = async () => {
+    throw new TypeError("Failed to fetch");
+  };
+  await assert.rejects(
+    compileFrom("SameBoy", url, offline as typeof fetch),
+    CoreDownloadError,
+  );
+});

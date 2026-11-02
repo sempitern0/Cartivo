@@ -1,7 +1,7 @@
 // While a game runs, the keyboard, focus, clicks and the wheel over the
-// picture belong to it. Player controls ([data-player-action]) and form
-// fields keep their native behaviour; browser shortcuts with Ctrl/Meta/Alt
-// are never blocked.
+// picture belong to it. Every control on the page (buttons, links, fields)
+// keeps its native behaviour, so nothing needs a special mark to work;
+// browser shortcuts with Ctrl/Meta/Alt are never blocked.
 export type CaptureOptions = {
   playing(): boolean;
   screen(): HTMLCanvasElement | undefined;
@@ -12,9 +12,6 @@ export type CaptureOptions = {
   keyDown(code: string, repeat: boolean): void;
   keyUp(code: string): void;
 };
-
-const isPlayerAction = (target: EventTarget | null) =>
-  target instanceof Element && !!target.closest("[data-player-action]");
 
 const isControl = (target: EventTarget | null) =>
   target instanceof Element &&
@@ -37,13 +34,12 @@ export function captureGameInput(o: CaptureOptions): () => void {
   };
   const keyup = (e: KeyboardEvent) => o.keyUp(e.code);
   const focus = (e: FocusEvent) => {
-    if (o.playing() && e.target !== o.screen() && !isPlayerAction(e.target))
+    if (o.playing() && e.target !== o.screen() && !isControl(e.target))
       o.screen()?.focus({ preventScroll: true });
   };
   const pointer = (e: PointerEvent) => {
-    if (!o.playing() || e.target === o.screen() || isPlayerAction(e.target))
-      return;
-    // Keep the game captured when clicking outside the player.
+    if (!o.playing() || e.target === o.screen() || isControl(e.target)) return;
+    // A click on empty space keeps the game captured.
     e.preventDefault();
     e.stopImmediatePropagation();
     o.screen()?.focus({ preventScroll: true });

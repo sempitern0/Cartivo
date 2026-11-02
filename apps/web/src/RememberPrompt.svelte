@@ -13,9 +13,9 @@
   <p id="remember-ask-text">
     ¿Recordar tus juegos en este dispositivo para continuar con un clic?
   </p>
-  <button data-player-action onclick={() => onanswer(true)}
+  <button onclick={() => onanswer(true)}
     >Sí, recordar</button
-  ><button data-player-action onclick={() => onanswer(false)}>No</button>
+  ><button onclick={() => onanswer(false)}>No</button>
 </div>
 
 <style>

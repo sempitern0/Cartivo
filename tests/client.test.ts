@@ -71,3 +71,15 @@ test("NES client rejects malformed frames and disposes pending requests", async 
   c.dispose();
   await assert.rejects(pending, /cerrada/);
 });
+
+test("loading a game gets a longer timeout than quick requests", async () => {
+  const worker = new Fake();
+  const client = new NesClient(worker as unknown as Worker, 5, 200);
+  const load = client.request("load", { demo: true });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  worker.reply();
+  assert.deepEqual(await load, { saved: true });
+  const frame = client.request("advance");
+  await assert.rejects(frame, /no responde/);
+  assert.equal(worker.terminated, true);
+});

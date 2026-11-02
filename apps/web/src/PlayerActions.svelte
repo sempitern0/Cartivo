@@ -42,11 +42,11 @@
 </script>
 
 <div bind:this={element} class="player-actions" data-player-chrome>
-  {#if phase === "running"}<button data-player-action onclick={onpause}
+  {#if phase === "running"}<button onclick={onpause}
       >Pausar juego</button
-    ><button data-player-action onclick={() => ontap("select")}
+    ><button onclick={() => ontap("select")}
       >Select · Q</button
-    ><button data-player-action onclick={() => ontap("start")}
+    ><button onclick={() => ontap("start")}
       >Start · Enter</button
     >{/if}
   {#if phase === "paused"}<button
@@ -54,30 +54,27 @@
       class="primary"
       onclick={onresume}
       disabled={busy}>Reanudar juego</button
-    ><button data-player-action onclick={onreset} disabled={busy}
+    ><button onclick={onreset} disabled={busy}
       >Reiniciar consola</button
     >{/if}
   {#if !audioReady && phase === "running"}<button
-      data-player-action
       onclick={onsound}>Activar sonido</button
     >{/if}
   {#if audioReady}<button
-      data-player-action
       aria-pressed={muted}
       onclick={onmute}>{muted ? "Activar sonido" : "Silenciar"}</button
     >{/if}
   <button
-    data-player-action
     class:focus-selected={focusMode}
     onclick={onfocus}
     aria-pressed={focusMode}
     aria-label={focusMode ? "Desactivar Focus" : "Activar Focus"}
     >{focusMode ? "Focus activado" : "Activar Focus"}</button
   >
-  {#if fullscreenAvailable}<button data-player-action onclick={onfullscreen}
+  {#if fullscreenAvailable}<button onclick={onfullscreen}
       >{fullscreen ? "Salir de pantalla completa" : "Pantalla completa"}</button
     >{/if}
-  <a data-player-action href="#controles">Configurar controles</a>
+  <a href="#controles">Configurar controles</a>
 </div>
 
 <style>

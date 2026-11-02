@@ -39,7 +39,6 @@
   </div>
   <div class="toolbar" role="toolbar" aria-label="Partida">
     <button
-      data-player-action
       class="tool icon-button"
       bind:this={graphicsButton}
       onclick={ongraphics}
@@ -48,7 +47,6 @@
       >{@html icons.monitor}<span>Gráficos</span></button
     >
     <button
-      data-player-action
       class="tool icon-button"
       bind:this={savesButton}
       onclick={onsaves}
@@ -58,14 +56,12 @@
       >{@html icons.save}<span>Partidas</span></button
     >
     <button
-      data-player-action
       class="tool icon-button"
       onclick={onrom}
       disabled={busy}>{@html icons.folder}<span>Cargar ROM</span></button
     >
     <span class="divider" aria-hidden="true"></span>
     <button
-      data-player-action
       class="tool icon-button"
       onclick={onexit}
       disabled={busy}

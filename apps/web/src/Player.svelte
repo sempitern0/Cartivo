@@ -107,7 +107,10 @@
     try {
       const r = await client.request("state-save", { slot });
       saves = r.states ?? saves;
-      if (!quiet) notify(`Partida guardada en ${slotNames[slot].toLowerCase()}.`);
+      const where = slotNames[slot].toLowerCase();
+      if (r.saveError)
+        problem = `Partida guardada en ${where}, pero la memoria del cartucho no se pudo guardar: ${r.saveError}`;
+      else if (!quiet) notify(`Partida guardada en ${where}.`);
       return true;
     } catch (e) {
       if (!quiet)
@@ -519,7 +522,6 @@
     <button
       type="button"
       class="focus-exit"
-      data-player-action
       aria-label="Salir del modo Focus"
       onclick={() => {
         focusMode = false;

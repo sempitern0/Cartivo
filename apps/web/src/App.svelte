@@ -8,6 +8,7 @@
   import { demo, type GameSource } from "./game-source.ts";
   import {
     listGames,
+    pruneOrphanRoms,
     readRemember,
     type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
@@ -33,9 +34,18 @@
   // Local library: remembered games, most recent first.
   let games = $state.raw<LibraryEntry[]>([]);
   let showLibrary = $state(false);
+  let pruned = false;
   async function refreshLibrary() {
     try {
       games = await listGames();
+      // Once per visit, in the background: copies left by an interrupted
+      // remember/forget. Never blocks nor fails the home screen.
+      if (!pruned) {
+        pruned = true;
+        void pruneOrphanRoms(new Set(games.map((g) => g.hash))).catch(
+          () => 0,
+        );
+      }
     } catch {
       games = [];
     }

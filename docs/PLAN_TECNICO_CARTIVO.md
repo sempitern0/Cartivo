@@ -34,11 +34,11 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | SRAM con dos generaciones, Web Lock y exportación/importación | `packages/storage/src/sram.ts`, `formats.ts` | ADR-003/007 | `tests/storage.test.ts`, `tests/e2e/integrity.spec.ts` (100 ciclos) |
 | «Partidas»: 3 ranuras + «Al salir», miniaturas, F5/F9, ligadas a núcleo y versión | `packages/storage/src/states.ts`, `apps/web/src/SavePanel.svelte` | ADR-009 | `tests/snapshots.test.ts`, `tests/e2e/saves.spec.ts` |
-| Biblioteca local y «Continuar» (ROM en OPFS con consentimiento) | `packages/storage/src/library.ts`, `apps/web/src/{ContinueCard,Library,RememberPrompt}.svelte`, `game-source.ts` | ADR-012 | `tests/library.test.ts`, `tests/e2e/library.spec.ts`, [H1-LIB](compatibility/H1-LIB.md) |
-| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; doce acciones (L/R, X/Y); botones y etiquetas declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
+| Biblioteca local y «Continuar» (ROM en OPFS con consentimiento); copias que nunca se reescriben si ya están verificadas, orden índice/copia recuperable y poda de huérfanas | `packages/storage/src/library.ts`, `apps/web/src/{ContinueCard,Library,RememberPrompt}.svelte`, `game-source.ts` | ADR-012 | `tests/library.test.ts`, `tests/e2e/library.spec.ts`, [H1-LIB](compatibility/H1-LIB.md) |
+| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; durante la partida, la captura deja funcionar cualquier control de la página; doce acciones (L/R, X/Y); botones y etiquetas declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
 | Pantalla: Ajustar, Píxel entero y entero por proporción; aspecto del sistema; suavizado; preferencias por sistema | `packages/media/src/display-scaler.ts`, `display-preferences.ts`; `apps/web/src/GraphicsPanel.svelte`, `display.svelte.ts` | — | `tests/display-*.test.ts` |
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts`, `session.spec.ts` |
-| PWA: SW propio que precarga **todo** el build (núcleos incluidos); una actualización solo descarga lo que cambió; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
+| PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
 | CI: `verify:core`, Prettier, svelte-check, unitarias, build y E2E en dev y en preview; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
 
@@ -50,10 +50,18 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
    - Exportar e importar Partidas (instantáneas), con formato versionado.
    - E2E en Firefox además de Chromium.
    - QA física del titular: mando, audio, instalación y suspensión en móvil ([H1-QA](compatibility/H1-QA.md)).
-2. **H1.5 · sin fricción.**
+2. **Fiabilidad y portabilidad** (de la auditoría del titular, 2026-11-02).
+   - **Hecho:** escrituras recuperables de la biblioteca, captura acotada, resultado de guardado separado, carga WASM con alternativa, timeouts por operación y «sin conexión» verificado.
+   - **Pendiente:**
+     - E2E básicas en Firefox y WebKit, junto a «Cerrar H1»;
+     - pruebas de fallo en navegador real: cierre durante una escritura, `QuotaExceededError`, dos pestañas, actualización con otra pestaña jugando, estado incompatible, suspensión larga;
+     - modo degradado visible cuando no hay almacenamiento persistente (ventana privada);
+     - despliegue bajo una subruta (rutas absolutas como `/licenses/...`);
+     - matriz de QA por navegador y sistema en [H1-QA](compatibility/H1-QA.md).
+3. **H1.5 · sin fricción.**
    - UI navegable con mando: la cruceta mueve el foco, A acepta, B vuelve, menú de pausa.
    - Despliegue en Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
-3. **Deuda técnica conocida.**
+4. **Deuda técnica conocida.**
    - Cadencia por juego: hoy el host avanza al `frameRate` del sistema; por eso SNES y Mega Drive rechazan los cartuchos PAL (50 Hz). Sincronía A/V fina.
    - Ajustes de núcleo declarados por schema.
    - P2–P4 con perfiles.
@@ -61,14 +69,15 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
    - Paletas DMG opcionales.
    - Perfiles de pantalla por sistema.
    - Presupuestos de rendimiento medidos por núcleo (§7).
-4. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
-5. **H4 · 3D.**
+5. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
+6. **H4 · 3D.**
    - N64 (Mupen64Plus-Next o ares), PS1 (PCSX-ReARMed o Beetle PSX) y PSP (PPSSPP).
    - Lectura por bloques de discos sin copiar la imagen al heap WASM.
+   - `EmulatorCore` entrega hoy RGBA de tamaño fijo y audio mono a 48 kHz. Las capacidades opcionales (resolución variable, audio y temporización por núcleo) se diseñan con el primer núcleo 3D y su ADR, sin romper los núcleos actuales.
    - Renderer propio (WebGL u OffscreenCanvas). Hilos solo si se miden, con COOP/COEP.
-6. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
-7. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
-8. **Laboratorio PS2.** Play! opcional con límites publicados.
+7. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
+8. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
+9. **Laboratorio PS2.** Play! opcional con límites publicados.
 
 ## 4. Hito futuro H6 — Cuentas online con Supabase
 
@@ -84,6 +93,12 @@ Sin cuenta, Cartivo sigue funcionando igual: local y offline.
 - **ADR propio de H6:** proveedor (Supabase: Auth, Postgres con RLS y Storage), modelo de datos, retención, borrado de cuenta y costes.
 - **Partidas sincronizadas:** SRAM y «Partidas», nunca ROMs ni BIOS. Cifradas en tránsito, aisladas por usuario (RLS) y versionadas con el mismo formato y checksum que la exportación local. Ante un conflicto, se conservan las dos versiones y elige el jugador.
 - **Logros:** decidir con ADR entre integrar rcheevos/RetroAchievements (cuenta y condiciones de ese servicio, lectura de memoria por núcleo) o un sistema propio. Ningún logro se ofrece para un núcleo que no exponga la memoria necesaria.
+- **Arquitectura de la sincronización:**
+  - el juego nunca depende de una petición de red;
+  - una partida se confirma primero en local y después la sube una cola persistente separada del Worker, con identificadores de operación idempotentes, versión por dispositivo y reintentos;
+  - un conflicto nunca se sobrescribe solo;
+  - cerrar sesión o un fallo de autenticación no borra nada local;
+  - el SW no guarda respuestas privadas de autenticación o API en la caché de recursos.
 - **Rankings:** por hash de juego y modo. Cliente no fiable: puntuaciones validadas en el servidor o marcadas como no verificadas. Sin datos personales públicos más allá del alias.
 
 **Terminado cuando:**

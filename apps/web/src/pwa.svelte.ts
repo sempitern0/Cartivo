@@ -1,5 +1,6 @@
 // Installation, offline cache and safe updates for the Cartivo shell.
 // The service worker only exists in production builds (see tools/pwa-plugin.mjs).
+import { offlineCacheComplete } from "./offline-cache.ts";
 
 type InstallPrompt = Event & {
   prompt: () => Promise<void>;
@@ -11,7 +12,10 @@ export const pwa = $state({
   canInstall: false,
   /** Running as an installed app (standalone window). */
   installed: false,
-  /** The current version is cached and works without a network connection. */
+  /**
+   * Verified: a Cartivo cache holds its manifest and every file it lists
+   * (cores included), so the app works without a network connection.
+   */
   offlineReady: false,
   /** A newer version is downloaded and waiting for a safe moment. */
   updateReady: false,
@@ -63,8 +67,13 @@ export function startPwa() {
 
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   const sw = navigator.serviceWorker;
+  const scope = new URL(import.meta.env.BASE_URL, location.href).href;
+  const verifyOffline = () =>
+    offlineCacheComplete(scope)
+      .catch(() => false)
+      .then(setOfflineReady);
   sw.addEventListener("controllerchange", () => {
-    setOfflineReady(true);
+    void verifyOffline();
     // Only reload when the player explicitly applied an update, and the
     // UI only offers that while no game session is open.
     if (reloadWhenActivated) location.reload();
@@ -77,7 +86,7 @@ export function startPwa() {
         track(registration.installing),
       );
       await sw.ready;
-      setOfflineReady(!!sw.controller || !!registration.active);
+      await verifyOffline();
       // Installed apps keep saves safer from storage eviction. Asking in a
       // plain tab could show a permission prompt in some browsers.
       if (pwa.installed && navigator.storage?.persist)

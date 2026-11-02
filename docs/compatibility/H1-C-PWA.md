@@ -45,6 +45,13 @@ El SW precachea todo (≈1,3 MB sin comprimir) para jugar offline tras la instal
 5. Android (Chrome) e iOS/iPadOS (Safari → Compartir → Añadir a pantalla de inicio): instalación y reapertura offline. iOS no muestra botón de instalación propio.
 6. Firefox de escritorio no instala PWAs: debe seguir funcionando en pestaña, offline incluido.
 
+### Revisión de fiabilidad (2026-11-02)
+
+- **Instalación por tandas:** el SW descarga 6 archivos a la vez en lugar de todos juntos. El manifiesto se escribe al final, así que si falla un archivo la instalación falla entera y la versión anterior sigue sirviendo. Lo comprueba `tests/pwa.test.ts` (pico ≤ 6 y sin manifiesto tras un 404).
+- **«Sin conexión» verificado:** `data-offline-ready` solo se activa si una caché `cartivo-shell-*` contiene su manifiesto y todos los archivos que lista, núcleos incluidos (`apps/web/src/offline-cache.ts`, probado en `tests/pwa.test.ts`). Antes bastaba con que hubiera un SW activo.
+- **Núcleos C sin `application/wasm`:** si el servidor entrega otro MIME, el núcleo se compila desde los bytes (`compileFrom` en `wasm-host.ts`). Una descarga fallida tiene un mensaje propio (`CoreDownloadError`).
+- **CI sobre `9bb62b4`** (run 41446431302): las E2E de preview sin conexión siguen pasando.
+
 ## Límites
 
 - La instalación real exige un despliegue HTTPS (o `localhost`). No hay todavía hosting ni workflow de publicación.
