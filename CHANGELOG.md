@@ -142,6 +142,11 @@
 - `wasm-host.ts`: lista explícita de imports permitidos (un import desconocido falla en `prepare()` nombrándolo) y núcleo cerrado que rechaza llamadas.
 - Backlog: descriptor de entrada por sistema y precache selectivo de núcleos antes de SNES y de núcleos pesados.
 
+### CI de núcleos
+
+- Los workflows de núcleo ya no se disparan por `.build-request` en `main` (al fusionar una PR); allí se usa `workflow_dispatch`.
+- Reproducibilidad confirmada: las compilaciones de SameBoy y mGBA relanzadas en `main` dieron los mismos hashes que los artefactos versionados.
+
 ### H1-LIB: biblioteca local y «Continuar»
 
 - Pregunta única al abrir el primer juego desde archivo: «¿Recordar tus juegos en este dispositivo?»; se cambia en «Tus juegos». Las demos no se recuerdan.

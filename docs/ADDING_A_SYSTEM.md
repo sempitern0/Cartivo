@@ -15,7 +15,7 @@ Checklist para integrar un sistema nuevo (por ejemplo GB/GBC con mGBA). Un siste
   - Rust → `wasm-bindgen`; C/C++ → Emscripten con versión fijada.
   - Lockfile, toolchain y rutas reasignadas.
   - Gate de licencias y fuentes.
-  - Disparo **solo explícito** (`workflow_dispatch` o un archivo `.build-request`), nunca por push o PR: el binario se compila una vez por cambio del núcleo.
+  - Disparo **solo explícito** (`workflow_dispatch` o un archivo `.build-request` en una rama de trabajo, con `branches-ignore: [main]` para que fusionar no recompile), nunca por push o PR: el binario se compila una vez por cambio del núcleo.
   - Commit de `dist/`, `manifest.json` y `sbom.json` por el workflow; recompilación de verificación solo a mano.
 - Añadir `tools/verify-<id>.mjs` a `pnpm verify:core`. La CI rechaza una PR que cambie `cores/<id>/src`, `Cargo.toml` o la toolchain sin traer `manifest.json` y `dist/` regenerados.
 

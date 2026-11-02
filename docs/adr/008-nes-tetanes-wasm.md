@@ -31,3 +31,7 @@ El WebAssembly TetaNES compilado está versionado en `cores/tetanes/dist`, con m
 El CI cotidiano mantiene `pnpm verify:core`, que valida SHA-256 de los archivos y licencia del SBOM existente sin instalar Rust. **Advertencia:** verificar los hashes del binario almacenado no prueba que concuerde con una modificación nueva de fuentes. Cambios en `cores/tetanes/src`, `Cargo.toml`, `Cargo.lock`, toolchain, parches o receta de build deben acompañarse de una regeneración explícita de artefactos antes de integrar esos cambios. Registrar la causa y evidencia; no prometer reproducibilidad sin correr el modo `verify`.
 
 Como el manifiesto no guarda hashes de las fuentes, `Foundation CI` añade en cada PR una comprobación sin Rust: si cambian `src/`, `Cargo.toml`, `rust-toolchain.toml` o `build.rs` de un núcleo y no cambia su `manifest.json`, falla y pide regenerar los artefactos una vez.
+
+## Disparo solo en ramas de trabajo (2026-11-01)
+
+Al fusionar las PR #4 y #5, el push a `main` traía los `.build-request` de SameBoy y mGBA y relanzó sus compilaciones (runs 41338393160 y 41338891480). No hubo daño: los hashes salieron idénticos y el bot no hizo commit. Desde entonces, el disparador por `.build-request` ignora `main` en los tres workflows de núcleo; en `main`, una compilación deliberada se lanza con `workflow_dispatch`.
