@@ -12,7 +12,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **Controles** | Teclado y mando (Gamepad API) con remapeo; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho se guarda sola sin frenar la imagen |
 | **Biblioteca** | «Continuar» y «Tus juegos»: con tu permiso, la copia del juego se guarda en el navegador |
-| **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium y Firefox (dev y build de producción) |
+| **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
 | **Pendiente** | QA física (mando real, móviles, Safari, audio), UI navegable con mando y consolas 3D (N64, PS1, PSP) |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
@@ -46,7 +46,8 @@ Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligada
 | `pnpm lint` | Formato (Prettier) |
 | `pnpm test` | Tests unitarios, incluida la conformidad de todos los núcleos WASM |
 | `pnpm test:e2e` / `pnpm test:e2e:preview` | E2E Playwright en Chromium, en dev / en la build de producción |
-| `pnpm test:e2e:firefox` / `pnpm test:e2e:preview:firefox` | La misma suite en Firefox (en la CI, las cuatro tandas navegador × servidor corren en paralelo) |
+| `pnpm test:e2e:firefox` / `pnpm test:e2e:preview:firefox` | La misma suite en Firefox |
+| `pnpm test:e2e:webkit` / `pnpm test:e2e:preview:webkit` | La misma suite en WebKit (en Linux, con `xvfb-run` y `--headed`, como en la CI). En la CI, las seis tandas navegador × servidor corren en paralelo |
 | `pnpm verify:core` | Integridad de todos los núcleos contra sus manifiestos, sin recompilar |
 
 Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml` o `core-genesis-plus-gx.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md), [ADR-013](docs/adr/013-snes-snes9x.md) y [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md)). La CI omite los cambios que solo tocan documentación.
@@ -70,7 +71,7 @@ cores/             jsnes (manifiesto), tetanes (envoltorio Rust), sameboy, mgba 
 tools/             build y verificación de núcleos (verify-core.mjs), generador del service worker
 tests/             unitarios (node:test) y e2e (Playwright)
 docs/              plan técnico, diseño, ADRs, compatibilidad y expedientes de núcleos (research/)
-.github/           CI (verify + matriz E2E Chromium/Firefox × dev/preview) y builds de núcleo bajo petición
+.github/           CI (verify + matriz E2E Chromium/Firefox/WebKit × dev/preview) y builds de núcleo bajo petición
 ```
 
 ## Documentación

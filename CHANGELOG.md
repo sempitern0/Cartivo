@@ -221,3 +221,10 @@
 
 - El guardado automático de la memoria del cartucho (cada 120 frames) ya no retiene el siguiente frame mientras IndexedDB escribe. Antes, una escritura lenta podía pausar el juego con «La ejecución se ha retrasado».
 - Las operaciones que dependen del guardado (pausa, Partidas, reinicio, importar, salir) siguen esperando a que termine. Nunca hay dos escrituras a la vez y el éxito solo se informa tras confirmarse. ADR-007 revisado.
+
+### Portabilidad: E2E en WebKit (motor de Safari)
+
+- La CI ejecuta la suite E2E también en WebKit, en dev y en preview, en la misma matriz paralela. Usa una pantalla virtual porque, sin ella, WebKit en Linux anima unas 2 veces por segundo. Scripts nuevos: `pnpm test:e2e:webkit` y `pnpm test:e2e:preview:webkit`.
+- **Arreglado (afectaba a Safari):** en la build de producción, al cargar el núcleo de Game Boy, GBA, SNES o Sega, WebKit volvía a evaluar el Worker y la partida se cortaba con «Sesión obsoleta o no cargada». El Worker de emulación es ahora un solo archivo; el WebAssembly de cada núcleo se sigue descargando solo al empezar un juego de ese sistema.
+- **Arreglado:** una parada puntual (el primer fotograma mientras el navegador compila el núcleo, el recolector de basura) ya no pausa el juego con «La ejecución se ha retrasado». Se descarta el retraso, sin acelerar nunca, y solo tres paradas en cinco segundos pausan con un aviso (`FramePacer`).
+- La biblioteca no se prueba en WebKit, porque el perfil efímero de Playwright no tiene OPFS, como una ventana privada de Safari. Queda en la QA manual.
