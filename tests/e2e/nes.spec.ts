@@ -419,7 +419,10 @@ test("fullscreen shows only the game and returns safely to paused window", async
   ).toHaveCount(0);
   const box = await page.locator("canvas").boundingBox();
   expect(box!.width / box!.height).toBeCloseTo(4 / 3, 1);
-  expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  // In fullscreen the window is the screen, which may differ from the
+  // configured viewport (Firefox uses the full virtual screen).
+  const screenHeight = await page.evaluate(() => innerHeight);
+  expect(box!.y + box!.height).toBeLessThanOrEqual(screenHeight);
   await page.screenshot({
     path: "test-results/nes-fullscreen.png",
     fullPage: true,
