@@ -1,6 +1,6 @@
 /** Cartivo input: local, normalized P1 controls. No dependency on a core ABI.
- * NES and Game Boy use the first eight; L and R exist for Game Boy Advance
- * and are ignored by cores that lack them (each adapter maps its own keys).
+ * Each system declares which of these its pad has (systems.ts `buttons`);
+ * a core ignores the rest (each adapter packs only its own keys).
  */
 export const actions = [
   "up",
@@ -13,10 +13,12 @@ export const actions = [
   "start",
   "l",
   "r",
+  "x",
+  "y",
 ] as const;
 export type Action = (typeof actions)[number];
 /** Added after profiles were first saved: older profiles may lack them. */
-const later: readonly Action[] = ["l", "r"];
+const later: readonly Action[] = ["l", "r", "x", "y"];
 export type InputState = Record<Action, boolean>;
 export type Binding =
   | { kind: "button"; index: number }
@@ -43,6 +45,8 @@ export const keys: Record<string, Action> = {
   Enter: "start",
   KeyI: "l",
   KeyO: "r",
+  KeyU: "x",
+  KeyJ: "y",
 };
 export const standard: Profile = {
   up: { kind: "button", index: 12 },
@@ -55,6 +59,9 @@ export const standard: Profile = {
   start: { kind: "button", index: 9 },
   l: { kind: "button", index: 4 },
   r: { kind: "button", index: 5 },
+  // Standard mapping by position: north = X, west = Y (as on a SNES pad).
+  x: { kind: "button", index: 3 },
+  y: { kind: "button", index: 2 },
 };
 export function bindingPressed(
   pad: Pad,
@@ -139,7 +146,7 @@ export function parseProfile(value: unknown, pad: Pad): Profile | undefined {
       };
     else return;
   }
-  // Older profiles: give L/R the standard shoulders, or the first free button.
+  // Older profiles: give new buttons their standard index, or the first free one.
   for (const action of later) {
     if (result[action]) continue;
     const used = Object.values(result);
@@ -193,7 +200,7 @@ export function parseKeyboard(value: unknown): KeyboardProfile | undefined {
     if (typeof code !== "string" || !allowedKey(code)) return;
     result[action] = code;
   }
-  // Older profiles: default L/R keys, or the first free letter.
+  // Older profiles: default keys for new buttons, or the first free letter.
   for (const action of later) {
     if (result[action]) continue;
     const used = new Set(Object.values(result));

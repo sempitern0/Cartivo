@@ -4,8 +4,8 @@ import {
   type InputState,
 } from "../../input/src/nes-input.ts";
 
-/** Buttons added after protocol v1 shipped (Game Boy Advance). */
-const optional: readonly Action[] = ["l", "r"];
+/** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y). */
+const optional: readonly Action[] = ["l", "r", "x", "y"];
 import { system as findSystem } from "./systems.ts";
 import {
   isStateSlot,

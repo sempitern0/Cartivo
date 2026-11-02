@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Snes9x (core and libretro frontend)",
+    "version": "1.63",
+    "license": "LicenseRef-Snes9x-noncommercial",
+    "repository": "https://github.com/snes9xgit/snes9x"
+  },
+  {
+    "name": "S-SMP emulator by byuu (apu/bapu/smp, under the Snes9x licence)",
+    "version": "1.63",
+    "license": "LicenseRef-Snes9x-noncommercial",
+    "repository": "https://github.com/snes9xgit/snes9x"
+  },
+  {
+    "name": "snes_spc 0.9.0 SPC_DSP by Shay Green (apu/bapu/dsp)",
+    "version": "1.63",
+    "license": "LGPL-2.1-or-later",
+    "repository": "https://github.com/snes9xgit/snes9x"
+  },
+  {
+    "name": "snes_ntsc by Shay Green (filter/snes_ntsc.c)",
+    "version": "1.63",
+    "license": "LGPL-2.1-or-later",
+    "repository": "https://github.com/snes9xgit/snes9x"
+  },
+  {
+    "name": "libretro API header and libretro-common",
+    "version": "1.63",
+    "license": "MIT",
+    "repository": "https://github.com/snes9xgit/snes9x"
+  },
+  {
+    "name": "Emscripten system libraries",
+    "version": "6.0.12",
+    "license": "MIT OR NCSA",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "musl libc (Emscripten)",
+    "version": "6.0.12",
+    "license": "MIT",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "libc++ and libc++abi (Emscripten)",
+    "version": "6.0.12",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "compiler-rt (Emscripten)",
+    "version": "6.0.12",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "dlmalloc (Emscripten)",
+    "version": "6.0.12",
+    "license": "CC0-1.0",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  }
+]

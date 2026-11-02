@@ -1,0 +1,46 @@
+{
+  "id": "snes9x-snes-wasm",
+  "engine": "WebAssembly (standalone)",
+  "upstream": {
+    "name": "Snes9x",
+    "tag": "1.63",
+    "commit": "921f9f7b83660eb44ad263022a57a4a029057c37",
+    "repository": "https://github.com/snes9xgit/snes9x",
+    "spdx": "LicenseRef-Snes9x-noncommercial"
+  },
+  "toolchain": {
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)",
+    "emsdk": "6.0.12 (35ff8a6d150541276abbc6bae512ca90bcfbe220)"
+  },
+  "platforms": [
+    "SNES"
+  ],
+  "biosRequired": false,
+  "bios": "None: DSP-1–4, Cx4, ST010/011, SA-1, Super FX, S-DD1, SPC7110 and S-RTC are emulated in code; BS-X, Sufami Turbo, Super Game Boy and ST018 are refused by Cartivo",
+  "sources": 54,
+  "patchedFiles": [],
+  "exports": [
+    "malloc",
+    "free",
+    "cartivo_create",
+    "cartivo_free",
+    "cartivo_reset",
+    "cartivo_save_size",
+    "cartivo_load_save",
+    "cartivo_save",
+    "cartivo_set_input",
+    "cartivo_frames",
+    "cartivo_pixels",
+    "cartivo_audio",
+    "cartivo_state_size",
+    "cartivo_save_state",
+    "cartivo_load_state"
+  ],
+  "dependencies": 10,
+  "files": [
+    {
+      "path": "dist/snes9x.wasm",
+      "sha256": "10477cc67fcd95dd06ba92efb1f9fd09d398514effffd7fade3cc9a378612670"
+    }
+  ]
+}

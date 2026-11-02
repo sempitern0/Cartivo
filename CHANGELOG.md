@@ -170,3 +170,11 @@
 - Botones declarados por sistema (`buttons` en `systems.ts`): Controles muestra solo los que usa alguna consola y genera sus notas.
 - PWA: se instala todo (decisión del titular) y una actualización copia de la caché anterior los archivos sin cambios en lugar de volver a descargarlos. El build informa del tamaño precargado.
 - Plan técnico, revisión 4: «Hecho — no reimplementar» y «Pendiente» en orden; Snes9x y Genesis Plus GX elegidos; hito futuro H6 de cuentas online con Supabase.
+
+### H2-SNES: Super Nintendo con Snes9x
+
+- Snes9x 1.63 compilado por CI a WebAssembly una sola vez (`core-snes9x.yml`, solo bajo petición), con un puente C++ propio sobre su frontend libretro: vídeo 256×224, audio a 48 kHz, SRAM e instantáneas.
+- Expediente CORE-LEGAL-01: **accepted (uso privado)**, licencia no comercial; snes_spc/snes_ntsc LGPL. Sin BIOS; BS-X, Sufami Turbo, Super Game Boy, ST018 y cartuchos PAL se rechazan con un mensaje claro.
+- Botones X (U, norte) e Y (J, oeste) con migración de perfiles; Controles los muestra con su nota y dibuja los botones frontales en rombo.
+- `wasm-host.ts` resuelve con ENOSYS dos imports de archivos que Snes9x nunca usa; el registro carga los núcleos con un `onDemand` común.
+- Fixture 65816 original y pruebas: cabecera, oráculo completo en WASM, conformidad y E2E. ADR-013 y [H2-SNES](docs/compatibility/H2-SNES.md).

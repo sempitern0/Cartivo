@@ -1,4 +1,4 @@
-// Shared host for Cartivo's standalone Emscripten cores (SameBoy, mGBA).
+// Shared host for Cartivo's standalone Emscripten cores (SameBoy, mGBA, Snes9x).
 // Each core is a single .wasm built by CI with the same cartivo_* bridge
 // (cores/<id>/src/cartivo.c); this file loads it, supplies its system
 // imports and implements EmulatorCore on top of that bridge.
@@ -73,10 +73,12 @@ const ENOSYS = 52;
  * imports anything else is refused at prepare() (see unsupportedImports).
  */
 const allowed: Record<string, readonly string[]> = {
-  env: ["emscripten_notify_memory_growth"],
+  // __syscall_ftruncate64: Snes9x's unused file streams (no files exist).
+  env: ["emscripten_notify_memory_growth", "__syscall_ftruncate64"],
   wasi_snapshot_preview1: [
     "clock_time_get",
     "fd_write",
+    "fd_read",
     "fd_close",
     "fd_seek",
     "environ_sizes_get",
@@ -124,8 +126,11 @@ function hostImports(
       view().setUint32(written, total, true);
       return 0;
     },
+    fd_read: () => ENOSYS,
     fd_close: () => ENOSYS,
     fd_seek: () => ENOSYS,
+    // Emscripten syscalls return a negative errno.
+    __syscall_ftruncate64: () => -ENOSYS,
     environ_sizes_get: empty,
     environ_get: () => 0,
     args_sizes_get: empty,

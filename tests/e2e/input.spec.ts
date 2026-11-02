@@ -71,10 +71,10 @@ test("L and R: I/O keys and LB/RB light up and can be remapped", async ({
     (window as any).testPad.buttons[5].pressed = false;
   });
   await page.getByRole("button", { name: "Asignar tecla L", exact: true }).click();
-  await page.keyboard.press("KeyU");
+  await page.keyboard.press("KeyP"); // U is X's default since SNES
   await expect(
     page.getByRole("button", { name: "Asignar tecla L", exact: true }),
-  ).toHaveText("L = U");
+  ).toHaveText("L = P");
 });
 test("standard pad, disconnect and reused slot require reactivation", async ({
   page,
@@ -117,13 +117,13 @@ test("manual profile persists and requires explicit restore", async ({
   });
   await page.getByLabel("Mando", { exact: true }).selectOption("0");
   await page.getByRole("button", { name: "Asignar controles" }).click();
-  // Ten controls since L/R exist (Game Boy Advance).
-  for (let index = 0; index < 10; index++) {
+  // Twelve controls: L/R (Game Boy Advance) and X/Y (SNES) come last.
+  for (let index = 0; index < 12; index++) {
     await expect(page.locator(".capture")).not.toContainText("Suelta");
     await page.evaluate((i) => {
       (window as any).testPad.buttons[i].pressed = true;
     }, index);
-    if (index < 9)
+    if (index < 11)
       await expect(page.locator(".capture")).toContainText("Suelta");
     else await expect(page.locator(".capture")).toHaveCount(0);
     await page.evaluate((i) => {

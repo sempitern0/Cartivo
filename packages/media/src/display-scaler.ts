@@ -38,6 +38,15 @@ export const GB_VIDEO: VideoDescriptor = {
 };
 
 /** Game Boy Advance: square pixels, 3:2. */
+/** SNES: 256×224 (overscan cropped), shown at 4:3 like the NES. */
+export const SNES_VIDEO: VideoDescriptor = {
+  sourceWidth: 256,
+  sourceHeight: 224,
+  displayAspect: 4 / 3,
+  pixelArt: true,
+  dynamicResolution: false,
+};
+
 export const GBA_VIDEO: VideoDescriptor = {
   sourceWidth: 240,
   sourceHeight: 160,

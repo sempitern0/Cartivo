@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "preview": "vite preview apps/web --host 127.0.0.1 --port 4173",
     "test:e2e:preview": "playwright test --config playwright.preview.config.ts",
-    "verify:core": "node tools/verify-jsnes.mjs && node tools/verify-tetanes.mjs && node tools/verify-sameboy.mjs && node tools/verify-mgba.mjs"
+    "verify:core": "node tools/verify-jsnes.mjs && node tools/verify-tetanes.mjs && node tools/verify-sameboy.mjs && node tools/verify-mgba.mjs && node tools/verify-snes9x.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
