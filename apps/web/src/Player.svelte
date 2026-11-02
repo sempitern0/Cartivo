@@ -12,6 +12,7 @@
   import BackupPanel from "./BackupPanel.svelte";
   import AboutCore from "./AboutCore.svelte";
   import { DisplaySettings } from "./display.svelte.ts";
+  import { FramePacer } from "../../../packages/media/src/frame-pacer.ts";
   import { slotNames } from "./saves.ts";
   import { downloadJson } from "./download.ts";
   import { stateFileName } from "../../../packages/storage/src/state-file.ts";
@@ -224,8 +225,8 @@
   const sound = new GameSound();
   let active = true;
   let loop = 0;
-  let time = 0;
-  let remainder = 0;
+  // svelte-ignore state_referenced_locally
+  const pacer = new FramePacer(system.frameRate);
   const controls = new InputCapture(
     readKeyboard(),
     () => navigator.getGamepads?.() ?? [],
@@ -289,8 +290,7 @@
     // Playing without choosing «Continuar» starts over from power-on.
     resumeOffer = undefined;
     controls.start(readKeyboard());
-    time = performance.now();
-    remainder = 0;
+    pacer.start(performance.now());
     phase = "running";
     await tick();
     (actionsElement ?? screen)?.scrollIntoView({ block: "nearest" });
@@ -341,24 +341,22 @@
     padConnected = reading.connected;
     const input = reading.input;
     if (!reading.ready) {
-      time = now;
+      pacer.start(now);
       loop = requestAnimationFrame(pump);
       return;
     }
-    remainder += ((now - time) * system.frameRate) / 1000;
-    time = now;
-    if (remainder > 12) {
+    const step = pacer.step(now);
+    if ("tooSlow" in step) {
       problem =
-        "La ejecución se ha retrasado. Reanuda para continuar sin acelerar el juego.";
+        "Este dispositivo no consigue mantener la velocidad del juego. Reanuda para seguir; el juego nunca se acelera para recuperar.";
       await pause();
       return;
     }
-    const count = Math.min(3, Math.floor(remainder));
+    const count = step.frames;
     if (!count) {
       loop = requestAnimationFrame(pump);
       return;
     }
-    remainder -= count;
     try {
       const r = await client!.request("advance", { count, input });
       if (!active) return;
