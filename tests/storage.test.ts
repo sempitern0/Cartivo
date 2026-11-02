@@ -7,9 +7,11 @@ import {
   sramKey,
 } from "../packages/storage/src/formats.ts";
 import { SramStore } from "../packages/storage/src/sram.ts";
+import { StorageUnavailable } from "../packages/storage/src/idb.ts";
 
-// Without Web Locks there is no safe single writer: refuse explicitly
-// instead of falling back to an unsafe multi-tab mode.
+// Without Web Locks there is no safe single writer: the stores refuse to
+// open (StorageUnavailable), never an unsafe multi-tab mode. The Worker then
+// runs the game without saving anything.
 test("stores refuse to open without Web Locks", async () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, "navigator");
   Object.defineProperty(globalThis, "navigator", {
@@ -17,8 +19,12 @@ test("stores refuse to open without Web Locks", async () => {
     value: {},
   });
   try {
-    await assert.rejects(StateStore.open("game"), /Web Locks/);
-    await assert.rejects(SramStore.open("game"), /Web Locks/);
+    for (const opening of [StateStore.open("game"), SramStore.open("game")])
+      await assert.rejects(
+        opening,
+        (e: Error) =>
+          e instanceof StorageUnavailable && /Web Locks/.test(e.message),
+      );
   } finally {
     if (original) Object.defineProperty(globalThis, "navigator", original);
   }

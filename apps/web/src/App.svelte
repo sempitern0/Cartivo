@@ -13,6 +13,10 @@
     type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
+  import {
+    storageHealth,
+    type StorageHealth,
+  } from "../../../packages/storage/src/persistence.ts";
   import { icons } from "./icons.ts";
   import {
     acceptFor,
@@ -34,6 +38,8 @@
   // Local library: remembered games, most recent first.
   let games = $state.raw<LibraryEntry[]>([]);
   let showLibrary = $state(false);
+  /** What this browser lets Cartivo keep (notice on the home screen). */
+  let storage = $state<StorageHealth>("ok");
   let pruned = false;
   async function refreshLibrary() {
     try {
@@ -132,6 +138,7 @@
   };
   onMount(() => {
     startPwa();
+    void storageHealth().then((health) => (storage = health));
     void refreshLibrary();
     // "Open with Cartivo" from the operating system (installed PWA).
     const queue = (window as Window & { launchQueue?: LaunchQueue })
@@ -217,6 +224,11 @@
           <button onclick={applyUpdate}>Actualizar ahora</button>
         </div>
       {/if}
+      {#if storage !== "ok"}<p class="storage-note" role="status">
+          {storage === "none"
+            ? "Este navegador no permite guardar: puedes jugar, pero el progreso no se conservará."
+            : "Este navegador no guarda copias de tus juegos (ventana privada o almacenamiento restringido): «Continuar» no estará disponible y tus partidas podrían borrarse al cerrarlo. Exporta las que quieras conservar desde Partidas."}
+        </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
       {#if latest}
         <ContinueCard
@@ -308,6 +320,7 @@
           system={game.system}
           source={game.source}
           visible={!controlsPage}
+          canRemember={storage === "ok"}
           autostart
           onclose={() => {
             game = undefined;
@@ -524,6 +537,12 @@
     min-height: 32px;
     color: var(--blue);
     font-size: 14px;
+  }
+  .storage-note {
+    margin: 24px auto 0;
+    max-width: 640px;
+    text-align: center;
+    color: var(--gold);
   }
   .open-error {
     margin: 24px auto 0;

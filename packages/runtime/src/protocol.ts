@@ -149,4 +149,6 @@ export type EmuResult = {
   remembered?: boolean;
   /** Why the game could not be remembered; the session goes on. */
   libraryError?: string;
+  /** load: this browser cannot save at all; the game runs without saving. */
+  storageError?: string;
 };
