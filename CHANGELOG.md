@@ -234,3 +234,9 @@
 - Cartivo funciona publicado en una subcarpeta del dominio: `pnpm build --base /cartivo/`. El manifest (`id`, `start_url`, `scope`, iconos, «Abrir con») usa rutas relativas a sí mismo, y en la raíz se resuelven igual que antes. Las licencias y el logo usan la base de la app.
 - Prueba E2E de la build bajo `/cartivo/` en la matriz de CI: demo, manifest, licencias, logo, service worker con su ámbito, juego sin conexión y ninguna petición fuera de la subruta. Una prueba unitaria comprueba que cada licencia es relativa y existe.
 - Plan técnico: Safari, macOS e iOS pasan a prioridad baja por decisión del titular.
+
+### Fiabilidad: aviso cuando el navegador guarda menos
+
+- En una ventana privada sin OPFS, el inicio explica que no se guardan copias de los juegos y recomienda exportar las partidas. Cartivo ya no pregunta por recordar juegos que no podría guardar.
+- Sin Web Locks o IndexedDB, el juego arranca igual y avisa de que no se guardará el progreso: Partidas se desactiva, F5 explica por qué y salir no pide confirmación. Las tiendas siguen negándose a abrir sin escritor único, y un juego abierto en otra pestaña se sigue rechazando.
+- `idb.ts` reúne la comprobación de Web Locks y la apertura de IndexedDB que repetían las dos tiendas. ADR-003 revisado.
