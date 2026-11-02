@@ -10,12 +10,12 @@ test("diag webkit", async ({ page, browserName }) => {
         super(u, o);
         this.addEventListener("message", (e: MessageEvent) => {
           const d = e.data;
-          if (d && d.ok === false) console.log("WORKER-ERR", d.id, d.error);
+          if (d && d.ok === false) console.log("WORKER-ERR", d.id, d.session?.slice(0,6), d.error);
           else if (d && d.id <= 3) console.log("WORKER-OK", d.id, Object.keys(d.result ?? {}).join(","));
         });
         this.addEventListener("error", (e: any) => console.log("WORKER-ONERROR", e.message));
         const post = this.postMessage.bind(this);
-        this.postMessage = (m: any, t?: any) => { if (m?.id <= 3) console.log("WORKER-REQ", m.id, m.command, m.system); return post(m, t); };
+        this.postMessage = (m: any, t?: any) => { if (m?.id <= 3) console.log("WORKER-REQ", m.id, m.command, m.system, m.session?.slice(0,6), (this as any).__n ??= Math.random().toString(36).slice(2,6)); return post(m, t); };
       }
     };
   });
