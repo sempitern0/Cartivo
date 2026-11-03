@@ -248,3 +248,8 @@
   - sin espacio al recordar un juego, se sigue jugando, se explica y no queda nada a medias;
   - al cerrar la pestaña a mitad de partida, la memoria de batería se reabre sin errores.
 - Con esto, el punto «Fiabilidad y portabilidad» del plan técnico pasa a hecho. Lo que no se puede forzar en un navegador automático (actualizar la app con otra pestaña jugando, suspensión larga en móvil) queda en la QA manual de H1.
+
+### Limpieza: fuera el laboratorio de H0
+
+- Se retira de Ajustes el «Laboratorio · Diagnóstico sin emulación», una prueba de sesión de H0 sin utilidad para el jugador, con su Worker, `worker-client.ts`, `session.ts` y sus pruebas. El juego usa el protocolo real (`client.ts`, `protocol.ts`, `emulator.worker.ts`), que no cambia.
+- La prueba de Controles mantiene lo que comprobaba (URL directa, salir y volver, prueba de entrada); el inicio a 360 px ya lo cubre `ui.spec.ts`.

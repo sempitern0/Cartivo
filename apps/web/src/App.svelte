@@ -2,7 +2,6 @@
   import { onMount, tick } from "svelte";
   import Player from "./Player.svelte";
   import ControlsPanel from "./ControlsPanel.svelte";
-  import DiagnosticLab from "./DiagnosticLab.svelte";
   import ContinueCard from "./ContinueCard.svelte";
   import Library from "./Library.svelte";
   import { demo, type GameSource } from "./game-source.ts";
@@ -208,7 +207,6 @@
         </div>
       </div>
       <ControlsPanel />
-      <DiagnosticLab />
     </section>
   {:else if !game}
     <section class="welcome">
