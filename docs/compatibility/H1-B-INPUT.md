@@ -24,7 +24,7 @@
   - los perfiles locales se validan por mando y se aplican de forma explícita, nunca a ciegas al reconectar.
 - **Neutralizar la entrada:** blur, pestaña oculta, desconexión o cambio de dispositivo la neutralizan, y al reactivar hay que soltar todo. Los índices no identifican dispositivos.
 - **Captura durante la partida:** es del juego, pero cualquier control de la página (botones, enlaces, campos) sigue funcionando.
-- **Interfaz con mando** (`ui-navigation.ts` y `apps/web/src/pad-navigation.ts`): la cruceta o el stick (zona muerta 0,5, repetición a los 400 ms y cada 120 ms) mueven el foco al control más cercano en esa dirección; A pulsa; B envía Escape y, si nadie lo atiende, pulsa el control `[data-pad-back]` (volver de Controles). Select+Start pausa la partida y sale de la prueba. El reproductor en marcha y la prueba o asignación de Controles suspenden la navegación; al reanudarse se ignoran los botones que sigan pulsados. Solo mandos `standard`.
+- **Interfaz con mando** (`ui-navigation.ts` y `apps/web/src/pad-navigation.svelte.ts`): la cruceta o el stick (zona muerta 0,5, repetición a los 400 ms y cada 120 ms) mueven el foco al control más cercano en esa dirección; A pulsa; B envía Escape y, si nadie lo atiende, pulsa el control `[data-pad-back]` (volver de Controles). Select+Start pausa la partida y sale de la prueba. El reproductor en marcha y la prueba o asignación de Controles suspenden la navegación; al reanudarse se ignoran los botones que sigan pulsados. Solo mandos `standard`.
 - **Pantalla «Configurar controles»** (`#controles`):
   - dibujos que se iluminan durante la prueba;
   - chips solo para los botones que usa alguna consola disponible;

@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  isPauseGesture,
   nearest,
   PadIntents,
   type Box,
@@ -68,4 +69,10 @@ test("nearest follows rows and columns, without wrapping", () => {
   // A wide button below the grid is reached from any column.
   const wide = [...grid, { x: 0, y: 160, width: 340, height: 40 }];
   assert.equal(nearest(grid[5], wide, "down"), 6);
+});
+
+test("the pause gesture is Select and Start together", () => {
+  assert.equal(isPauseGesture({ select: true, start: true }), true);
+  assert.equal(isPauseGesture({ select: true, start: false }), false);
+  assert.equal(isPauseGesture({ select: false, start: true }), false);
 });

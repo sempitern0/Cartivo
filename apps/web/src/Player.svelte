@@ -30,10 +30,8 @@
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
   import { GameSound } from "./sound.svelte.ts";
-  import {
-    resumePadNavigation,
-    suspendPadNavigation,
-  } from "./pad-navigation.ts";
+  import { claimPadWhile } from "./pad-navigation.svelte.ts";
+  import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import { captureGameInput } from "./game-capture.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
   import { keyLabel } from "../../../packages/input/src/nes-input.ts";
@@ -338,10 +336,7 @@
     if (!visible && phase === "running") void pause();
   });
   // While the game runs the pad is the game's; paused, it drives the menus.
-  $effect(() => {
-    if (phase === "running") suspendPadNavigation("player");
-    else resumePadNavigation("player");
-  });
+  claimPadWhile("player", () => phase === "running");
   $effect(() => {
     const message = problem;
     if (message && visible)
@@ -360,9 +355,8 @@
     }
     padConnected = reading.connected;
     const input = reading.input;
-    // Select+Start together is the pause gesture (the menus then take the
-    // pad); it never reaches the game.
-    if (reading.ready && input.select && input.start) {
+    // The pause gesture never reaches the game; the menus take the pad.
+    if (reading.ready && isPauseGesture(input)) {
       await pause();
       return;
     }
@@ -544,7 +538,6 @@
     document.addEventListener("visibilitychange", hide);
     return () => {
       active = false;
-      resumePadNavigation("player");
       cancelAnimationFrame(loop);
       controls.clear();
       sound.close();

@@ -1,7 +1,14 @@
 // Navigating Cartivo's own screens with a gamepad (ADR-006): what the pad
 // asks for each frame, and which element lies in a direction. Pure: the UI
 // owns focus and clicks, so this runs (and is tested) without a browser.
-import type { Pad } from "./nes-input.ts";
+import type { InputState, Pad } from "./nes-input.ts";
+
+/**
+ * Select+Start together, read through the player's mapping: pauses a game
+ * and ends the controls test, so a pad alone can always reach the menus.
+ */
+export const isPauseGesture = (input: Pick<InputState, "select" | "start">) =>
+  input.select && input.start;
 
 export type Direction = "up" | "down" | "left" | "right";
 export type Intent = Direction | "accept" | "back";

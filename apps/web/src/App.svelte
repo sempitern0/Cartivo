@@ -17,7 +17,7 @@
     type StorageHealth,
   } from "../../../packages/storage/src/persistence.ts";
   import { icons } from "./icons.ts";
-  import { startPadNavigation } from "./pad-navigation.ts";
+  import { startPadNavigation } from "./pad-navigation.svelte.ts";
   import {
     acceptFor,
     availableSystems,

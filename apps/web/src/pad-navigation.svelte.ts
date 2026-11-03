@@ -2,7 +2,7 @@
 // moves focus to the nearest control in that direction, A presses it and B
 // acts as Escape (closes a panel) or, when nothing handles it, presses the
 // screen's `[data-pad-back]` control. Whoever reads the pad for something
-// else (a running game, the controls test) suspends navigation meanwhile.
+// else (a running game, the controls test) claims it meanwhile.
 import {
   nearest,
   PadIntents,
@@ -18,14 +18,19 @@ const owners = new Set<string>();
 const intents = new PadIntents();
 let absorbNext = false;
 
-/** Stops menu navigation while `owner` reads the pad itself. */
-export function suspendPadNavigation(owner: string) {
-  owners.add(owner);
-}
-
-/** Gives the pad back; buttons still held then are ignored until released. */
-export function resumePadNavigation(owner: string) {
-  if (owners.delete(owner) && !owners.size) absorbNext = true;
+/**
+ * From a component: while `busy()` holds (and until the component goes),
+ * the pad belongs to `owner` and does not move the menus. When it comes
+ * back, buttons still held are ignored until released.
+ */
+export function claimPadWhile(owner: string, busy: () => boolean) {
+  $effect(() => {
+    if (!busy()) return;
+    owners.add(owner);
+    return () => {
+      if (owners.delete(owner) && !owners.size) absorbNext = true;
+    };
+  });
 }
 
 /** The first connected pad with a known layout (A, B and D-pad positions). */

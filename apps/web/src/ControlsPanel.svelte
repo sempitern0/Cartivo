@@ -28,10 +28,8 @@
     Profile,
   } from "../../../packages/input/src/nes-input.ts";
   import { icons } from "./icons.ts";
-  import {
-    resumePadNavigation,
-    suspendPadNavigation,
-  } from "./pad-navigation.ts";
+  import { claimPadWhile } from "./pad-navigation.svelte.ts";
+  import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import {
     buttonNotes,
     controlButtons,
@@ -63,10 +61,7 @@
   let capture = $state<Action>();
   let waitingRelease = $state(false);
   // The test and the assignment read the pad: menus must not move meanwhile.
-  $effect(() => {
-    if (active || capture || keyCapture) suspendPadNavigation("controls");
-    else resumePadNavigation("controls");
-  });
+  claimPadWhile("controls", () => active || !!capture || !!keyCapture);
   let draft: Partial<Profile> = {};
   let held = new Set<string>();
   let last = $state.raw<Pad>();
@@ -385,8 +380,7 @@
           }
         } else {
           inputState = sample(pad, profile, held, deadzone, keyboard);
-          // The pause gesture also ends the test, so a pad alone can leave.
-          if (inputState.select && inputState.start)
+          if (isPauseGesture(inputState))
             pause("Prueba detenida. Ningún control permanece pulsado.");
         }
       }
@@ -399,7 +393,6 @@
     scan();
     frame = requestAnimationFrame(poll);
     return () => {
-      resumePadNavigation("controls");
       cancelAnimationFrame(frame);
       window.removeEventListener("gamepadconnected", scan);
       window.removeEventListener("gamepaddisconnected", disconnect);
