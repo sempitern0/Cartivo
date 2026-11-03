@@ -1,7 +1,7 @@
 // «Partidas»: full-console snapshots stored per game and slot (ADR-009).
 // Separate from battery RAM (sram.ts): a snapshot is tied to one core and
 // version, battery RAM is shared by every core.
-import { done, request } from "./idb.ts";
+import { done, locks, openDatabase, request } from "./idb.ts";
 import { digest } from "./sram.ts";
 
 export const stateSlots = ["auto", "1", "2", "3"] as const;
@@ -87,10 +87,7 @@ export class StateStore {
    * store. A second tab with the same game is rejected.
    */
   static async open(game: string): Promise<StateStore> {
-    if (!navigator.locks)
-      throw Error(
-        "Este navegador no permite coordinar el guardado. Usa un navegador con Web Locks.",
-      );
+    const lockManager = locks();
     let release!: () => void;
     const hold = new Promise<void>((resolve) => (release = resolve));
     // A session closed a moment ago in this tab may still be releasing its
@@ -99,7 +96,7 @@ export class StateStore {
     for (let attempt = 0; attempt < 10 && !acquired; attempt++) {
       if (attempt) await new Promise((r) => setTimeout(r, 100));
       acquired = await new Promise<boolean>((resolve, reject) => {
-        void navigator.locks
+        void lockManager
           .request(
             "cartivo:game:" + game,
             { ifAvailable: true },
@@ -116,12 +113,7 @@ export class StateStore {
         "Este juego ya está abierto en otra pestaña. Ciérrala antes de continuar.",
       );
     try {
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const req = indexedDB.open("cartivo-states", 1);
-        req.onupgradeneeded = () => req.result.createObjectStore("states");
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      const db = await openDatabase("cartivo-states", "states");
       return new StateStore(db, game, release);
     } catch (error) {
       release();

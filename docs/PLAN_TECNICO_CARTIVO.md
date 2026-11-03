@@ -48,10 +48,9 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
 
 1. **Cerrar H1.** Solo queda la QA física del titular: mando real, audio en altavoces, instalación y suspensión en móvil (Android y escritorio Windows/Linux; Safari, macOS e iOS tienen prioridad baja por decisión del titular) ([H1-QA](compatibility/H1-QA.md), sección Manual). Lo automático está hecho.
 2. **Fiabilidad y portabilidad** (de la auditoría del titular, 2026-11-02).
-   - **Hecho:** escrituras recuperables de la biblioteca, captura acotada, resultado de guardado separado, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado E2E en WebKit (Worker de un solo archivo y paradas puntuales absorbidas por `FramePacer`) y despliegue bajo una subruta (`pnpm build --base /cartivo/`, con su E2E).
+   - **Hecho:** escrituras recuperables de la biblioteca, captura acotada, resultado de guardado separado, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado E2E en WebKit (Worker de un solo archivo y paradas puntuales absorbidas por `FramePacer`), despliegue bajo una subruta (`pnpm build --base /cartivo/`, con su E2E) y avisos cuando el navegador guarda menos (sin OPFS: sin biblioteca; sin Web Locks o IndexedDB: se juega sin guardar, ADR-003).
    - **Pendiente:**
      - pruebas de fallo en navegador real (las de lógica pura ya existen: biblioteca, guardado en segundo plano, caché offline): cierre durante una escritura, `QuotaExceededError`, dos pestañas, actualización con otra pestaña jugando, estado incompatible, suspensión larga;
-     - modo degradado visible cuando no hay almacenamiento persistente (ventana privada);
      - matriz de QA por navegador y sistema en [H1-QA](compatibility/H1-QA.md).
 3. **H1.5 · sin fricción.**
    - UI navegable con mando: la cruceta mueve el foco, A acepta, B vuelve, menú de pausa.

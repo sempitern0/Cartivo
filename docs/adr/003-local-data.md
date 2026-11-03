@@ -12,6 +12,17 @@ Save data independiente de states. Escribir generación nueva y comprobarla ante
 
 Actualizar solo al terminar la sesión. Pin de build de states, release manifest íntegro, rollback y migraciones no destructivas. Saves fuera del LRU. Ninguna persistencia del navegador sustituye backups exportables.
 
+## Revisión 2026-11-02: cuando el navegador guarda menos
+
+Solo se usan los datos que el navegador expone, nunca la cuota estimada (`packages/storage/src/persistence.ts`).
+- **Sin OPFS** («limited», ventana privada de Safari o Firefox): Partidas y SRAM funcionan con IndexedDB, pero no hay biblioteca. El inicio lo avisa en una línea discreta, no se pregunta por recordar juegos y se recomienda exportar.
+- **Sin Web Locks o IndexedDB** («none»): las tiendas siguen negándose a abrir (`StorageUnavailable` en `idb.ts`), así que nunca hay escritura sin escritor único. El Worker arranca el juego igual, sin guardar nada:
+  - lo indica con `storageError`;
+  - el reproductor muestra el aviso y desactiva Partidas;
+  - F5 explica por qué no guarda;
+  - salir no pide confirmación.
+- **Un juego abierto en otra pestaña** se sigue rechazando.
+
 ## Validación
 
 Inyectar fallos antes/después de escribir, finalizar y confirmar índice; agotar cuota, revocar permisos, cerrar forzosamente y abrir dos pestañas. Repetir save/import-export/reinicio y comprobar checksum. Offline solo cuenta cuando shell, build y archivo son accesibles. No basar guardado en `beforeunload` ni afirmar persistencia absoluta en móvil.

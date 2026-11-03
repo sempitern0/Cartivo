@@ -14,6 +14,7 @@ import {
   sramKey,
 } from "../../../packages/storage/src/formats.ts";
 import { coreLabel } from "../../../packages/runtime/src/systems.ts";
+import { StorageUnavailable } from "../../../packages/storage/src/idb.ts";
 import {
   StateStore,
   makePreview,
@@ -78,6 +79,31 @@ async function tryFlush(): Promise<CommitReport> {
 }
 /** Periodic battery-RAM commits in the background while the game runs. */
 const saves = new BackgroundCommit(tryFlush);
+/** Why nothing can be saved in this browser, or undefined when it can. */
+let noStorage: string | undefined;
+/**
+ * Takes the per-game writer lock and opens Partidas and, for battery games,
+ * the SRAM store (keyed by ROM hash only, so a save moves between cores).
+ * Without usable storage (StorageUnavailable) the game still runs and
+ * nothing is saved; a game open in another tab is still refused.
+ */
+async function openStorage(system: string) {
+  try {
+    states = await StateStore.open(hash);
+    if (core!.battery)
+      store = await SramStore.open(sramKey(system, hash), core!.saveBytes);
+  } catch (e) {
+    states?.close();
+    states = undefined;
+    if (!(e instanceof StorageUnavailable)) throw e;
+    noStorage = `${e.message} Puedes jugar, pero no se guardará el progreso.`;
+  }
+}
+/** The Partidas store, or a clear refusal when this browser cannot save. */
+function snapshots(): StateStore {
+  if (!states) throw Error(noStorage ?? "Partidas no disponibles");
+  return states;
+}
 /** Adds the running game to the library; a failure never stops the game. */
 async function remember(): Promise<
   Pick<EmuResult, "remembered" | "libraryError">
@@ -128,12 +154,9 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     module.validate(rom);
     hash = await digest(rom);
     title = r.file?.name ?? "";
-    // Per-game writer lock first: snapshots exist for every game.
-    states = await StateStore.open(hash);
-    // SRAM is keyed by ROM hash only, so a save moves between cores.
     use(module.create(rom));
-    if (core!.battery) {
-      store = await SramStore.open(sramKey(system, hash), core!.saveBytes);
+    await openStorage(system);
+    if (store) {
       const saved = await store.load();
       if (saved) use(module.create(rom, saved));
     }
@@ -150,7 +173,8 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     return {
       hash,
       core: module.id,
-      states: await states.list(),
+      states: (await states?.list()) ?? [],
+      storageError: noStorage,
       battery: core!.battery,
       recovered: store?.recovered ?? false,
       ...library,
@@ -181,7 +205,8 @@ async function run(r: EmuRequest): Promise<EmuResult> {
   }
   core.input(neutral());
   if (r.command === "library-add") return remember();
-  if (r.command === "state-list") return { states: await states!.list() };
+  if (r.command === "state-list")
+    return { states: (await states?.list()) ?? [] };
   if (r.command === "state-save") {
     const bytes = core.snapshot();
     // Battery RAM is committed too, so both kinds of save agree. Its result
@@ -193,7 +218,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       frame.length === width * height * 4
         ? makePreview(frame, width, height)
         : undefined;
-    await states!.save(r.slot!, bytes, {
+    await snapshots().save(r.slot!, bytes, {
       core: module.id,
       coreVersion: module.version,
       frames: core.frames,
@@ -204,17 +229,20 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       await updateGame(hash, { preview, lastPlayedAt: Date.now() }).catch(
         () => false,
       );
-    return { ...flushed, states: await states!.list() };
+    return { ...flushed, states: await snapshots().list() };
   }
   if (r.command === "state-load") {
-    const bytes = await states!.load(r.slot!, module.id, module.version, (id) =>
-      coreLabel(module.system, id),
+    const bytes = await snapshots().load(
+      r.slot!,
+      module.id,
+      module.version,
+      (id) => coreLabel(module.system, id),
     );
     core.restore(bytes);
-    return { frames: core.frames, states: await states!.list() };
+    return { frames: core.frames, states: await snapshots().list() };
   }
   if (r.command === "state-export") {
-    const record = await states!.record(r.slot!);
+    const record = await snapshots().record(r.slot!);
     return { stateFile: serializeState(record, module.system, hash) };
   }
   if (r.command === "state-import") {
@@ -224,12 +252,12 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       game: hash,
       coreVersion: (id) => findCoreModule(module.system, id)?.version,
     });
-    await states!.put(imported);
-    return { states: await states!.list() };
+    await snapshots().put(imported);
+    return { states: await snapshots().list() };
   }
   if (r.command === "state-delete") {
-    await states!.delete(r.slot!);
-    return { states: await states!.list() };
+    await snapshots().delete(r.slot!);
+    return { states: await snapshots().list() };
   }
   if (r.command === "import") {
     const b = r.backup as {

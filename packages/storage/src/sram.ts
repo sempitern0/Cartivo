@@ -1,4 +1,5 @@
 /** IndexedDB transaction + two verified generations. Saves never enter Cache Storage. */
+import { locks, openDatabase } from "./idb.ts";
 type Generation = { bytes: Uint8Array; sha256: string };
 type RecordValue = { current: Generation; previous?: Generation };
 export async function digest(bytes: Uint8Array): Promise<string> {
@@ -35,16 +36,13 @@ export class SramStore {
     this.release = release;
   }
   static async open(key: string, size = 8192): Promise<SramStore> {
-    if (!navigator.locks)
-      throw Error(
-        "Este navegador no permite coordinar el guardado. Usa un navegador con Web Locks.",
-      );
+    const lockManager = locks();
     let release!: () => void;
     const hold = new Promise<void>((resolve) => {
       release = resolve;
     });
     await new Promise<void>((resolve, reject) => {
-      void navigator.locks
+      void lockManager
         .request("cartivo:sram:" + key, { ifAvailable: true }, async (lock) => {
           if (!lock) {
             reject(
@@ -60,14 +58,11 @@ export class SramStore {
         .catch(reject);
     });
     try {
-      const db = await new Promise<IDBDatabase>((resolve, reject) => {
-        const req = indexedDB.open("cartivo-saves", 1);
-        req.onupgradeneeded = () => req.result.createObjectStore("sram");
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-        req.onblocked = () =>
-          reject(Error("Cierra otras pestañas para preparar el guardado."));
-      });
+      const db = await openDatabase(
+        "cartivo-saves",
+        "sram",
+        "Cierra otras pestañas para preparar el guardado.",
+      );
       return new SramStore(db, key, release, size);
     } catch (e) {
       release();

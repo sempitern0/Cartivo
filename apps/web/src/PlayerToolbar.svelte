@@ -10,6 +10,7 @@
     busy,
     graphicsOpen,
     savesOpen,
+    savesAvailable = true,
     graphicsButton = $bindable(),
     savesButton = $bindable(),
     ongraphics,
@@ -23,6 +24,8 @@
     busy: boolean;
     graphicsOpen: boolean;
     savesOpen: boolean;
+    /** False when this browser cannot save (Partidas would only fail). */
+    savesAvailable?: boolean;
     graphicsButton?: HTMLButtonElement;
     savesButton?: HTMLButtonElement;
     ongraphics: () => void;
@@ -52,7 +55,7 @@
       onclick={onsaves}
       aria-expanded={savesOpen}
       aria-controls="saves-panel"
-      disabled={phase === "loading" || phase === "error"}
+      disabled={phase === "loading" || phase === "error" || !savesAvailable}
       >{@html icons.save}<span>Partidas</span></button
     >
     <button

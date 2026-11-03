@@ -46,6 +46,7 @@
     source,
     visible = true,
     autostart = false,
+    canRemember = true,
     onclose,
     onreplace,
     system,
@@ -55,6 +56,8 @@
     source: GameSource;
     visible?: boolean;
     autostart?: boolean;
+    /** False when the browser cannot keep ROM copies (no OPFS): never ask. */
+    canRemember?: boolean;
     onclose: () => void;
     /** Called after this session closed safely, to start another ROM. */
     onreplace?: (file: File) => void;
@@ -65,6 +68,8 @@
   let notice = $state.raw<HTMLDivElement>();
   let problem = $state("");
   let saveStatus = $state("");
+  /** This browser cannot save at all; the game runs without saving. */
+  let noStorage = $state("");
   let battery = $state(false);
   let frames = $state(0);
   let padStatus = $state("Sin mando");
@@ -252,7 +257,7 @@
     try {
       const choice = readRemember();
       const r = await client.request("load", {
-        ...loadFields(source, choice === true),
+        ...loadFields(source, canRemember && choice === true),
         system: system.id,
         core: coreChoice,
       });
@@ -260,15 +265,21 @@
       if (!active) return;
       battery = !!r.battery;
       saves = r.states ?? [];
-      saveStatus = r.recovered
-        ? "Partida recuperada desde la generación anterior."
-        : battery
-          ? "Guardado automático preparado."
-          : "Este cartucho no tiene batería; usa Partidas para guardar.";
+      noStorage = r.storageError ?? "";
+      saveStatus = noStorage
+        ? noStorage
+        : r.recovered
+          ? "Partida recuperada desde la generación anterior."
+          : battery
+            ? "Guardado automático preparado."
+            : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
       if (r.libraryError) problem = r.libraryError;
       askRemember =
-        source.kind === "file" && choice === undefined && !r.remembered;
+        canRemember &&
+        source.kind === "file" &&
+        choice === undefined &&
+        !r.remembered;
       const exit = saves.find((s) => s.slot === "auto");
       // «Continuar» from the home screen goes straight to the exit snapshot.
       if (source.kind === "library" && source.resume && exit)
@@ -559,6 +570,7 @@
     {busy}
     {graphicsOpen}
     {savesOpen}
+    savesAvailable={!noStorage}
     bind:graphicsButton
     bind:savesButton
     ongraphics={toggleGraphics}
@@ -574,6 +586,9 @@
     hidden
   />
 
+  {#if noStorage}<p class="storage-note" role="status" data-player-chrome>
+      {noStorage}
+    </p>{/if}
   {#if source.kind === "demo" && phase !== "running"}<p class="demo-info" data-player-chrome>
       {demoHint}
     </p>{/if}
@@ -710,6 +725,9 @@
 
 <style>
   .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .storage-note {
+    color: var(--gold);
+  }
   .notice {
     background: #34202a;
     border: 1px solid var(--coral);
