@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { openNesFile, patchWorker, playDemo } from "./play.ts";
 
 // What Cartivo says and does when the browser keeps less than usual.
 
@@ -14,13 +15,7 @@ test("without OPFS (private window) the home warns and nothing asks to remember"
   await expect(
     page.getByRole("status").filter({ hasText: "no guarda copias" }),
   ).toBeVisible();
-  const { controlDemo } =
-    await import("../../packages/fixtures/src/control-demo.ts");
-  await page.locator("input[type=file]").setInputFiles({
-    name: "juego.nes",
-    mimeType: "application/octet-stream",
-    buffer: Buffer.from(controlDemo()),
-  });
+  await openNesFile(page);
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   // Partidas still work (IndexedDB); only the library is off.
   await expect(page.getByRole("button", { name: "Sí, recordar" })).toHaveCount(
@@ -40,27 +35,12 @@ test.describe("without Web Locks", () => {
     const noLocks = (proto: string) =>
       `Object.defineProperty(${proto}.prototype, "locks", { get: () => undefined });\n`;
     await page.addInitScript(noLocks("Navigator"));
-    await page.context().route(/emulator\.worker/, async (route) => {
-      const response = await route.fetch();
-      await route.fulfill({
-        response,
-        body: noLocks("WorkerNavigator") + (await response.text()),
-      });
-    });
+    await patchWorker(page, noLocks("WorkerNavigator"));
     await page.goto("/");
     await expect(
       page.getByRole("status").filter({ hasText: "no permite guardar" }),
     ).toBeVisible();
-    await page
-      .getByRole("article", { name: "Game Boy", exact: true })
-      .getByRole("button", { name: "Probar demo" })
-      .click();
-    await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
-    await expect
-      .poll(async () =>
-        Number(await page.locator("canvas").getAttribute("data-frames")),
-      )
-      .toBeGreaterThan(10);
+    await playDemo(page, "Game Boy");
     await expect(
       page
         .getByRole("status")
