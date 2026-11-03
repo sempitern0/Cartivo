@@ -66,27 +66,82 @@ test("the D-pad moves between cards and A starts a demo", async ({ page }) => {
   await playing(page);
 });
 
-test("Select+Start pauses; A resumes; Partidas closes with B", async ({
+test("modo consola: Select+Start opens the pause menu; Partidas and B", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playDemo(page, "NES");
+  // Playing with the pad switches the automatic interface to «Mando».
+  await press(page, SELECT, START);
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await expect(page.locator("html")).toHaveAttribute("data-ui", "pad");
+  const menu = page.getByRole("dialog", { name: "En pausa" });
+  const resume = menu.getByRole("button", { name: "Reanudar juego" });
+  await expect(resume).toBeFocused();
+
+  await press(page, DOWN);
+  await expect(menu.getByRole("button", { name: "Partidas" })).toBeFocused();
+  await press(page, A);
+  await expect(page.getByRole("heading", { name: "Partidas" })).toBeVisible();
+  await expect(menu).toBeHidden();
+  await press(page, B);
+  await expect(page.getByRole("heading", { name: "Partidas" })).toBeHidden();
+  await expect(resume).toBeFocused();
+
+  // B in the menu goes back to the game.
+  await press(page, B);
+  await playing(page);
+});
+
+test("modo consola: «Salir del juego» from the pause menu", async ({
   page,
 }) => {
   await page.goto("/");
   await playDemo(page, "NES");
   await press(page, SELECT, START);
-  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
-  const resume = page.getByRole("button", { name: "Reanudar juego" });
-  await expect(resume).toBeFocused();
-
-  const saves = page.getByRole("button", { name: "Partidas" });
-  await saves.focus();
+  const menu = page.getByRole("dialog", { name: "En pausa" });
+  await expect(
+    menu.getByRole("button", { name: "Reanudar juego" }),
+  ).toBeFocused();
+  // Reanudar → Partidas → Gráficos → Controles → Reiniciar → Salir.
+  for (let i = 0; i < 5; i++) await press(page, DOWN);
+  await expect(
+    menu.getByRole("button", { name: "Salir del juego" }),
+  ).toBeFocused();
   await press(page, A);
-  await expect(page.getByRole("heading", { name: "Partidas" })).toBeVisible();
-  await press(page, B);
-  await expect(page.getByRole("heading", { name: "Partidas" })).toBeHidden();
-  await expect(saves).toBeFocused();
+  await expect(
+    page.getByRole("heading", { name: "Elige una consola" }),
+  ).toBeVisible();
+  await expect(page.locator(".pad-hints")).toBeVisible();
+});
 
-  await resume.focus();
-  await press(page, A);
-  await playing(page);
+test("automatic interface follows the device; Ajustes can fix «Mando»", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const html = page.locator("html");
+  await expect(html).toHaveAttribute("data-ui", "pointer");
+  await page
+    .getByRole("article", { name: "NES", exact: true })
+    .getByRole("button", { name: "Probar demo" })
+    .focus();
+  await press(page, RIGHT);
+  await expect(html).toHaveAttribute("data-ui", "pad");
+  await expect(page.locator(".pad-hints")).toContainText("Aceptar");
+  await page.mouse.click(5, 5);
+  await expect(html).toHaveAttribute("data-ui", "pointer");
+  await expect(page.locator(".pad-hints")).toHaveCount(0);
+
+  await page.goto("/#controles");
+  const choice = page.getByRole("group", { name: "Interfaz" });
+  await choice.getByText("Mando", { exact: true }).click();
+  await expect(html).toHaveAttribute("data-ui", "pad");
+  await page.mouse.click(5, 5);
+  await expect(html).toHaveAttribute("data-ui", "pad");
+  await page.reload();
+  await expect(html).toHaveAttribute("data-ui", "pad");
+  await choice.getByText("Automática", { exact: true }).click();
+  await expect(html).toHaveAttribute("data-ui", "pointer");
 });
 
 test("on Controls, B goes back and the test keeps the focus", async ({

@@ -10,6 +10,7 @@ import {
   type Direction,
 } from "../../../packages/input/src/ui-navigation.ts";
 import type { Pad } from "../../../packages/input/src/nes-input.ts";
+import { ui } from "./input-mode.svelte.ts";
 
 const FOCUSABLE =
   'button, a[href], summary, select, input:not([type="file"]):not([type="hidden"]), [tabindex="0"]';
@@ -60,8 +61,10 @@ function box(el: Element): Box {
   return { x: r.x, y: r.y, width: r.width, height: r.height };
 }
 
+/** Controls on screen; inside an open modal (the pause menu), only its own. */
 function candidates() {
-  return Array.from(document.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+  const scope = document.querySelector("dialog:modal") ?? document;
+  return Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
     usable,
   );
 }
@@ -141,12 +144,16 @@ function back() {
 
 /** Starts listening; returns the cleanup. Call once, from the app root. */
 export function startPadNavigation() {
-  const root = document.documentElement;
   let frame = 0;
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
-    if (owners.size) return;
     const pad = standardPad();
+    if (owners.size) {
+      // The game has the pad, but playing with it still means «Mando»: the
+      // pause gesture then opens the console menu.
+      if (pad?.buttons.some((b) => b.pressed)) ui.lastDevice = "pad";
+      return;
+    }
     if (absorbNext) {
       absorbNext = false;
       intents.absorb(pad, now);
@@ -154,15 +161,15 @@ export function startPadNavigation() {
     }
     const wanted = intents.read(pad, now);
     if (!wanted.length) return;
-    root.dataset.input = "pad";
+    ui.lastDevice = "pad";
     for (const intent of wanted)
       if (intent === "accept") accept();
       else if (intent === "back") back();
       else move(intent);
   };
-  // A pointer or a real key takes the pad's focus ring away again.
+  // A pointer or a real key hands the interface back to them.
   const other = (event: Event) => {
-    if (event.isTrusted) delete root.dataset.input;
+    if (event.isTrusted) ui.lastDevice = "pointer";
   };
   frame = requestAnimationFrame(loop);
   window.addEventListener("pointerdown", other, true);
@@ -171,6 +178,5 @@ export function startPadNavigation() {
     cancelAnimationFrame(frame);
     window.removeEventListener("pointerdown", other, true);
     window.removeEventListener("keydown", other, true);
-    delete root.dataset.input;
   };
 }

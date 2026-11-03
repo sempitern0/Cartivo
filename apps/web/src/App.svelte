@@ -17,6 +17,9 @@
   } from "../../../packages/storage/src/persistence.ts";
   import { icons } from "./icons.ts";
   import { startPadNavigation } from "./pad-navigation.svelte.ts";
+  import { ui } from "./input-mode.svelte.ts";
+  import InterfacePreference from "./InterfacePreference.svelte";
+  import PadHints from "./PadHints.svelte";
   import {
     acceptFor,
     availableSystems,
@@ -129,6 +132,13 @@
       history.pushState(null, "", home);
     void showPage();
   }
+  // `data-ui` picks the presentation (modo consola); `data-input` the focus
+  // ring of the device actually in use.
+  $effect(() => {
+    const root = document.documentElement;
+    root.dataset.ui = ui.current;
+    root.dataset.input = ui.lastDevice;
+  });
   type LaunchParams = { files: readonly FileSystemFileHandle[] };
   type LaunchQueue = {
     setConsumer: (consumer: (params: LaunchParams) => void) => void;
@@ -213,6 +223,7 @@
           <h1 bind:this={pageHeading} tabindex="-1">Configurar controles</h1>
         </div>
       </div>
+      <InterfacePreference />
       <ControlsPanel />
     </section>
   {:else if page === "juegos" && !game}
@@ -343,6 +354,7 @@
         />
       {/key}
     </div>{/if}
+  {#if ui.current === "pad"}<PadHints />{/if}
 </main>
 
 <style>
@@ -636,5 +648,23 @@
     .consoles {
       grid-template-columns: minmax(0, 1fr);
     }
+  }
+  /* Modo consola: the consoles become a horizontal carousel the D-pad
+     scrolls through, and the page keeps room for the button legend. */
+  :global(:root[data-ui="pad"]) main {
+    padding-bottom: 96px;
+  }
+  :global(:root[data-ui="pad"]) .consoles {
+    grid-auto-flow: column;
+    grid-template-columns: none;
+    grid-template-rows: repeat(3, auto);
+    grid-auto-columns: minmax(260px, 30%);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 8px 8px 16px;
+  }
+  :global(:root[data-ui="pad"]) .consoles > li {
+    grid-row: 1 / span 3;
+    scroll-snap-align: start;
   }
 </style>

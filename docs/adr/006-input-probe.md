@@ -41,3 +41,9 @@ El mando también maneja las pantallas de Cartivo. La lógica pura (`packages/in
 La pausa con mando es **Select+Start** a la vez (`isPauseGesture`), leída a través del perfil del jugador (respeta remapeos y vale también con teclado). Un juego que use esa combinación la verá como pausa: es el gesto habitual de los frontends y Home no siempre llega al navegador. El mismo gesto sale de la prueba de Controles, para que el mando solo no quede atrapado. Solo se navega con mandos `standard`; uno sin distribución conocida sigue funcionando en el juego tras asignarlo.
 
 El laboratorio de diagnóstico de H0 citado en la revisión «utilidad del jugador» se retiró: no quedaba diagnóstico que conservar.
+
+## Revisión: modo consola (2026-11-03)
+
+Tras la QA del titular con un mando real, la interfaz se separa en dos presentaciones sin tocar núcleos ni protocolo. `apps/web/src/input-mode.svelte.ts` guarda la preferencia (`cartivo:ui:mode:v1`: `auto`, `pointer` o `pad`; desconocida o sin almacenamiento, `auto`) y el último dispositivo usado; la resolución es pura (`parseUiPreference`, `resolveUiMode` en `ui-navigation.ts`). La raíz recibe `data-ui` (presentación) y `data-input` (anillo de foco del dispositivo real), que son cosas distintas: con «Teclado y ratón» fijado, el mando sigue navegando con su anillo. Jugar con el mando cuenta como usarlo, así que Select+Start abre directamente el menú de pausa.
+
+El menú de pausa (`PauseMenu.svelte`) es un `<dialog>` modal: el resto queda inerte, la navegación con mando busca solo dentro de `dialog:modal` y Escape o B (Escape sintético, que no dispara `cancel`) reanudan. Se descartó un shell separado tipo «Big Picture»: duplicaría pantallas y estado.

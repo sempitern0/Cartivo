@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import {
   isPauseGesture,
   nearest,
+  parseUiPreference,
+  resolveUiMode,
   PadIntents,
   type Box,
 } from "../packages/input/src/ui-navigation.ts";
@@ -75,4 +77,15 @@ test("the pause gesture is Select and Start together", () => {
   assert.equal(isPauseGesture({ select: true, start: true }), true);
   assert.equal(isPauseGesture({ select: true, start: false }), false);
   assert.equal(isPauseGesture({ select: false, start: true }), false);
+});
+
+test("the interface follows the last device unless the player fixes it", () => {
+  assert.equal(parseUiPreference("pad"), "pad");
+  assert.equal(parseUiPreference("pointer"), "pointer");
+  assert.equal(parseUiPreference(null), "auto");
+  assert.equal(parseUiPreference("tv"), "auto");
+  assert.equal(resolveUiMode("auto", "pad"), "pad");
+  assert.equal(resolveUiMode("auto", "pointer"), "pointer");
+  assert.equal(resolveUiMode("pad", "pointer"), "pad");
+  assert.equal(resolveUiMode("pointer", "pad"), "pointer");
 });

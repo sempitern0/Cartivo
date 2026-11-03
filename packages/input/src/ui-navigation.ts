@@ -127,3 +127,18 @@ export function nearest(from: Box, candidates: readonly Box[], dir: Direction) {
   });
   return best;
 }
+
+/**
+ * Interface preference (Ajustes): automatic follows the last device used;
+ * the other two fix the presentation. Anything unknown is automatic.
+ */
+export type UiPreference = "auto" | "pointer" | "pad";
+export type UiMode = "pointer" | "pad";
+
+export const parseUiPreference = (value: unknown): UiPreference =>
+  value === "pointer" || value === "pad" ? value : "auto";
+
+export const resolveUiMode = (
+  preference: UiPreference,
+  lastDevice: UiMode,
+): UiMode => (preference === "auto" ? lastDevice : preference);

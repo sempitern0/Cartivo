@@ -23,7 +23,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Subruta | La build con `--base /cartivo/` funciona bajo esa ruta: demo, manifest relativo (`start_url` y `scope` en `/cartivo/`), licencias, logo, SW con ámbito `/cartivo/`, juego sin conexión y ninguna petición fuera de la subruta. **CI sobre `0c58e14`** (run 41544269746): en verde, como las seis tandas de navegador | `tests/e2e/subpath.spec.ts`, `playwright.subpath.config.ts`; `tests/systems.test.ts` (licencias relativas y existentes) |
 | Fallos inyectados | En navegador real, sin depender del azar: núcleo servido con MIME incorrecto (arranca por la alternativa); sin espacio al recordar (sigue jugando, lo explica y no queda nada a medias en la biblioteca); cierre de la pestaña a mitad de partida (al reabrir, la SRAM es una generación válida, sin errores). Ya cubiertos en otras pruebas: dos sesiones del mismo juego (`nes.spec.ts`), estados de otra versión o dañados (`integrity.spec.ts`, `saves.spec.ts`), sin Web Locks ni OPFS (`storage.spec.ts`). **CI sobre `a741b88`** (run 41548044075): en verde en las siete tandas (el de cuota se omite en WebKit, sin OPFS) | `tests/e2e/faults.spec.ts` |
 | Entrada | Teclado, mando sintético, remapeo, neutralización | `tests/input.test.ts`, E2E de controles |
-| Interfaz con mando | Foco espacial con la cruceta, A pulsa, B cierra o vuelve, Select+Start pausa, la prueba de Controles retiene el mando | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
+| Interfaz con mando | Foco espacial con la cruceta, A pulsa, B cierra o vuelve, Select+Start pausa, la prueba de Controles retiene el mando; modo consola automático o fijado, menú de pausa modal con Salir del juego | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
 
 ## Manual
 
@@ -35,7 +35,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Firefox escritorio real (pestaña, offline, audio en altavoces, mando) | Pendiente; las E2E automáticas ya pasan en Firefox headless | — |
 | Safari macOS, iOS/iPadOS (añadir a inicio, offline, biblioteca con OPFS) | Pendiente, **prioridad baja** (decisión del titular); las E2E automáticas ya pasan en WebKit | — |
 | Android Chrome: instalación, suspensión, presión de almacenamiento | Pendiente | — |
-| Mando real USB/Bluetooth (Xbox/PlayStation): conexión, remapeo, navegación, pausa | Pendiente | [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md) |
+| Mando real USB/Bluetooth (Xbox/PlayStation): conexión, remapeo, navegación, pausa y modo consola (leyenda, carrusel, menú de pausa) | Pendiente | [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md) |
 | Audio en altavoces reales (latencia, cortes) | Pendiente | — |
 | «Abrir con Cartivo» desde el explorador de archivos | Pendiente | — |
 | Actualización retenida con partida abierta en otra pestaña | Pendiente (necesita dos builds desplegadas; no se fuerza en headless) | — |

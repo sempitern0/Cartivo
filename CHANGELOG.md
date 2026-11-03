@@ -270,3 +270,8 @@
 
 - Abrir un archivo lo recuerda en el dispositivo sin preguntar; el interruptor de «Tus juegos» lo desactiva. La respuesta antigua a la pregunta deja de contar (`cartivo:library:remember:v2`) y se retiran `RememberPrompt.svelte` y la petición `library-add`.
 - El inicio muestra los tres juegos más recientes (la tarjeta grande Continuar y dos compactos) y enlaza a la nueva página `#juegos`: búsqueda sin acentos, filtro por consola, orden reciente o por nombre, Continuar y Quitar. Lógica pura en `viewGames`.
+
+### Modo consola: una interfaz para el mando
+
+- La interfaz es automática: al usar el mando pasa al modo consola y vuelve a la de escritorio con el ratón o el teclado. En **Ajustes → Interfaz** se puede fijar «Teclado y ratón» o «Mando».
+- Modo consola: leyenda de botones abajo, consolas en carrusel y la pausa como menú vertical modal (Reanudar juego, Partidas, Gráficos, Controles, Reiniciar consola, Salir del juego), con B para reanudar. Solo cambia la presentación: núcleos y protocolo intactos.
