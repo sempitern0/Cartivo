@@ -40,22 +40,18 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts`, `session.spec.ts` |
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
+| Fiabilidad y portabilidad (auditoría del titular): escrituras recuperables de la biblioteca, captura acotada, guardado SRAM separado y en segundo plano, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado, E2E en Firefox y WebKit (Worker de un solo archivo, `FramePacer`), subruta (`--base`), avisos cuando el navegador guarda menos y fallos inyectados en navegador real | `packages/storage/src/{library,background-commit,persistence,idb}.ts`, `wasm-host.ts`, `client.ts`, `offline-cache.ts`, `frame-pacer.ts` | ADR-003/007/012 | `tests/e2e/{faults,storage,subpath}.spec.ts`, [H1-QA](compatibility/H1-QA.md) |
 | CI: job `verify` (`verify:core`, Prettier, svelte-check, unitarias) y matriz `e2e` en paralelo (Chromium, Firefox y WebKit × dev y preview, más Chromium con la build bajo `/cartivo/`, build solo en preview, audio virtual en Firefox, pantalla virtual en WebKit, un reintento con traza), con preparación común en `.github/actions/setup`; unos 5 min en total; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
 
 ## 3. Pendiente (lista de trabajo, en orden)
 
 Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
 
-1. **Cerrar H1.** Solo queda la QA física del titular: mando real, audio en altavoces, instalación y suspensión en móvil (Android y escritorio Windows/Linux; Safari, macOS e iOS tienen prioridad baja por decisión del titular) ([H1-QA](compatibility/H1-QA.md), sección Manual). Lo automático está hecho.
-2. **Fiabilidad y portabilidad** (de la auditoría del titular, 2026-11-02).
-   - **Hecho:** escrituras recuperables de la biblioteca, captura acotada, resultado de guardado separado, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado E2E en WebKit (Worker de un solo archivo y paradas puntuales absorbidas por `FramePacer`), despliegue bajo una subruta (`pnpm build --base /cartivo/`, con su E2E) y avisos cuando el navegador guarda menos (sin OPFS: sin biblioteca; sin Web Locks o IndexedDB: se juega sin guardar, ADR-003).
-   - **Pendiente:**
-     - pruebas de fallo en navegador real (las de lógica pura ya existen: biblioteca, guardado en segundo plano, caché offline): cierre durante una escritura, `QuotaExceededError`, dos pestañas, actualización con otra pestaña jugando, estado incompatible, suspensión larga;
-     - matriz de QA por navegador y sistema en [H1-QA](compatibility/H1-QA.md).
-3. **H1.5 · sin fricción.**
+1. **Cerrar H1.** Solo queda la QA física del titular: mando real, audio en altavoces, instalación, suspensión larga en móvil y actualización de la app con otra pestaña jugando (Android y escritorio Windows/Linux; Safari, macOS e iOS tienen prioridad baja por decisión del titular) ([H1-QA](compatibility/H1-QA.md), sección Manual). Lo automático está hecho.
+2. **H1.5 · sin fricción.**
    - UI navegable con mando: la cruceta mueve el foco, A acepta, B vuelve, menú de pausa.
    - Despliegue en Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
-4. **Deuda técnica conocida.**
+3. **Deuda técnica conocida.**
    - Cadencia por juego: hoy el host avanza al `frameRate` del sistema; por eso SNES y Mega Drive rechazan los cartuchos PAL (50 Hz). Sincronía A/V fina.
    - Ajustes de núcleo declarados por schema.
    - P2–P4 con perfiles.
@@ -63,15 +59,15 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
    - Paletas DMG opcionales.
    - Perfiles de pantalla por sistema.
    - Presupuestos de rendimiento medidos por núcleo (§7).
-5. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
-6. **H4 · 3D.**
+4. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
+5. **H4 · 3D.**
    - N64 (Mupen64Plus-Next o ares), PS1 (PCSX-ReARMed o Beetle PSX) y PSP (PPSSPP).
    - Lectura por bloques de discos sin copiar la imagen al heap WASM.
    - `EmulatorCore` entrega hoy RGBA de tamaño fijo y audio mono a 48 kHz. Las capacidades opcionales (resolución variable, audio y temporización por núcleo) se diseñan con el primer núcleo 3D y su ADR, sin romper los núcleos actuales.
    - Renderer propio (WebGL u OffscreenCanvas). Hilos solo si se miden, con COOP/COEP.
-7. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
-8. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
-9. **Laboratorio PS2.** Play! opcional con límites publicados.
+6. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
+7. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
+8. **Laboratorio PS2.** Play! opcional con límites publicados.
 
 ## 4. Hito futuro H6 — Cuentas online con Supabase
 

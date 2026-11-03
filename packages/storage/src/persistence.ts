@@ -21,8 +21,10 @@ export async function storageHealth(
   env: Env = globalThis as Env,
 ): Promise<StorageHealth> {
   if (!env.indexedDB || !env.navigator?.locks) return "none";
+  const storage = env.navigator.storage;
+  if (!storage?.getDirectory) return "limited";
   try {
-    await env.navigator.storage!.getDirectory!();
+    await storage.getDirectory();
     return "ok";
   } catch {
     return "limited";

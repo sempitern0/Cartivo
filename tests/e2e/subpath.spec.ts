@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { playDemo } from "./play.ts";
 
 // Cartivo deployed under a sub-path (/cartivo/): every link, the manifest,
 // the service worker, the Worker and the cores stay inside it.
@@ -30,16 +31,7 @@ test("the app works under /cartivo/, also offline", async ({
     );
 
   // A game, its core and the licence links.
-  await page
-    .getByRole("article", { name: "Game Boy", exact: true })
-    .getByRole("button", { name: "Probar demo" })
-    .click();
-  await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
-  await expect
-    .poll(async () =>
-      Number(await page.locator("canvas").getAttribute("data-frames")),
-    )
-    .toBeGreaterThan(10);
+  await playDemo(page, "Game Boy");
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByText("Acerca de esta prueba", { exact: true }).click();
   const notice = await page
