@@ -204,7 +204,6 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     return { saved, frames: 0 };
   }
   core.input(neutral());
-  if (r.command === "library-add") return remember();
   if (r.command === "state-list")
     return { states: (await states?.list()) ?? [] };
   if (r.command === "state-save") {

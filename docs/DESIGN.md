@@ -28,7 +28,10 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 ### Inicio · «Elige una consola»
 El logo de la cabecera lleva siempre al inicio. Rejilla de tarjetas de igual altura (cuatro por fila en escritorio, una en móvil) que crece con cada sistema aceptado; hoy, NES, Game Boy, Game Boy Color, Game Boy Advance, SNES, Master System y Mega Drive. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre las extensiones de esa consola: `.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`), icono **Controles de {consola}**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida. Si el navegador guarda menos (ventana privada sin OPFS, o sin Web Locks/IndexedDB), una línea discreta en dorado bajo el título lo explica; nunca un modal que impida jugar.
 
-Con juegos recordados (ADR-012), encima de la rejilla aparece la tarjeta **Continuar**: miniatura de «Al salir», nombre, consola y fecha; un clic carga el juego desde el dispositivo y sigue desde «Al salir» sin aviso. Debajo, **Tus juegos**: lista por fecha con **Jugar** y **Quitar** (confirmación en línea que recuerda que las partidas se conservan), el espacio ocupado y el interruptor «Recordar juegos nuevos en este dispositivo».
+Con juegos recordados (ADR-012), encima de la rejilla aparecen los tres más recientes: la tarjeta grande **Continuar** (miniatura de «Al salir», nombre, consola y fecha) y dos compactos con su botón de continuar. Todos cargan el juego desde el dispositivo y siguen desde «Al salir» sin aviso. Debajo, «Ver todos tus juegos (N)» y, en la cabecera, **Tus juegos** junto a Ajustes.
+
+### Tus juegos (`#juegos`)
+Página propia con volver al inicio. Búsqueda por nombre, chips de consola (solo las que tienen juegos, si hay más de una) y orden **Recientes** o **Nombre**. Rejilla de tarjetas con miniatura, nombre, consola, fecha y tamaño, **Continuar** como acción principal y **Quitar** con confirmación en línea que recuerda que las partidas se conservan. Al pie, el espacio ocupado, el interruptor «Recordar juegos nuevos en este dispositivo» (activado por defecto) y la nota de privacidad. Con un juego abierto no se ofrece.
 
 ### Configurar controles (`#controles`, desde **Ajustes**)
 La barra **Activar prueba** y la zona de prueba van justo encima de los dibujos del teclado y del mando, para ver qué se ilumina sin desplazarse.
@@ -41,7 +44,6 @@ Tarjeta de teclado y tarjeta de mando genérico (dibujos propios) que se ilumina
 - Errores en un aviso por encima del vídeo, llevado a la vista.
 - «Copias de partida» (exportar/importar la memoria de batería) y «Acerca de esta prueba» (núcleo TetaNES/JSNES y licencias) plegados, solo en pausa o error.
 - Al reabrir un juego con partida «Al salir», un aviso sobre el vídeo ofrece **Continuar** o **Empezar de nuevo**, con miniatura y fecha.
-- La primera vez que se abre un juego desde archivo, una línea discreta bajo la barra pregunta «¿Recordar tus juegos en este dispositivo para continuar con un clic?» con **Sí, recordar** y **No**. No pausa la partida y no vuelve a aparecer.
 
 ### Panel Partidas
 Mismo estilo que Gráficos (pausa al abrir). Tarjeta «Al salir» (automática) y tres ranuras con miniatura, fecha y núcleo; **Guardar aquí**, **Cargar** (pide confirmar porque sustituye el progreso no guardado), **Exportar** (descarga un archivo de esa ranura) y **Borrar**. Al pie, **Importar partida…** devuelve un archivo a su ranura de origen; si está ocupada, pide **Sustituir** o **Cancelar** en línea. F5 guarda en la ranura 1 y F9 la carga, con confirmación breve bajo el vídeo. Si el juego tiene batería, se aclara que su partida interna se guarda aparte.

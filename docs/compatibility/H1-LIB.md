@@ -6,11 +6,12 @@ Estado: **experimental.** Un juego abierto desde archivo puede recordarse en el 
 
 | Pieza | Implementación |
 |---|---|
-| Consentimiento | Una pregunta la primera vez que se abre un juego desde archivo; interruptor en «Tus juegos». Demos excluidas |
+| Recordar | Por defecto al abrir un archivo, sin pregunta; interruptor en «Tus juegos» (`cartivo:library:remember:v2`, solo guarda «off»). Demos excluidas; sin OPFS, nada |
 | Copia | OPFS `roms/<sha256>`, escrita y verificada (relectura + SHA-256) en el Worker antes de registrar la entrada |
 | Índice | IndexedDB `cartivo-library`, validado en runtime; miniatura de «Al salir» actualizada al guardar esa ranura |
 | Carga | Protocolo v1 `load { stored }`; el Worker rechaza una copia cuyo SHA-256 no coincide |
-| Inicio | Tarjeta «Continuar» (juego más reciente, sigue desde «Al salir» sin aviso) y lista «Tus juegos» (Jugar, Quitar con confirmación, espacio ocupado) |
+| Inicio | Los tres más recientes: tarjeta grande «Continuar» y dos compactos, todos desde «Al salir» sin aviso; enlace «Ver todos tus juegos (N)» |
+| `#juegos` | Búsqueda sin mayúsculas ni acentos, filtro por consola, orden reciente o por nombre (`viewGames`), Continuar, Quitar con confirmación, espacio ocupado e interruptor |
 | Borrado | Quita la copia y la entrada; Partidas y SRAM intactas |
 
 ## Evidencia
@@ -19,6 +20,7 @@ Estado: **experimental.** Un juego abierto desde archivo puede recordarse en el 
 |---|---|
 | `tests/library.test.ts` | Validación de entradas (hash, sistema, nombre, tamaños, miniatura), orden por última partida, preferencia con almacenamiento bloqueado, protocolo `stored`/`remember`/`library-add` (una sola fuente por carga, solo archivos se recuerdan). `node --test` local: 88/88 |
 | E2E `tests/e2e/library.spec.ts` | Recordar → salir → recargar → «Continuar» juega desde «Al salir» sin selector, aviso ni pregunta; «No» no crea copias y no vuelve a preguntar; quitar conserva las Partidas; copia dañada en OPFS rechazada con mensaje; inicio a 375 px sin desbordamiento; «Continuar» sin conexión en preview. **CI sobre `7763c80`** (Foundation CI, run 41341756351): 5/5 en dev (la prueba sin conexión solo aplica a preview) y 6/6 en preview; suite completa 58 superados en dev y en preview, `svelte-check` sin errores ni avisos |
+| E2E tras la revisión del 2026-11-03 | Abrir un archivo lo recuerda sin preguntar; con cuatro juegos el inicio muestra tres y «Ver todos (4)»; en `#juegos` buscar, «Ningún juego coincide», orden por nombre y Continuar; desactivar el interruptor deja fuera el siguiente; quitar desde `#juegos` conserva las Partidas; sin OPFS no aparece «Tus juegos». Unitarias: `rememberGames` (v1 ignorada y borrada, «off», storage bloqueado) y `viewGames`. CI: ver la PR |
 
 ### Revisión de fiabilidad (ADR-012, 2026-11-02)
 

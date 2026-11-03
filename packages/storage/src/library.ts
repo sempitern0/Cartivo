@@ -21,7 +21,10 @@ export type LibraryEntry = {
 };
 
 export const MAX_NAME = 255;
-export const REMEMBER_KEY = "cartivo:library:remember:v1";
+/** Only stores "off": remembering is the default (ADR-012, revision). */
+export const REMEMBER_KEY = "cartivo:library:remember:v2";
+/** The old one-time answer; ignored and removed so everyone starts on. */
+const OLD_REMEMBER_KEY = "cartivo:library:remember:v1";
 
 export const isSha256 = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
@@ -65,27 +68,55 @@ export function parseEntry(value: unknown): LibraryEntry | undefined {
 export const byRecent = (entries: readonly LibraryEntry[]) =>
   [...entries].sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 
-/** The player's one-time answer: true, false or undefined (not asked yet). */
-export function readRemember(storage?: Pick<Storage, "getItem">) {
+type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+
+/** Whether opened files are remembered: yes unless the player turned it off. */
+export function rememberGames(storage?: PreferenceStorage) {
   try {
-    const value = (storage ?? localStorage).getItem(REMEMBER_KEY);
-    return value === "yes" ? true : value === "no" ? false : undefined;
+    const store = storage ?? localStorage;
+    store.removeItem(OLD_REMEMBER_KEY);
+    return store.getItem(REMEMBER_KEY) !== "off";
   } catch {
-    return undefined;
+    return true;
   }
 }
 
 /** Returns false when the browser does not allow keeping the choice. */
-export function writeRemember(
-  value: boolean,
-  storage?: Pick<Storage, "setItem">,
-) {
+export function writeRemember(on: boolean, storage?: PreferenceStorage) {
   try {
-    (storage ?? localStorage).setItem(REMEMBER_KEY, value ? "yes" : "no");
+    const store = storage ?? localStorage;
+    if (on) store.removeItem(REMEMBER_KEY);
+    else store.setItem(REMEMBER_KEY, "off");
     return true;
   } catch {
     return false;
   }
+}
+
+export type GameSort = "recent" | "name";
+export type GameView = { query: string; system: string; sort: GameSort };
+
+/** Lowercase and without accents, so «pokémon» finds «Pokemon». */
+const fold = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+
+/** The «Tus juegos» page: search by name, one console (or ""), an order. */
+export function viewGames(
+  entries: readonly LibraryEntry[],
+  { query, system, sort }: GameView,
+) {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  const shown = entries.filter(
+    (e) =>
+      (!system || e.system === system) &&
+      words.every((w) => fold(e.name).includes(w)),
+  );
+  return sort === "name"
+    ? shown.sort((a, b) => a.name.localeCompare(b.name, "es"))
+    : byRecent(shown);
 }
 
 function openIndex() {

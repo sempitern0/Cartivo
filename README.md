@@ -11,7 +11,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho se guarda sola sin frenar la imagen |
-| **Biblioteca** | «Continuar» y «Tus juegos»: con tu permiso, la copia del juego se guarda en el navegador |
+| **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
 | **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) y consolas 3D (N64, PS1, PSP); Safari/iOS con prioridad baja |
 
@@ -67,7 +67,7 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados 
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**. También maneja la interfaz: cruceta o stick mueven el foco, A pulsa, B cierra o vuelve y **Select+Start** pausa la partida.
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar, cargar, exportar e importar ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.
-- La primera vez que abres un juego, Cartivo pregunta si quieres **recordar tus juegos en este dispositivo**. Si aceptas, la tarjeta **Continuar** del inicio reanuda el último juego con un clic, sin volver a elegir el archivo, y **Tus juegos** lista los demás. La copia se guarda solo en tu navegador; quitar un juego de la lista conserva sus partidas ([ADR-012](docs/adr/012-library-continue.md)).
+- Cada juego que abres se recuerda en este dispositivo: el inicio muestra los tres últimos y **Continuar** los reanuda con un clic, sin volver a elegir el archivo. **Tus juegos** los lista todos, con búsqueda, filtro por consola y orden, y permite desactivar el recordatorio. La copia se guarda solo en tu navegador; quitar un juego de la lista conserva sus partidas ([ADR-012](docs/adr/012-library-continue.md)).
 - Algunos menús usan **Select** para elegir opción; por ejemplo, «1/2 PLAYERS» en Contra.
 
 ## Estructura

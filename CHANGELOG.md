@@ -265,3 +265,8 @@
 
 - `AGENTS.md` se reduce a las reglas transversales y a un método de lectura progresiva; las reglas de núcleos, artefactos WASM y licencias pasan a `cores/AGENTS.md` (con `cores/CLAUDE.md` para que Claude Code las cargue en esa carpeta).
 - Nuevo `docs/ai/CONTEXT.md`: tabla área → archivos y pruebas por donde empezar, para no leer el árbol entero. `CLAUDE.md` solo enlaza ambos.
+
+### Tus juegos, sin preguntas
+
+- Abrir un archivo lo recuerda en el dispositivo sin preguntar; el interruptor de «Tus juegos» lo desactiva. La respuesta antigua a la pregunta deja de contar (`cartivo:library:remember:v2`) y se retiran `RememberPrompt.svelte` y la petición `library-add`.
+- El inicio muestra los tres juegos más recientes (la tarjeta grande Continuar y dos compactos) y enlaza a la nueva página `#juegos`: búsqueda sin acentos, filtro por consola, orden reciente o por nombre, Continuar y Quitar. Lógica pura en `viewGames`.

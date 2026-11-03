@@ -26,8 +26,7 @@ export type EmuCommand =
   | "state-load"
   | "state-delete"
   | "state-export"
-  | "state-import"
-  | "library-add";
+  | "state-import";
 export type EmuRequest = {
   v: 1;
   session: string;
@@ -74,7 +73,6 @@ export function parseRequest(value: unknown): EmuRequest {
       "state-delete",
       "state-export",
       "state-import",
-      "library-add",
     ].includes(r.command)
   )
     throw Error("Protocolo de emulación inválido");
@@ -145,7 +143,7 @@ export type EmuResult = {
   states?: StateMeta[];
   /** state-export: the snapshot as a versioned file, ready to download. */
   stateFile?: StateFile;
-  /** The game is now in the local library (load with remember, library-add). */
+  /** The game is now in the local library (load with remember). */
   remembered?: boolean;
   /** Why the game could not be remembered; the session goes on. */
   libraryError?: string;
