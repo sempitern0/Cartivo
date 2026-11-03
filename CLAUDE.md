@@ -2,15 +2,8 @@
 
 @AGENTS.md
 
-## Comandos
+Usa `docs/ai/CONTEXT.md` solo para localizar el área y sus pruebas; no lo cargues entero en cada tarea. Si trabajas con núcleos, lee `cores/AGENTS.md`.
 
-- `pnpm dev` (127.0.0.1:5173) · `pnpm build` · `pnpm preview`
-- `pnpm check` (tipos) · `pnpm lint` · `pnpm test` · `pnpm verify:core`
-- `pnpm test:e2e` y `pnpm test:e2e:preview` cuando cambien Worker, audio o assets
+Para un incremento no trivial, plan breve. Si están disponibles, utiliza las skills `cartivo-increment` y `cartivo-core-gate` (esta última para núcleos); si no, sigue `AGENTS.md` y `docs/ADDING_A_SYSTEM.md` sin buscar skills inexistentes en el repo.
 
-## Cómo trabajar aquí
-
-- Para cualquier incremento nuevo, entra en modo plan y usa la skill `cartivo-increment`.
-- Para evaluar o integrar un núcleo, usa antes la skill `cartivo-core-gate`.
-- AGENTS.md es la fuente de verdad de reglas; no dupliques reglas aquí.
-- Nunca hagas push, abras PR ni cambies LICENSE, LICENSES.md o ADR-005 sin petición expresa.
+Comandos y garantías de verificación: `AGENTS.md` y `package.json`.
