@@ -24,6 +24,7 @@
   - los perfiles locales se validan por mando y se aplican de forma explícita, nunca a ciegas al reconectar.
 - **Neutralizar la entrada:** blur, pestaña oculta, desconexión o cambio de dispositivo la neutralizan, y al reactivar hay que soltar todo. Los índices no identifican dispositivos.
 - **Captura durante la partida:** es del juego, pero cualquier control de la página (botones, enlaces, campos) sigue funcionando.
+- **Interfaz con mando** (`ui-navigation.ts` y `apps/web/src/pad-navigation.svelte.ts`): la cruceta o el stick (zona muerta 0,5, repetición a los 400 ms y cada 120 ms) mueven el foco al control más cercano en esa dirección; A pulsa; B envía Escape y, si nadie lo atiende, pulsa el control `[data-pad-back]` (volver de Controles). Select+Start pausa la partida y sale de la prueba. El reproductor en marcha y la prueba o asignación de Controles suspenden la navegación; al reanudarse se ignoran los botones que sigan pulsados. Solo mandos `standard`.
 - **Pantalla «Configurar controles»** (`#controles`):
   - dibujos que se iluminan durante la prueba;
   - chips solo para los botones que usa alguna consola disponible;
@@ -39,7 +40,8 @@ E2E con Gamepad API sintética, en Chromium y Firefox:
 - L/R y X/Y;
 - WASD junto a flechas;
 - Gamepad API denegada;
-- pantalla a 360 px sin desbordamiento.
+- pantalla a 360 px sin desbordamiento;
+- interfaz con mando: la cruceta mueve el foco entre tarjetas y A arranca la demo; Select+Start pausa y A reanuda; A abre Partidas y B lo cierra devolviendo el foco; en Controles la prueba retiene el foco, Select+Start la detiene y B vuelve al inicio (`pad-navigation.spec.ts`; intenciones y foco espacial en `tests/ui-navigation.test.ts`).
 
 Las notas de Controles se generan y prueban a partir de `systems.ts`. **No certifican hardware.**
 
@@ -50,7 +52,8 @@ Las notas de Controles se generan y prueban a partir de `systems.ts`. **No certi
 3. Asigna los controles si el mando no es standard.
 4. Desconecta el mando con una dirección pulsada: todo debe liberarse.
 5. Recarga y usa «Aplicar perfil guardado».
+6. Sin tocar ratón ni teclado: recorre el inicio con la cruceta, arranca una demo con A, pausa con Select+Start, abre y cierra Partidas (A y B) y vuelve de Controles con B.
 
 Registra el modelo (sin número de serie), la conexión, el sistema operativo y el navegador en [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md).
 
-**Abiertos:** navegación de la UI con mando (H1.5), segundo jugador, vibración y lectores de pantalla.
+**Abiertos:** segundo jugador, vibración y lectores de pantalla.

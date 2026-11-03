@@ -30,6 +30,8 @@
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
   import { GameSound } from "./sound.svelte.ts";
+  import { claimPadWhile } from "./pad-navigation.svelte.ts";
+  import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import { captureGameInput } from "./game-capture.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
   import { keyLabel } from "../../../packages/input/src/nes-input.ts";
@@ -333,6 +335,8 @@
   $effect(() => {
     if (!visible && phase === "running") void pause();
   });
+  // While the game runs the pad is the game's; paused, it drives the menus.
+  claimPadWhile("player", () => phase === "running");
   $effect(() => {
     const message = problem;
     if (message && visible)
@@ -351,6 +355,11 @@
     }
     padConnected = reading.connected;
     const input = reading.input;
+    // The pause gesture never reaches the game; the menus take the pad.
+    if (reading.ready && isPauseGesture(input)) {
+      await pause();
+      return;
+    }
     if (!reading.ready) {
       pacer.start(now);
       loop = requestAnimationFrame(pump);

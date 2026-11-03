@@ -9,11 +9,11 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive (todas **experimentales**, cartuchos NTSC) |
 | **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive). Todos en WebAssembly y sin BIOS propietarias |
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
-| **Controles** | Teclado y mando (Gamepad API) con remapeo; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho se guarda sola sin frenar la imagen |
 | **Biblioteca** | «Continuar» y «Tus juegos»: con tu permiso, la copia del juego se guarda en el navegador |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
-| **Pendiente** | QA física (mando real, móviles Android, audio), UI navegable con mando y consolas 3D (N64, PS1, PSP); Safari/iOS con prioridad baja |
+| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) y consolas 3D (N64, PS1, PSP); Safari/iOS con prioridad baja |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -64,7 +64,7 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados 
 
 - **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
 - Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L. La ayuda de cada demo y la pantalla de Controles lo indican.
-- Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**.
+- Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**. También maneja la interfaz: cruceta o stick mueven el foco, A pulsa, B cierra o vuelve y **Select+Start** pausa la partida.
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar, cargar, exportar e importar ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.
 - La primera vez que abres un juego, Cartivo pregunta si quieres **recordar tus juegos en este dispositivo**. Si aceptas, la tarjeta **Continuar** del inicio reanuda el último juego con un clic, sin volver a elegir el archivo, y **Tus juegos** lista los demás. La copia se guarda solo en tu navegador; quitar un juego de la lista conserva sus partidas ([ADR-012](docs/adr/012-library-continue.md)).

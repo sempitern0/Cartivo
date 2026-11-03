@@ -28,6 +28,8 @@
     Profile,
   } from "../../../packages/input/src/nes-input.ts";
   import { icons } from "./icons.ts";
+  import { claimPadWhile } from "./pad-navigation.svelte.ts";
+  import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import {
     buttonNotes,
     controlButtons,
@@ -58,6 +60,8 @@
   let target: HTMLButtonElement;
   let capture = $state<Action>();
   let waitingRelease = $state(false);
+  // The test and the assignment read the pad: menus must not move meanwhile.
+  claimPadWhile("controls", () => active || !!capture || !!keyCapture);
   let draft: Partial<Profile> = {};
   let held = new Set<string>();
   let last = $state.raw<Pad>();
@@ -372,9 +376,13 @@
           ) {
             armed = true;
             message =
-              "Prueba activa. Usa las teclas indicadas en Teclado. Escape para salir.";
+              "Prueba activa. Usa las teclas indicadas en Teclado. Escape o Select+Start para salir.";
           }
-        } else inputState = sample(pad, profile, held, deadzone, keyboard);
+        } else {
+          inputState = sample(pad, profile, held, deadzone, keyboard);
+          if (isPauseGesture(inputState))
+            pause("Prueba detenida. Ningún control permanece pulsado.");
+        }
       }
     }
     function poll() {

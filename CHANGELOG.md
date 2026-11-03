@@ -253,3 +253,10 @@
 
 - Se retira de Ajustes el «Laboratorio · Diagnóstico sin emulación», una prueba de sesión de H0 sin utilidad para el jugador, con su Worker, `worker-client.ts`, `session.ts` y sus pruebas. El juego usa el protocolo real (`client.ts`, `protocol.ts`, `emulator.worker.ts`), que no cambia.
 - La prueba de Controles mantiene lo que comprobaba (URL directa, salir y volver, prueba de entrada); el inicio a 360 px ya lo cubre `ui.spec.ts`.
+
+### H1.5: la interfaz se maneja con el mando
+
+- La cruceta o el stick mueven el foco al control más cercano, A pulsa y B cierra el panel abierto o vuelve (de Controles al inicio). Izquierda y derecha cambian deslizadores y selectores. El anillo de foco se ve con mando y desaparece al usar el ratón.
+- **Select+Start** pausa la partida (la pausa enfoca Reanudar juego) y detiene la prueba de Controles. El juego y la prueba se reservan el mando mientras lo leen; al devolverlo, los botones aún pulsados no cuentan.
+- Lógica pura y probada en `packages/input/src/ui-navigation.ts`; integración en `apps/web/src/pad-navigation.svelte.ts`; E2E con mando sintético en `pad-navigation.spec.ts`. El mando real queda en la QA manual.
+- El despliegue en Cloudflare se aplaza por decisión del titular.
