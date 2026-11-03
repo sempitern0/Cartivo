@@ -260,3 +260,8 @@
 - **Select+Start** pausa la partida (la pausa enfoca Reanudar juego) y detiene la prueba de Controles. El juego y la prueba se reservan el mando mientras lo leen; al devolverlo, los botones aún pulsados no cuentan.
 - Lógica pura y probada en `packages/input/src/ui-navigation.ts`; integración en `apps/web/src/pad-navigation.svelte.ts`; E2E con mando sintético en `pad-navigation.spec.ts`. El mando real queda en la QA manual.
 - El despliegue en Cloudflare se aplaza por decisión del titular.
+
+### Instrucciones para agentes con menos contexto
+
+- `AGENTS.md` se reduce a las reglas transversales y a un método de lectura progresiva; las reglas de núcleos, artefactos WASM y licencias pasan a `cores/AGENTS.md` (con `cores/CLAUDE.md` para que Claude Code las cargue en esa carpeta).
+- Nuevo `docs/ai/CONTEXT.md`: tabla área → archivos y pruebas por donde empezar, para no leer el árbol entero. `CLAUDE.md` solo enlaza ambos.
