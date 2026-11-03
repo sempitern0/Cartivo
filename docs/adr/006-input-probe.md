@@ -33,3 +33,11 @@ El panel de entrada pasa a `ControlsPanel.svelte` y a una pantalla propia `#cont
 ## Revisión: L y R (2026-11-01, H2-GBA)
 
 Las acciones pasan a ser diez: se añaden `l` y `r` para Game Boy Advance, con I/O en teclado y LB/RB (botones estándar 4 y 5) en mando. Es una lista común: cada adaptador mapea solo las que existen en su consola, así que NES y Game Boy las ignoran. No se crean perfiles por sistema mientras no haya consolas con botones incompatibles. Los perfiles guardados sin L/R se migran sin perder asignaciones: se usa la tecla o el botón por defecto si está libre, y si no, el primero libre. Si un mando no tiene botones libres, su perfil manual pide asignarse de nuevo.
+
+## Revisión: la interfaz con mando (2026-11-03, H1.5)
+
+El mando también maneja las pantallas de Cartivo. La lógica pura (`packages/input/src/ui-navigation.ts`) convierte cada fotograma en intenciones (direcciones con repetición, A y B solo al pulsar) y elige el control más cercano por centros, penalizando la deriva lateral y sin dar la vuelta. La integración (`apps/web/src/pad-navigation.ts`) mueve el foco real, pulsa con A y traduce B a Escape, de modo que cada panel conserva un único camino de cierre; si nadie atiende Escape, pulsa el control marcado `data-pad-back`. Quien lee el mando para otra cosa lo reserva (`suspendPadNavigation`): el reproductor mientras corre y Controles durante la prueba o la asignación. Al devolverlo se absorben los botones aún pulsados.
+
+La pausa con mando es **Select+Start** a la vez, leída a través del perfil del jugador (respeta remapeos y vale también con teclado). Un juego que use esa combinación la verá como pausa: es el gesto habitual de los frontends y Home no siempre llega al navegador. El mismo gesto sale de la prueba de Controles, para que el mando solo no quede atrapado. Solo se navega con mandos `standard`; uno sin distribución conocida sigue funcionando en el juego tras asignarlo.
+
+El laboratorio de diagnóstico de H0 citado en la revisión «utilidad del jugador» se retiró: no quedaba diagnóstico que conservar.

@@ -17,6 +17,7 @@
     type StorageHealth,
   } from "../../../packages/storage/src/persistence.ts";
   import { icons } from "./icons.ts";
+  import { startPadNavigation } from "./pad-navigation.ts";
   import {
     acceptFor,
     availableSystems,
@@ -150,7 +151,9 @@
     const sync = () => void showPage();
     window.addEventListener("hashchange", sync);
     window.addEventListener("popstate", sync);
+    const stopPad = startPadNavigation();
     return () => {
+      stopPad();
       window.removeEventListener("hashchange", sync);
       window.removeEventListener("popstate", sync);
     };
@@ -197,6 +200,7 @@
         <a
           class="back icon-button"
           href="#inicio"
+          data-pad-back
           aria-label={game ? "Volver al juego" : "Volver al inicio"}
           title={game ? "Volver al juego" : "Volver al inicio"}
           >{@html icons.back}</a

@@ -29,6 +29,10 @@
   } from "../../../packages/input/src/nes-input.ts";
   import { icons } from "./icons.ts";
   import {
+    resumePadNavigation,
+    suspendPadNavigation,
+  } from "./pad-navigation.ts";
+  import {
     buttonNotes,
     controlButtons,
   } from "../../../packages/runtime/src/systems.ts";
@@ -58,6 +62,11 @@
   let target: HTMLButtonElement;
   let capture = $state<Action>();
   let waitingRelease = $state(false);
+  // The test and the assignment read the pad: menus must not move meanwhile.
+  $effect(() => {
+    if (active || capture || keyCapture) suspendPadNavigation("controls");
+    else resumePadNavigation("controls");
+  });
   let draft: Partial<Profile> = {};
   let held = new Set<string>();
   let last = $state.raw<Pad>();
@@ -372,9 +381,14 @@
           ) {
             armed = true;
             message =
-              "Prueba activa. Usa las teclas indicadas en Teclado. Escape para salir.";
+              "Prueba activa. Usa las teclas indicadas en Teclado. Escape o Select+Start para salir.";
           }
-        } else inputState = sample(pad, profile, held, deadzone, keyboard);
+        } else {
+          inputState = sample(pad, profile, held, deadzone, keyboard);
+          // The pause gesture also ends the test, so a pad alone can leave.
+          if (inputState.select && inputState.start)
+            pause("Prueba detenida. Ningún control permanece pulsado.");
+        }
       }
     }
     function poll() {
@@ -385,6 +399,7 @@
     scan();
     frame = requestAnimationFrame(poll);
     return () => {
+      resumePadNavigation("controls");
       cancelAnimationFrame(frame);
       window.removeEventListener("gamepadconnected", scan);
       window.removeEventListener("gamepaddisconnected", disconnect);
