@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { playDemo } from "./play.ts";
+import { openNesFile, playDemo, playing } from "./play.ts";
 
 // Cartivo deployed under a sub-path (/cartivo/): every link, the manifest,
 // the service worker, the Worker and the cores stay inside it.
@@ -70,4 +70,20 @@ test("the app works under /cartivo/, also offline", async ({
   await context.setOffline(false);
 
   expect(outside, "requests outside /cartivo/").toEqual([]);
+});
+
+test("under /cartivo/ a remembered game shows «Continuar» after leaving", async ({
+  page,
+}) => {
+  await page.goto("./");
+  await openNesFile(page, "mi-juego.nes");
+  await playing(page);
+  await page.getByRole("button", { name: "Sí, recordar" }).click();
+  await expect(page.getByTestId("toast")).toContainText("Juego recordado");
+  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  const card = page.getByRole("article", { name: "mi-juego.nes", exact: true });
+  await expect(card).toBeVisible();
+  // It survives a reload, as an installed app reopening would.
+  await page.reload();
+  await expect(card).toBeVisible();
 });
