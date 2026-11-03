@@ -68,9 +68,8 @@ test("games are remembered unless the player turned it off", () => {
     setItem: (k: string, v: string) => void data.set(k, v),
     removeItem: (k: string) => void data.delete(k),
   };
-  // The old one-time «No» no longer counts and is cleared.
+  // The old one-time «No» (v1) no longer counts.
   assert.equal(rememberGames(storage), true);
-  assert.equal(data.has("cartivo:library:remember:v1"), false);
   assert.equal(writeRemember(false, storage), true);
   assert.equal(data.get(REMEMBER_KEY), "off");
   assert.equal(rememberGames(storage), false);

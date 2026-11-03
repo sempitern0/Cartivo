@@ -21,10 +21,11 @@ export type LibraryEntry = {
 };
 
 export const MAX_NAME = 255;
-/** Only stores "off": remembering is the default (ADR-012, revision). */
+/**
+ * Only stores "off": remembering is the default (ADR-012, revision). A new
+ * key, so the old one-time answer (v1) simply no longer counts.
+ */
 export const REMEMBER_KEY = "cartivo:library:remember:v2";
-/** The old one-time answer; ignored and removed so everyone starts on. */
-const OLD_REMEMBER_KEY = "cartivo:library:remember:v1";
 
 export const isSha256 = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
@@ -68,21 +69,20 @@ export function parseEntry(value: unknown): LibraryEntry | undefined {
 export const byRecent = (entries: readonly LibraryEntry[]) =>
   [...entries].sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 
-type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
-
 /** Whether opened files are remembered: yes unless the player turned it off. */
-export function rememberGames(storage?: PreferenceStorage) {
+export function rememberGames(storage?: Pick<Storage, "getItem">) {
   try {
-    const store = storage ?? localStorage;
-    store.removeItem(OLD_REMEMBER_KEY);
-    return store.getItem(REMEMBER_KEY) !== "off";
+    return (storage ?? localStorage).getItem(REMEMBER_KEY) !== "off";
   } catch {
     return true;
   }
 }
 
 /** Returns false when the browser does not allow keeping the choice. */
-export function writeRemember(on: boolean, storage?: PreferenceStorage) {
+export function writeRemember(
+  on: boolean,
+  storage?: Pick<Storage, "setItem" | "removeItem">,
+) {
   try {
     const store = storage ?? localStorage;
     if (on) store.removeItem(REMEMBER_KEY);

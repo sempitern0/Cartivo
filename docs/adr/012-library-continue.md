@@ -28,7 +28,7 @@ Cambios de la auditoría del titular:
 ### Revisión 2026-11-03: recordar por defecto y página «Tus juegos»
 
 Decisión del titular tras usar la app: la pregunta confundía y Cartivo es de uso privado y local.
-- **Sin pregunta:** abrir un archivo lo recuerda (`load` con `remember`), salvo que el jugador lo desactive en «Tus juegos». La preferencia pasa a `cartivo:library:remember:v2` y solo guarda `"off"`; la clave v1 se ignora y se borra, así que la respuesta antigua no cuenta. Si el navegador no deja guardar la preferencia, se recuerda. Las demos siguen sin recordarse y, sin OPFS, no se recuerda nada.
+- **Sin pregunta:** abrir un archivo lo recuerda (`load` con `remember`), salvo que el jugador lo desactive en «Tus juegos». La preferencia pasa a `cartivo:library:remember:v2` y solo guarda `"off"`; la clave v1 ya no se lee, así que la respuesta antigua no cuenta. Si el navegador no deja guardar la preferencia, se recuerda. Las demos siguen sin recordarse y, sin OPFS, no se recuerda nada.
 - **Protocolo:** se retira `library-add`, cuyo único uso era responder a la pregunta.
 - **Inicio:** los tres juegos más recientes; el primero en la tarjeta grande **Continuar** y dos compactos, todos desde «Al salir», más «Ver todos tus juegos (N)».
 - **`#juegos`:** página propia con búsqueda (sin mayúsculas ni acentos), filtro por consola, orden reciente o por nombre, **Continuar** y **Quitar**, espacio ocupado e interruptor. La lógica de la vista es pura (`viewGames` en `library.ts`). Mientras hay un juego abierto, la página no se ofrece, para no sustituir una sesión sin su cierre.
