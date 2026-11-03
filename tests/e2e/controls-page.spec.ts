@@ -1,14 +1,11 @@
 import { test, expect } from "@playwright/test";
-test("controls have a direct URL and remain separate from diagnostics", async ({
+test("controls have a direct URL and survive leaving and coming back", async ({
   page,
 }) => {
   await page.goto("/#controles");
   await expect(
     page.getByRole("heading", { name: "Configurar controles", exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Diagnóstico sin emulación" }),
-  ).toHaveCount(0);
   await page.getByRole("button", { name: "Activar prueba" }).click();
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",
@@ -26,16 +23,8 @@ test("controls have a direct URL and remain separate from diagnostics", async ({
     page.getByRole("button", { name: "Activar prueba" }),
   ).toHaveCount(0);
   await page.getByRole("link", { name: "Ajustes" }).click();
-  await page.locator("summary").filter({ hasText: "Laboratorio" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Diagnóstico sin emulación" }),
-  ).toBeVisible();
-  // Input lab remains usable in Settings; diagnostic session has separate actions.
   await expect(
     page.getByRole("button", { name: "Activar prueba" }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Iniciar prueba" }),
   ).toBeVisible();
   await page.goBack();
   await page.goBack();

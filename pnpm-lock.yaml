@@ -36,8 +36,6 @@ importers:
 
   apps/web: {}
 
-  packages/runtime: {}
-
 packages:
 
   '@jridgewell/gen-mapping@0.3.13':
