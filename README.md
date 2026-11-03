@@ -36,7 +36,13 @@ pnpm build && pnpm preview    # http://127.0.0.1:4173 → «Instalar app» en la
 
 Usa siempre la misma dirección y puerto: partidas y app instalada quedan ligadas a ese origen.
 
-Para publicarla en una subcarpeta del dominio (por ejemplo `https://ejemplo.com/cartivo/`), construye con `pnpm build --base /cartivo/` y sirve `apps/web/dist` en esa ruta. Por defecto se publica en la raíz.
+Para publicarla en una subcarpeta del dominio (por ejemplo `https://ejemplo.com/cartivo/`), construye con `pnpm build --base /cartivo/` y sirve `apps/web/dist` en esa ruta. La base termina siempre en `/`, y la vista previa necesita la misma base que el build:
+
+```sh
+pnpm build --base /cartivo/ && pnpm preview --base /cartivo/   # http://127.0.0.1:4173/cartivo/
+```
+
+Por defecto, sin `--base`, se publica y se prueba en la raíz. Si al abrir la app la consola muestra `404` y `Manifest: Line 1, column 1, Syntax error`, el build y la vista previa tienen bases distintas: vuelve a construir sin `--base` o pasa la misma a los dos.
 
 ## Comandos
 

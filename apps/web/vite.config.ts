@@ -9,6 +9,6 @@ export default defineConfig({
   // fetched and compiled only when a game of that system starts.
   worker: {
     format: "es",
-    rollupOptions: { output: { inlineDynamicImports: true } },
+    rollupOptions: { output: { codeSplitting: false } },
   },
 });
