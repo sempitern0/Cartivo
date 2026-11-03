@@ -339,7 +339,9 @@
     padConnected = reading.connected;
     const input = reading.input;
     // The pause gesture never reaches the game; the menus take the pad.
+    // Made on a pad, it means «Mando»: the console pause menu opens.
     if (reading.ready && isPauseGesture(input)) {
+      if (reading.connected) ui.lastDevice = "pad";
       await pause();
       return;
     }

@@ -147,13 +147,10 @@ export function startPadNavigation() {
   let frame = 0;
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
+    if (owners.size) return;
     const pad = standardPad();
-    if (owners.size) {
-      // The game has the pad, but playing with it still means «Mando»: the
-      // pause gesture then opens the console menu.
-      if (pad?.buttons.some((b) => b.pressed)) ui.lastDevice = "pad";
-      return;
-    }
+    // Without a pad, the automatic interface goes back to keyboard and mouse.
+    if (!pad && ui.lastDevice === "pad") ui.lastDevice = "pointer";
     if (absorbNext) {
       absorbNext = false;
       intents.absorb(pad, now);
