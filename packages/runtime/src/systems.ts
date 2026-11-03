@@ -18,6 +18,7 @@ export type CoreInfo = {
   label: string;
   /** Snapshot format version; must match the registered module. */
   version: string;
+  /** Paths relative to the app's base (public/licenses/…). */
   licenses: { name: string; href: string }[];
 };
 
@@ -66,7 +67,7 @@ export const systems: readonly SystemInfo[] = [
         licenses: [
           {
             name: "Licencia TetaNES",
-            href: "/licenses/tetanes-LICENSE-MIT.txt",
+            href: "licenses/tetanes-LICENSE-MIT.txt",
           },
         ],
       },
@@ -75,7 +76,7 @@ export const systems: readonly SystemInfo[] = [
         label: "JSNES · JavaScript",
         version: "2.1.0",
         licenses: [
-          { name: "Licencia JSNES", href: "/licenses/jsnes-Apache-2.0.txt" },
+          { name: "Licencia JSNES", href: "licenses/jsnes-Apache-2.0.txt" },
         ],
       },
     ],
@@ -111,12 +112,12 @@ export const systems: readonly SystemInfo[] = [
         label: "mGBA · WebAssembly",
         version: "0.10.5",
         licenses: [
-          { name: "Licencia mGBA", href: "/licenses/mgba-MPL-2.0.txt" },
+          { name: "Licencia mGBA", href: "licenses/mgba-MPL-2.0.txt" },
           {
             name: "Licencia blip_buf",
-            href: "/licenses/blip_buf-LGPL-2.1.txt",
+            href: "licenses/blip_buf-LGPL-2.1.txt",
           },
-          { name: "Licencia inih", href: "/licenses/inih-BSD-3-Clause.txt" },
+          { name: "Licencia inih", href: "licenses/inih-BSD-3-Clause.txt" },
         ],
       },
     ],
@@ -141,10 +142,10 @@ export const systems: readonly SystemInfo[] = [
         label: "Snes9x · WebAssembly",
         version: "1.63",
         licenses: [
-          { name: "Licencia Snes9x", href: "/licenses/snes9x-LICENSE.txt" },
+          { name: "Licencia Snes9x", href: "licenses/snes9x-LICENSE.txt" },
           {
             name: "Licencia snes_spc y snes_ntsc",
-            href: "/licenses/snes9x-LGPL-2.1.txt",
+            href: "licenses/snes9x-LGPL-2.1.txt",
           },
         ],
       },
@@ -205,12 +206,12 @@ function sega(
         licenses: [
           {
             name: "Licencia Genesis Plus GX (incluye Nuked OPN2, Tremor y minimp3)",
-            href: "/licenses/genesis-plus-gx-LICENSE.txt",
+            href: "licenses/genesis-plus-gx-LICENSE.txt",
           },
-          { name: "Licencia Musashi", href: "/licenses/musashi-readme.txt" },
+          { name: "Licencia Musashi", href: "licenses/musashi-readme.txt" },
           {
             name: "LGPL-2.1 (blip_buf, Nuked OPN2, filtros NTSC)",
-            href: "/licenses/blip_buf-LGPL-2.1.txt",
+            href: "licenses/blip_buf-LGPL-2.1.txt",
           },
         ],
       },
@@ -236,7 +237,7 @@ function gameBoy(
         label: "SameBoy · WebAssembly",
         version: "1.0.4",
         licenses: [
-          { name: "Licencia SameBoy", href: "/licenses/sameboy-LICENSE.txt" },
+          { name: "Licencia SameBoy", href: "licenses/sameboy-LICENSE.txt" },
         ],
       },
     ],

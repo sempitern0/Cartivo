@@ -57,12 +57,16 @@ jobs:
       matrix:
         browser: [chromium, firefox, webkit]
         server: [dev, preview]
+        # The production build deployed under a sub-path (/cartivo/).
+        include:
+          - browser: chromium
+            server: subpath
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       # Only the production build has a service worker (PWA tests).
-      - if: matrix.server == 'preview'
-        run: pnpm build
+      - if: matrix.server != 'dev'
+        run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
       - run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.
@@ -79,7 +83,7 @@ jobs:
           ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
           pnpm exec playwright test --project=${{ matrix.browser }}
           ${{ matrix.browser == 'webkit' && '--headed' || '' }}
-          ${{ matrix.server == 'preview' && '--config playwright.preview.config.ts' || '' }}
+          ${{ matrix.server != 'dev' && format('--config playwright.{0}.config.ts', matrix.server) || '' }}
       - if: always()
         uses: actions/upload-artifact@v4
         with:

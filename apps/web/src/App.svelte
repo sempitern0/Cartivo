@@ -115,13 +115,15 @@
     pageHeading?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
   }
+  /** The app's root: "/" or the sub-path it is deployed under. */
+  const home = import.meta.env.BASE_URL;
   /** The logo returns to the start without reloading (a running game stays). */
   function goHome(event: MouseEvent) {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
       return;
     event.preventDefault();
-    if (location.pathname !== "/" || location.hash)
-      history.pushState(null, "", "/");
+    if (location.pathname !== home || location.hash)
+      history.pushState(null, "", home);
     void showPage();
   }
   type LaunchParams = { files: readonly FileSystemFileHandle[] };
@@ -164,7 +166,7 @@
 >
 <main>
   <header>
-    <a class="brand" href="/" onclick={goHome} aria-label="Cartivo, inicio"
+    <a class="brand" href={home} onclick={goHome} aria-label="Cartivo, inicio"
       >cartivo<span class="palette" aria-hidden="true"
         ><i></i><i></i><i></i><i></i></span
       ></a

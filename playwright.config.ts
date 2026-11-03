@@ -1,6 +1,8 @@
 import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/e2e",
+  // Runs only against a sub-path build (playwright.subpath.config.ts).
+  testIgnore: "subpath.spec.ts",
   // `list` prints the duration of every test, also in CI (default there: dot).
   reporter: "list",
   // In CI a test that fails once is retried and reported as «flaky» (with a

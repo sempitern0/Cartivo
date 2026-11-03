@@ -19,6 +19,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | PWA | Manifiesto, SW sin `skipWaiting` automático, precache estable, offline tras recarga | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts` |
 | Firefox | La suite E2E completa también en Firefox, en dev y en preview (matriz paralela `e2e` de `ci.yml`), con salida de audio virtual (PulseAudio con sumidero nulo: Firefox necesita un servidor de sonido en Linux). Ninguna prueba se omite por ser Firefox. **CI sobre `352382c`** (run 41455858387): 73 superadas en dev y 73 en preview, igual que en Chromium | `playwright.config.ts` (proyecto `firefox`), matriz `e2e` de `ci.yml` |
 | WebKit (motor de Safari) | La suite E2E en el WebKit de Playwright para Linux, en dev y en preview, con pantalla virtual (`xvfb-run --headed`: sin pantalla, WebKit dispara `requestAnimationFrame` unas 2 veces por segundo). Destapó y se corrigieron dos fallos que también afectaban a Safari: el Worker se reevaluaba al cargar un núcleo en un chunk dinámico (ahora es un solo archivo) y una parada puntual del primer fotograma pausaba el juego (ahora `FramePacer` la absorbe). **Omitida en WebKit:** `library.spec.ts`, porque el perfil efímero de Playwright no ofrece OPFS, como una ventana privada de Safari. **CI sobre `cd547cd`** (run 41540097684): 67 y 68 superadas, 8 y 7 omitidas por diseño | `playwright.config.ts` (proyecto `webkit`), matriz `e2e` de `ci.yml` |
+| Subruta | La build con `--base /cartivo/` funciona bajo esa ruta: demo, manifest relativo (`start_url` y `scope` en `/cartivo/`), licencias, logo, SW con ámbito `/cartivo/`, juego sin conexión y ninguna petición fuera de la subruta. **CI sobre `0c58e14`** (run 41544269746): en verde, como las seis tandas de navegador | `tests/e2e/subpath.spec.ts`, `playwright.subpath.config.ts`; `tests/systems.test.ts` (licencias relativas y existentes) |
 | Entrada | Teclado, mando sintético, remapeo, neutralización | `tests/input.test.ts`, E2E de controles |
 
 ## Manual
@@ -29,7 +30,7 @@ Cada push con código (los cambios solo de documentación se omiten) pasa `pnpm 
 | Contra (USA), TetaNES: guardar y cargar Partida | Hecho | Titular, durante la PR #2 (ROM propia, solo local) |
 | Brave/Chromium escritorio: teclado (flechas/WASD, Q/Enter/L/K), Focus, pantalla completa, escalado 16:9/16:10/HiDPI | Pendiente | — |
 | Firefox escritorio real (pestaña, offline, audio en altavoces, mando) | Pendiente; las E2E automáticas ya pasan en Firefox headless | — |
-| Safari macOS, iOS/iPadOS (añadir a inicio, offline, biblioteca con OPFS) | Pendiente; las E2E automáticas ya pasan en WebKit | — |
+| Safari macOS, iOS/iPadOS (añadir a inicio, offline, biblioteca con OPFS) | Pendiente, **prioridad baja** (decisión del titular); las E2E automáticas ya pasan en WebKit | — |
 | Android Chrome: instalación, suspensión, presión de almacenamiento | Pendiente | — |
 | Mando real USB/Bluetooth (Xbox/PlayStation): conexión, remapeo, navegación, pausa | Pendiente | [GAMEPAD_BROWSER_QA](../research/GAMEPAD_BROWSER_QA.md) |
 | Audio en altavoces reales (latencia, cortes) | Pendiente | — |
