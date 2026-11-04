@@ -56,6 +56,11 @@ Panel propio (pausa la partida al abrirse). Tarjetas con diagrama para **Escalad
 - **Audio:** el arranque nunca espera a que el navegador desbloquee el audio; si no puede activarse solo, aparece **Activar sonido**.
 - **Teclas por defecto:** WASD/flechas, L = A, K = B, Q = Select, Enter = Start; F reservado a Focus. Los perfiles antiguos se migran sin pisar reasignaciones deliberadas.
 - **Mando en la interfaz:** la cruceta o el stick llevan el foco al control más cercano en esa dirección (sin dar la vuelta), A lo pulsa y B equivale a Escape: cierra Partidas o Gráficos y, si no hay nada que cerrar, vuelve (de Controles al inicio). En deslizadores y selectores, izquierda y derecha cambian el valor. El foco se ve con el mismo anillo que con teclado; el ratón lo oculta. **Select+Start** a la vez pausa la partida (la pausa enfoca **Reanudar juego**) y sale de la prueba de Controles. Mientras el juego corre o la prueba está activa, el mando es suyo y no mueve la interfaz. Solo mandos con distribución estándar.
+- **Modo consola** (interfaz de mando): en **Ajustes → Interfaz** se elige **Automática** (por defecto: cambia sola al usar el mando y vuelve con el ratón o el teclado), **Teclado y ratón** o **Mando**. Solo cambia la presentación:
+  - leyenda fija abajo «A Aceptar · B Volver · Select + Start Pausa», oculta mientras se juega;
+  - las consolas pasan a un carrusel horizontal;
+  - la pausa es un **menú vertical modal** sobre el juego (Reanudar juego, Partidas, Gráficos, Controles, Reiniciar consola, Salir del juego). El foco empieza en Reanudar; B o Escape reanudan, y al cerrar Partidas o Gráficos se vuelve al menú.
+  - El selector de archivos del sistema no se maneja con mando: con mando se juega desde los recientes, «Tus juegos» y las demos.
 - **Instalación:** **Instalar app** en la cabecera cuando el navegador ofrece el prompt; en iOS se instala desde Compartir.
 
 ## Pendiente

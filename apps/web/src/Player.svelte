@@ -6,6 +6,8 @@
   import SavePanel from "./SavePanel.svelte";
   import ResumeOffer from "./ResumeOffer.svelte";
   import FullscreenPause from "./FullscreenPause.svelte";
+  import PauseMenu from "./PauseMenu.svelte";
+  import { ui } from "./input-mode.svelte.ts";
   import PlayerActions from "./PlayerActions.svelte";
   import DeviceStatus from "./DeviceStatus.svelte";
   import BackupPanel from "./BackupPanel.svelte";
@@ -306,6 +308,16 @@
   $effect(() => {
     if (!visible && phase === "running") void pause();
   });
+  // Modo consola: the pause is a menu over the game, unless something else
+  // (the continue offer, a panel, another page) is on screen.
+  const pauseMenu = $derived(
+    ui.current === "pad" &&
+      phase === "paused" &&
+      visible &&
+      !resumeOffer &&
+      !savesOpen &&
+      !graphicsOpen,
+  );
   // While the game runs the pad is the game's; paused, it drives the menus.
   claimPadWhile("player", () => phase === "running");
   $effect(() => {
@@ -327,7 +339,9 @@
     padConnected = reading.connected;
     const input = reading.input;
     // The pause gesture never reaches the game; the menus take the pad.
+    // Made on a pad, it means «Mando»: the console pause menu opens.
     if (reading.ready && isPauseGesture(input)) {
+      if (reading.connected) ui.lastDevice = "pad";
       await pause();
       return;
     }
@@ -634,7 +648,18 @@
         onrestart={() => resume()}
       />
     {/if}
-    {#if fullscreen && phase === "paused" && !resumeOffer}
+    {#if pauseMenu}
+      <PauseMenu
+        {busy}
+        savesAvailable={!noStorage}
+        onresume={resume}
+        onsaves={toggleSaves}
+        ongraphics={toggleGraphics}
+        oncontrols={() => (location.hash = "#controles")}
+        onreset={resetConsole}
+        onexit={() => close()}
+      />
+    {:else if fullscreen && phase === "paused" && !resumeOffer}
       <FullscreenPause {busy} onresume={resume} onexit={toggleFullscreen} />
     {/if}
     <div class="game-stage-wrapper">
