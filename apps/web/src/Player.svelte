@@ -4,7 +4,6 @@
   import PlayerToolbar from "./PlayerToolbar.svelte";
   import GraphicsPanel from "./GraphicsPanel.svelte";
   import SavePanel from "./SavePanel.svelte";
-  import RememberPrompt from "./RememberPrompt.svelte";
   import ResumeOffer from "./ResumeOffer.svelte";
   import FullscreenPause from "./FullscreenPause.svelte";
   import PlayerActions from "./PlayerActions.svelte";
@@ -35,10 +34,7 @@
   import { captureGameInput } from "./game-capture.ts";
   import { InputCapture } from "../../../packages/input/src/capture.ts";
   import { keyLabel } from "../../../packages/input/src/nes-input.ts";
-  import {
-    readRemember,
-    writeRemember,
-  } from "../../../packages/storage/src/library.ts";
+  import { rememberGames } from "../../../packages/storage/src/library.ts";
   import { loadFields, sourceTitle, type GameSource } from "./game-source.ts";
   import {
     getPadPreference,
@@ -86,25 +82,6 @@
   let savesOpen = $state(false);
   let savesButton = $state.raw<HTMLButtonElement>();
   let resumeOffer = $state.raw<StateMeta>();
-  // One-time question: remember games on this device? (ADR-012)
-  let askRemember = $state(false);
-  async function answerRemember(yes: boolean) {
-    askRemember = false;
-    const kept = writeRemember(yes);
-    if (!yes) {
-      notify("No se recordarán juegos. Puedes cambiarlo en Tus juegos.");
-      return;
-    }
-    if (!kept) notify("El navegador no permite guardar esta preferencia.");
-    try {
-      const r = await client?.request("library-add");
-      if (r?.libraryError) problem = r.libraryError;
-      else if (r?.remembered)
-        notify("Juego recordado: podrás continuar desde el inicio.");
-    } catch (e) {
-      problem = e instanceof Error ? e.message : "No se pudo recordar el juego";
-    }
-  }
   let toast = $state("");
   let toastTimer = 0;
   function notify(message: string) {
@@ -257,9 +234,8 @@
       }),
     );
     try {
-      const choice = readRemember();
       const r = await client.request("load", {
-        ...loadFields(source, canRemember && choice === true),
+        ...loadFields(source, canRemember && rememberGames()),
         system: system.id,
         core: coreChoice,
       });
@@ -277,11 +253,6 @@
             : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
       if (r.libraryError) problem = r.libraryError;
-      askRemember =
-        canRemember &&
-        source.kind === "file" &&
-        choice === undefined &&
-        !r.remembered;
       const exit = saves.find((s) => s.slot === "auto");
       // «Continuar» from the home screen goes straight to the exit snapshot.
       if (source.kind === "library" && source.resume && exit)
@@ -698,7 +669,6 @@
     onfocus={() => (focusMode = !focusMode)}
     onfullscreen={toggleFullscreen}
   />
-  {#if askRemember}<RememberPrompt onanswer={answerRemember} />{/if}
   {#if toast}<p class="toast" role="status" data-testid="toast">{toast}</p>{/if}
   <DeviceStatus {padStatus} {padConnected} />
   {#if battery && (phase === "paused" || phase === "error")}

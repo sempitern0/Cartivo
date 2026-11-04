@@ -3,7 +3,7 @@ import { openNesFile, patchWorker, playDemo } from "./play.ts";
 
 // What Cartivo says and does when the browser keeps less than usual.
 
-test("without OPFS (private window) the home warns and nothing asks to remember", async ({
+test("without OPFS (private window) the home warns and nothing is remembered", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -18,12 +18,17 @@ test("without OPFS (private window) the home warns and nothing asks to remember"
   await openNesFile(page);
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   // Partidas still work (IndexedDB); only the library is off.
-  await expect(page.getByRole("button", { name: "Sí, recordar" })).toHaveCount(
-    0,
-  );
   await page.getByRole("button", { name: "Partidas" }).click();
   await page.getByRole("button", { name: "Guardar en Ranura 1" }).click();
   await expect(page.getByTestId("toast")).toContainText("ranura 1");
+  await page.getByRole("button", { name: "Cerrar partidas" }).click();
+  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Elige una consola" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Tus juegos", exact: true }),
+  ).toHaveCount(0);
 });
 
 test.describe("without Web Locks", () => {

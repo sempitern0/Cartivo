@@ -30,4 +30,8 @@ export const icons = {
   ),
   play: svg('<path d="M8 5.5v13l10-6.5z" fill="currentColor"/>'),
   check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  search: svg('<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>'),
+  library: svg(
+    '<rect x="3" y="4" width="7" height="7" rx="1.5"/><rect x="14" y="4" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  ),
 } as const;

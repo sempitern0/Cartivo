@@ -34,8 +34,8 @@ test("no space to remember a game: it keeps playing and says why", async ({
   await patchWorker(page, full);
   await page.goto("/");
   await openNesFile(page);
+  // Opened files are remembered on load; the copy does not fit.
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
-  await page.getByRole("button", { name: "Sí, recordar" }).click();
   await expect(page.getByRole("alert")).toContainText(
     "No hay espacio para recordar este juego",
   );

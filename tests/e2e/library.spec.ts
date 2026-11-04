@@ -12,18 +12,26 @@ test.skip(
   "OPFS is unavailable in Playwright's ephemeral WebKit profile.",
 );
 
-async function game() {
+/**
+ * The fixture under another name; `variant` flips the last CHR byte (one
+ * pixel of a tile), so each variant is a different game for the library.
+ */
+async function game(name = NAME, variant = 0) {
   const { controlDemo } =
     await import("../../packages/fixtures/src/control-demo.ts");
+  const rom = controlDemo();
+  rom[rom.length - 1] ^= variant;
   return {
-    name: NAME,
+    name,
     mimeType: "application/octet-stream",
-    buffer: Buffer.from(controlDemo()),
+    buffer: Buffer.from(rom),
   };
 }
 
-async function open(page: Page) {
-  await page.locator("input[type=file]").setInputFiles(await game());
+async function open(page: Page, name = NAME, variant = 0) {
+  await page
+    .locator("input[type=file]")
+    .setInputFiles(await game(name, variant));
 }
 
 async function running(page: Page) {
@@ -41,15 +49,19 @@ const continueCard = (page: Page) =>
   page.getByRole("article", { name: NAME, exact: true });
 const library = (page: Page) =>
   page.getByRole("region", { name: "Tus juegos" });
+const games = (page: Page) =>
+  page.getByRole("link", { name: "Tus juegos", exact: true }).click();
 
-/** Opens the game, answers «Sí» once and leaves (exit snapshot saved). */
-async function rememberAndLeave(page: Page) {
-  await open(page);
+/** Opens a game and leaves: it is remembered without asking. */
+async function playAndLeave(page: Page, name = NAME, variant = 0) {
+  await open(page, name, variant);
   await running(page);
-  await page.getByRole("button", { name: "Sí, recordar" }).click();
-  await expect(page.getByTestId("toast")).toContainText("Juego recordado");
   await exit(page);
-  await expect(continueCard(page)).toBeVisible();
+  await expect(
+    page
+      .getByRole("article", { name, exact: true })
+      .or(page.getByRole("button", { name: `Continuar ${name}` })),
+  ).toBeVisible();
 }
 
 test("a remembered game continues from the home screen with one click", async ({
@@ -58,8 +70,7 @@ test("a remembered game continues from the home screen with one click", async ({
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await rememberAndLeave(page);
-  await expect(library(page)).toContainText(NAME);
+  await playAndLeave(page);
   await expect(continueCard(page)).toContainText("NES");
 
   await page.reload();
@@ -75,54 +86,94 @@ test("a remembered game continues from the home screen with one click", async ({
   await expect(
     page.getByRole("button", { name: "Empezar de nuevo" }),
   ).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Sí, recordar" })).toHaveCount(
-    0,
-  );
   expect(chooser).toBe(false);
   expect(errors).toEqual([]);
 });
 
-test("answering «No» keeps nothing and is not asked again", async ({
+test("the home shows the last three; «Tus juegos» searches and filters", async ({
   page,
 }) => {
   await page.goto("/");
-  await open(page);
-  await running(page);
-  await page.getByRole("button", { name: "No", exact: true }).click();
-  await expect(page.getByTestId("toast")).toContainText(
-    "No se recordarán juegos",
+  for (const [i, name] of [
+    "alfa.nes",
+    "beta.nes",
+    "gamma.nes",
+    "delta.nes",
+  ].entries())
+    await playAndLeave(page, name, i + 1);
+  // Most recent first: delta (large card), gamma and beta; alfa only on the page.
+  await expect(
+    page.getByRole("article", { name: "delta.nes", exact: true }),
+  ).toBeVisible();
+  const recent = page.getByRole("region", { name: "Juegos recientes" });
+  await expect(recent.getByRole("button", { name: /^Continuar / })).toHaveCount(
+    2,
   );
+  await expect(
+    recent.getByRole("button", { name: "Continuar alfa.nes" }),
+  ).toHaveCount(0);
+  await recent.getByRole("link", { name: "Ver todos tus juegos (4)" }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Tus juegos", level: 1 }),
+  ).toBeFocused();
+  await expect(library(page).getByRole("listitem")).toHaveCount(4);
+  await library(page)
+    .getByRole("searchbox", { name: "Buscar por nombre" })
+    .fill("ALFA");
+  await expect(library(page).getByRole("listitem")).toHaveCount(1);
+  await library(page).getByRole("searchbox").fill("zzz");
+  await expect(library(page).getByRole("status")).toHaveText(
+    "Ningún juego coincide.",
+  );
+  await library(page).getByRole("searchbox").fill("");
+  // One console only: no console chips to choose from.
+  await expect(
+    library(page).getByRole("group", { name: "Consola" }),
+  ).toHaveCount(0);
+  await library(page).getByRole("combobox").selectOption("name");
+  await expect(library(page).getByRole("listitem").first()).toContainText(
+    "alfa.nes",
+  );
+
+  await library(page)
+    .getByRole("button", { name: "Continuar alfa.nes" })
+    .click();
+  await running(page);
+  await expect(page.getByRole("heading", { name: "alfa.nes" })).toBeVisible();
+});
+
+test("turning remembering off keeps new games out of the list", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  await games(page);
+  await library(page)
+    .getByRole("checkbox", { name: /Recordar juegos nuevos/ })
+    .uncheck();
+  await expect(library(page).getByRole("status")).toContainText(
+    "no se recordarán",
+  );
+  await page.getByRole("link", { name: "Volver al inicio" }).click();
+  await open(page, "otro.nes", 7);
+  await running(page);
   await exit(page);
-  await expect(library(page)).toContainText("Aún no hay juegos recordados");
-  await expect(continueCard(page)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Continuar otro.nes" }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("article", { name: "otro.nes" })).toHaveCount(0);
+  await games(page);
+  await expect(library(page).getByRole("listitem")).toHaveCount(1);
   await expect(
     library(page).getByRole("checkbox", { name: /Recordar juegos nuevos/ }),
   ).not.toBeChecked();
-  const roms = await page.evaluate(async () => {
-    const root = await navigator.storage.getDirectory();
-    const names: string[] = [];
-    try {
-      const dir = await root.getDirectoryHandle("roms");
-      for await (const name of (dir as any).keys()) names.push(name);
-    } catch {
-      // No roms directory at all.
-    }
-    return names;
-  });
-  expect(roms).toEqual([]);
-  // Reopening finds the exit snapshot (offer) but never asks again.
-  await open(page);
-  await expect(
-    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sí, recordar" })).toHaveCount(
-    0,
-  );
 });
 
 test("removing a game from the list keeps its Partidas", async ({ page }) => {
   await page.goto("/");
-  await rememberAndLeave(page);
+  await playAndLeave(page);
+  await games(page);
   await library(page)
     .getByRole("button", { name: `Quitar ${NAME} de la lista` })
     .click();
@@ -132,6 +183,7 @@ test("removing a game from the list keeps its Partidas", async ({ page }) => {
   await expect(library(page).getByRole("status")).toContainText(
     "Sus partidas se conservan",
   );
+  await page.getByRole("link", { name: "Volver al inicio" }).click();
   await expect(continueCard(page)).toHaveCount(0);
   // Reopening the file still finds the exit snapshot.
   await open(page);
@@ -144,7 +196,7 @@ test("a damaged copy on the device is refused with a clear message", async ({
   page,
 }) => {
   await page.goto("/");
-  await rememberAndLeave(page);
+  await playAndLeave(page);
   await page.evaluate(async () => {
     const root = await navigator.storage.getDirectory();
     const dir = await root.getDirectoryHandle("roms");
@@ -166,7 +218,7 @@ test("a damaged copy on the device is refused with a clear message", async ({
 
 test("the home screen with a library fits a 375 px phone", async ({ page }) => {
   await page.goto("/");
-  await rememberAndLeave(page);
+  await playAndLeave(page);
   await page.setViewportSize({ width: 375, height: 800 });
   await expect(continueCard(page)).toBeVisible();
   const overflow = await page.evaluate(
@@ -192,7 +244,7 @@ test("«Continuar» works offline in the installed build", async ({
   await expect
     .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
     .toBe(true);
-  await rememberAndLeave(page);
+  await playAndLeave(page);
   await context.setOffline(true);
   await page.reload();
   await continueCard(page).getByRole("button", { name: "Continuar" }).click();

@@ -7,9 +7,12 @@ import {
   ORPHAN_AGE_MS,
   pruneOrphanRoms,
   parseEntry,
-  readRemember,
+  rememberGames,
+  viewGames,
   writeRemember,
   REMEMBER_KEY,
+  type GameView,
+  type LibraryEntry,
 } from "../packages/storage/src/library.ts";
 import { parseRequest } from "../packages/runtime/src/protocol.ts";
 import { digest } from "../packages/storage/src/sram.ts";
@@ -58,18 +61,21 @@ test("the library lists the most recently played game first", () => {
   assert.equal(input[0], old, "the input is not reordered");
 });
 
-test("the remember choice is asked once and kept", () => {
-  const data = new Map<string, string>();
+test("games are remembered unless the player turned it off", () => {
+  const data = new Map<string, string>([["cartivo:library:remember:v1", "no"]]);
   const storage = {
     getItem: (k: string) => data.get(k) ?? null,
     setItem: (k: string, v: string) => void data.set(k, v),
+    removeItem: (k: string) => void data.delete(k),
   };
-  assert.equal(readRemember(storage), undefined);
-  assert.equal(writeRemember(true, storage), true);
-  assert.equal(data.get(REMEMBER_KEY), "yes");
-  assert.equal(readRemember(storage), true);
-  writeRemember(false, storage);
-  assert.equal(readRemember(storage), false);
+  // The old one-time «No» (v1) no longer counts.
+  assert.equal(rememberGames(storage), true);
+  assert.equal(writeRemember(false, storage), true);
+  assert.equal(data.get(REMEMBER_KEY), "off");
+  assert.equal(rememberGames(storage), false);
+  writeRemember(true, storage);
+  assert.equal(data.has(REMEMBER_KEY), false);
+  assert.equal(rememberGames(storage), true);
   const blocked = {
     getItem: () => {
       throw Error("blocked");
@@ -77,9 +83,38 @@ test("the remember choice is asked once and kept", () => {
     setItem: () => {
       throw Error("blocked");
     },
+    removeItem: () => {
+      throw Error("blocked");
+    },
   };
-  assert.equal(readRemember(blocked), undefined);
+  assert.equal(rememberGames(blocked), true);
   assert.equal(writeRemember(true, blocked), false);
+});
+
+test("the games page searches, filters by console and sorts", () => {
+  const game = (name: string, system: string, lastPlayedAt: number) =>
+    ({ hash, system, name, size: 1, addedAt: 0, lastPlayedAt }) as LibraryEntry;
+  const games = [
+    game("Pokémon Rojo", "gb", 3),
+    game("Zelda", "gba", 9),
+    game("Pokemon Esmeralda", "gba", 5),
+  ];
+  const names = (view: Partial<GameView>) =>
+    viewGames(games, { query: "", system: "", sort: "recent", ...view }).map(
+      (g) => g.name,
+    );
+  assert.deepEqual(names({}), ["Zelda", "Pokemon Esmeralda", "Pokémon Rojo"]);
+  assert.deepEqual(names({ query: "POKEMON" }), [
+    "Pokemon Esmeralda",
+    "Pokémon Rojo",
+  ]);
+  assert.deepEqual(names({ query: "pokémon rojo" }), ["Pokémon Rojo"]);
+  assert.deepEqual(names({ system: "gba", sort: "name" }), [
+    "Pokemon Esmeralda",
+    "Zelda",
+  ]);
+  assert.deepEqual(names({ query: "mario" }), []);
+  assert.equal(games[0].name, "Pokémon Rojo", "the input is not reordered");
 });
 
 test("hashes are lowercase SHA-256 hex", () => {
@@ -116,10 +151,8 @@ test("only games opened from a file can be remembered", () => {
   assert.throws(() =>
     parseRequest({ ...base, command: "load", file, remember: "yes" }),
   );
-  assert.equal(
-    parseRequest({ ...base, command: "library-add" }).command,
-    "library-add",
-  );
+  // The one-time question and its request are gone: `load` remembers.
+  assert.throws(() => parseRequest({ ...base, command: "library-add" }));
 });
 
 // A minimal in-memory OPFS directory with fault injection (ADR-012).

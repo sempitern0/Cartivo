@@ -8,7 +8,7 @@ Para seguir una partida había que volver a elegir el archivo en cada visita, au
 
 ## Decisión
 
-- **Consentimiento, una sola vez:** la primera vez que se abre un juego desde archivo, el reproductor pregunta «¿Recordar tus juegos en este dispositivo…?». La respuesta (`cartivo:library:remember:v1`) se aplica a los siguientes y se cambia en «Tus juegos». Las demos nunca se recuerdan.
+- **Consentimiento, una sola vez** (sustituido por la revisión del 2026-11-03: se recuerda por defecto): la primera vez que se abre un juego desde archivo, el reproductor pregunta «¿Recordar tus juegos en este dispositivo…?». La respuesta (`cartivo:library:remember:v1`) se aplica a los siguientes y se cambia en «Tus juegos». Las demos nunca se recuerdan.
 - **Datos:**
   - Índice en IndexedDB `cartivo-library`: hash, sistema, nombre, tamaño, fechas y miniatura de «Al salir». Se valida en runtime al leerlo (`packages/storage/src/library.ts`).
   - Copia de la ROM en OPFS como `roms/<sha256>`, escrita y leída **solo en el Worker** de emulación, con handle síncrono cuando existe y `createWritable` si no.
@@ -25,11 +25,19 @@ Cambios de la auditoría del titular:
 - **Orden índice/copia:** al recordar, primero la copia verificada y después la entrada; al quitar, primero la entrada y después la copia. Una interrupción deja como mucho un archivo huérfano, nunca una entrada que apunte a una copia ausente.
 - **Poda:** al abrir el inicio, en segundo plano, se borran los archivos de `roms/` sin entrada con más de 24 h. El margen evita competir con una escritura del Worker en curso.
 
+### Revisión 2026-11-03: recordar por defecto y página «Tus juegos»
+
+Decisión del titular tras usar la app: la pregunta confundía y Cartivo es de uso privado y local.
+- **Sin pregunta:** abrir un archivo lo recuerda (`load` con `remember`), salvo que el jugador lo desactive en «Tus juegos». La preferencia pasa a `cartivo:library:remember:v2` y solo guarda `"off"`; la clave v1 ya no se lee, así que la respuesta antigua no cuenta. Si el navegador no deja guardar la preferencia, se recuerda. Las demos siguen sin recordarse y, sin OPFS, no se recuerda nada.
+- **Protocolo:** se retira `library-add`, cuyo único uso era responder a la pregunta.
+- **Inicio:** los tres juegos más recientes; el primero en la tarjeta grande **Continuar** y dos compactos, todos desde «Al salir», más «Ver todos tus juegos (N)».
+- **`#juegos`:** página propia con búsqueda (sin mayúsculas ni acentos), filtro por consola, orden reciente o por nombre, **Continuar** y **Quitar**, espacio ocupado e interruptor. La lógica de la vista es pura (`viewGames` en `library.ts`). Mientras hay un juego abierto, la página no se ofrece, para no sustituir una sesión sin su cierre.
+
 ## Alternativas descartadas
 
 - **File System Access (handles persistentes):** no existe en Safari ni Firefox y exige volver a conceder el permiso. Puede añadirse después como alternativa sin copia.
 - **Guardar la ROM en IndexedDB:** blobs de hasta 32 MB en la misma base que el índice. OPFS separa los datos voluminosos y permite lectura síncrona en Worker, que hará falta para discos (H4).
-- **Recordar siempre sin preguntar:** copia archivos del usuario sin consentimiento explícito.
+- ~~**Recordar siempre sin preguntar:** copia archivos del usuario sin consentimiento explícito.~~ Reconsiderada en la revisión del 2026-11-03: la copia nunca sale del navegador y el interruptor la desactiva.
 - **Aviso al pulsar Continuar:** decisión del titular, «seguir directamente».
 
 ## Consecuencias

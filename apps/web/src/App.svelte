@@ -2,13 +2,12 @@
   import { onMount, tick } from "svelte";
   import Player from "./Player.svelte";
   import ControlsPanel from "./ControlsPanel.svelte";
-  import ContinueCard from "./ContinueCard.svelte";
-  import Library from "./Library.svelte";
+  import RecentGames from "./RecentGames.svelte";
+  import LibraryPage from "./LibraryPage.svelte";
   import { demo, type GameSource } from "./game-source.ts";
   import {
     listGames,
     pruneOrphanRoms,
-    readRemember,
     type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
@@ -26,7 +25,11 @@
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
   import "./theme.css";
-  let controlsPage = $state(false);
+  /** Screens without a router: the hash names the page (#controles, #juegos). */
+  type Page = "inicio" | "controles" | "juegos";
+  let page = $state<Page>("inicio");
+  const pageFromHash = (hash: string): Page =>
+    hash === "#controles" ? "controles" : hash === "#juegos" ? "juegos" : "inicio";
   const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
   let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
@@ -37,7 +40,6 @@
   };
   // Local library: remembered games, most recent first.
   let games = $state.raw<LibraryEntry[]>([]);
-  let showLibrary = $state(false);
   /** What this browser lets Cartivo keep (notice on the home screen). */
   let storage = $state<StorageHealth>("ok");
   let pruned = false;
@@ -55,15 +57,10 @@
     } catch {
       games = [];
     }
-    showLibrary = games.length > 0 || readRemember() !== undefined;
   }
-  const latest = $derived.by(() => {
-    for (const entry of games) {
-      const system = findSystem(entry.system);
-      if (system) return { entry, system };
-    }
-    return undefined;
-  });
+  /** «Continuar» from the home screen or the games page: from «Al salir». */
+  const continueGame = (entry: LibraryEntry, system: SystemInfo) =>
+    startGame(system, { kind: "library", entry, resume: true });
   let fileInput = $state.raw<HTMLInputElement>();
   /** System whose card opened the file picker. */
   let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
@@ -105,18 +102,18 @@
   function dragOver(e: DragEvent) {
     if (!hasFiles(e)) return;
     e.preventDefault();
-    dragging = !game && !controlsPage;
+    dragging = !game && page === "inicio";
   }
   function drop(e: DragEvent) {
     dragging = false;
     if (!hasFiles(e)) return;
     e.preventDefault();
     const file = e.dataTransfer?.files[0];
-    if (file && !controlsPage) openFile(file);
+    if (file && page === "inicio") openFile(file);
   }
   let pageHeading = $state.raw<HTMLHeadingElement>();
   async function showPage() {
-    controlsPage = location.hash === "#controles";
+    page = pageFromHash(location.hash);
     await tick();
     pageHeading?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -186,15 +183,21 @@
           >Instalar app</button
         >
       {/if}
+      {#if games.length && !game}<a
+          class="icon-button settings-link"
+          href="#juegos"
+          aria-current={page === "juegos" ? "page" : undefined}
+          >{@html icons.library}<span>Tus juegos</span></a
+        >{/if}
       <a
         class="icon-button settings-link"
         href="#controles"
-        aria-current={controlsPage ? "page" : undefined}
+        aria-current={page === "controles" ? "page" : undefined}
         >{@html icons.gear}<span>Ajustes</span></a
       >
     </nav>
   </header>
-  {#if controlsPage}
+  {#if page === "controles"}
     <section class="controls-page">
       <div class="page-head">
         <a
@@ -211,6 +214,27 @@
         </div>
       </div>
       <ControlsPanel />
+    </section>
+  {:else if page === "juegos" && !game}
+    <section class="games-page">
+      <div class="page-head">
+        <a
+          class="back icon-button"
+          href="#inicio"
+          data-pad-back
+          aria-label="Volver al inicio"
+          title="Volver al inicio">{@html icons.back}</a
+        >
+        <div class="titles">
+          <p class="kicker">En este dispositivo</p>
+          <h1 bind:this={pageHeading} tabindex="-1">Tus juegos</h1>
+        </div>
+      </div>
+      <LibraryPage
+        {games}
+        oncontinue={continueGame}
+        onchange={refreshLibrary}
+      />
     </section>
   {:else if !game}
     <section class="welcome">
@@ -232,19 +256,7 @@
             : "Este navegador no guarda copias de tus juegos (ventana privada o almacenamiento restringido): «Continuar» no estará disponible y tus partidas podrían borrarse al cerrarlo. Exporta las que quieras conservar desde Partidas."}
         </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
-      {#if latest}
-        <ContinueCard
-          entry={latest.entry}
-          system={latest.system}
-          oncontinue={() =>
-            latest &&
-            startGame(latest.system, {
-              kind: "library",
-              entry: latest.entry,
-              resume: true,
-            })}
-        />
-      {/if}
+      <RecentGames {games} oncontinue={continueGame} />
       <ul class="consoles" aria-label="Consolas">
         {#each consoles as item (item.id)}
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
@@ -306,22 +318,14 @@
         onchange={chooseGame}
         hidden
       />
-      {#if showLibrary}
-        <Library
-          {games}
-          onplay={(entry, system) =>
-            startGame(system, { kind: "library", entry, resume: false })}
-          onchange={refreshLibrary}
-        />
-      {/if}
     </section>
   {/if}
-  {#if game}<div hidden={controlsPage}>
+  {#if game}<div hidden={page === "controles"}>
       {#key game.id}
         <Player
           system={game.system}
           source={game.source}
-          visible={!controlsPage}
+          visible={page !== "controles"}
           canRemember={storage === "ok"}
           autostart
           onclose={() => {
@@ -580,7 +584,8 @@
     color: var(--teal);
     background: transparent;
   }
-  .controls-page {
+  .controls-page,
+  .games-page {
     padding: 40px 0 24px;
   }
   .page-head {
@@ -600,7 +605,8 @@
   }
   @media (prefers-reduced-motion: no-preference) {
     .welcome,
-    .controls-page {
+    .controls-page,
+    .games-page {
       animation: view-enter 180ms ease-out both;
     }
   }

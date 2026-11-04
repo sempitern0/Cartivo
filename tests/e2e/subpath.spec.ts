@@ -78,8 +78,6 @@ test("under /cartivo/ a remembered game shows «Continuar» after leaving", asyn
   await page.goto("./");
   await openNesFile(page, "mi-juego.nes");
   await playing(page);
-  await page.getByRole("button", { name: "Sí, recordar" }).click();
-  await expect(page.getByTestId("toast")).toContainText("Juego recordado");
   await page.getByRole("button", { name: "Salir", exact: true }).click();
   const card = page.getByRole("article", { name: "mi-juego.nes", exact: true });
   await expect(card).toBeVisible();
