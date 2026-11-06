@@ -1,2 +1,2 @@
 Bump this file only to build Snes9x once in CI (core-snes9x.yml).
-Reason: first build of Snes9x 1.63 for Cartivo (SNES, ADR-013).
+Reason: bridge exports cartivo_frame_rate for per-game cadence (PAL at 50 Hz, ADR-013 revision 2026-11-06).

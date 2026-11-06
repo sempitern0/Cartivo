@@ -6,7 +6,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive (todas **experimentales**, cartuchos NTSC) |
+| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive) |
 | **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive). Todos en WebAssembly y sin BIOS propietarias |
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |

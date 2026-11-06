@@ -27,7 +27,7 @@ Estado: **experimental.** SNES funciona de extremo a extremo con Snes9x 1.63 en 
 | Prueba | Resultado |
 |---|---|
 | Arnés C++ nativo (g++, mismas fuentes y opciones) | Ver el expediente, apartado 6; 0,42 ms/frame |
-| `tests/snes.test.ts` (WASM del bot) | Cabecera (LoROM, cabecera copier; PAL, BS-X, Sufami, SGB, ST018 y archivos dañados rechazados); orden de bits libretro; oráculo completo; ≈ 48 000 muestras/s; la batería se relee al reabrir; ≈ 1,2 ms/frame en Node |
+| `tests/snes.test.ts` (WASM del bot) | Cabecera (LoROM, cabecera copier; BS-X, Sufami, SGB, ST018 y archivos dañados rechazados; PAL admitido); orden de bits libretro; oráculo completo; ≈ 48 000 muestras/s; la batería se relee al reabrir; ≈ 1,2 ms/frame en Node |
 | `tests/core-conformance.test.ts`, `wasm-host.test.ts` | Contrato completo; solo imports permitidos; estados de tamaño erróneo rechazados sin parar el núcleo; `dispose` seguro |
 | E2E `tests/e2e/snes.spec.ts` | Demo 256×224 con X/Y/L/R comprobados en el canvas; SRAM exportada (`cartivo-snes-sram-v1`, 2048 bytes) y conservada al reabrir; F5/F9; `.sfc` soltado; archivo dañado; X e Y en Controles. **CI sobre `7df7716`** (Foundation CI, run 41419426567): 5/5 SNES en dev y en preview; suite completa 66 superados en dev y 66 en preview, `svelte-check` sin errores ni avisos; Snes9x 0,94 ms/frame en el runner; precarga total 32 archivos, 4,4 MB |
 
@@ -36,3 +36,5 @@ Estado: **experimental.** SNES funciona de extremo a extremo con Snes9x 1.63 en 
 1. Demo con mando: X/Y en los botones norte y oeste, L/R en LB/RB.
 2. Juegos propios (solo en local): LoROM y HiROM con batería, uno con Super FX o SA-1, uno de alta resolución o entrelazado; Partidas y F5/F9.
 3. Rendimiento en móvil (Snes9x es el núcleo más pesado hasta ahora).
+
+**PAL (2026-11-06):** `tests/wasm-host.test.ts` comprueba que el núcleo informa ≈ 60,10 Hz (NTSC) y ≈ 50,01 Hz (fixture con región Europa); `tests/e2e/pal.spec.ts` comprueba que juega a menos de 55 fotogramas/s y muestra «50,01 Hz (PAL)». Falta la QA con un cartucho PAL real.

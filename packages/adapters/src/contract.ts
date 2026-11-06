@@ -15,6 +15,11 @@ export type Frame = {
 export interface EmulatorCore {
   /** The cartridge has battery-backed RAM (saved by SramStore). */
   readonly battery: boolean;
+  /**
+   * Frames per second of this game when the core reports it (a PAL
+   * cartridge runs at 50 Hz); undefined means the system's nominal rate.
+   */
+  readonly frameRate?: number;
   frames: number;
   /**
    * Player 1 buttons. NES and Game Boy share these 8 actions; systems with

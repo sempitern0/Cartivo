@@ -9,7 +9,7 @@
  * - holding B turns the backdrop red;
  * - A, X, Y and Z paint the sprite yellow, cyan, magenta and orange.
  */
-export function mdControlDemo(): Uint8Array {
+export function mdControlDemo({ pal = false } = {}): Uint8Array {
   const rom = new Uint8Array(0x10000);
   const code: number[] = [];
   const base = 0x200;
@@ -224,7 +224,8 @@ export function mdControlDemo(): Uint8Array {
   be32(0x1b4, 0x200001);
   be32(0x1b8, 0x203fff);
   text(0x1bc, "", 52);
-  text(0x1f0, "JUE", 16);
+  // Every region, or Europe only for the PAL (50 Hz) variant.
+  text(0x1f0, pal ? "E" : "JUE", 16);
   let sum = 0;
   for (let i = 0x200; i < rom.length; i += 2)
     sum = (sum + ((rom[i] << 8) | rom[i + 1])) & 0xffff;

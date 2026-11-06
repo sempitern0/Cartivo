@@ -34,13 +34,14 @@
     "cartivo_audio",
     "cartivo_state_size",
     "cartivo_save_state",
-    "cartivo_load_state"
+    "cartivo_load_state",
+    "cartivo_frame_rate"
   ],
   "dependencies": 16,
   "files": [
     {
       "path": "dist/genesis-plus-gx.wasm",
-      "sha256": "58c38e7bcf34faca277b5c51f24f20dbd8a0e7e2b2bc0c6bae34dd90b9886c4e"
+      "sha256": "8c4ea8f4ab2f2e425b1e7db2bb620e3b4dc8e22c0c0f047e268dd12a1dcad13c"
     }
   ]
 }

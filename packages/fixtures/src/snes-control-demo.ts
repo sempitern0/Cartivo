@@ -8,7 +8,7 @@
  * - holding B turns the backdrop red;
  * - X, Y, L and R paint the sprite yellow, cyan, magenta and orange.
  */
-export function snesControlDemo(): Uint8Array {
+export function snesControlDemo({ pal = false } = {}): Uint8Array {
   const rom = new Uint8Array(0x8000);
   const code: number[] = [];
   const base = 0x8000;
@@ -216,7 +216,8 @@ export function snesControlDemo(): Uint8Array {
   rom[0x7fd6] = 0x02; // ROM + RAM + battery
   rom[0x7fd7] = 0x05; // 32 KiB
   rom[0x7fd8] = 0x01; // 2 KiB RAM
-  rom[0x7fd9] = 0x01; // North America (NTSC)
+  // North America (NTSC), or Europe for the PAL (50 Hz) variant.
+  rom[0x7fd9] = pal ? 0x02 : 0x01;
   // Vectors: reset to $8000, every interrupt to an RTI.
   const rti = word(labels.get("rti")!);
   for (const at of [0x7fe4, 0x7fe6, 0x7fe8, 0x7fea, 0x7fee, 0x7ff4, 0x7ff8])

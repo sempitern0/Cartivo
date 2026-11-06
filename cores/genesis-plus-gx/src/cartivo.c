@@ -34,6 +34,8 @@ typedef struct {
     unsigned bits;
     uint8_t *rom;
     struct retro_game_info_ext info;
+    /* The game's own frame rate: 50 Hz PAL, ~59.9 Hz NTSC (from the header). */
+    double fps;
 } cartivo_t;
 
 static cartivo_t *current;
@@ -159,8 +161,12 @@ cartivo_t *cartivo_create(const uint8_t *rom, size_t rom_len, unsigned system)
     struct retro_system_av_info av;
     retro_get_system_av_info(&av);
     c->step = av.timing.sample_rate / OUT_RATE;
+    c->fps = av.timing.fps;
     return c;
 }
+
+/* Frames per second of the loaded game, so the host paces PAL at 50 Hz. */
+double cartivo_frame_rate(cartivo_t *c) { return c->fps; }
 
 int cartivo_save_size(cartivo_t *c)
 {
