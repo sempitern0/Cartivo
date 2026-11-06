@@ -84,8 +84,9 @@ test("slot reuse does not establish controller identity", () => {
 });
 
 test("custom keyboard profiles validate complete unique safe bindings", async () => {
-  const { defaultKeyboard, parseKeyboard } =
-    await import("../packages/input/src/nes-input.ts");
+  const { defaultKeyboard, parseKeyboard } = await import(
+    "../packages/input/src/nes-input.ts"
+  );
   const custom = { ...defaultKeyboard, a: "KeyC" };
   assert.deepEqual(parseKeyboard(custom), custom);
   assert.equal(parseKeyboard({ ...custom, b: "KeyC" }), undefined);
@@ -102,8 +103,9 @@ test("custom keyboard profiles validate complete unique safe bindings", async ()
 });
 
 test("WASD aliases coexist with arrows and respect remapping collisions", async () => {
-  const { defaultKeyboard } =
-    await import("../packages/input/src/nes-input.ts");
+  const { defaultKeyboard } = await import(
+    "../packages/input/src/nes-input.ts"
+  );
   assert.equal(sample(undefined, undefined, new Set(["KeyW"])).up, true);
   assert.equal(sample(undefined, undefined, new Set(["KeyA"])).left, true);
   assert.equal(sample(undefined, undefined, new Set(["KeyS"])).down, true);
@@ -137,8 +139,9 @@ test("NES direction input is identical for WASD and arrow menus", () => {
 });
 
 test("Select, Start and the legacy right Shift binding are normalized", async () => {
-  const { defaultKeyboard, keyboardAction } =
-    await import("../packages/input/src/nes-input.ts");
+  const { defaultKeyboard, keyboardAction } = await import(
+    "../packages/input/src/nes-input.ts"
+  );
   assert.equal(keyboardAction("KeyQ", defaultKeyboard), "select");
   assert.equal(keyboardAction("ShiftRight", defaultKeyboard), "select");
   assert.equal(keyboardAction("Enter", defaultKeyboard), "start");
