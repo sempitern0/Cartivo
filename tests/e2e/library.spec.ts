@@ -276,6 +276,15 @@ test.describe("load diagnostics", () => {
     );
     await continueCard(page).getByRole("button", { name: "Continuar" }).click();
     await running(page);
+    // Restored snapshots already contain frames: wait for new advance samples.
+    const before = Number(
+      await page.locator("canvas").getAttribute("data-frames"),
+    );
+    await expect
+      .poll(async () =>
+        Number(await page.locator("canvas").getAttribute("data-frames")),
+      )
+      .toBeGreaterThan(before + 5);
     await page.keyboard.press("Escape");
     await page.getByText("Rendimiento de la sesión", { exact: true }).click();
     await expect(page.getByTestId("load-duration")).toContainText(

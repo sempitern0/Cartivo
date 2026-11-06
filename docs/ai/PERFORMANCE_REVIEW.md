@@ -6,7 +6,7 @@ Base: `main` 5f74afb; esta iteración parte de la PR #30 (`e1f0037`). La PR #31 
 
 | Área | Cuello de botella observado | Cambio |
 |---|---|---|
-| CI | [Run 42214858616](https://github.com/sempitern0/Cartivo/actions/runs/42214858616): instalación WebKit agotada tras 492–493 s, antes de los tests; descarga de `libcodec2` en el espejo Azure/Ubuntu resolute. | Runner E2E fijado a Ubuntu 24.04; caché por SO/arquitectura/Playwright; límites de red apt; instalador oficial de dependencias sin parsear texto ni omitir fuentes. |
+| CI | [Run 42214858616](https://github.com/sempitern0/Cartivo/actions/runs/42214858616): instalación WebKit agotada tras 492–493 s, antes de los tests; descarga de `libcodec2` en el espejo Azure/Ubuntu resolute. | Runner E2E fijado a Ubuntu 24.04; caché por SO/arquitectura/Playwright; límites de red apt y espejo oficial archive.ubuntu.com en lugar del espejo Azure observado; instalador oficial de dependencias sin parsear texto ni omitir fuentes. |
 | CI | Siete instalaciones E2E para tres navegadores. [Run 42213373610](https://github.com/sempitern0/Cartivo/actions/runs/42213373610): instalación 11–36 s; tests 4–139 s por job. | Tres jobs, cada uno ejecuta dev y preview; Chromium añade subruta. Se conservan las siete combinaciones y sus evidencias en directorios distintos. |
 | ROM guardada | SHA-256 en `readRom` y de nuevo en `load`, más una copia JavaScript de la ROM por hash. | Una lectura y un hash verificado; sin copia adicional de ArrayBuffer ordinario. |
 | ROM nueva | Preparación del núcleo antes de validar; hash y preparación seriales. | Rechazo temprano y operaciones independientes solapadas. |
@@ -31,7 +31,7 @@ No son tiempos de arranque de juegos ni resultados de móvil. La preparación co
 
 ## Límites y próximos pasos
 
-- Verificación local: 133 tests, núcleos, tipos, formato y build completos. E2E local dev/preview bloqueado por `socket(): Operation not permitted`; la CI remota debe acreditar los navegadores.
+- Verificación local: 133 tests, núcleos, tipos, formato y build completos. Integración local con #31: 134 tests, núcleos, tipos y build correctos; único conflicto en el apéndice de CHANGELOG de #30/#31, conservando ambos textos. E2E local dev/preview bloqueado por `socket(): Operation not permitted`; la CI remota debe acreditar los navegadores.
 - Se conserva la recreación del núcleo cuando existe SRAM: su tamaño exacto depende del núcleo. Evitarla exige un contrato explícito de importación de batería y pruebas de todos los adaptadores.
 - La escritura/verificación inicial de OPFS puede seguir dominando en almacenamiento lento. No se difiere sin garantizar el cierre y la recuperabilidad.
 - QA física pendiente: suspensión móvil, audio, mando real, almacenamiento restringido y partidas grandes. La caché de navegadores no elimina una caída del espejo apt.
