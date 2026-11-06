@@ -1,0 +1,60 @@
+{
+  "id": "pcsx-rearmed-ps1-wasm",
+  "engine": "WebAssembly (standalone)",
+  "upstream": {
+    "name": "PCSX-ReARMed",
+    "commit": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
+    "repository": "https://github.com/libretro/pcsx_rearmed",
+    "spdx": "GPL-2.0-or-later"
+  },
+  "toolchain": {
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)",
+    "emsdk": "6.0.12 (35ff8a6d150541276abbc6bae512ca90bcfbe220)"
+  },
+  "platforms": [
+    "PlayStation"
+  ],
+  "biosRequired": false,
+  "bios": "None: the core's own HLE BIOS (libpcsxcore/psxbios.c) is forced; no system directory is offered, so Sony's BIOS is never looked for",
+  "sources": 56,
+  "patchedFiles": [],
+  "exports": [
+    "malloc",
+    "free",
+    "cartivo_create",
+    "cartivo_free",
+    "cartivo_reset",
+    "cartivo_save_size",
+    "cartivo_load_save",
+    "cartivo_save",
+    "cartivo_set_input",
+    "cartivo_frames",
+    "cartivo_pixels",
+    "cartivo_audio",
+    "cartivo_state_size",
+    "cartivo_save_state",
+    "cartivo_load_state",
+    "cartivo_frame_rate"
+  ],
+  "imports": [
+    "env.cartivo_vfs_open",
+    "env.cartivo_vfs_close",
+    "env.cartivo_vfs_size",
+    "env.cartivo_vfs_read",
+    "env.emscripten_notify_memory_growth",
+    "wasi_snapshot_preview1.proc_exit",
+    "wasi_snapshot_preview1.fd_close",
+    "wasi_snapshot_preview1.clock_time_get",
+    "wasi_snapshot_preview1.fd_write",
+    "wasi_snapshot_preview1.fd_read",
+    "wasi_snapshot_preview1.fd_seek",
+    "env.__syscall_getdents64"
+  ],
+  "dependencies": 7,
+  "files": [
+    {
+      "path": "dist/pcsx-rearmed.wasm",
+      "sha256": "07e7d39042350ce8e1a64a3adab88e3f2dbf4704c1321fa7953843b3aa0918c9"
+    }
+  ]
+}
