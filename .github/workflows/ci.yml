@@ -67,7 +67,22 @@ jobs:
       # Only the production build has a service worker (PWA tests).
       - if: matrix.server != 'dev'
         run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
-      - run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+      # The browser download sometimes stalls for minutes on the runner: keep
+      # browsers in a cache keyed by Playwright's version, and fail fast (to
+      # re-run) instead of eating the whole job timeout.
+      - id: playwright
+        run: echo "version=$(node -p "require('./package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-${{ matrix.browser }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        timeout-minutes: 5
+        run: pnpm exec playwright install-deps ${{ matrix.browser }}
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.
       - name: Virtual audio output

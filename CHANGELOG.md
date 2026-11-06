@@ -286,3 +286,7 @@
 ### pnpm 12
 
 - pnpm 12.16.1 fijado en `packageManager` (el lockfile registra su versión). La CI toma la versión de ahí, sin un segundo pin en `.github/actions/setup`.
+
+### CI: navegadores de Playwright en caché
+
+- Los navegadores de las pruebas E2E se guardan en caché por versión de Playwright; con acierto solo se instalan las dependencias del sistema. La instalación tiene su propio límite de 5 minutos: una descarga atascada falla pronto en vez de agotar el trabajo.
