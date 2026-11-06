@@ -46,5 +46,5 @@ Las cuentas online siguen siendo el hito H6, posterior a V1, con su propio ADR.
 
 - Los logros (H6) y una futura cuenta se vincularán a un perfil local.
 - La exportación de partidas sigue siendo por juego y perfil. No existe exportar ni importar un perfil completo.
-- Las E2E empiezan con el primer perfil elegido (`tests/e2e/fixtures.ts`), salvo `profiles.spec.ts`.
+- Las E2E empiezan con el primer perfil elegido (`tests/e2e/fixtures.ts`), salvo `profiles.spec.ts` (`profile: ""`).
 - **QA manual pendiente:** el selector con mando físico y el cambio de perfil en móvil.

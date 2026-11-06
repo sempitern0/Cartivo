@@ -3,7 +3,7 @@ import { playDemo } from "./play.ts";
 
 // Player profiles (ADR-016): asked on every visit, each with its own
 // Partidas, library and controls; the first one keeps the existing data.
-test.use({ profile: undefined });
+test.use({ profile: "" });
 
 const pick = (page: Page, name: string) =>
   page
