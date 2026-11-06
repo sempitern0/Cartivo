@@ -286,3 +286,7 @@
 ### pnpm 12
 
 - pnpm 12.16.1 fijado en `packageManager` (el lockfile registra su versión). La CI toma la versión de ahí, sin un segundo pin en `.github/actions/setup`.
+
+### CI: navegadores de Playwright en caché
+
+- El espejo apt del runner se atascaba minutos con frecuencia. La CI guarda en caché, por versión de Playwright y navegador, los navegadores y los paquetes .deb de las librerías que falten; omite las fuentes opcionales de Playwright (ninguna prueba lee texto renderizado). La instalación tiene su propio límite para fallar pronto.
