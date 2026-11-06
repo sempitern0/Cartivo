@@ -67,7 +67,37 @@ jobs:
       # Only the production build has a service worker (PWA tests).
       - if: matrix.server != 'dev'
         run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
-      - run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+      # The runner's apt mirror often stalls for minutes. Browsers and the
+      # .deb files of the libraries they miss are cached together, keyed by
+      # Playwright's version; Playwright's optional fonts are skipped (no
+      # test reads rendered text). The step fails fast to be re-run.
+      - id: playwright
+        run: echo "version=$(node -p "require('./package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/apt-cache
+          key: playwright-${{ steps.playwright.outputs.version }}-${{ matrix.browser }}-${{ runner.os }}
+      - name: Browser and system libraries
+        timeout-minutes: 8
+        env:
+          BROWSER: ${{ matrix.browser }}
+          CACHED: ${{ steps.browsers.outputs.cache-hit }}
+        run: |
+          if [ "$CACHED" != "true" ]; then pnpm exec playwright install "$BROWSER"; fi
+          # The dry run lists what is missing (and exits 1 if anything is).
+          missing=$( (pnpm exec playwright install-deps --dry-run "$BROWSER" 2>&1 || true) \
+            | sed -n 's/^  //p' | grep -vE '^(x?fonts-|ttf-)' | tr '\n' ' ')
+          echo "Missing libraries (fonts skipped): ${missing:-none}"
+          if [ -n "${missing// }" ]; then
+            mkdir -p ~/apt-cache/partial
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends \
+              -o Dir::Cache::archives="$HOME/apt-cache" $missing
+            sudo chown -R "$USER" ~/apt-cache
+          fi
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.
       - name: Virtual audio output

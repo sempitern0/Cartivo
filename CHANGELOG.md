@@ -292,3 +292,7 @@
 - Los puentes de Snes9x y Genesis Plus GX exportan `cartivo_frame_rate` (la frecuencia que el núcleo elige por la cabecera) y el reproductor avanza a esa cadencia: un cartucho PAL va a 50 Hz. Sin ese dato se usa la nominal del sistema (`EmulatorCore.frameRate`, opcional).
 - Se admiten los cartuchos PAL de SNES y Mega Drive, antes rechazados. «Acerca de esta prueba» muestra la cadencia del juego.
 - Las fixtures de SNES y Mega Drive tienen una variante PAL (región Europa) para las pruebas; la versión por defecto conserva su hash.
+
+### CI: navegadores de Playwright en caché
+
+- El espejo apt del runner se atascaba minutos con frecuencia. La CI guarda en caché, por versión de Playwright y navegador, los navegadores y los paquetes .deb de las librerías que falten; omite las fuentes opcionales de Playwright (ninguna prueba lee texto renderizado). La instalación tiene su propio límite para fallar pronto.
