@@ -24,6 +24,7 @@ Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la pl
 - Validador de formato del sistema (como `packages/adapters/src/ines.ts`): cabecera, tamaños y variantes admitidas, con mensajes en español.
 - Fixture **original** en `packages/fixtures/` (nunca ROMs comerciales ni de terceros) con hash, licencia y oráculo.
 - Registrar un `CoreModule` en `packages/adapters/src/registry.ts` con `system`, `id`, `version` exacta, `video`, `maxRomBytes`, `validate`, `demo`, `prepare` y `create`.
+- **Sistemas de disco** (ADR-015): un `DiscModule` (`disc: true`) declara `boots` (extensiones de arranque por orden de preferencia) en lugar de `maxRomBytes`/`validate`; su `demo` devuelve `{ name, bytes }` y su `create` recibe un `DiscImage`. El núcleo lee los archivos por la VFS de libretro reenviada a `cartivo_vfs_*` (ver `cores/pcsx-rearmed/src/cartivo.c`); en `systems.ts`, `disc: true` y `extensions` en el mismo orden que `boots`.
 
 ## 4. Sistema en la interfaz
 - Añadir la entrada en `packages/runtime/src/systems.ts`:

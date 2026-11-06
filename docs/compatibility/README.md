@@ -6,7 +6,7 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 |---|---|---|
 | NES · TetaNES (WASM, por defecto) | Experimental: iNES NTSC, mappers 0–4 | [H0-WASM-NES](H0-WASM-NES.md) |
 | NES · ruta común y JSNES | Experimental; JSNES como alternativa | [H1-B-NES](H1-B-NES.md) |
-| Entrada | Teclado y mando con perfiles, doce acciones y botones por sistema; hardware pendiente | [H1-B-INPUT](H1-B-INPUT.md) |
+| Entrada | Teclado y mando con perfiles, catorce acciones y botones por sistema; hardware pendiente | [H1-B-INPUT](H1-B-INPUT.md) |
 | PWA | Instalable y offline; QA en móviles pendiente | [H1-C-PWA](H1-C-PWA.md) |
 | Biblioteca local y «Continuar» | Experimental: ROM en OPFS con consentimiento | [H1-LIB](H1-LIB.md) |
 | QA de H1 (todos los sistemas, Chromium y Firefox) | Automático en CI; manual pendiente | [H1-QA](H1-QA.md) |
@@ -14,7 +14,8 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 | GBA · mGBA (WASM) | Experimental: SRAM, Flash y EEPROM; BIOS HLE | [H2-GBA](H2-GBA.md) |
 | SNES · Snes9x (WASM) | Experimental: NTSC LoROM/HiROM/ExHiROM, chips emulados | [H2-SNES](H2-SNES.md) |
 | Master System y Mega Drive · Genesis Plus GX (WASM) | Experimental: cartuchos NTSC, mando de seis botones, SVP | [H2-SEGA](H2-SEGA.md) |
-| N64, PS1, PSP | Pendiente (H4); núcleos GPL admitidos en uso privado, revisión antes de publicar | — |
+| PlayStation · PCSX-ReARMed (WASM) | Experimental: `.cue`/`.bin`, `.iso`, `.exe` leídos bajo demanda; BIOS HLE | [H4-PS1](H4-PS1.md) |
+| N64, PSP | Pendiente (H4); N64 aplazado (ADR-015) | — |
 | PS2 | Laboratorio pendiente | — |
 
 ## Plantilla de informe por núcleo o build

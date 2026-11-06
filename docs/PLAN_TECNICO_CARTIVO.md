@@ -1,6 +1,6 @@
 # Cartivo — Plan técnico
 
-> **Revisión 5 · 2 de noviembre de 2026.** H2 completo (siete consolas jugables) y la parte automática de H1 cerrada: exportar Partidas, E2E en Firefox, fiabilidad de almacenamiento y CI en paralelo. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 6 · 6 de noviembre de 2026.** PlayStation jugable (ocho consolas) con discos leídos bajo demanda; N64 aplazado con evidencia (ADR-015). Antes: H2 completo y la parte automática de H1 cerrada. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
@@ -24,19 +24,21 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Capacidad | Dónde vive | Decisión | Evidencia |
 |---|---|---|---|
 | Contrato de núcleo, registro y protocolo v1 genérico (`load`, `advance`, `pause`, `save`, `import`, `reset`, `state-*`, `library-add`) | `packages/adapters/src/contract.ts`, `registry.ts`; `packages/runtime/src/protocol.ts`, `client.ts`; `apps/web/src/emulator.worker.ts` | ADR-002 | `tests/core-conformance.test.ts`, `client.test.ts` |
-| Plantilla para núcleos C/C++ → WASM con Emscripten (ABI `cartivo_*`, imports permitidos, `BridgeCore`); carga diferida común (`onDemand` en `registry.ts`) | `packages/adapters/src/wasm-host.ts`, `registry.ts`; `cores/sameboy`, `cores/mgba`, `cores/snes9x`, `cores/genesis-plus-gx` (puente sobre libretro; `setjmp`/`longjmp` nativos de WASM) | ADR-010/011/013/014 | `tests/wasm-host.test.ts` |
+| Plantilla para núcleos C/C++ → WASM con Emscripten (ABI `cartivo_*`, imports permitidos, `BridgeCore`); carga diferida común (`onDemand` en `registry.ts`) | `packages/adapters/src/wasm-host.ts`, `registry.ts`; `cores/sameboy`, `cores/mgba`, `cores/snes9x`, `cores/genesis-plus-gx` (puente sobre libretro; `setjmp`/`longjmp` nativos de WASM), `cores/pcsx-rearmed` | ADR-010/011/013/014/015 | `tests/wasm-host.test.ts` |
 | Builds de núcleo reproducibles, solo bajo petición (`.build-request` en una rama de trabajo o `workflow_dispatch`; nunca en `main` al fusionar) | `.github/workflows/core-*.yml`, `tools/build-*.mjs`, `tools/verify-*.mjs` | ADR-008 | `pnpm verify:core` en cada CI |
 | **NES:** TetaNES 0.17.0 (WASM, por defecto) y JSNES 2.1.0 (alternativa); iNES NTSC, mappers 0–4 | `packages/adapters/src/tetanes.ts`, `jsnes.ts`, `ines.ts` | ADR-007/008 | `tests/nes.test.ts`, `tetanes.test.ts`, `tests/e2e/nes.spec.ts` |
 | **GB/GBC:** SameBoy 1.0.4; DMG o CGB según la cabecera; MBC1/2/3/5 | `packages/adapters/src/sameboy.ts`, `gb-header.ts` | ADR-010 | `tests/gb.test.ts`, `tests/e2e/gb.spec.ts`, [H2-GB](compatibility/H2-GB.md) |
 | **GBA:** mGBA 0.10.5 con BIOS HLE; SRAM, Flash y EEPROM | `packages/adapters/src/mgba.ts`, `gba-header.ts` | ADR-011 | `tests/gba-saves.test.ts`, `tests/e2e/gba.spec.ts`, [H2-GBA](compatibility/H2-GBA.md) |
 | **SNES:** Snes9x 1.63 (C++ sobre su frontend libretro); NTSC y PAL (50 Hz) LoROM/HiROM/ExHiROM, chips emulados; botones X/Y | `packages/adapters/src/snes9x.ts`, `snes-header.ts`; `cores/snes9x` | ADR-013 | `tests/snes.test.ts`, `tests/e2e/snes.spec.ts`, [H2-SNES](compatibility/H2-SNES.md) |
-| **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` va a Mega Drive mientras ningún otro sistema la use | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
-| Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
+| **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` suelto de hasta 10 MiB | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
+| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; mando digital con L2/R2. Los discos aún no se recuerdan en la biblioteca | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
+| Discos bajo demanda: `DiscModule` en el contrato, `prepareDisc` (identidad por bloques WebCrypto, sin leer el disco entero), VFS de libretro sobre `FileReaderSync` (`cartivo_vfs_*`), varios archivos por `load` (`extra`) y `gameForFiles` para elegir el juego | `packages/adapters/src/disc.ts`, `contract.ts`; `packages/storage/src/disc-identity.ts`; `packages/runtime/src/prepare-rom.ts`, `systems.ts` | ADR-015 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts` |
+| Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive, PlayStation) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | Cadencia por juego: el núcleo libretro informa de la frecuencia del juego cargado (`cartivo_frame_rate`, 50 Hz en PAL) y el host la usa; sin ese dato, la nominal del sistema | `EmulatorCore.frameRate`, `wasm-host.ts`, `Player.svelte`; puentes de `cores/snes9x` y `cores/genesis-plus-gx` | ADR-002 | `tests/wasm-host.test.ts`, `tests/e2e/pal.spec.ts` |
 | SRAM con dos generaciones, Web Lock y exportación/importación; commit periódico en segundo plano que no frena la imagen | `packages/storage/src/sram.ts`, `formats.ts`, `background-commit.ts` | ADR-003/007 | `tests/storage.test.ts`, `tests/e2e/integrity.spec.ts` (100 ciclos) |
 | «Partidas»: 3 ranuras + «Al salir», miniaturas, F5/F9, ligadas a núcleo y versión; exportar e importar una ranura (`cartivo-state-v1`) | `packages/storage/src/states.ts`, `state-file.ts`, `apps/web/src/SavePanel.svelte` | ADR-009 | `tests/snapshots.test.ts`, `state-file.test.ts`, `tests/e2e/saves.spec.ts` |
 | Biblioteca local y «Continuar» (ROM en OPFS, recordada por defecto con interruptor); tres recientes en el inicio y página `#juegos` con búsqueda, filtro por consola y orden; copias que nunca se reescriben si ya están verificadas, orden índice/copia recuperable y poda de huérfanas | `packages/storage/src/library.ts` (`rememberGames`, `viewGames`), `apps/web/src/{ContinueCard,RecentGames,LibraryPage}.svelte`, `game-source.ts` | ADR-012 | `tests/library.test.ts`, `tests/e2e/library.spec.ts`, [H1-LIB](compatibility/H1-LIB.md) |
-| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; durante la partida, la captura deja funcionar cualquier control de la página; doce acciones (L/R, X/Y); botones y etiquetas declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
+| Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; durante la partida, la captura deja funcionar cualquier control de la página; catorce acciones (L/R, X/Y, L2/R2); botones y etiquetas declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
 | Pantalla: Ajustar, Píxel entero y entero por proporción; aspecto del sistema; suavizado; preferencias por sistema | `packages/media/src/display-scaler.ts`, `display-preferences.ts`; `apps/web/src/GraphicsPanel.svelte`, `display.svelte.ts` | — | `tests/display-*.test.ts` |
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts` |
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
@@ -61,11 +63,11 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
    - Paletas DMG opcionales.
    - Presupuestos de rendimiento medidos por núcleo (§7).
 4. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
-5. **H4 · 3D.**
-   - N64 (Mupen64Plus-Next o ares), PS1 (PCSX-ReARMed o Beetle PSX) y PSP (PPSSPP).
-   - Lectura por bloques de discos sin copiar la imagen al heap WASM.
-   - `EmulatorCore` entrega hoy RGBA de tamaño fijo y audio mono a 48 kHz. Las capacidades opcionales (resolución variable, audio y temporización por núcleo) se diseñan con el primer núcleo 3D y su ADR, sin romper los núcleos actuales.
-   - Renderer propio (WebGL u OffscreenCanvas). Hilos solo si se miden, con COOP/COEP.
+5. **H4 · 3D.** PS1 y la lectura de discos bajo demanda están hechos (§2, ADR-015).
+   - **PS1, siguiente:** QA del titular con sus discos (compatibilidad y velocidad del intérprete); discos en la biblioteca (copia a OPFS con aviso de espacio); CHD, `.m3u` multidisco y mando analógico.
+   - **PSP** (PPSSPP): mismo camino de discos (`.iso`/`.cso`); su vídeo es 3D por GPU.
+   - **N64, aplazado** (ADR-015): el único RDP por software (angrylion) exige hilos y Mupen64Plus-Next exige WebGL2. Necesita renderer propio (WebGL2 en OffscreenCanvas) o hilos con COOP/COEP, medidos.
+   - `EmulatorCore` entrega RGBA de tamaño fijo y audio mono a 48 kHz. La resolución variable se diseña con el primer núcleo que la necesite, sin romper los actuales.
 6. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
 7. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
 8. **Laboratorio PS2.** Play! opcional con límites publicados.
@@ -109,8 +111,8 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se i
 | Game Boy Advance | mGBA 0.10.5 (MPL-2.0, BIOS HLE) | **accepted (uso privado)** |
 | SNES | Snes9x 1.63 (licencia no comercial propia) | **accepted (uso privado)** |
 | Master System / Mega Drive | Genesis Plus GX `a5834b3` (licencias no comerciales) | **accepted (uso privado)** |
-| N64 | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado) |
-| PlayStation | PCSX-ReARMed / Beetle PSX (GPL-2.0, HLE/OpenBIOS) | candidate (uso privado) |
+| N64 | Mupen64Plus-Next (GPL-2.0) o ares | candidate (uso privado); aplazado (ADR-015) |
+| PlayStation | PCSX-ReARMed `7b0e8f8` (GPL-2.0-or-later, BIOS HLE) | **accepted (uso privado)** |
 | PSP | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) |
 | PS2 | Play! (BSD-2, HLE) | laboratorio opt-in |
 

@@ -300,3 +300,13 @@
 ### Un solo mapa de contexto para agentes
 
 - `tools/context-areas.mjs` es el único mapa de áreas (archivos y pruebas por tema). `pnpm context <área>` lo consulta y `pnpm context --write-doc` genera la tabla de `docs/ai/CONTEXT.md`; `tests/context.test.ts` falla si la tabla y el mapa no coinciden o si un patrón deja de encontrar archivos. Áreas: `ui`, `input`, `load`, `runtime`, `cores`, `storage`, `media`, `pwa`, `ci`.
+
+### PlayStation con PCSX-ReARMed y discos bajo demanda
+
+- PlayStation jugable con PCSX-ReARMed `7b0e8f8` en WebAssembly y su BIOS HLE: nunca se busca la BIOS de Sony (ADR-015, expediente CORE-LEGAL-01 `accepted (uso privado)`, GPL-2.0-or-later).
+- Los discos no se copian a memoria: el núcleo lee por la VFS de libretro solo los sectores que necesita, desde los archivos que abre el jugador (`FileReaderSync` en el Worker). Su identidad son resúmenes WebCrypto por bloques de 16 MiB.
+- Se pueden abrir o arrastrar varios archivos a la vez: un `.cue` arranca con sus pistas `.bin`; también `.iso`, `.bin` de una pista y `.exe`. Un `.bin` suelto de hasta 10 MiB sigue siendo de Mega Drive.
+- Imagen fija de 640×480 a 4:3 para todos los modos; cadencia del juego (PAL 50 Hz); tarjeta de memoria 1 guardada como la batería de un cartucho; Partidas de unos 4,4 MB.
+- Nuevas acciones L2/R2 (gatillos del mando estándar, Y y P en el teclado), con migración de perfiles guardados. Cruz/Círculo/Cuadrado/Triángulo y L1/R1 se nombran en Controles.
+- Demo: un PS-EXE original que la BIOS HLE arranca como un disco de un archivo.
+- Límites: los discos aún no se recuerdan en la biblioteca; sin CHD, `.pbp`, multidisco ni mando analógico. N64 queda aplazado: necesita WebGL2 o hilos.
