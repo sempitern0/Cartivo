@@ -1,10 +1,11 @@
 // Shared host for Cartivo's standalone Emscripten cores (SameBoy, mGBA,
-// Snes9x, Genesis Plus GX).
+// Snes9x, Genesis Plus GX, PCSX-ReARMed).
 // Each core is a single .wasm built by CI with the same cartivo_* bridge
 // (cores/<id>/src/cartivo.c); this file loads it, supplies its system
 // imports and implements EmulatorCore on top of that bridge.
 import type { InputState } from "../../input/src/nes-input.ts";
 import type { EmulatorCore } from "./contract.ts";
+import { DiscImage, vfsImports } from "./disc.ts";
 
 type Pointer = number;
 export type Bridge = {
@@ -112,8 +113,18 @@ const ENOSYS = 52;
  * imports anything else is refused at prepare() (see unsupportedImports).
  */
 const allowed: Record<string, readonly string[]> = {
-  // __syscall_ftruncate64: Snes9x's unused file streams (no files exist).
-  env: ["emscripten_notify_memory_growth", "__syscall_ftruncate64"],
+  // __syscall_ftruncate64: Snes9x's unused file streams (no files exist);
+  // __syscall_getdents64: libretro-common's unused directory listing.
+  // cartivo_vfs_*: a disc's files, read on demand (disc.ts).
+  env: [
+    "emscripten_notify_memory_growth",
+    "__syscall_ftruncate64",
+    "__syscall_getdents64",
+    "cartivo_vfs_open",
+    "cartivo_vfs_size",
+    "cartivo_vfs_read",
+    "cartivo_vfs_close",
+  ],
   wasi_snapshot_preview1: [
     "clock_time_get",
     "fd_write",
@@ -159,12 +170,13 @@ export function unsupportedImports(module: WebAssembly.Module): string[] {
 
 /**
  * Host functions for a standalone Emscripten module: a clock, an empty
- * environment, a discarded log and no files.
+ * environment, a discarded log, and no files besides a disc's, if any.
  */
 function hostImports(
   name: string,
   module: WebAssembly.Module,
   memory: () => ArrayBuffer,
+  disc?: DiscImage,
 ) {
   const view = () => new DataView(memory());
   const empty = (count: number, size: number) => {
@@ -189,6 +201,8 @@ function hostImports(
     fd_seek: () => ENOSYS,
     // Emscripten syscalls return a negative errno.
     __syscall_ftruncate64: () => -ENOSYS,
+    __syscall_getdents64: () => -ENOSYS,
+    ...(disc && vfsImports(disc, memory)),
     environ_sizes_get: empty,
     environ_get: () => 0,
     args_sizes_get: empty,
@@ -224,8 +238,11 @@ export type BridgeOptions<T extends Bridge> = {
   height: number;
   /** Packs Cartivo's buttons in the order the bridge expects. */
   bits(state: InputState): number;
-  /** Calls the bridge's own cartivo_create with the ROM in wasm memory. */
-  create(wasm: T, rom: Pointer, length: number): Pointer;
+  /**
+   * Calls the bridge's own cartivo_create with the ROM in wasm memory, or,
+   * for a disc, the name of the file to boot (read later through the VFS).
+   */
+  create(wasm: T, bytes: Pointer, length: number): Pointer;
   /** The cartridge keeps a battery save (decided with the core's size). */
   battery(saveBytes: number): boolean;
 };
@@ -243,22 +260,32 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
   constructor(
     module: WebAssembly.Module,
     options: BridgeOptions<T>,
-    rom: Uint8Array,
+    game: Uint8Array | DiscImage,
     save?: Uint8Array,
   ) {
     this.#options = options;
     let wasm: T | undefined;
+    const disc = game instanceof DiscImage ? game : undefined;
     const instance = new WebAssembly.Instance(
       module,
-      hostImports(options.name, module, () => wasm!.memory.buffer),
+      hostImports(options.name, module, () => wasm!.memory.buffer, disc),
     );
     wasm = instance.exports as unknown as T;
     wasm._initialize?.();
     this.#wasm = wasm;
-    this.#core = this.#withBytes(rom, (pointer) =>
-      options.create(wasm, pointer, rom.length),
+    const bytes =
+      game instanceof DiscImage
+        ? new TextEncoder().encode(game.primary.name)
+        : game;
+    this.#core = this.#withBytes(bytes, (pointer) =>
+      options.create(wasm, pointer, bytes.length),
     );
-    if (!this.#core) throw Error("El núcleo no ha podido abrir el cartucho.");
+    if (!this.#core)
+      throw Error(
+        disc
+          ? "El núcleo no ha podido abrir el disco."
+          : "El núcleo no ha podido abrir el cartucho.",
+      );
     this.saveBytes = wasm.cartivo_save_size(this.#core);
     const rate = wasm.cartivo_frame_rate?.(this.#core);
     if (isFrameRate(rate)) this.frameRate = rate;
@@ -381,7 +408,8 @@ export function packBits(
 
 /**
  * RETRO_DEVICE_ID_JOYPAD_* order, shared by every bridge that drives a
- * libretro frontend (Snes9x, Genesis Plus GX). Each system maps its own
+ * libretro frontend (Snes9x, Genesis Plus GX, PCSX-ReARMed); bridges mask
+ * the buttons their pad lacks. Each system maps its own
  * buttons onto these positions (systems.ts `buttons` and `labels`).
  */
 const libretroOrder: readonly (keyof InputState)[] = [
@@ -397,6 +425,8 @@ const libretroOrder: readonly (keyof InputState)[] = [
   "x",
   "l",
   "r",
+  "l2",
+  "r2",
 ];
 
 export const libretroInputBits = (state: InputState) =>

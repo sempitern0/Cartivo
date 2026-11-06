@@ -160,6 +160,21 @@ test("L and R: I/O on the keyboard and LB/RB on a standard pad", () => {
   assert.equal(sample(undefined, undefined, new Set(["KeyI"])).l, true);
 });
 
+test("L2 and R2: Y/P on the keyboard and the triggers of a standard pad", () => {
+  const p = pad();
+  p.buttons[6].value = 0.9; // analogue trigger, pressed past half way
+  assert.equal(sample(p, standard, new Set()).l2, true);
+  assert.equal(sample(p, standard, new Set(["KeyP"])).r2, true);
+  assert.equal(sample(undefined, undefined, new Set(["KeyY"])).l2, true);
+  // A profile saved before L2/R2 existed gets them on the triggers.
+  const before = Object.fromEntries(
+    Object.entries(standard).filter(([action]) => !/2$/.test(action)),
+  );
+  const profile = parseProfile(before, p);
+  assert.deepEqual(profile?.l2, { kind: "button", index: 6 });
+  assert.deepEqual(profile?.r2, { kind: "button", index: 7 });
+});
+
 test("profiles saved before L/R existed keep every binding", () => {
   // Keyboard: the eight original actions, one of them already on I.
   const old = {

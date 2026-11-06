@@ -28,16 +28,17 @@ export const areas = [
   },
   {
     id: "load",
-    title: "Carga de ROM: Worker, preparación y biblioteca",
+    title: "Carga de ROM y discos: Worker, preparación y biblioteca",
     start: [
       "apps/web/src/{emulator.worker,game-source}.ts",
       "packages/runtime/src/{prepare-rom,client,protocol}.ts",
-      "packages/storage/src/{library,sram,states}.ts",
+      "packages/adapters/src/disc.ts",
+      "packages/storage/src/{library,sram,states,disc-identity}.ts",
     ],
     context: [
-      "tests/{prepare-rom,library,client}.test.ts",
+      "tests/{prepare-rom,library,client,disc,disc-identity}.test.ts",
       "tests/e2e/{library,faults}.spec.ts",
-      "docs/adr/012-*.md",
+      "docs/adr/{012,015}-*.md",
     ],
   },
   {
@@ -63,7 +64,7 @@ export const areas = [
       "docs/ADDING_A_SYSTEM.md",
       "docs/research/",
       "tests/{core-conformance,wasm-host}.test.ts",
-      "tests/e2e/{nes,gb,gba,snes,sega,pal}.spec.ts",
+      "tests/e2e/{nes,gb,gba,snes,sega,pal,ps1}.spec.ts",
     ],
   },
   {

@@ -31,7 +31,8 @@
         "application/x-gba-rom": [".gba"],
         "application/x-snes-rom": [".sfc", ".smc"],
         "application/x-sms-rom": [".sms"],
-        "application/x-genesis-rom": [".md", ".gen", ".bin"]
+        "application/x-genesis-rom": [".md", ".gen", ".bin"],
+        "application/x-cue": [".cue"]
       }
     }
   ],

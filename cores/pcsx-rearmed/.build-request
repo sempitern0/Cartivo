@@ -1,0 +1,2 @@
+Bump this file only to build PCSX-ReARMed once in CI (core-pcsx-rearmed.yml).
+Reason: first build of PCSX-ReARMed 7b0e8f8 for Cartivo (PlayStation with HLE BIOS and discs read on demand, ADR-015).

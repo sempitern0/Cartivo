@@ -6,7 +6,12 @@ import type { LibraryEntry } from "../../../packages/storage/src/library.ts";
 
 export type GameSource =
   | { kind: "demo" }
-  | { kind: "file"; file: File }
+  | {
+      kind: "file";
+      file: File;
+      /** A disc's other files (the tracks its .cue names), ADR-015. */
+      extra?: File[];
+    }
   | {
       kind: "library";
       entry: LibraryEntry;
@@ -26,8 +31,11 @@ export function sourceTitle(source: GameSource): string {
 export function loadFields(
   source: GameSource,
   remember: boolean,
-): Pick<EmuRequest, "demo" | "file" | "stored" | "remember"> {
-  if (source.kind === "file") return { file: source.file, remember };
+): Pick<EmuRequest, "demo" | "file" | "extra" | "stored" | "remember"> {
+  if (source.kind === "file")
+    return source.extra?.length
+      ? { file: source.file, extra: source.extra, remember }
+      : { file: source.file, remember };
   if (source.kind === "library") return { stored: source.entry.hash };
   return { demo: true };
 }

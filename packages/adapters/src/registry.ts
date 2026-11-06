@@ -20,6 +20,7 @@ import {
 } from "./sega-header.ts";
 import { smsControlDemo } from "../../fixtures/src/sms-control-demo.ts";
 import { mdControlDemo } from "../../fixtures/src/md-control-demo.ts";
+import { ps1ControlDemo } from "../../fixtures/src/ps1-control-demo.ts";
 
 /**
  * Loads an adapter module the first time its system starts: players of other
@@ -70,6 +71,11 @@ const genesis = onDemand(
   () => import("./genesis-plus-gx.ts"),
   (lib) => lib.prepareGenesis(),
 );
+const pcsx = onDemand(
+  "PCSX-ReARMed",
+  () => import("./pcsx-rearmed.ts"),
+  (lib) => lib.preparePcsx(),
+);
 
 /** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
 const sameboyModule = (system: string, color: boolean): CoreModule => ({
@@ -88,6 +94,8 @@ let tetanesReady: Promise<void> | undefined;
 
 /** Genesis Plus GX has no releases: the snapshot version is the commit. */
 const GENESIS_VERSION = "a5834b3";
+/** Neither do PCSX-ReARMed's libretro builds. */
+const PCSX_VERSION = "7b0e8f8";
 
 const nesVideo = { width: 256, height: 240 };
 
@@ -172,6 +180,16 @@ export const coreModules: readonly CoreModule[] = [
     prepare: genesis.prepare,
     create: (rom, save) =>
       new (genesis.get().GenesisPlusGxAdapter)("md", rom, save),
+  },
+  {
+    system: "ps1",
+    id: "pcsx-rearmed",
+    version: PCSX_VERSION,
+    disc: true,
+    video: { width: 640, height: 480 },
+    demo: () => ({ name: "cartivo-demo.exe", bytes: ps1ControlDemo() }),
+    prepare: pcsx.prepare,
+    create: (disc, save) => new (pcsx.get().PcsxRearmedAdapter)(disc, save),
   },
 ];
 

@@ -1,11 +1,16 @@
 // Generic emulator Worker: one session, any registered system and core.
-import { prepareRom } from "../../../packages/runtime/src/prepare-rom.ts";
+import {
+  prepareDisc,
+  prepareRom,
+} from "../../../packages/runtime/src/prepare-rom.ts";
 import {
   coreModule,
   findCoreModule,
 } from "../../../packages/adapters/src/registry.ts";
 import type {
+  CartridgeModule,
   CoreModule,
+  DiscModule,
   EmulatorCore,
 } from "../../../packages/adapters/src/contract.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
@@ -51,7 +56,10 @@ function use(next: EmulatorCore) {
 }
 let store: SramStore | undefined;
 let states: StateStore | undefined;
-let rom: Uint8Array;
+/** A new core for the loaded game (load, reset, imported saves). */
+let start: (save?: Uint8Array) => EmulatorCore;
+/** The cartridge in memory, kept to remember it; discs stay in their files. */
+let rom: Uint8Array | undefined;
 let hash = "";
 /** File name of the running game, needed to remember it; empty otherwise. */
 let title = "";
@@ -109,7 +117,9 @@ function snapshots(): StateStore {
 async function remember(): Promise<
   Pick<EmuResult, "remembered" | "libraryError">
 > {
-  if (!title) return { remembered: false };
+  // Discs are not copied to the library yet (ADR-015): they keep playing
+  // from the files the player opens.
+  if (!title || !rom) return { remembered: false };
   try {
     await rememberGame({ hash, system: module.system, name: title, rom });
     return { remembered: true };
@@ -120,24 +130,47 @@ async function remember(): Promise<
     };
   }
 }
+type Loaded = {
+  start: (save?: Uint8Array) => EmulatorCore;
+  rom?: Uint8Array;
+  hash: string;
+};
+
+async function loadCartridge(
+  module: CartridgeModule,
+  r: EmuRequest,
+): Promise<Loaded> {
+  const source = r.file ?? (r.stored ? await storedRom(r.stored) : undefined);
+  if (r.stored && !source)
+    throw Error(
+      "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
+    );
+  const { rom, hash } = await prepareRom(module, source, r.stored);
+  return { start: (save) => module.create(rom, save), rom, hash };
+}
+
+/** Discs stay in the player's files (ADR-015): never in the library yet. */
+async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
+  if (r.stored) throw Error("Los discos no se guardan en la biblioteca.");
+  const { disc, hash } = await prepareDisc(module, r.file, r.extra);
+  return { start: (save) => module.create(disc, save), hash };
+}
+
 async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
     const system = r.system ?? "nes";
     // Protocol v1 without `core` meant JSNES; keep that for old clients.
     module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
-    const source = r.file ?? (r.stored ? await storedRom(r.stored) : undefined);
-    if (r.stored && !source)
-      throw Error(
-        "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
-      );
-    ({ rom, hash } = await prepareRom(module, source, r.stored));
+    ({ start, rom, hash } = module.disc
+      ? await loadDisc(module, r)
+      : await loadCartridge(module, r));
     title = r.file?.name ?? "";
-    use(module.create(rom));
+    use(start());
     await openStorage(system);
     if (store) {
       const saved = await store.load();
-      if (saved) use(module.create(rom, saved));
+      if (saved) use(start(saved));
     }
     // Remembered games move to the top of the library when played; for any
     // other game (demos included) updateGame finds no entry and does nothing.
@@ -180,7 +213,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     // A reset must not erase battery-backed SRAM or its previous generation.
     const saved = await flush();
     const previousSave = core.battery ? core.save() : undefined;
-    use(module.create(rom, previousSave));
+    use(start(previousSave));
     saves.restart();
     return { saved, frames: 0 };
   }
@@ -261,7 +294,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     const save = Uint8Array.from(b.bytes);
     if ((await digest(save)) !== b.sha256)
       throw Error("La copia de partida está dañada");
-    const replacement = module.create(rom, save);
+    const replacement = start(save);
     await store.commit(save);
     use(replacement);
     saves.restart();
@@ -312,7 +345,7 @@ scope.onmessage = async (event) => {
       store = undefined;
       states = undefined;
       core = undefined;
-      rom = new Uint8Array();
+      rom = undefined;
       noStorage = undefined;
     }
     scope.postMessage(

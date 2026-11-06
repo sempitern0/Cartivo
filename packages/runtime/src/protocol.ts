@@ -4,8 +4,8 @@ import {
   type InputState,
 } from "../../input/src/nes-input.ts";
 
-/** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y). */
-const optional: readonly Action[] = ["l", "r", "x", "y"];
+/** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y, PS1 L2/R2). */
+const optional: readonly Action[] = ["l", "r", "x", "y", "l2", "r2"];
 import { system as findSystem } from "./systems.ts";
 import {
   isStateSlot,
@@ -33,6 +33,8 @@ export type EmuRequest = {
   id: number;
   command: EmuCommand;
   file?: File;
+  /** `load` of a disc: its other files, such as the tracks a .cue names. */
+  extra?: File[];
   demo?: boolean;
   /** `load` from the local library: SHA-256 of the remembered ROM. */
   stored?: string;
@@ -50,6 +52,8 @@ export type EmuRequest = {
   /** Parsed JSON of an exported snapshot for state-import (checked in the Worker). */
   stateFile?: unknown;
 };
+/** More files than any multi-track disc needs (99 tracks and its .cue). */
+const MAX_EXTRA_FILES = 100;
 export function parseRequest(value: unknown): EmuRequest {
   if (!value || typeof value !== "object") throw Error("Mensaje inválido");
   const r = value as EmuRequest;
@@ -84,6 +88,14 @@ export function parseRequest(value: unknown): EmuRequest {
     throw Error("Falta archivo local");
   if (r.stored !== undefined && (!isSha256(r.stored) || fromFile || r.demo))
     throw Error("Juego guardado inválido");
+  if (
+    r.extra !== undefined &&
+    (!fromFile ||
+      !Array.isArray(r.extra) ||
+      r.extra.length > MAX_EXTRA_FILES ||
+      !r.extra.every((f) => f instanceof File))
+  )
+    throw Error("Archivos del disco inválidos");
   if (
     r.remember !== undefined &&
     (typeof r.remember !== "boolean" || !fromFile)

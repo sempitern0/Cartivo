@@ -62,7 +62,8 @@
     canRemember?: boolean;
     onclose: () => void;
     /** Called after this session closed safely, to start another ROM. */
-    onreplace?: (file: File) => void;
+    /** Files opened from the player to start instead (a disc may be several). */
+    onreplace?: (files: File[]) => void;
   } = $props();
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
@@ -475,7 +476,7 @@
   }
   // Closing always goes through the same path: pause (SRAM flush confirmed by
   // the worker), then dispose. `next` starts another ROM afterwards.
-  async function close(next?: File) {
+  async function close(next?: File[]) {
     const finish = () => (next && onreplace ? onreplace(next) : onclose());
     if (phase === "loading") {
       client?.dispose();
@@ -507,9 +508,9 @@
   }
   function romChosen(event: Event) {
     const input = event.target as HTMLInputElement;
-    const next = input.files?.[0];
+    const next = Array.from(input.files ?? []);
     input.value = "";
-    if (next) void close(next);
+    if (next.length) void close(next);
   }
   onMount(() => {
     fullscreenAvailable = !!document.fullscreenEnabled;
@@ -593,6 +594,7 @@
     bind:this={romInput}
     type="file"
     accept={acceptFor([system])}
+    multiple={!!system.disc}
     onchange={romChosen}
     hidden
   />

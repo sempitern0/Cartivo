@@ -159,6 +159,6 @@ test("Controles shows X and Y and says which consoles use them", async ({
     page.getByRole("button", { name: "Asignar tecla Y", exact: true }),
   ).toContainText("J");
   await expect(
-    page.getByText("X e Y solo los usan SNES y Mega Drive."),
+    page.getByText("X e Y solo los usan SNES, Mega Drive y PlayStation."),
   ).toBeVisible();
 });

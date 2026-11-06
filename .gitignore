@@ -36,5 +36,7 @@ cores/mgba/build/
 cores/snes9x/build/
 cores/genesis-plus-gx/build/
 !cores/genesis-plus-gx/dist/
+cores/pcsx-rearmed/build/
+!cores/pcsx-rearmed/dist/
 !cores/snes9x/dist/
 !cores/mgba/dist/

@@ -24,6 +24,7 @@ Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la pl
 - Validador de formato del sistema (como `packages/adapters/src/ines.ts`): cabecera, tamaños y variantes admitidas, con mensajes en español.
 - Fixture **original** en `packages/fixtures/` (nunca ROMs comerciales ni de terceros) con hash, licencia y oráculo.
 - Registrar un `CoreModule` en `packages/adapters/src/registry.ts` con `system`, `id`, `version` exacta, `video`, `maxRomBytes`, `validate`, `demo`, `prepare` y `create`.
+- **Sistemas de disco** (ADR-015): un `DiscModule` (`disc: true`) no tiene `maxRomBytes` ni `validate` (la página elige el archivo de arranque con `gameForFiles`); su `demo` devuelve `{ name, bytes }` y su `create` recibe un `DiscImage`. El núcleo lee los archivos por la VFS de libretro reenviada a `cartivo_vfs_*` (ver `cores/pcsx-rearmed/src/cartivo.c`); en `systems.ts`, `disc: true` y `extensions` por orden de preferencia de arranque (un `.cue` antes que sus pistas).
 
 ## 4. Sistema en la interfaz
 - Añadir la entrada en `packages/runtime/src/systems.ts`:
@@ -32,7 +33,7 @@ Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la pl
   - `cores` con versión y licencias, `defaultCore`, `formatNote`, `demo` y `available`.
 - Añadir las extensiones a `file_handlers` en `apps/web/public/manifest.webmanifest`.
 - La tarjeta de inicio, el selector de archivos, el reproductor, Gráficos, Partidas y la selección de núcleo salen del registro sin más cambios.
-- **Botones:** declarar en `systems.ts` los `buttons` del mando original (acciones de `packages/input/src/nes-input.ts` además de la cruceta). Controles muestra solo los botones que usa alguna consola disponible y genera las notas («L y R solo los usa Game Boy Advance»). Hoy hay doce acciones (cruceta, A, B, X, Y, L, R, Start y Select); un mando con otros nombres reutiliza las posiciones (Mega Drive: A/B/C sobre Y/B/A) con etiquetas propias. Si el sistema necesita una acción que de verdad no existe, se añade en `packages/input` con migración de perfiles como L/R (lista `later`) y como opcional en el protocolo v1.
+- **Botones:** declarar en `systems.ts` los `buttons` del mando original (acciones de `packages/input/src/nes-input.ts` además de la cruceta). Controles muestra solo los botones que usa alguna consola disponible y genera las notas («L y R solo los usa Game Boy Advance»). Hoy hay catorce acciones (cruceta, A, B, X, Y, L, R, L2, R2, Start y Select); un mando con otros nombres reutiliza las posiciones (Mega Drive: A/B/C sobre Y/B/A) con etiquetas propias. Si el sistema necesita una acción que de verdad no existe, se añade en `packages/input` con migración de perfiles como L/R (lista `later`) y como opcional en el protocolo v1.
 
 ## 5. Pruebas
 - `pnpm test` ejecuta `tests/core-conformance.test.ts` sobre todos los módulos registrados: arranque, tamaño de imagen, entrada, audio, SRAM, instantáneas deterministas, rechazo de estados corruptos y `dispose`. En Node, instancia el WASM con `initSync` igual que TetaNES.
@@ -56,7 +57,7 @@ Por lo demás, `App`, `Player` (salvo `frameRate`), `PlayerToolbar`, `SavePanel`
 - `STANDALONE_WASM` sin JS de Emscripten y un adaptador TS que aporte los imports de sistema (ver `packages/adapters/src/sameboy.ts`).
 - Probar antes el envoltorio con un arnés nativo (gcc): cada compilación en CI cuesta minutos.
 
-**Límites conocidos:** la entrada tiene doce acciones (cruceta, A, B, X, Y, L, R, Select y Start); un sistema declara las que usa (`buttons`) y sus nombres propios (`labels`), como Mega Drive. Si el núcleo usa `setjmp`/`longjmp`, compilar con `-sSUPPORT_LONGJMP=wasm` (Genesis Plus GX). El vídeo del núcleo es de tamaño fijo.
+**Límites conocidos:** la entrada tiene catorce acciones (cruceta, A, B, X, Y, L, R, L2, R2, Select y Start); un sistema declara las que usa (`buttons`) y sus nombres propios (`labels`), como Mega Drive. Si el núcleo usa `setjmp`/`longjmp`, compilar con `-sSUPPORT_LONGJMP=wasm` (Genesis Plus GX). El vídeo del núcleo es de tamaño fijo.
 
 ## 6. Documentación
 Crear `docs/compatibility/<SISTEMA>.md` y un ADR del núcleo, y actualizar README, el plan técnico (catálogo y backlog), `LICENSES.md`, `apps/web/public/licenses/` y CHANGELOG.

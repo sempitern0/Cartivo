@@ -6,14 +6,14 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive) |
-| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive). Todos en WebAssembly y sin BIOS propietarias |
+| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive · PlayStation (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive; discos de PlayStation leídos bajo demanda) |
+| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive) · PCSX-ReARMed (PlayStation, BIOS HLE). Todos en WebAssembly y sin BIOS propietarias |
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
-| **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive) |
-| **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho se guarda sola sin frenar la imagen |
-| **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive; L2/R2 en PlayStation) |
+| **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho (o la tarjeta de memoria de PlayStation) se guarda sola sin frenar la imagen |
+| **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola (los discos de PlayStation aún no: se abren desde sus archivos) |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
-| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) y consolas 3D (N64, PS1, PSP); Safari/iOS con prioridad baja |
+| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) QA de PlayStation con discos reales, PSP y N64 (aplazado, [ADR-015](docs/adr/015-ps1-pcsx-rearmed-discs.md)); Safari/iOS con prioridad baja |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -58,12 +58,12 @@ Por defecto, sin `--base`, se publica y se prueba en la raíz. Si al abrir la ap
 | `pnpm test:e2e:webkit` / `pnpm test:e2e:preview:webkit` | La misma suite en WebKit (en Linux, con `xvfb-run` y `--headed`, como en la CI). En la CI, las seis tandas navegador × servidor corren en paralelo |
 | `pnpm verify:core` | Integridad de todos los núcleos contra sus manifiestos, sin recompilar |
 
-Los WASM de TetaNES, SameBoy, mGBA, Snes9x y Genesis Plus GX están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml` o `core-genesis-plus-gx.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md), [ADR-013](docs/adr/013-snes-snes9x.md) y [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md)). La CI omite los cambios que solo tocan documentación.
+Los WASM de TetaNES, SameBoy, mGBA, Snes9x, Genesis Plus GX y PCSX-ReARMed están versionados en `cores/*/dist`: la CI normal no compila Rust ni C, solo comprueba hashes y licencias con `verify:core`. Se regeneran **una vez por cambio deliberado** del núcleo con `.github/workflows/core-tetanes.yml`, `core-sameboy.yml`, `core-mgba.yml`, `core-snes9x.yml`, `core-genesis-plus-gx.yml` o `core-pcsx-rearmed.yml` (manuales; ver [ADR-008](docs/adr/008-nes-tetanes-wasm.md), [ADR-010](docs/adr/010-gb-sameboy.md), [ADR-011](docs/adr/011-gba-mgba.md), [ADR-013](docs/adr/013-snes-snes9x.md), [ADR-014](docs/adr/014-sms-md-genesis-plus-gx.md) y [ADR-015](docs/adr/015-ps1-pcsx-rearmed-discs.md)). La CI omite los cambios que solo tocan documentación.
 
 ## Jugar
 
-- **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
-- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L. La ayuda de cada demo y la pantalla de Controles lo indican.
+- **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`, y en PlayStation `.cue` con sus pistas `.bin`, `.iso` o `.exe`: elige o arrastra todos los archivos del disco a la vez); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
+- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Y** = L2 · **P** = R2 · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L; en PlayStation, Cruz/Círculo en K/L y Cuadrado/Triángulo en J/U. La ayuda de cada demo y la pantalla de Controles lo indican.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**. También maneja la interfaz: cruceta o stick mueven el foco, A pulsa, B cierra o vuelve y **Select+Start** pausa la partida. Al usarlo, Cartivo pasa al **modo consola** (leyenda de botones, consolas en carrusel y menú de pausa con Salir del juego); en **Ajustes → Interfaz** puedes fijar «Teclado y ratón» o «Mando».
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar, cargar, exportar e importar ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.

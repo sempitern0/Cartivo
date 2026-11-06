@@ -10,6 +10,12 @@ import { provideSameBoyBinary } from "../packages/adapters/src/sameboy.ts";
 import { provideMgbaBinary } from "../packages/adapters/src/mgba.ts";
 import { provideSnes9xBinary } from "../packages/adapters/src/snes9x.ts";
 import { provideGenesisBinary } from "../packages/adapters/src/genesis-plus-gx.ts";
+import { providePcsxBinary } from "../packages/adapters/src/pcsx-rearmed.ts";
+import { DiscImage } from "../packages/adapters/src/disc.ts";
+import type {
+  CoreModule,
+  EmulatorCore,
+} from "../packages/adapters/src/contract.ts";
 import { neutral } from "../packages/input/src/nes-input.ts";
 
 // Node cannot fetch file URLs: instantiate wasm cores up front so their
@@ -37,6 +43,42 @@ provideGenesisBinary(
   ),
 );
 
+providePcsxBinary(
+  readFileSync(
+    new URL("../cores/pcsx-rearmed/dist/pcsx-rearmed.wasm", import.meta.url),
+  ),
+);
+
+/** A disc of in-memory files (Node has no FileReaderSync). */
+function memoryDisc(files: { name: string; bytes: Uint8Array }[]) {
+  const parts = files.map(({ name, bytes }) => ({
+    name,
+    blob: new Blob([bytes as BlobPart]),
+  }));
+  const bytes = new Map(parts.map((p, i) => [p.blob, files[i].bytes]));
+  return new DiscImage(parts, parts[0], (blob, start, end) =>
+    bytes.get(blob)!.slice(start, end),
+  );
+}
+
+/** Boots the module's demo; unsupported games are refused with a reason. */
+function bootDemo(module: CoreModule): EmulatorCore {
+  if (module.disc) {
+    const text =
+      'FILE "missing.bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n';
+    const broken = {
+      name: "broken.cue",
+      bytes: new TextEncoder().encode(text),
+    };
+    assert.throws(() => module.create(memoryDisc([broken])), /disco/);
+    return module.create(memoryDisc([module.demo!()]));
+  }
+  const rom = module.demo!();
+  assert.doesNotThrow(() => module.validate(rom));
+  assert.throws(() => module.validate(new Uint8Array(16)));
+  return module.create(rom);
+}
+
 const hash = (b: Uint8ClampedArray) =>
   createHash("sha256").update(b).digest("hex");
 
@@ -47,10 +89,7 @@ for (const module of coreModules) {
       "every core ships an original fixture for this test",
     );
     await module.prepare();
-    const rom = module.demo!();
-    assert.doesNotThrow(() => module.validate(rom));
-    assert.throws(() => module.validate(new Uint8Array(16)));
-    const core = module.create(rom);
+    const core = bootDemo(module);
     const { width, height } = module.video;
 
     // Boots (Game Boy Color's boot ROM takes about 4 s) and presents
