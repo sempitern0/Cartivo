@@ -2,20 +2,23 @@
 
 Este documento **no es una lista de lectura obligatoria**. Es una tabla de enrutamiento: usa la fila del área afectada, abre primero las implementaciones y pruebas, y consulta el ADR/ficha solo si afecta a un contrato, decisión o compatibilidad. Las reglas viven en `../../AGENTS.md` y, para núcleos, `../../cores/AGENTS.md`.
 
-| Trabajo | Empezar por | Pruebas y contexto a demanda |
-|---|---|---|
-| Pantalla inicial, navegación y estilo | `apps/web/src/App.svelte`, `Player.svelte`, `theme.css` | `tests/e2e/ui.spec.ts`, `pad-navigation.spec.ts`; `docs/DESIGN.md` |
-| Controles, teclado, mando, foco | `packages/input/src/` (`ui-navigation.ts` para menús), `apps/web/src/ControlsPanel.svelte`, `game-capture.ts`, `pad-navigation.svelte.ts`, `input-mode.svelte.ts` y el modo consola (`PauseMenu`, `PadHints`, `InterfacePreference`) | `tests/{input,capture,ui-navigation}.test.ts`, `tests/e2e/{input,controls-page,pad-navigation}.spec.ts`; ADR-006 |
-| Protocolo/sesión/Worker | `packages/runtime/src/protocol.ts`, `client.ts`, `systems.ts`; `apps/web/src/emulator.worker.ts` | `tests/{client,systems,core-conformance}.test.ts`; ADR-002 |
-| ROM, adaptador o consola | `packages/adapters/src/{contract,registry,wasm-host}.ts`, adaptador concreto; `cores/AGENTS.md` | `docs/ADDING_A_SYSTEM.md`, `docs/research/`, ADR del núcleo, `tests/{core-conformance,wasm-host}.test.ts`, `tests/e2e/{nes,gb,gba,snes,sega,pal}.spec.ts` |
-| SRAM, Partidas, biblioteca | `packages/storage/src/`, `apps/web/src/{SavePanel,LibraryPage,RecentGames,ContinueCard}.svelte` | `tests/{storage,snapshots,library,state-file,background-commit,persistence}.test.ts`, `tests/e2e/{saves,storage,library,integrity,faults}.spec.ts`; ADR-003/009/012 |
-| Gráficos, audio, ritmo | `packages/media/src/`, `apps/web/src/{GraphicsPanel,GameStage}.svelte`, `audio.worklet.ts`, `sound.svelte.ts` | `tests/{display-scaler,frame-pacer}.test.ts`, `tests/e2e/nes.spec.ts`; `docs/DESIGN.md` |
-| PWA, caché, modo offline | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts`, `offline-cache.ts`, `apps/web/vite.config.ts` | `tests/pwa.test.ts`, `tests/e2e/{pwa,subpath}.spec.ts`; `docs/compatibility/H1-C-PWA.md` |
-| CI y toolchains | `.github/workflows/ci.yml`, `.github/actions/setup/action.yml`, `tools/verify-*.mjs` | `package.json`, `docs/ADDING_A_SYSTEM.md`, `cores/AGENTS.md` si afecta builds |
+<!-- areas:start (pnpm context --write-doc) -->
+| Área (`pnpm context …`) | Trabajo | Empezar por | Pruebas y contexto a demanda |
+|---|---|---|---|
+| `ui` | Pantalla inicial, navegación y estilo | `apps/web/src/{App,Player}.svelte`, `apps/web/src/theme.css` | `tests/e2e/{ui,pad-navigation}.spec.ts`, `docs/DESIGN.md` |
+| `input` | Controles, teclado, mando, foco y modo consola | `packages/input/src/`, `apps/web/src/{ControlsPanel,PauseMenu,PadHints,InterfacePreference}.svelte`, `apps/web/src/{game-capture,pad-navigation.svelte,input-mode.svelte}.ts` | `tests/{input,capture,ui-navigation}.test.ts`, `tests/e2e/{input,controls-page,pad-navigation}.spec.ts`, `docs/adr/006-*.md` |
+| `load` | Carga de ROM: Worker, preparación y biblioteca | `apps/web/src/{emulator.worker,game-source}.ts`, `packages/runtime/src/{prepare-rom,client,protocol}.ts`, `packages/storage/src/{library,sram,states}.ts` | `tests/{prepare-rom,library,client}.test.ts`, `tests/e2e/{library,faults}.spec.ts`, `docs/adr/012-*.md` |
+| `runtime` | Protocolo, sesión y sistemas | `packages/runtime/src/{protocol,client,systems}.ts`, `apps/web/src/emulator.worker.ts` | `tests/{client,systems,core-conformance}.test.ts`, `docs/adr/002-*.md` |
+| `cores` | ROM, adaptador o consola | `packages/adapters/src/{contract,registry,wasm-host}.ts`, `cores/AGENTS.md` | `docs/ADDING_A_SYSTEM.md`, `docs/research/`, `tests/{core-conformance,wasm-host}.test.ts`, `tests/e2e/{nes,gb,gba,snes,sega,pal}.spec.ts` |
+| `storage` | SRAM, Partidas y biblioteca | `packages/storage/src/`, `apps/web/src/{SavePanel,LibraryPage,RecentGames,ContinueCard}.svelte` | `tests/{storage,snapshots,library,state-file,background-commit,persistence}.test.ts`, `tests/e2e/{saves,storage,library,integrity,faults}.spec.ts`, `docs/adr/{003,009,012}-*.md` |
+| `media` | Gráficos, audio y ritmo | `packages/media/src/`, `apps/web/src/{GraphicsPanel,GameStage,PerformanceDetails}.svelte`, `apps/web/src/{audio.worklet,sound.svelte}.ts` | `tests/{display-scaler,frame-pacer,frame-metrics}.test.ts`, `tests/e2e/nes.spec.ts`, `docs/DESIGN.md` |
+| `pwa` | PWA, caché y modo offline | `tools/pwa-plugin.mjs`, `apps/web/src/{pwa.svelte,offline-cache}.ts`, `apps/web/vite.config.ts` | `tests/pwa.test.ts`, `tests/e2e/{pwa,subpath}.spec.ts`, `docs/compatibility/H1-C-PWA.md`, `docs/adr/001-*.md` |
+| `ci` | CI y toolchains | `.github/workflows/ci.yml`, `.github/actions/setup/action.yml`, `tools/verify-*.mjs` | `package.json`, `playwright*.ts`, `cores/AGENTS.md` |
+<!-- areas:end -->
 
 ## Descubrimiento acotado
 
-`pnpm context load` localiza carga de ROM, biblioteca y pruebas sin volcar código. También admite `input`, `pwa`, `ci` y `media`. Informa líneas y caracteres, no tokens: el tokenizador depende del modelo. Abre solo símbolos/rangos relevantes de los candidatos. La tabla anterior sigue siendo la referencia para áreas no cubiertas.
+`pnpm context <área>` (la primera columna) lista los archivos candidatos de un área con sus líneas y caracteres, sin volcar código. Informa líneas y caracteres, no tokens: el tokenizador depende del modelo. Abre solo símbolos/rangos relevantes de los candidatos. **La tabla se genera desde `tools/context-areas.mjs`**, el único mapa: para cambiar un área se edita allí y se ejecuta `pnpm context --write-doc` (`tests/context.test.ts` falla si la tabla y el mapa no coinciden o si un patrón ya no encuentra archivos).
 
 Antes de editar, comprueba `git status`, la base y los nombres de archivos cambiados en las PR abiertas; consulta parches únicamente si se solapan con el flujo. No descargues ni reconstruyas el repositorio archivo a archivo si existe un checkout Git disponible. No leas `dist`, lockfiles ni todo el historial para identificar el estado actual.
 
