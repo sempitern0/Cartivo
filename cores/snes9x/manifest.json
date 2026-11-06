@@ -34,13 +34,14 @@
     "cartivo_audio",
     "cartivo_state_size",
     "cartivo_save_state",
-    "cartivo_load_state"
+    "cartivo_load_state",
+    "cartivo_frame_rate"
   ],
   "dependencies": 10,
   "files": [
     {
       "path": "dist/snes9x.wasm",
-      "sha256": "10477cc67fcd95dd06ba92efb1f9fd09d398514effffd7fade3cc9a378612670"
+      "sha256": "8048b61f77efde83ce0410f9f3e448a04b06e1511d25db6d673930892a4c5675"
     }
   ]
 }
