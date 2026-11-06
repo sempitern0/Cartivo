@@ -275,3 +275,7 @@
 
 - La interfaz es automática: al usar el mando pasa al modo consola y vuelve a la de escritorio con el ratón o el teclado. En **Ajustes → Interfaz** se puede fijar «Teclado y ratón» o «Mando».
 - Modo consola: leyenda de botones abajo, consolas en carrusel y la pausa como menú vertical modal (Reanudar juego, Partidas, Gráficos, Controles, Reiniciar consola, Salir del juego), con B para reanudar. Solo cambia la presentación: núcleos y protocolo intactos.
+
+### pnpm 12
+
+- pnpm 12.16.1 fijado en `packageManager` (el lockfile registra su versión). La CI toma la versión de ahí, sin un segundo pin en `.github/actions/setup`.
