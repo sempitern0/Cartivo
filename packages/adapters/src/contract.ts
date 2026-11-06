@@ -45,10 +45,6 @@ export interface EmulatorCore {
   dispose(): void;
 }
 
-/** A frame rate any supported console could run at (PAL 50 to ~60 Hz). */
-export const isFrameRate = (value: unknown): value is number =>
-  typeof value === "number" && value >= 30 && value <= 75;
-
 export interface CoreModule {
   system: string;
   id: string;

@@ -4,7 +4,7 @@
 // (cores/<id>/src/cartivo.c); this file loads it, supplies its system
 // imports and implements EmulatorCore on top of that bridge.
 import type { InputState } from "../../input/src/nes-input.ts";
-import { isFrameRate, type EmulatorCore } from "./contract.ts";
+import type { EmulatorCore } from "./contract.ts";
 
 type Pointer = number;
 export type Bridge = {
@@ -28,6 +28,10 @@ export type Bridge = {
 };
 
 const MAX_AUDIO = 48000;
+
+/** A rate any supported console could run at (PAL 50 to ~60 Hz). */
+const isFrameRate = (value: unknown): value is number =>
+  typeof value === "number" && value >= 30 && value <= 75;
 
 /** The core file could not be fetched (network, offline cache, HTTP). */
 export class CoreDownloadError extends Error {}

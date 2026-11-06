@@ -213,10 +213,11 @@
   const sound = new GameSound();
   let active = true;
   let loop = 0;
-  // The system's nominal rate until the core reports the game's own (PAL).
+  // The system's nominal rate until the core reports the game's own (PAL);
+  // the pacer follows it.
   // svelte-ignore state_referenced_locally
   let frameRate = $state(system.frameRate);
-  let pacer = new FramePacer(frameRate);
+  const pacer = $derived(new FramePacer(frameRate));
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
   const controls = new InputCapture(
@@ -250,7 +251,6 @@
       runningCore = r.core;
       if (!active) return;
       frameRate = r.frameRate ?? system.frameRate;
-      pacer = new FramePacer(frameRate);
       battery = !!r.battery;
       saves = r.states ?? [];
       noStorage = r.storageError ?? "";
