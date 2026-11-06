@@ -216,7 +216,7 @@
   // svelte-ignore state_referenced_locally
   const pacer = new FramePacer(system.frameRate);
   const metrics = new FrameMetrics();
-  let diagnostics = $state(metrics.snapshot());
+  let diagnostics = $state.raw(metrics.snapshot());
   const controls = new InputCapture(
     readKeyboard(),
     () => navigator.getGamepads?.() ?? [],
@@ -345,9 +345,8 @@
     padConnected = reading.connected;
     const input = reading.input;
     // The pause gesture never reaches the game; the menus take the pad.
-    // Made on a pad, it means «Mando»: the console pause menu opens.
+    // (Made on a pad, PadActivity has already switched to «Mando».)
     if (reading.ready && isPauseGesture(input)) {
-      if (reading.connected) ui.lastDevice = "pad";
       await pause();
       return;
     }
@@ -373,7 +372,8 @@
       const requestedAt = performance.now();
       const r = await client!.request("advance", { count, input });
       const completedAt = performance.now();
-      if (active && phase === "running") metrics.record(completedAt, completedAt - requestedAt, count);
+      if (active && phase === "running")
+        metrics.record(completedAt, completedAt - requestedAt, count);
       if (!active) return;
       if (r.pixels && screen) {
         const ctx = screen.getContext("2d");

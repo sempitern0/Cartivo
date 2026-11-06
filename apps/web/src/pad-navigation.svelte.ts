@@ -92,19 +92,18 @@ function adjust(el: Element, dir: Direction) {
   return true;
 }
 
-function move(dir: Direction) {
+/** The focused element, if it is one of `all` (on screen, in the dialog). */
+function focusedIn(all: HTMLElement[]) {
   const current = document.activeElement;
+  return current instanceof HTMLElement && all.includes(current)
+    ? current
+    : undefined;
+}
+
+function move(dir: Direction) {
   const all = candidates();
-  if (
-    current instanceof HTMLElement &&
-    all.includes(current) &&
-    adjust(current, dir)
-  )
-    return;
-  const from =
-    current instanceof HTMLElement && candidates().includes(current)
-      ? current
-      : undefined;
+  const from = focusedIn(all);
+  if (from && adjust(from, dir)) return;
   if (!from) {
     // Nothing focused yet: start at the first control on screen.
     const first = all.find((el) => box(el).y + box(el).height > 0) ?? all[0];
@@ -117,9 +116,8 @@ function move(dir: Direction) {
 }
 
 function accept() {
-  const current = document.activeElement;
-  if (current instanceof HTMLElement && candidates().includes(current))
-    current.click();
+  const current = focusedIn(candidates());
+  if (current) current.click();
   else move("down");
 }
 

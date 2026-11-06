@@ -92,8 +92,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       // Only our own shell caches are removed. IndexedDB saves are never touched.
-      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      for (const key of windows.length ? [] : await caches.keys())
+      // An update only activates from the single open window, which then
+      // reloads, so no page is left needing the previous version's assets.
+      for (const key of await caches.keys())
         if (key.startsWith(${JSON.stringify(CACHE_PREFIX)}) && key !== CACHE) await caches.delete(key);
       await self.clients.claim();
     })(),
@@ -114,14 +115,6 @@ self.addEventListener("message", (event) => {
     event.source && event.source.postMessage({ type: "cartivo:version", version: VERSION });
 });
 
-async function previousAsset(request) {
-  for (const key of await caches.keys()) {
-    if (!key.startsWith(${JSON.stringify(CACHE_PREFIX)}) || key === CACHE) continue;
-    const hit = await (await caches.open(key)).match(request, { ignoreVary: true });
-    if (hit) return hit;
-  }
-}
-
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
@@ -139,8 +132,7 @@ self.addEventListener("fetch", (event) => {
   // precached entries were stored without it ("Vary: Origin" would miss).
   event.respondWith(
     caches.open(CACHE).then(async (cache) =>
-      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ??
-      (await previousAsset(request)) ?? fetch(request),
+      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? fetch(request),
     ),
   );
 });

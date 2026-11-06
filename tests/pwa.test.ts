@@ -60,7 +60,7 @@ test("service worker waits for an explicit update and keeps saves", () => {
 
 test("cache lookups ignore Vary so crossorigin module requests hit offline", () => {
   const source = buildServiceWorker(entries);
-  assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 3);
+  assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 2);
 });
 
 /** Runs a generated service worker against in-memory caches and network. */
@@ -188,22 +188,17 @@ test("offline is reported only for a complete cache", async () => {
     };
   };
   const files = ["index.html", "assets/core-1.wasm"];
-  assert.equal(await offlineCacheComplete(scope, fake(files, files)), true);
-  assert.equal(
-    await offlineCacheComplete(scope, fake(files, files), "not-installed"),
-    false,
-  );
+  const check = (storage: ReturnType<typeof fake>, version = "v1") =>
+    offlineCacheComplete(scope, version, storage);
+  assert.equal(await check(fake(files, files)), true);
+  // Only the active worker's version counts, never an older cache.
+  assert.equal(await check(fake(files, files), "not-installed"), false);
   // A core missing, or an install that never wrote its manifest.
-  assert.equal(
-    await offlineCacheComplete(scope, fake(["index.html"], files)),
-    false,
-  );
-  assert.equal(await offlineCacheComplete(scope, fake(files)), false);
-  assert.equal(await offlineCacheComplete(scope, fake([], [])), false);
-  assert.equal(
-    await offlineCacheComplete(scope, fake(["core.wasm"], ["core.wasm"])),
-    false,
-  );
+  assert.equal(await check(fake(["index.html"], files)), false);
+  assert.equal(await check(fake(files)), false);
+  // An empty manifest, or one without the shell, proves nothing.
+  assert.equal(await check(fake([], [])), false);
+  assert.equal(await check(fake(["core.wasm"], ["core.wasm"])), false);
 });
 
 test("update handshake rejects other tabs and unknown senders", async () => {
@@ -256,7 +251,9 @@ test("update handshake rejects other tabs and unknown senders", async () => {
   }
 });
 
-test("activation retains old shell assets while a window may still use them", async () => {
+test("activation removes old shell caches, even with the updating window open", async () => {
+  // The update is accepted only from the single open window, which reloads:
+  // keeping old caches would grow storage by a whole build per update.
   for (const windows of [[], [{ id: "active" }]]) {
     const handlers: Record<string, (event: any) => void> = {};
     const removed: string[] = [];
@@ -290,39 +287,7 @@ test("activation retains old shell assets while a window may still use them", as
       },
     });
     await pending;
-    assert.deepEqual(removed, windows.length ? [] : [CACHE_PREFIX + "old"]);
+    assert.deepEqual(removed, [CACHE_PREFIX + "old"]);
     assert.equal(claimed, true);
   }
-});
-
-test("old hashed assets remain available offline after activation", async () => {
-  const handlers: Record<string, (event: any) => void> = {};
-  let pending: Promise<Response> | undefined;
-  const scope = {
-    registration: { scope: "https://test/" },
-    location: { origin: "https://test" },
-    addEventListener: (name: string, handler: (event: any) => void) => {
-      handlers[name] = handler;
-    },
-  };
-  new Function("self", "caches", "fetch", buildServiceWorker(entries))(
-    scope,
-    {
-      keys: async () => [CACHE_PREFIX + "old", "other-app"],
-      open: async (key: string) => ({
-        match: async () =>
-          key === CACHE_PREFIX + "old" ? new Response("old asset") : undefined,
-      }),
-    },
-    () => {
-      throw new Error("offline");
-    },
-  );
-  handlers.fetch({
-    request: new Request("https://test/assets/old-hash.js"),
-    respondWith: (promise: Promise<Response>) => {
-      pending = promise;
-    },
-  });
-  assert.equal(await (await pending)!.text(), "old asset");
 });

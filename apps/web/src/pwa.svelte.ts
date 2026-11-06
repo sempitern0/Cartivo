@@ -51,6 +51,29 @@ function track(worker: ServiceWorker | null | undefined) {
   worker.addEventListener("statechange", check);
 }
 
+/** Asks a service worker which build it serves (its cache name). */
+function workerVersion(sw: ServiceWorkerContainer, worker: ServiceWorker) {
+  return new Promise<string>((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      sw.removeEventListener("message", receive);
+      reject(new Error("Service worker version unavailable"));
+    }, 3000);
+    function receive(event: MessageEvent) {
+      if (
+        event.source !== worker ||
+        event.data?.type !== "cartivo:version" ||
+        typeof event.data.version !== "string"
+      )
+        return;
+      window.clearTimeout(timer);
+      sw.removeEventListener("message", receive);
+      resolve(event.data.version);
+    }
+    sw.addEventListener("message", receive);
+    worker.postMessage({ type: "cartivo:version" });
+  });
+}
+
 export function startPwa() {
   pwa.installed = standalone();
   matchMedia("(display-mode: standalone)").addEventListener("change", () => {
@@ -77,26 +100,8 @@ export function startPwa() {
     try {
       const worker = sw.controller ?? (await sw.ready).active;
       if (!worker) return;
-      const version = await new Promise<string>((resolve, reject) => {
-        const timer = window.setTimeout(() => {
-          sw.removeEventListener("message", receive);
-          reject(new Error("Service worker version unavailable"));
-        }, 3000);
-        function receive(event: MessageEvent) {
-          if (
-            event.source !== worker ||
-            event.data?.type !== "cartivo:version" ||
-            typeof event.data.version !== "string"
-          )
-            return;
-          window.clearTimeout(timer);
-          sw.removeEventListener("message", receive);
-          resolve(event.data.version);
-        }
-        sw.addEventListener("message", receive);
-        worker.postMessage({ type: "cartivo:version" });
-      });
-      const complete = await offlineCacheComplete(scope, caches, version);
+      const version = await workerVersion(sw, worker);
+      const complete = await offlineCacheComplete(scope, version);
       if (attempt === verification) setOfflineReady(complete);
     } catch {
       if (attempt === verification) setOfflineReady(false);

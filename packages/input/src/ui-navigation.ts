@@ -43,10 +43,9 @@ function heldDirections(pad: Pad): Direction[] {
 }
 
 /**
- * Turns one pad's state per frame into menu intents: a press fires once
- * (A and B never repeat while held); a held direction repeats after a
- * short delay. The pause gesture (Select+Start) belongs to the game, which
- * reads it through the player's own mapping.
+ * Whether the pad was just used: a new press, or a stick leaving the dead
+ * zone. Holding does not count, so the keyboard keeps the interface until
+ * the pad is touched again. Runs even while the game owns the pad.
  */
 export class PadActivity {
   #held = new Set<string>();
@@ -65,6 +64,12 @@ export class PadActivity {
   }
 }
 
+/**
+ * Turns one pad's state per frame into menu intents: a press fires once
+ * (A and B never repeat while held); a held direction repeats after a
+ * short delay. The pause gesture (Select+Start) belongs to the game, which
+ * reads it through the player's own mapping.
+ */
 export class PadIntents {
   #buttons = new Set<string>();
   #direction: Direction | undefined;
