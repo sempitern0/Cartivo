@@ -286,3 +286,9 @@
 ### pnpm 12
 
 - pnpm 12.16.1 fijado en `packageManager` (el lockfile registra su versión). La CI toma la versión de ahí, sin un segundo pin en `.github/actions/setup`.
+
+### Cadencia por juego: cartuchos PAL en SNES y Mega Drive
+
+- Los puentes de Snes9x y Genesis Plus GX exportan `cartivo_frame_rate` (la frecuencia que el núcleo elige por la cabecera) y el reproductor avanza a esa cadencia: un cartucho PAL va a 50 Hz. Sin ese dato se usa la nominal del sistema (`EmulatorCore.frameRate`, opcional).
+- Se admiten los cartuchos PAL de SNES y Mega Drive, antes rechazados. «Acerca de esta prueba» muestra la cadencia del juego.
+- Las fixtures de SNES y Mega Drive tienen una variante PAL (región Europa) para las pruebas; la versión por defecto conserva su hash.

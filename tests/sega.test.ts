@@ -56,7 +56,8 @@ test("unsupported or damaged Sega cartridges are refused with a reason", () => {
   assert.throws(() => validateMdRom(new Uint8Array(0x8000 + 512)), /SMD/);
   assert.throws(() => validateMdRom(md(0x100, "SEGA 32X        ")), /32X/);
   assert.throws(() => validateMdRom(md(0, "SEGADISCSYSTEM")), /Mega-CD/);
-  assert.throws(() => validateMdRom(md(0x1f0, "E  ")), /PAL/);
+  // PAL-only (Europe) is accepted: the core runs it at 50 Hz.
+  assert.doesNotThrow(() => validateMdRom(md(0x1f0, "E  ")));
   assert.equal(validateMdRom(md(0x1f0, "UE ")).battery, true);
 
   assert.throws(() => validateSmsRom(new Uint8Array(0x1000)), /pequeño/);

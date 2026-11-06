@@ -33,3 +33,6 @@ Cada port requiere trabajo propio. WASM no universaliza gráficos, JIT ni filesy
 
 Pendiente: acciones de entrada por sistema (L/R, X/Y, C), OffscreenCanvas y renderizado propio para núcleos 3D.
 
+## Revisión: cadencia por juego (2026-11-06)
+
+`EmulatorCore.frameRate` (opcional) es la frecuencia del juego cargado cuando el núcleo la conoce; sin ella se usa la nominal del sistema (`systems.ts`). Los puentes libretro (Snes9x, Genesis Plus GX) exportan `cartivo_frame_rate`, que devuelve `retro_get_system_av_info().timing.fps`: el núcleo decide la región por la cabecera y Cartivo no replica esa regla. `wasm-host.ts` lee el export si existe y lo valida (`isFrameRate`, 30–75 Hz), así que un núcleo sin él sigue funcionando. La respuesta de `load` lleva `frameRate` como campo opcional, compatible con el protocolo v1, y el reproductor ajusta su `FramePacer`. Con esto se admiten los cartuchos PAL de SNES y Mega Drive, que antes se rechazaban.

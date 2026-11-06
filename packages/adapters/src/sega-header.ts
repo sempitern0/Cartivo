@@ -1,6 +1,6 @@
 // Master System and Mega Drive cartridge validation, shared by every core
 // for these systems. Refuses what this build cannot run (CD images, 32X,
-// Game Gear, interleaved SMD dumps, PAL-only Mega Drive carts) with a reason.
+// Game Gear, interleaved SMD dumps) with a reason.
 
 /** Genesis Plus GX's cartridge area (MAXROMSIZE, 10 MiB). */
 export const MAX_MD_ROM_BYTES = 10 * 1024 * 1024;
@@ -40,12 +40,8 @@ export function validateMdRom(rom: Uint8Array): SegaCartridge {
   }
   if (system.includes("32X"))
     throw Error("Es un cartucho de 32X, que todavía no se admite.");
-  // Region: letters J/U/E or the later hexadecimal code (8 = Europe only).
-  const region = ascii(rom, 0x1f0, 3).trim();
-  if (region === "E" || region === "8")
-    throw Error(
-      "Esta es una versión PAL (Europa). De momento solo se admiten cartuchos NTSC o multirregión.",
-    );
+  // PAL cartridges are accepted: Genesis Plus GX picks 50 Hz from the
+  // region field and the bridge reports it (cartivo_frame_rate).
   return {
     battery: ascii(rom, 0x1b0, 2) === "RA",
     title: ascii(rom, 0x150, 48).trim(),

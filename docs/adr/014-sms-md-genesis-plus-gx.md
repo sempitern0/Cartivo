@@ -17,7 +17,7 @@ H2 termina con las dos consolas de Sega. El titular eligió **Genesis Plus GX**:
 - **Un WASM, dos sistemas:** dos `CoreModule` (`sms` y `md`) con id `genesis-plus-gx` sobre el mismo binario; el sistema se elige al crear la instancia. Cada partida usa una instancia propia, sin globales compartidos.
 - **`setjmp`/`longjmp` nativos de WebAssembly** (`-sSUPPORT_LONGJMP=wasm`): Musashi los usa para los errores de dirección del 68000. `wasm-host.ts` admite un único import de tipo etiqueta (`env.__c_longjmp`) y lo crea con `WebAssembly.Tag`, presente en todos los navegadores de destino.
 - **Validación** (`sega-header.ts`):
-  - Mega Drive: «SEGA» en `$100`; se rechazan Mega-CD, 32X, volcados SMD intercalados y **cartuchos solo PAL** (mismo motivo que en SNES: el host avanza a 59,92 Hz).
+  - Mega Drive: «SEGA» en `$100`; se rechazan Mega-CD, 32X y volcados SMD intercalados. Los cartuchos solo PAL se admiten desde la revisión del 2026-11-06.
   - Master System: se rechazan Game Gear (región de la cabecera «TMR SEGA») y cartuchos de Mega Drive.
 - **Botones:** sin acciones nuevas, gracias a las doce de la PR A, y con etiquetas por sistema en `systems.ts`.
   - Mega Drive: A/B/C sobre Y/B/A de Cartivo, X/Y/Z sobre L/X/R y Mode sobre Select (mando de seis botones).
@@ -37,8 +37,12 @@ H2 termina con las dos consolas de Sega. El titular eligió **Genesis Plus GX**:
 
 - Licencias no comerciales (Genesis Plus GX, Musashi, el Z80 de MAME, el SVP y Nuked OPLL): admitidas mientras Cartivo sea de uso privado, con revisión antes de publicar (expediente, apartado 3).
 - La instalación de la PWA crece ≈ 2,3 MB; las actualizaciones posteriores no vuelven a descargarlo si no cambia.
-- **Límites:** PAL, Mega-CD, 32X, Game Gear, SG-1000, pistola Light Phaser, multitap y teclados.
+- **Límites:** Mega-CD, 32X, Game Gear, SG-1000, pistola Light Phaser, multitap y teclados.
 
 ## Evidencia
 
 [GENESIS_PLUS_GX_CORE_GATE](../research/GENESIS_PLUS_GX_CORE_GATE.md) y [H2-SEGA](../compatibility/H2-SEGA.md).
+
+## Revisión: cartuchos PAL (2026-11-06)
+
+El puente exporta `cartivo_frame_rate` (`av.timing.fps`): Genesis Plus GX elige la región por la cabecera y emula PAL a 53 203 424 / (3420 × 313) ≈ 49,70 Hz, y el host avanza a esa cadencia (ADR-002). Las líneas extra se recortaban ya a la resolución fija. Solo cambia el puente, no las fuentes, la versión ni la licencia: un build deliberado regenera `dist`, el manifiesto y el SBOM (registro CORE-LEGAL-01 sin cambios de decisión). Master System recibe la cadencia por la misma vía, sin fixture PAL que lo pruebe. Prueba: `mdControlDemo({ pal: true })`.

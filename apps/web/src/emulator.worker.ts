@@ -176,6 +176,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       states: (await states?.list()) ?? [],
       storageError: noStorage,
       battery: core!.battery,
+      frameRate: core!.frameRate,
       recovered: store?.recovered ?? false,
       ...library,
     };

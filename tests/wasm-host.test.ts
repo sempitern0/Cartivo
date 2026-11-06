@@ -148,6 +148,38 @@ for (const { name, prepare, make } of [
   });
 }
 
+test("libretro cores report each game's cadence: PAL at 50 Hz", async () => {
+  await prepareSnes9x();
+  await prepareGenesis();
+  await prepareSameBoy();
+  const rate = (core: { frameRate?: number; dispose(): void }) => {
+    const value = core.frameRate;
+    core.dispose();
+    return value;
+  };
+  const near = (value: number | undefined, expected: number) =>
+    assert.ok(
+      value !== undefined && Math.abs(value - expected) < 0.01,
+      `${value} ≈ ${expected}`,
+    );
+  // Master clock / (cycles per line × lines per frame), as each core says.
+  near(rate(new Snes9xAdapter(snesControlDemo())), 21477272 / 357366);
+  near(
+    rate(new Snes9xAdapter(snesControlDemo({ pal: true }))),
+    21281370 / 425568,
+  );
+  near(
+    rate(new GenesisPlusGxAdapter("md", mdControlDemo())),
+    53693175 / (3420 * 262),
+  );
+  near(
+    rate(new GenesisPlusGxAdapter("md", mdControlDemo({ pal: true }))),
+    53203424 / (3420 * 313),
+  );
+  // Without the export the system's nominal rate applies.
+  assert.equal(rate(new SameBoyAdapter(gbControlDemo(true))), undefined);
+});
+
 test("a core served with the wrong MIME type still compiles; a failed download says so", async () => {
   const bytes = readFileSync(
     new URL("../cores/sameboy/dist/sameboy.wasm", import.meta.url),
