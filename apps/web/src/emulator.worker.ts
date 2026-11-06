@@ -156,6 +156,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       states: slots,
       storageError: noStorage,
       battery: core!.battery,
+      frameRate: core!.frameRate,
       recovered: store?.recovered ?? false,
       ...library,
     };

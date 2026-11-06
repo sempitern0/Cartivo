@@ -66,6 +66,7 @@ const exports = [
   "cartivo_save_size", "cartivo_load_save", "cartivo_save", "cartivo_set_input",
   "cartivo_frames", "cartivo_pixels", "cartivo_audio",
   "cartivo_state_size", "cartivo_save_state", "cartivo_load_state",
+  "cartivo_frame_rate",
 ];
 const out = verify ? mkdtempSync(join(tmpdir(), "snes9x-")) : join(core, "dist");
 if (!verify) rmSync(out, { recursive: true, force: true });

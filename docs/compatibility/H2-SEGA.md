@@ -9,7 +9,7 @@ Estado: **experimental.** Master System y Mega Drive funcionan de extremo a extr
 | Núcleo | Genesis Plus GX `a5834b3`, licencia no comercial propia; expediente [GENESIS_PLUS_GX_CORE_GATE](../research/GENESIS_PLUS_GX_CORE_GATE.md) |
 | Build | `core-genesis-plus-gx.yml` sobre `8cc09ce`, emsdk 6.0.12; commit del bot `7d354d6`; `dist/genesis-plus-gx.wasm` SHA-256 `58c38e7bcf34…` (2 348 726 bytes) |
 | Firmware | Ninguno: arranque directo; TMSS y BIOS de Master System nunca se cargan |
-| Cartuchos | Mega Drive NTSC o multirregión ≤ 10 MB (Mega-CD, 32X, SMD intercalado y solo PAL, rechazados); Master System ≤ 4 MB (Game Gear rechazado) |
+| Cartuchos | Mega Drive NTSC, PAL (≈ 49,70 Hz) o multirregión ≤ 10 MB (Mega-CD, 32X y SMD intercalado, rechazados); Master System ≤ 4 MB (Game Gear rechazado) |
 | Entrada | Mega Drive: A/B/C en J/K/L, X/Y/Z en I/U/O, Mode en Select. Master System: 1/2 en K/L, Pause en Start |
 
 ## Fixtures originales
@@ -32,7 +32,7 @@ Las dos son programas propios de Cartivo, de 64 KB y con RAM de batería.
 | Prueba | Resultado |
 |---|---|
 | Arnés C nativo (gcc, mismas fuentes y opciones) | Ver el expediente, apartado 6: Mega Drive 0,43 ms/frame, Master System 0,23 |
-| `tests/sega.test.ts` (WASM del bot) | Cabeceras (Mega-CD, 32X, SMD, PAL, Game Gear, archivos dañados); orden de bits libretro; oráculos completos de las dos consolas; ≈ 48 000 muestras/s; la batería se relee al reabrir; 0,57 (MD) y 0,27 (SMS) ms/frame en el runner de CI |
+| `tests/sega.test.ts` (WASM del bot) | Cabeceras (Mega-CD, 32X, SMD, Game Gear, archivos dañados; PAL admitido); orden de bits libretro; oráculos completos de las dos consolas; ≈ 48 000 muestras/s; la batería se relee al reabrir; 0,57 (MD) y 0,27 (SMS) ms/frame en el runner de CI |
 | `tests/core-conformance.test.ts`, `wasm-host.test.ts` | Contrato completo en los dos sistemas; solo imports permitidos (incluida la etiqueta `__c_longjmp`); estados de tamaño erróneo rechazados; `dispose` seguro |
 | E2E `tests/e2e/sega.spec.ts` | Demo de Mega Drive 320×224 con A/B/C/X/Y/Z comprobados en el canvas y ayuda de pausa con las etiquetas propias; demo de Master System 256×192; SRAM exportada (`cartivo-md-sram-v1`, `cartivo-sms-sram-v1`, 65 536 bytes) y conservada al reabrir; F5/F9; `.gen` soltado; `.md` dañado; notas en Controles. **CI sobre `56f61fb`** (Foundation CI, run 41426542801): 5/5 Sega en dev y en preview; suite completa 71 superadas en dev y 71 en preview (2 omitidas por diseño), `svelte-check` sin errores ni avisos; precarga total 36 archivos, 6,7 MB |
 
@@ -44,3 +44,5 @@ Las dos son programas propios de Cartivo, de 64 KB y con RAM de batería.
    - Master System con y sin batería;
    - Partidas y F5/F9.
 3. Rendimiento en móvil.
+
+**PAL (2026-11-06):** `tests/wasm-host.test.ts` comprueba que el núcleo informa ≈ 59,92 Hz (NTSC) y ≈ 49,70 Hz (fixture con región Europa); `tests/e2e/pal.spec.ts` comprueba que juega a menos de 55 fotogramas/s y muestra «49,7 Hz (PAL)». Falta la QA con un cartucho PAL real.

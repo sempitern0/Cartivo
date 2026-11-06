@@ -7,13 +7,21 @@
     system,
     choice,
     running,
+    frameRate,
     onchoose,
   }: {
     system: SystemInfo;
     choice: string;
     running?: string;
+    /** Frames per second of the game running now. */
+    frameRate: number;
     onchoose: (id: string) => void;
   } = $props();
+  // PAL cartridges run at 50 Hz; everything this host supports otherwise at
+  // about 60.
+  const cadence = $derived(
+    `${frameRate.toLocaleString("es", { maximumFractionDigits: 2 })} Hz${frameRate < 55 ? " (PAL)" : ""}`,
+  );
 </script>
 
 <details data-player-chrome>
@@ -39,6 +47,9 @@
         Se usará al abrir el próximo juego o con Cargar ROM.
       </p>{/if}
   </fieldset>
+  {#if running}<p class="secondary" data-testid="frame-rate">
+      Cadencia del juego: {cadence}.
+    </p>{/if}
   <p class="secondary">
     Los núcleos se ejecutan en un Worker y comparten la memoria de batería del
     cartucho.

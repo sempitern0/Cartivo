@@ -23,9 +23,15 @@ export type Bridge = {
   cartivo_state_size(core: Pointer): number;
   cartivo_save_state(core: Pointer, out: Pointer): void;
   cartivo_load_state(core: Pointer, data: Pointer, length: number): number;
+  /** Libretro bridges: the game's own rate (PAL or NTSC, from its header). */
+  cartivo_frame_rate?(core: Pointer): number;
 };
 
 const MAX_AUDIO = 48000;
+
+/** A rate any supported console could run at (PAL 50 to ~60 Hz). */
+const isFrameRate = (value: unknown): value is number =>
+  typeof value === "number" && value >= 30 && value <= 75;
 
 /** The core file could not be fetched (network, offline cache, HTTP). */
 export class CoreDownloadError extends Error {}
@@ -228,6 +234,7 @@ export type BridgeOptions<T extends Bridge> = {
 export class BridgeCore<T extends Bridge> implements EmulatorCore {
   readonly battery: boolean;
   readonly saveBytes: number;
+  readonly frameRate?: number;
   frames = 0;
   #wasm: T;
   #core: Pointer;
@@ -253,6 +260,8 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
     );
     if (!this.#core) throw Error("El núcleo no ha podido abrir el cartucho.");
     this.saveBytes = wasm.cartivo_save_size(this.#core);
+    const rate = wasm.cartivo_frame_rate?.(this.#core);
+    if (isFrameRate(rate)) this.frameRate = rate;
     this.battery = options.battery(this.saveBytes);
     if (save) {
       if (save.length !== this.saveBytes) {

@@ -68,11 +68,8 @@ export function validateSnesRom(file: Uint8Array): SnesCartridge {
   // $xxBF (just before the header) names custom chips; 2 = ST018.
   if ((chip & 0xf0) === 0xf0 && rom[h - 1] === 0x02)
     throw Error("Este cartucho usa el chip ST018, que todavía no se admite.");
-  const region = rom[h + 0x19];
-  if (region >= 0x02 && region <= 0x0c)
-    throw Error(
-      "Esta es una versión PAL (Europa o Australia). De momento solo se admiten cartuchos NTSC (América, Japón y Corea).",
-    );
+  // PAL cartridges are accepted: Snes9x picks 50 Hz from the header and the
+  // bridge reports it (cartivo_frame_rate).
   const ram = rom[h + 0x18];
   const sramBytes = ram > 0 && ram <= 7 ? 1024 << ram : 0;
   return {

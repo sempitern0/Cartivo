@@ -48,7 +48,8 @@ test("the fixture is stable and its header validates", () => {
 test("unsupported or damaged cartridges are refused with a reason", () => {
   assert.throws(() => validateSnesRom(new Uint8Array(512)), /pequeño/);
   assert.throws(() => validateSnesRom(new Uint8Array(0x8000)), /cabecera/);
-  assert.throws(() => validateSnesRom(patched({ 0x19: 0x02 })), /PAL/);
+  // PAL (Europe, region 2) is accepted: the core runs it at 50 Hz.
+  assert.doesNotThrow(() => validateSnesRom(patched({ 0x19: 0x02 })));
   assert.throws(() => validateSnesRom(patched({ 0x16: 0xe3 })), /Game Boy/);
   assert.throws(() => validateSnesRom(patched({ 0x16: 0xe5 })), /BS-X/);
   assert.throws(

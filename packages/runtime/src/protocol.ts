@@ -133,6 +133,8 @@ export type EmuResult = {
   frames?: number;
   hash?: string;
   battery?: boolean;
+  /** load: frames per second of this game (PAL 50 Hz); absent: nominal. */
+  frameRate?: number;
   saved?: boolean;
   saveError?: string;
   recovered?: boolean;
