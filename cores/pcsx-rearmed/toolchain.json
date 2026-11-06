@@ -1,0 +1,12 @@
+{
+  "pcsxRearmed": {
+    "commit": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
+    "repository": "https://github.com/libretro/pcsx_rearmed",
+    "spdx": "GPL-2.0-or-later"
+  },
+  "emsdk": {
+    "version": "6.0.12",
+    "commit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+    "repository": "https://github.com/emscripten-core/emsdk"
+  }
+}
