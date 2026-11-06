@@ -289,4 +289,4 @@
 
 ### CI: navegadores de Playwright en caché
 
-- Los navegadores de las pruebas E2E se guardan en caché por versión de Playwright; con acierto solo se instalan las dependencias del sistema. La instalación tiene su propio límite de 5 minutos: una descarga atascada falla pronto en vez de agotar el trabajo.
+- El espejo apt del runner se atascaba minutos en un paquete (las fuentes que instala Playwright): apt reintenta cada descarga tras 20 s. Los navegadores de las pruebas E2E se guardan en caché por versión de Playwright y la instalación tiene su propio límite de 5 minutos, para fallar pronto en vez de agotar el trabajo.

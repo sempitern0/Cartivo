@@ -67,9 +67,12 @@ jobs:
       # Only the production build has a service worker (PWA tests).
       - if: matrix.server != 'dev'
         run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
-      # The browser download sometimes stalls for minutes on the runner: keep
-      # browsers in a cache keyed by Playwright's version, and fail fast (to
-      # re-run) instead of eating the whole job timeout.
+      # The runner's apt mirror sometimes stalls for minutes on one package
+      # (seen with Playwright's fonts): time out and retry each download
+      # quickly. Browsers are cached by Playwright's version, and the install
+      # step fails fast (to re-run) instead of eating the whole job timeout.
+      - name: Quick apt retries
+        run: printf 'Acquire::http::Timeout "20";\nAcquire::Retries "5";\n' | sudo tee /etc/apt/apt.conf.d/99cartivo-retries
       - id: playwright
         run: echo "version=$(node -p "require('./package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
       - id: browsers
