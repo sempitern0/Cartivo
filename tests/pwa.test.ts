@@ -60,7 +60,7 @@ test("service worker waits for an explicit update and keeps saves", () => {
 
 test("cache lookups ignore Vary so crossorigin module requests hit offline", () => {
   const source = buildServiceWorker(entries);
-  assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 2);
+  assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 3);
 });
 
 /** Runs a generated service worker against in-memory caches and network. */
@@ -189,10 +189,140 @@ test("offline is reported only for a complete cache", async () => {
   };
   const files = ["index.html", "assets/core-1.wasm"];
   assert.equal(await offlineCacheComplete(scope, fake(files, files)), true);
+  assert.equal(
+    await offlineCacheComplete(scope, fake(files, files), "not-installed"),
+    false,
+  );
   // A core missing, or an install that never wrote its manifest.
   assert.equal(
     await offlineCacheComplete(scope, fake(["index.html"], files)),
     false,
   );
   assert.equal(await offlineCacheComplete(scope, fake(files)), false);
+  assert.equal(await offlineCacheComplete(scope, fake([], [])), false);
+  assert.equal(
+    await offlineCacheComplete(scope, fake(["core.wasm"], ["core.wasm"])),
+    false,
+  );
+});
+
+test("update handshake rejects other tabs and unknown senders", async () => {
+  for (const [windows, sender, accepted] of [
+    [[{ id: "a", url: "https://test/app/" }], "a", true],
+    [
+      [
+        { id: "a", url: "https://test/app/" },
+        { id: "b", url: "https://test/app/game" },
+      ],
+      "a",
+      false,
+    ],
+    [[{ id: "a", url: "https://test/app/" }], "b", false],
+    [[], "a", false],
+  ] as const) {
+    const handlers: Record<string, (event: any) => void> = {};
+    let activated = false;
+    let reply: unknown;
+    let pending: Promise<unknown> | undefined;
+    const scope = {
+      registration: { scope: "https://test/app/" },
+      location: { origin: "https://test" },
+      clients: { matchAll: async () => windows },
+      skipWaiting: async () => {
+        activated = true;
+      },
+      addEventListener: (name: string, handler: (event: any) => void) => {
+        handlers[name] = handler;
+      },
+    };
+    new Function("self", buildServiceWorker(entries))(scope);
+    handlers.message({
+      data: { type: "cartivo:activate-update" },
+      source: { id: sender },
+      ports: [
+        {
+          postMessage: (value: unknown) => {
+            reply = value;
+          },
+        },
+      ],
+      waitUntil: (promise: Promise<unknown>) => {
+        pending = promise;
+      },
+    });
+    await pending;
+    assert.deepEqual(reply, { accepted });
+    assert.equal(activated, accepted);
+  }
+});
+
+test("activation retains old shell assets while a window may still use them", async () => {
+  for (const windows of [[], [{ id: "active" }]]) {
+    const handlers: Record<string, (event: any) => void> = {};
+    const removed: string[] = [];
+    let claimed = false;
+    let pending: Promise<unknown> | undefined;
+    const scope = {
+      registration: { scope: "https://test/" },
+      clients: {
+        matchAll: async () => windows,
+        claim: async () => {
+          claimed = true;
+        },
+      },
+      addEventListener: (name: string, handler: (event: any) => void) => {
+        handlers[name] = handler;
+      },
+    };
+    new Function("self", "caches", buildServiceWorker(entries))(scope, {
+      keys: async () => [
+        CACHE_PREFIX + "old",
+        CACHE_PREFIX + precacheVersion(entries),
+        "other-app",
+      ],
+      delete: async (key: string) => {
+        removed.push(key);
+      },
+    });
+    handlers.activate({
+      waitUntil: (promise: Promise<unknown>) => {
+        pending = promise;
+      },
+    });
+    await pending;
+    assert.deepEqual(removed, windows.length ? [] : [CACHE_PREFIX + "old"]);
+    assert.equal(claimed, true);
+  }
+});
+
+test("old hashed assets remain available offline after activation", async () => {
+  const handlers: Record<string, (event: any) => void> = {};
+  let pending: Promise<Response> | undefined;
+  const scope = {
+    registration: { scope: "https://test/" },
+    location: { origin: "https://test" },
+    addEventListener: (name: string, handler: (event: any) => void) => {
+      handlers[name] = handler;
+    },
+  };
+  new Function("self", "caches", "fetch", buildServiceWorker(entries))(
+    scope,
+    {
+      keys: async () => [CACHE_PREFIX + "old", "other-app"],
+      open: async (key: string) => ({
+        match: async () =>
+          key === CACHE_PREFIX + "old" ? new Response("old asset") : undefined,
+      }),
+    },
+    () => {
+      throw new Error("offline");
+    },
+  );
+  handlers.fetch({
+    request: new Request("https://test/assets/old-hash.js"),
+    respondWith: (promise: Promise<Response>) => {
+      pending = promise;
+    },
+  });
+  assert.equal(await (await pending)!.text(), "old asset");
 });

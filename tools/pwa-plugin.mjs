@@ -92,7 +92,8 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       // Only our own shell caches are removed. IndexedDB saves are never touched.
-      for (const key of await caches.keys())
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const key of windows.length ? [] : await caches.keys())
         if (key.startsWith(${JSON.stringify(CACHE_PREFIX)}) && key !== CACHE) await caches.delete(key);
       await self.clients.claim();
     })(),
@@ -100,10 +101,26 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "cartivo:activate-update") self.skipWaiting();
+  if (event.data && event.data.type === "cartivo:activate-update") {
+    event.waitUntil((async () => {
+      const windows = (await self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+        .filter((client) => client.url.startsWith(self.registration.scope));
+      const accepted = windows.length === 1 && windows[0].id === event.source?.id;
+      if (accepted) await self.skipWaiting();
+      event.ports?.[0]?.postMessage({ accepted });
+    })().catch(() => event.ports?.[0]?.postMessage({ accepted: false })));
+  }
   if (event.data && event.data.type === "cartivo:version")
     event.source && event.source.postMessage({ type: "cartivo:version", version: VERSION });
 });
+
+async function previousAsset(request) {
+  for (const key of await caches.keys()) {
+    if (!key.startsWith(${JSON.stringify(CACHE_PREFIX)}) || key === CACHE) continue;
+    const hit = await (await caches.open(key)).match(request, { ignoreVary: true });
+    if (hit) return hit;
+  }
+}
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -122,7 +139,8 @@ self.addEventListener("fetch", (event) => {
   // precached entries were stored without it ("Vary: Origin" would miss).
   event.respondWith(
     caches.open(CACHE).then(async (cache) =>
-      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? fetch(request),
+      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ??
+      (await previousAsset(request)) ?? fetch(request),
     ),
   );
 });

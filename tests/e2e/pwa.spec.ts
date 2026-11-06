@@ -47,8 +47,9 @@ test("web app manifest is installable and its icons load", async ({
 test("dropping a .nes file starts the game without navigating away", async ({
   page,
 }) => {
-  const { controlDemo } =
-    await import("../../packages/fixtures/src/control-demo.ts");
+  const { controlDemo } = await import(
+    "../../packages/fixtures/src/control-demo.ts"
+  );
   await page.goto("/");
   const url = page.url();
   const transfer = await page.evaluateHandle((bytes) => {
@@ -115,4 +116,46 @@ test("installed shell reopens offline and plays the demo", async ({
     )
     .toBeGreaterThan(10);
   await context.setOffline(false);
+});
+
+test("an explicit activation is refused while another Cartivo tab is open", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  test.skip(
+    !baseURL?.includes(":4173"),
+    "Requires the production service worker.",
+  );
+  await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-offline-ready",
+    "true",
+  );
+  const other = await context.newPage();
+  await other.goto("/");
+  await expect(other.locator("html")).toHaveAttribute(
+    "data-offline-ready",
+    "true",
+  );
+  const accepted = await page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.ready;
+    return new Promise<boolean>((resolve, reject) => {
+      const channel = new MessageChannel();
+      const timer = setTimeout(() => {
+        channel.port1.close();
+        reject(new Error("No activation reply"));
+      }, 3000);
+      channel.port1.onmessage = (event) => {
+        clearTimeout(timer);
+        channel.port1.close();
+        resolve(event.data.accepted);
+      };
+      registration.active!.postMessage({ type: "cartivo:activate-update" }, [
+        channel.port2,
+      ]);
+    });
+  });
+  expect(accepted).toBe(false);
+  await other.close();
 });

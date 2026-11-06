@@ -65,4 +65,4 @@ Panel propio (pausa la partida al abrirse). Tarjetas con diagrama para **Escalad
 
 ## Pendiente
 
-Controles táctiles en móvil, perfiles de pantalla por sistema (proporciones portátiles) e inglés.
+Controles táctiles en móvil e inglés. Los perfiles de pantalla por sistema ya están implementados.

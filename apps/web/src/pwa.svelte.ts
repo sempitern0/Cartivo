@@ -19,6 +19,8 @@ export const pwa = $state({
   offlineReady: false,
   /** A newer version is downloaded and waiting for a safe moment. */
   updateReady: false,
+  applyingUpdate: false,
+  updateProblem: "",
 });
 
 let deferredPrompt: InstallPrompt | undefined;
@@ -68,10 +70,38 @@ export function startPwa() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   const sw = navigator.serviceWorker;
   const scope = new URL(import.meta.env.BASE_URL, location.href).href;
-  const verifyOffline = () =>
-    offlineCacheComplete(scope)
-      .catch(() => false)
-      .then(setOfflineReady);
+  let verification = 0;
+  const verifyOffline = async () => {
+    const attempt = ++verification;
+    setOfflineReady(false);
+    try {
+      const worker = sw.controller ?? (await sw.ready).active;
+      if (!worker) return;
+      const version = await new Promise<string>((resolve, reject) => {
+        const timer = window.setTimeout(() => {
+          sw.removeEventListener("message", receive);
+          reject(new Error("Service worker version unavailable"));
+        }, 3000);
+        function receive(event: MessageEvent) {
+          if (
+            event.source !== worker ||
+            event.data?.type !== "cartivo:version" ||
+            typeof event.data.version !== "string"
+          )
+            return;
+          window.clearTimeout(timer);
+          sw.removeEventListener("message", receive);
+          resolve(event.data.version);
+        }
+        sw.addEventListener("message", receive);
+        worker.postMessage({ type: "cartivo:version" });
+      });
+      const complete = await offlineCacheComplete(scope, caches, version);
+      if (attempt === verification) setOfflineReady(complete);
+    } catch {
+      if (attempt === verification) setOfflineReady(false);
+    }
+  };
   sw.addEventListener("controllerchange", () => {
     void verifyOffline();
     // Only reload when the player explicitly applied an update, and the
@@ -90,9 +120,12 @@ export function startPwa() {
       // Installed apps keep saves safer from storage eviction. Asking in a
       // plain tab could show a permission prompt in some browsers.
       if (pwa.installed && navigator.storage?.persist)
-        void navigator.storage.persisted().then((done) => {
-          if (!done) void navigator.storage.persist();
-        });
+        void navigator.storage
+          .persisted()
+          .then((done) => done || navigator.storage.persist())
+          .catch(() => {
+            /* Persistence is optional. */
+          });
     })
     .catch(() => setOfflineReady(false));
 }
@@ -109,7 +142,34 @@ export async function install() {
 
 /** Applies a waiting update. Call only when no game session is active. */
 export function applyUpdate() {
-  if (!waiting) return;
+  if (!waiting || pwa.applyingUpdate) return;
+  pwa.applyingUpdate = true;
+  pwa.updateProblem = "";
   reloadWhenActivated = true;
-  waiting.postMessage({ type: "cartivo:activate-update" });
+  const channel = new MessageChannel();
+  const timeout = window.setTimeout(() => {
+    channel.port1.close();
+    // Do not unlock: activation may still finish and reload this tab.
+    pwa.updateProblem =
+      "La actualización está tardando. Cierra y vuelve a abrir Cartivo para continuar.";
+  }, 10000);
+  channel.port1.onmessage = (event) => {
+    window.clearTimeout(timeout);
+    channel.port1.close();
+    if (event.data?.accepted) return;
+    reloadWhenActivated = false;
+    pwa.applyingUpdate = false;
+    pwa.updateProblem =
+      "Cierra las otras pestañas de Cartivo antes de actualizar.";
+  };
+  try {
+    waiting.postMessage({ type: "cartivo:activate-update" }, [channel.port2]);
+  } catch {
+    window.clearTimeout(timeout);
+    channel.port1.close();
+    reloadWhenActivated = false;
+    pwa.applyingUpdate = false;
+    pwa.updateProblem =
+      "No se pudo activar la actualización. Vuelve a intentarlo.";
+  }
 }

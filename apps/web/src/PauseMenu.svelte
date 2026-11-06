@@ -1,8 +1,11 @@
 <script lang="ts">
+  import PerformanceDetails from "./PerformanceDetails.svelte";
+  import type { FrameMetrics } from "../../../packages/media/src/frame-metrics.ts";
   import { onMount } from "svelte";
   // Modo consola (ADR-006): the pause as a vertical menu over the game. A
   // modal dialog, so the pad and Tab stay in it; B or Escape resumes.
   let {
+    diagnostics,
     busy,
     savesAvailable,
     onresume,
@@ -12,6 +15,7 @@
     onreset,
     onexit,
   }: {
+    diagnostics: ReturnType<FrameMetrics["snapshot"]>;
     busy: boolean;
     savesAvailable: boolean;
     onresume: () => void;
@@ -64,6 +68,7 @@
   <button onclick={oncontrols}>Controles</button>
   <button disabled={busy} onclick={onreset}>Reiniciar consola</button>
   <button class="exit" onclick={onexit}>Salir del juego</button>
+  <PerformanceDetails {diagnostics} />
 </dialog>
 
 <style>

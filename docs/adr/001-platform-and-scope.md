@@ -21,3 +21,9 @@ SvelteKit/SSR aporta complejidad sin necesidad actual de render servidor. React 
 ## Validación y consecuencias
 
 Spike en Chromium, Firefox y Safari reales: aislamiento, AudioWorklet, input, acceso local, memoria e instalación. Rutas fallback se prueban por capacidad, no por marca de navegador. Una consola bloqueada no aparece como jugable. Cualquier recorte del catálogo comprometido se registra antes del anuncio de V1.
+
+## Revisión: actualización y diagnóstico (2026-11-06)
+
+La implementación actual precarga los artefactos del catálogo integrado, a diferencia del diseño inicial de packs bajo demanda. La activación explícita exige que el solicitante sea la única ventana de Cartivo en el scope. Durante la solicitud no puede iniciarse una partida; solo la pestaña solicitante se recarga. Si hay ventanas al activar, se conservan las cachés anteriores y sus assets con hash siguen accesibles, cubriendo una apertura concurrente. La limpieza se difiere a una activación sin ventanas; puede ocupar más almacenamiento mientras sigan abiertas. IndexedDB no se toca. El indicador offline verifica el manifiesto de la versión del Worker activo, no el de una versión antigua.
+
+El reproductor conserva hasta 120 muestras locales de solicitudes `advance`: cadencia de fotogramas emulados y media/p95 de ida y vuelta al Worker. Las muestra plegadas en pausa, también dentro del diálogo de mando, y reinicia la ventana al reanudar. No son FPS de presentación, tiempo exclusivo del núcleo, latencia de entrada ni un benchmark de compatibilidad. Los presupuestos por núcleo y la QA física siguen pendientes.

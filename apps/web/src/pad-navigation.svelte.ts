@@ -6,6 +6,7 @@
 import {
   nearest,
   PadIntents,
+  PadActivity,
   type Box,
   type Direction,
 } from "../../../packages/input/src/ui-navigation.ts";
@@ -93,10 +94,15 @@ function adjust(el: Element, dir: Direction) {
 
 function move(dir: Direction) {
   const current = document.activeElement;
-  if (current && adjust(current, dir)) return;
   const all = candidates();
+  if (
+    current instanceof HTMLElement &&
+    all.includes(current) &&
+    adjust(current, dir)
+  )
+    return;
   const from =
-    current instanceof HTMLElement && current !== document.body
+    current instanceof HTMLElement && candidates().includes(current)
       ? current
       : undefined;
   if (!from) {
@@ -112,7 +118,7 @@ function move(dir: Direction) {
 
 function accept() {
   const current = document.activeElement;
-  if (current instanceof HTMLElement && current !== document.body)
+  if (current instanceof HTMLElement && candidates().includes(current))
     current.click();
   else move("down");
 }
@@ -145,12 +151,14 @@ function back() {
 /** Starts listening; returns the cleanup. Call once, from the app root. */
 export function startPadNavigation() {
   let frame = 0;
+  const activity = new PadActivity();
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
-    if (owners.size) return;
     const pad = standardPad();
+    if (activity.read(pad)) ui.lastDevice = "pad";
     // Without a pad, the automatic interface goes back to keyboard and mouse.
     if (!pad && ui.lastDevice === "pad") ui.lastDevice = "pointer";
+    if (owners.size) return;
     if (absorbNext) {
       absorbNext = false;
       intents.absorb(pad, now);
@@ -158,7 +166,6 @@ export function startPadNavigation() {
     }
     const wanted = intents.read(pad, now);
     if (!wanted.length) return;
-    ui.lastDevice = "pad";
     for (const intent of wanted)
       if (intent === "accept") accept();
       else if (intent === "back") back();

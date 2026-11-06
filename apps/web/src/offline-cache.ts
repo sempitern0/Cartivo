@@ -12,13 +12,31 @@ export const PRECACHE_MANIFEST = "__cartivo-precache.json";
 export async function offlineCacheComplete(
   scope: string,
   storage: Pick<CacheStorage, "keys" | "open"> = caches,
+  version?: string,
 ): Promise<boolean> {
   for (const name of await storage.keys()) {
     if (!name.startsWith(SHELL_CACHE_PREFIX)) continue;
+    if (version !== undefined && name !== SHELL_CACHE_PREFIX + version)
+      continue;
     const cache = await storage.open(name);
     const manifest = await cache.match(new URL(PRECACHE_MANIFEST, scope).href);
     if (!manifest) continue;
-    const listed = Object.keys((await manifest.json()) as object);
+    let data: unknown;
+    try {
+      data = await manifest.json();
+    } catch {
+      continue;
+    }
+    if (!data || typeof data !== "object" || Array.isArray(data)) continue;
+    const files = data as Record<string, unknown>;
+    if (
+      !Object.hasOwn(files, "index.html") ||
+      !Object.values(files).every(
+        (hash) => typeof hash === "string" && hash.length > 0,
+      )
+    )
+      continue;
+    const listed = Object.keys(files);
     const stored = new Set((await cache.keys()).map((request) => request.url));
     if (listed.every((path) => stored.has(new URL(path, scope).href)))
       return true;

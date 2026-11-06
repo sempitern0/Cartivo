@@ -38,6 +38,7 @@
   let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
   let nextGameId = 0;
   const startGame = (system: SystemInfo, source: GameSource = demo) => {
+    if (pwa.applyingUpdate) return;
     openError = "";
     game = { source, system, id: ++nextGameId };
   };
@@ -258,7 +259,10 @@
       {#if pwa.updateReady}
         <div class="update" role="status">
           Nueva versión de Cartivo lista.
-          <button onclick={applyUpdate}>Actualizar ahora</button>
+          <button onclick={applyUpdate} disabled={pwa.applyingUpdate}>
+            {pwa.applyingUpdate ? "Actualizando…" : "Actualizar ahora"}
+          </button>
+          {#if pwa.updateProblem}<p>{pwa.updateProblem}</p>{/if}
         </div>
       {/if}
       {#if storage !== "ok"}<p class="storage-note" role="status">

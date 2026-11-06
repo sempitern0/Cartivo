@@ -48,6 +48,23 @@ function heldDirections(pad: Pad): Direction[] {
  * short delay. The pause gesture (Select+Start) belongs to the game, which
  * reads it through the player's own mapping.
  */
+export class PadActivity {
+  #held = new Set<string>();
+
+  read(pad: Pad | undefined): boolean {
+    const held = new Set<string>();
+    pad?.buttons.forEach((button, i) => {
+      if (button.pressed) held.add(`button:${i}`);
+    });
+    pad?.axes.forEach((axis, i) => {
+      if (Math.abs(axis) > STICK) held.add(`axis:${i}:${Math.sign(axis)}`);
+    });
+    const changed = [...held].some((key) => !this.#held.has(key));
+    this.#held = held;
+    return changed;
+  }
+}
+
 export class PadIntents {
   #buttons = new Set<string>();
   #direction: Direction | undefined;
