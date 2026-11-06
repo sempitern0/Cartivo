@@ -67,12 +67,10 @@ jobs:
       # Only the production build has a service worker (PWA tests).
       - if: matrix.server != 'dev'
         run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
-      # The runner's apt mirror sometimes stalls for minutes on one package
-      # (seen with Playwright's fonts): time out and retry each download
-      # quickly. Browsers are cached by Playwright's version, and the install
-      # step fails fast (to re-run) instead of eating the whole job timeout.
-      - name: Quick apt retries
-        run: printf 'Acquire::http::Timeout "20";\nAcquire::Retries "5";\n' | sudo tee /etc/apt/apt.conf.d/99cartivo-retries
+      # Browsers are cached by Playwright's version. System libraries come
+      # from apt without Playwright's optional fonts: the runner's mirror
+      # stalls for minutes on them (fonts-freefont-ttf, fonts-ipafont-*), and
+      # no test reads rendered text. The step fails fast to be re-run.
       - id: playwright
         run: echo "version=$(node -p "require('./package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
       - id: browsers
@@ -80,12 +78,19 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ steps.playwright.outputs.version }}-${{ matrix.browser }}
-      - if: steps.browsers.outputs.cache-hit != 'true'
+      - name: Browser and system libraries
         timeout-minutes: 5
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
-      - if: steps.browsers.outputs.cache-hit == 'true'
-        timeout-minutes: 5
-        run: pnpm exec playwright install-deps ${{ matrix.browser }}
+        env:
+          BROWSER: ${{ matrix.browser }}
+          CACHED: ${{ steps.browsers.outputs.cache-hit }}
+        run: |
+          if [ "$CACHED" != "true" ]; then pnpm exec playwright install "$BROWSER"; fi
+          deps=$(pnpm exec playwright install-deps --dry-run "$BROWSER" \
+            | grep -oE 'no-install-recommends [^"]+' | cut -d' ' -f2- \
+            | tr ' ' '\n' | grep -vE '^(x?fonts-|ttf-)' | tr '\n' ' ')
+          if [ -z "$deps" ]; then echo "::error::No dependency list from Playwright"; exit 1; fi
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends $deps
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.
       - name: Virtual audio output
