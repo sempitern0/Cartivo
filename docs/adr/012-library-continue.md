@@ -49,3 +49,9 @@ Decisión del titular tras usar la app: la pregunta confundía y Cartivo es de u
 ## Evidencia
 
 Ver [H1-LIB](../compatibility/H1-LIB.md).
+
+### Revisión 2026-11-06: coste de carga
+
+`prepareRom` lee una vez y calcula una sola identidad. En la biblioteca, ese hash se verifica contra la copia solicitada antes de preparar el núcleo; no se confía únicamente en el nombre OPFS. En archivos nuevos se valida la cabecera antes de preparar y se solapan hash y preparación del núcleo. WebCrypto recibe la vista exacta sin una copia JavaScript adicional (excepto memoria compartida). La lista de partidas y la actualización de biblioteca se consultan en paralelo después de abrir el almacenamiento. Una carga fallida libera sus locks y recursos sin borrar partidas.
+
+Se conserva la verificación tras escribir OPFS y se espera a confirmar la biblioteca antes de declarar la carga completa. Diferirla hasta después del primer frame requiere otro contrato de cierre; no se cambia para ganar tiempo a costa de una copia incompleta. El diagnóstico en pausa muestra el tiempo de preparación desde la creación del Worker hasta la respuesta `load`, sin espera del jugador ni restauración posterior de un snapshot.

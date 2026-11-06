@@ -2,7 +2,7 @@
 
 ## Contexto mínimo (lectura progresiva)
 
-1. Lee este archivo una vez. Para localizar código y pruebas consulta `docs/ai/CONTEXT.md` **solo si hace falta**; no cargues todo el árbol.
+1. Lee este archivo una vez. Para localizar un flujo usa `pnpm context load|input|pwa|ci|media` (elige un área; solo muestra rutas y tamaños). Para localizar código y pruebas consulta `docs/ai/CONTEXT.md` **solo si hace falta**; no cargues todo el árbol.
 2. Antes de programar, busca en el inventario **§2 (Hecho)** de `docs/PLAN_TECNICO_CARTIVO.md` si la capacidad ya existe: amplía o reutiliza, no reimplementes. Para elegir el siguiente incremento consulta **§3 (Pendiente)**. El estado demostrado está en `README.md` y `docs/compatibility/README.md`.
 3. Lee exclusivamente los archivos del área afectada, sus pruebas, el ADR pertinente y la ficha de compatibilidad correspondiente. Lee `docs/DESIGN.md` para UX; `docs/ADDING_A_SYSTEM.md` y `cores/AGENTS.md` para núcleos.
 4. Busca primero nombres de archivos (`rg --files`, `rg -l`); después símbolos (`rg -n` con rutas acotadas); lee rangos concretos. No vuelques de entrada `CHANGELOG.md`, `pnpm-lock.yaml`, `cores/*/dist`, artefactos, logs ni módulos completos ajenos a la tarea.

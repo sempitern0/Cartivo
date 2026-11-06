@@ -3,7 +3,13 @@ import { locks, openDatabase } from "./idb.ts";
 type Generation = { bytes: Uint8Array; sha256: string };
 type RecordValue = { current: Generation; previous?: Generation };
 export async function digest(bytes: Uint8Array): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-256", Uint8Array.from(bytes));
+  // WebCrypto snapshots ordinary ArrayBuffer views itself; avoid another
+  // ROM-sized allocation. Shared memory still needs an ordinary copy.
+  const input =
+    bytes.buffer instanceof ArrayBuffer
+      ? (bytes as Uint8Array<ArrayBuffer>)
+      : Uint8Array.from(bytes);
+  const hash = await crypto.subtle.digest("SHA-256", input);
   return Array.from(new Uint8Array(hash), (b) =>
     b.toString(16).padStart(2, "0"),
   ).join("");

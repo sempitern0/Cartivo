@@ -220,6 +220,7 @@
   const pacer = $derived(new FramePacer(frameRate));
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
+  let loadMs = $state<number>();
   const controls = new InputCapture(
     readKeyboard(),
     () => navigator.getGamepads?.() ?? [],
@@ -237,6 +238,7 @@
     phase = "loading";
     problem = "";
     sound.start();
+    const loadStarted = performance.now();
     client = new EmulatorClient(
       new Worker(new URL("./emulator.worker.ts", import.meta.url), {
         type: "module",
@@ -248,6 +250,7 @@
         system: system.id,
         core: coreChoice,
       });
+      loadMs = performance.now() - loadStarted;
       runningCore = r.core;
       if (!active) return;
       frameRate = r.frameRate ?? system.frameRate;
@@ -664,6 +667,7 @@
     {/if}
     {#if pauseMenu}
       <PauseMenu
+        {loadMs}
         {diagnostics}
         {busy}
         savesAvailable={!noStorage}
@@ -735,7 +739,7 @@
       }}>Cerrar descartando los cambios sin guardar</button
     >{/if}
   {#if phase === "paused" && !pauseMenu}
-    <PerformanceDetails {diagnostics} />
+    <PerformanceDetails {diagnostics} {loadMs} />
   {/if}
   <AboutCore
     {system}
