@@ -19,7 +19,7 @@ Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64
 
 ## Empezar
 
-Requisitos: **Node.js 24.22.1** (ver `.node-version`) y **pnpm 11.25.0**. No hace falta Rust ni Emscripten: los núcleos WASM ya vienen compilados en el repositorio.
+Requisitos: **Node.js 24.22.1** (ver `.node-version`) y **pnpm 12.16.1** (fijado en `packageManager`). No hace falta Rust ni Emscripten: los núcleos WASM ya vienen compilados en el repositorio.
 
 ```sh
 pnpm install --frozen-lockfile
