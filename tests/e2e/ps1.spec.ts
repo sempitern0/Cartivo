@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 import { playDemo, playing } from "./play.ts";
 
 // PlayStation runs PCSX-ReARMed with its HLE BIOS (ADR-015) and Cartivo's

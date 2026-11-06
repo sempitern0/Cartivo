@@ -1,5 +1,6 @@
 /** IndexedDB transaction + two verified generations. Saves never enter Cache Storage. */
 import { locks, openDatabase } from "./idb.ts";
+import { PRINCIPAL, scoped } from "./profiles.ts";
 type Generation = { bytes: Uint8Array; sha256: string };
 type RecordValue = { current: Generation; previous?: Generation };
 export async function digest(bytes: Uint8Array): Promise<string> {
@@ -41,7 +42,12 @@ export class SramStore {
     this.key = key;
     this.release = release;
   }
-  static async open(key: string, size = 8192): Promise<SramStore> {
+  /** `profile` picks the profile's own database (ADR-016). */
+  static async open(
+    key: string,
+    size = 8192,
+    profile = PRINCIPAL,
+  ): Promise<SramStore> {
     const lockManager = locks();
     let release!: () => void;
     const hold = new Promise<void>((resolve) => {
@@ -49,23 +55,27 @@ export class SramStore {
     });
     await new Promise<void>((resolve, reject) => {
       void lockManager
-        .request("cartivo:sram:" + key, { ifAvailable: true }, async (lock) => {
-          if (!lock) {
-            reject(
-              Error(
-                "Este juego ya está abierto en otra pestaña. Ciérrala antes de continuar.",
-              ),
-            );
-            return;
-          }
-          resolve();
-          await hold;
-        })
+        .request(
+          scoped("cartivo:sram:" + key, profile),
+          { ifAvailable: true },
+          async (lock) => {
+            if (!lock) {
+              reject(
+                Error(
+                  "Este juego ya está abierto en otra pestaña. Ciérrala antes de continuar.",
+                ),
+              );
+              return;
+            }
+            resolve();
+            await hold;
+          },
+        )
         .catch(reject);
     });
     try {
       const db = await openDatabase(
-        "cartivo-saves",
+        scoped("cartivo-saves", profile),
         "sram",
         "Cierra otras pestañas para preparar el guardado.",
       );

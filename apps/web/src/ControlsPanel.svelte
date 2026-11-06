@@ -3,8 +3,10 @@
   import {
     selectPad,
     getPadPreference,
+    KEYBOARD_KEY,
     readKeyboard,
   } from "../../../packages/input/src/preferences.ts";
+  import { profiles } from "./profile.svelte.ts";
   import {
     actions,
     defaultKeyboard,
@@ -95,10 +97,12 @@
   ]);
   const notes = buttonNotes((action) => labels[action]);
   const padConnected = $derived(selected !== -1 && !!last);
-  const keyboardStore = "cartivo:keyboard:v1";
   function saveKeyboard() {
     try {
-      localStorage.setItem(keyboardStore, JSON.stringify(keyboard));
+      localStorage.setItem(
+        profiles.key(KEYBOARD_KEY),
+        JSON.stringify(keyboard),
+      );
     } catch {
       message += " No se pudo guardar: la asignación solo durará esta sesión.";
     }
@@ -135,7 +139,9 @@
     message = reason;
   }
   function savedKey(p: Pad) {
-    return `cartivo:input:v1:${p.id}:${p.buttons.length}:${p.axes.length}`;
+    return profiles.key(
+      `cartivo:input:v1:${p.id}:${p.buttons.length}:${p.axes.length}`,
+    );
   }
   function refreshSaved(p: Pad | undefined) {
     try {
@@ -212,11 +218,11 @@
       profile = parsed;
       selectPad(last, profile, deadzone);
       pause(
-        "Perfil local aplicado. Comprueba los controles antes de jugar.",
+        "Asignación guardada aplicada. Comprueba los controles antes de jugar.",
       );
     } catch {
       pause(
-        "El perfil no es válido para este mando. Asigna los controles de nuevo.",
+        "La asignación guardada no es válida para este mando. Asigna los controles de nuevo.",
       );
     }
   }
@@ -234,7 +240,7 @@
     pause(
       removed
         ? "Asignación restablecida."
-        : "Asignación restablecida en esta sesión. No se pudo borrar el perfil almacenado.",
+        : "Asignación restablecida en esta sesión. No se pudo borrar la asignación guardada.",
     );
   }
   onMount(() => {
@@ -246,7 +252,7 @@
     } else if (sessionPreference.mode === "pad") {
       selected = sessionPreference.index;
     }
-    keyboard = readKeyboard();
+    keyboard = readKeyboard(profiles.key(KEYBOARD_KEY));
 
     const disconnect = (event: GamepadEvent) => {
       if (event.gamepad.index === selected) {
@@ -367,7 +373,7 @@
                   refreshSaved(pad);
                 } catch {
                   message +=
-                    " No se pudo guardar el perfil; se conserva solo en esta pestaña.";
+                    " No se pudo guardar la asignación; se conserva solo en esta pestaña.";
                 }
               }
             }
@@ -553,7 +559,7 @@
         <div class="buttons">
           <button onclick={beginMapping}>Asignar controles</button
           >{#if savedAvailable}<button onclick={restore}
-              >Aplicar perfil guardado</button
+              >Aplicar asignación guardada</button
             >{/if}<button onclick={reset}>Restablecer mando</button>
         </div>
         <label class="deadzone"
@@ -622,8 +628,9 @@
       </div>
     </fieldset>
     <p class="note">
-      Algunos navegadores no detectan el mando hasta pulsar un botón. Los
-      perfiles permanecen en este dispositivo y se aplican tras confirmarlos.
+      Algunos navegadores no detectan el mando hasta pulsar un botón. Las
+      asignaciones son de cada perfil, permanecen en este dispositivo y se
+      aplican tras confirmarlas.
     </p>
   </details>
 </section>

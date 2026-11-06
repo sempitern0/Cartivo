@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.ts";
 import { openNesFile, patchWorker, playDemo } from "./play.ts";
 
 // What Cartivo says and does when the browser keeps less than usual.

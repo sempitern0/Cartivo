@@ -8,6 +8,7 @@
   import {
     listGames,
     pruneOrphanRoms,
+    rememberedBy,
     type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
@@ -29,6 +30,9 @@
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
   import "./theme.css";
+  import ProfilePicker from "./ProfilePicker.svelte";
+  import { profiles } from "./profile.svelte.ts";
+  import type { Profile } from "../../../packages/storage/src/profiles.ts";
   /** Screens without a router: the hash names the page (#controles, #juegos). */
   type Page = "inicio" | "controles" | "juegos";
   let page = $state<Page>("inicio");
@@ -50,14 +54,15 @@
   let pruned = false;
   async function refreshLibrary() {
     try {
-      games = await listGames();
+      games = await listGames(profiles.id);
       // Once per visit, in the background: copies left by an interrupted
-      // remember/forget. Never blocks nor fails the home screen.
+      // remember/forget or a deleted profile, unless any profile still
+      // remembers them. Never blocks nor fails the home screen.
       if (!pruned) {
         pruned = true;
-        void pruneOrphanRoms(new Set(games.map((g) => g.hash))).catch(
-          () => 0,
-        );
+        void rememberedBy(profiles.all.map((p) => p.id))
+          .then((known) => pruneOrphanRoms(known))
+          .catch(() => 0);
       }
     } catch {
       games = [];
@@ -84,8 +89,9 @@
       return;
     }
     // One active game: never replace a running session without the player
-    // closing it first (its SRAM flush is confirmed on close).
-    if (game) pending = found;
+    // closing it first (its SRAM flush is confirmed on close). Before a
+    // profile is picked, the files wait on their console's card.
+    if (game || !profiles.active) pending = found;
     else {
       pending = undefined;
       startGame(found.system, sourceOf(found));
@@ -130,6 +136,17 @@
   /** The app's root: "/" or the sub-path it is deployed under. */
   const home = import.meta.env.BASE_URL;
   /** The logo returns to the start without reloading (a running game stays). */
+  /** Who plays this visit (ADR-016): their library, saves and controls. */
+  function chooseProfile(profile: Profile) {
+    profiles.choose(profile);
+    games = [];
+    void refreshLibrary();
+    void showPage();
+  }
+  function switchProfile() {
+    profiles.choose(undefined);
+    games = [];
+  }
   function goHome(event: MouseEvent) {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
       return;
@@ -152,7 +169,7 @@
   onMount(() => {
     startPwa();
     void storageHealth().then((health) => (storage = health));
-    void refreshLibrary();
+    if (profiles.active) void refreshLibrary();
     // "Open with Cartivo" from the operating system (installed PWA).
     const queue = (window as Window & { launchQueue?: LaunchQueue })
       .launchQueue;
@@ -194,26 +211,38 @@
       ></a
     >
     <nav aria-label="Principal">
+      {#if profiles.active && !game}<button
+          class="icon-button settings-link profile-chip"
+          style={`--color: var(--profile-${profiles.active.color})`}
+          aria-label={`Perfil: ${profiles.active.name}. Cambiar de perfil`}
+          title="Cambiar de perfil"
+          onclick={switchProfile}
+          ><span class="chip-avatar" aria-hidden="true"
+            >{[...profiles.active.name][0]?.toUpperCase()}</span
+          ><span>{profiles.active.name}</span></button
+        >{/if}
       {#if pwa.canInstall && !pwa.installed}
         <button class="install" onclick={() => void install()}
           >Instalar app</button
         >
       {/if}
-      {#if games.length && !game}<a
+      {#if games.length && !game && profiles.active}<a
           class="icon-button settings-link"
           href="#juegos"
           aria-current={page === "juegos" ? "page" : undefined}
           >{@html icons.library}<span>Tus juegos</span></a
         >{/if}
-      <a
-        class="icon-button settings-link"
-        href="#controles"
-        aria-current={page === "controles" ? "page" : undefined}
-        >{@html icons.gear}<span>Ajustes</span></a
-      >
+      {#if profiles.active || game}<a
+          class="icon-button settings-link"
+          href="#controles"
+          aria-current={page === "controles" ? "page" : undefined}
+          >{@html icons.gear}<span>Ajustes</span></a
+        >{/if}
     </nav>
   </header>
-  {#if page === "controles"}
+  {#if !game && !profiles.active}
+    <ProfilePicker onchoose={chooseProfile} />
+  {:else if page === "controles"}
     <section class="controls-page">
       <div class="page-head">
         <a
@@ -553,6 +582,16 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 4px 14px;
+  }
+  .chip-avatar {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--color);
+    color: #111218;
+    font-weight: 700;
   }
   .link {
     background: transparent;

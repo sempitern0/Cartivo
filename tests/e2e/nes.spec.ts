@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.ts";
 /** A previous exit snapshot shows «Continuar»; these tests start over. */
-async function startOver(page: import("@playwright/test").Page) {
+async function startOver(page: import("./fixtures.ts").Page) {
   const offer = page.getByRole("button", { name: "Empezar de nuevo" });
   await expect
     .poll(
@@ -13,7 +13,7 @@ async function startOver(page: import("@playwright/test").Page) {
   if (await offer.count()) await offer.click();
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
 }
-async function start(page: import("@playwright/test").Page) {
+async function start(page: import("./fixtures.ts").Page) {
   await page.goto("/");
   await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
   await startOver(page);

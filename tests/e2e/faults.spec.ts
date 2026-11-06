@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, startAs } from "./fixtures.ts";
 import { frames, openNesFile, patchWorker, playDemo } from "./play.ts";
 
 // Controlled faults in a real browser (H1-QA): each one is injected on
@@ -55,6 +55,7 @@ test("closing the tab mid-game leaves a save that reopens cleanly", async ({
   browser,
 }) => {
   const context = await browser.newContext({ serviceWorkers: "block" });
+  await startAs(context);
   const first = await context.newPage();
   await first.goto("/");
   await playDemo(first, "Game Boy", 30);

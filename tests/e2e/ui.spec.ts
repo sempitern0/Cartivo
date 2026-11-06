@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 import { mkdirSync } from "node:fs";
 
 // Screenshots for visual review are kept outside test-results, which

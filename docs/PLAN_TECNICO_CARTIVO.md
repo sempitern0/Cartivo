@@ -1,6 +1,6 @@
 # Cartivo — Plan técnico
 
-> **Revisión 6 · 6 de noviembre de 2026.** PlayStation jugable (ocho consolas) con discos leídos bajo demanda; N64 aplazado con evidencia (ADR-015). Antes: H2 completo y la parte automática de H1 cerrada. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 7 · 6 de noviembre de 2026.** Ocho consolas jugables (hasta PlayStation, con discos leídos bajo demanda) y perfiles de jugador locales. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
@@ -44,6 +44,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
 | Fiabilidad y portabilidad (auditoría del titular): escrituras recuperables de la biblioteca, captura acotada, guardado SRAM separado y en segundo plano, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado, E2E en Firefox y WebKit (Worker de un solo archivo, `FramePacer`), subruta (`--base`), avisos cuando el navegador guarda menos y fallos inyectados en navegador real | `packages/storage/src/{library,background-commit,persistence,idb}.ts`, `wasm-host.ts`, `client.ts`, `offline-cache.ts`, `frame-pacer.ts` | ADR-003/007/012 | `tests/e2e/{faults,storage,subpath}.spec.ts`, [H1-QA](compatibility/H1-QA.md) |
+| **Perfiles de jugador:** «¿Quién juega?» en cada visita (la elección dura la pestaña); cada perfil con sus Partidas, batería/tarjeta, biblioteca y controles; copias de ROM compartidas por hash; el primer perfil conserva los datos anteriores sin migrar; crear, renombrar y borrar (con sus datos), sin contraseña | `packages/storage/src/profiles.ts` (`scoped`), `apps/web/src/profile.svelte.ts`, `ProfilePicker.svelte`; protocolo `load.profile` | ADR-016 | `tests/profiles.test.ts`, `tests/e2e/profiles.spec.ts` |
 | Interfaz con mando: la cruceta o el stick mueven el foco al control más cercano, A pulsa, B equivale a Escape (cierra paneles) o vuelve atrás, Select+Start pausa la partida y sale de la prueba de Controles; el juego y la prueba se apropian del mando mientras lo leen | `packages/input/src/ui-navigation.ts`, `apps/web/src/pad-navigation.svelte.ts` | ADR-006 | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
 | Modo consola: interfaz automática según el último dispositivo, o fijada en Ajustes («Teclado y ratón» o «Mando»); leyenda de botones, carrusel de consolas y menú de pausa modal con Salir del juego. Solo presentación | `apps/web/src/input-mode.svelte.ts`, `PauseMenu.svelte`, `PadHints.svelte`, `InterfacePreference.svelte`; `parseUiPreference`/`resolveUiMode` en `ui-navigation.ts` | ADR-006 | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
 | CI: job `verify` (`verify:core`, Prettier, svelte-check, unitarias) y matriz `e2e` en paralelo (Chromium, Firefox y WebKit × dev y preview, más Chromium con la build bajo `/cartivo/`, build solo en preview, audio virtual en Firefox, pantalla virtual en WebKit, un reintento con traza), con preparación común en `.github/actions/setup`; unos 5 min en total; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
@@ -53,17 +54,16 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
 
 1. **Cerrar H1.** Solo queda la QA física del titular: mando real, audio en altavoces, instalación, suspensión larga en móvil y actualización de la app con otra pestaña jugando (Android y escritorio Windows/Linux; Safari, macOS e iOS tienen prioridad baja por decisión del titular) ([H1-QA](compatibility/H1-QA.md), sección Manual). Lo automático está hecho.
-2. **H1.5 · sin fricción.** La navegación con mando ya está hecha (§2).
-   - **Aplazado por decisión del titular:** despliegue en Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
+2. **Despliegue (aplazado por decisión del titular).** Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
 3. **Deuda técnica conocida.**
-   - Sincronía A/V fina (la cadencia por juego ya está hecha, §2).
+   - Sincronía A/V fina.
    - Ajustes de núcleo declarados por schema.
-   - P2–P4 con perfiles.
+   - P2–P4: varios mandos a la vez en una partida.
    - GBA: RTC y sensores.
    - Paletas DMG opcionales.
    - Presupuestos de rendimiento medidos por núcleo (§7).
 4. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
-5. **H4 · 3D.** PS1 y la lectura de discos bajo demanda están hechos (§2, ADR-015).
+5. **H4 · 3D.**
    - **PS1, siguiente:** QA del titular con sus discos (compatibilidad y velocidad del intérprete); discos en la biblioteca (copia a OPFS con aviso de espacio); CHD, `.m3u` multidisco y mando analógico.
    - **PSP** (PPSSPP): mismo camino de discos (`.iso`/`.cso`); su vídeo es 3D por GPU.
    - **N64, aplazado** (ADR-015): el único RDP por software (angrylion) exige hilos y Mupen64Plus-Next exige WebGL2. Necesita renderer propio (WebGL2 en OffscreenCanvas) o hilos con COOP/COEP, medidos.
@@ -79,7 +79,7 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
 - desbloquear logros;
 - aparecer en rankings por juego.
 
-Sin cuenta, Cartivo sigue funcionando igual: local y offline.
+Sin cuenta, Cartivo sigue funcionando igual: local y offline. Una cuenta se vincula a un perfil local (ADR-016), que ya separa partidas, biblioteca y controles; los logros serán de cada perfil.
 
 **Requisitos previos:**
 - **Regla de AGENTS.md.** El titular revisa «Archivos, partidas y rutas del usuario permanecen locales» para que diga «locales por defecto; nube solo con cuenta y consentimiento explícito».

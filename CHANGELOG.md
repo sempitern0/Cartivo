@@ -310,3 +310,11 @@
 - Nuevas acciones L2/R2 (gatillos del mando estándar, Y y P en el teclado), con migración de perfiles guardados. Cruz/Círculo/Cuadrado/Triángulo y L1/R1 se nombran en Controles.
 - Demo: un PS-EXE original que la BIOS HLE arranca como un disco de un archivo.
 - Límites: los discos aún no se recuerdan en la biblioteca; sin CHD, `.pbp`, multidisco ni mando analógico. N64 queda aplazado: necesita WebGL2 o hilos.
+
+### Perfiles de jugador
+
+- «¿Quién juega?» al abrir Cartivo: varios perfiles en el mismo dispositivo, cada uno con sus Partidas, su batería o tarjeta de memoria, sus juegos recordados y sus controles (ADR-016). Sin contraseña; crear, renombrar y borrar (con sus datos) desde «Gestionar perfiles». El primer perfil conserva todo lo guardado antes, sin migrar nada.
+- Las copias de los juegos se comparten entre perfiles: quitar un juego solo borra la copia si ningún otro perfil lo recuerda.
+- En Controles, la asignación guardada de un mando ya no se llama «perfil».
+- Documentación: retirados la investigación preliminar de núcleos NES (H0) y el informe puntual de rendimiento de carga, ya completados; el plan técnico solo lista lo pendiente.
+

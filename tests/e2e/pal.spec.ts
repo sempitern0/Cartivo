@@ -1,7 +1,7 @@
 // PAL cartridges (SNES and Mega Drive) run at the game's own 50 Hz, as the
 // core reports it, instead of the system's nominal ~60 Hz. Own fixtures with
 // the region set to Europe; no third-party ROM.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures.ts";
 import { frames, playing } from "./play.ts";
 
 async function drop(page: Page, name: string, rom: Uint8Array) {

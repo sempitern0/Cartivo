@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 
 // Local library and «Continuar» (ADR-012) with Cartivo's own NES fixture.
 const NAME = "mi-juego.nes";

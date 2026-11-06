@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 
 // Master System and Mega Drive run Genesis Plus GX (ADR-014) with Cartivo's
 // own Z80 and 68000 fixtures. Mega Drive colours use 3-bit levels (239).

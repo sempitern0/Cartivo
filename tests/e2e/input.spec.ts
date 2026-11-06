@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.ts";
 // Synthetic Gamepad API: these tests do not certify physical hardware.
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -132,7 +132,7 @@ test("manual profile persists and requires explicit restore", async ({
     }, index);
   }
   await expect(
-    page.getByRole("button", { name: "Aplicar perfil guardado" }),
+    page.getByRole("button", { name: "Aplicar asignación guardada" }),
   ).toBeVisible();
   await page.reload();
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
@@ -145,7 +145,7 @@ test("manual profile persists and requires explicit restore", async ({
       "Este mando necesita asignación manual. El teclado sigue disponible.",
     ),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Aplicar perfil guardado" }).click();
+  await page.getByRole("button", { name: "Aplicar asignación guardada" }).click();
   await page.getByRole("button", { name: "Activar prueba" }).click();
   await expect(page.getByTestId("input-status")).toContainText(
     "Prueba activa. Usa",

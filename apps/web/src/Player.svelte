@@ -42,8 +42,10 @@
   import { loadFields, sourceTitle, type GameSource } from "./game-source.ts";
   import {
     getPadPreference,
+    KEYBOARD_KEY,
     readKeyboard,
   } from "../../../packages/input/src/preferences.ts";
+  import { profiles } from "./profile.svelte.ts";
   let {
     source,
     visible = true,
@@ -171,7 +173,7 @@
   }
   // Demo hint: the first face buttons with this console's own names.
   const demoHint = $derived.by(() => {
-    const keys = readKeyboard();
+    const keys = readKeyboard(profiles.key(KEYBOARD_KEY));
     const face = system.buttons
       .filter((a) => a !== "start" && a !== "select")
       .slice(0, 3)
@@ -223,7 +225,7 @@
   let diagnostics = $state.raw(metrics.snapshot());
   let loadMs = $state<number>();
   const controls = new InputCapture(
-    readKeyboard(),
+    readKeyboard(profiles.key(KEYBOARD_KEY)),
     () => navigator.getGamepads?.() ?? [],
     getPadPreference,
   );
@@ -249,6 +251,7 @@
       const r = await client.request("load", {
         ...loadFields(source, canRemember && rememberGames()),
         system: system.id,
+        profile: profiles.id,
         core: coreChoice,
       });
       loadMs = performance.now() - loadStarted;
@@ -287,7 +290,7 @@
     if (!active || !visible) return;
     // Playing without choosing «Continuar» starts over from power-on.
     resumeOffer = undefined;
-    controls.start(readKeyboard());
+    controls.start(readKeyboard(profiles.key(KEYBOARD_KEY)));
     pacer.start(performance.now());
     metrics.reset(performance.now());
     phase = "running";

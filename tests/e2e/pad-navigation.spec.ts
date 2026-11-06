@@ -1,6 +1,6 @@
 // Cartivo's own screens with a gamepad (synthetic standard pad). A real pad
 // is still checked by hand (H1-QA): this proves the wiring, not the device.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./fixtures.ts";
 import { playDemo, playing } from "./play.ts";
 
 const A = 0;

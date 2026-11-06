@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.ts";
 /** A previous exit snapshot shows «Continuar»; these tests start over. */
-async function startOver(page: import("@playwright/test").Page) {
+async function startOver(page: import("./fixtures.ts").Page) {
   const offer = page.getByRole("button", { name: "Empezar de nuevo" });
   await expect
     .poll(
