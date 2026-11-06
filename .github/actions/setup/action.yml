@@ -3,9 +3,9 @@ description: pnpm, Node (from .node-version) and the locked dependencies, cached
 runs:
   using: composite
   steps:
+    # The version comes from "packageManager" in package.json: a second pin
+    # here would disagree with it on every update (action-setup refuses).
     - uses: pnpm/action-setup@v4
-      with:
-        version: 11.25.0
     - uses: actions/setup-node@v4
       with:
         node-version-file: .node-version

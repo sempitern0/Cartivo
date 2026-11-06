@@ -282,3 +282,7 @@
 - Verificación offline ligada al Worker activo; manifiestos vacíos o inválidos no acreditan disponibilidad. Fallos de persistencia opcional quedan manejados.
 - Cambio de dispositivo durante la partida sin interferir con la reserva del mando (configurar el mando en Controles no cambia la interfaz); navegación limitada a controles visibles del diálogo actual.
 - Diagnóstico local en pausa: cadencia emulada y media/p95 de ida y vuelta del Worker, con muestras acotadas y sin cambiar temporización.
+
+### pnpm 12
+
+- pnpm 12.16.1 fijado en `packageManager` (el lockfile registra su versión). La CI toma la versión de ahí, sin un segundo pin en `.github/actions/setup`.
