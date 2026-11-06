@@ -17,6 +17,13 @@ export const fileReaderSync: ReadSync = (blob, start, end) =>
     new FileReaderSync().readAsArrayBuffer(blob.slice(start, end)),
   );
 
+/** The files a .cue sheet names, in order (`FILE "name" TYPE` lines). */
+export function cueFiles(text: string): string[] {
+  return [...text.matchAll(/^\s*FILE\s+(?:"([^"]+)"|(\S+))/gim)].map(
+    (m) => m[1] ?? m[2],
+  );
+}
+
 /** The last path component, lowercase: how a .cue names its tracks. */
 const baseName = (path: string) =>
   path.replace(/\\/g, "/").split("/").pop()!.toLowerCase();

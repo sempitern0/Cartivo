@@ -3,11 +3,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  cueFiles,
   DiscImage,
   vfsImports,
   type ReadSync,
 } from "../packages/adapters/src/disc.ts";
-import { bootPart, prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
+import { prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
 import { parseRequest } from "../packages/runtime/src/protocol.ts";
 
 const bin = Uint8Array.from({ length: 10_000 }, (_, i) => i & 0xff);
@@ -64,45 +65,45 @@ test("the VFS reads sectors into wasm memory, nothing more", () => {
   assert.equal(vfs.cartivo_vfs_open(100, 8), 0);
 });
 
-const boots = [".cue", ".iso", ".exe", ".bin"];
-
-test("the boot file is the first of the core's extensions present", () => {
-  assert.equal(bootPart([parts[1], parts[0]], boots), parts[0]);
-  assert.equal(bootPart([parts[1]], boots), parts[1]);
-  assert.equal(
-    bootPart([{ name: "x.txt", blob: new Blob() }], boots),
-    undefined,
-  );
+test("a .cue sheet names its files, quoted or not", () => {
+  const cue = [
+    'FILE "Game (Track 1).bin" BINARY',
+    "  TRACK 01 MODE2/2352",
+    "file track2.bin binary",
+    "  TRACK 02 AUDIO",
+  ].join("\r\n");
+  assert.deepEqual(cueFiles(cue), ["Game (Track 1).bin", "track2.bin"]);
 });
 
 test("a disc is identified and prepared without reading it whole", async () => {
   let prepared = 0;
   const module = {
-    boots,
     prepare: async () => void prepared++,
     demo: () => ({ name: "demo.exe", bytes: new Uint8Array(2048) }),
   };
-  const files = [
-    new File([bin], "Game (Track 1).bin"),
-    new File(['FILE "Game (Track 1).bin" BINARY'], "Game.cue"),
-  ];
+  const cue = new File(['FILE "Game (Track 1).bin" BINARY'], "Game.cue");
+  const track = new File([bin], "Game (Track 1).bin");
   readBytes = 0;
-  const { disc, hash } = await prepareDisc(module, files, read);
+  const { disc, hash } = await prepareDisc(module, cue, [track], read);
   assert.equal(disc.primary.name, "Game.cue");
   assert.equal(disc.parts.length, 2);
   assert.match(hash, /^[0-9a-f]{64}$/);
   assert.equal(readBytes, 0, "the core reads sectors later, on demand");
-  assert.equal((await prepareDisc(module, files, read)).hash, hash);
-  // The demo is a one-file disc; a disc without a boot file is refused.
+  // The identity keys the memory card: an unrelated file opened alongside
+  // does not change it, a different track does.
+  const notes = new File(["x"], "LEEME.txt");
   assert.equal(
-    (await prepareDisc(module, undefined, read)).disc.primary.name,
+    (await prepareDisc(module, cue, [notes, track], read)).hash,
+    hash,
+  );
+  const other = new File([bin.subarray(1)], "Game (Track 1).bin");
+  assert.notEqual((await prepareDisc(module, cue, [other], read)).hash, hash);
+  // The demo is a one-file disc.
+  assert.equal(
+    (await prepareDisc(module, undefined, [], read)).disc.primary.name,
     "demo.exe",
   );
-  await assert.rejects(
-    prepareDisc(module, [new File([bin], "notes.txt")], read),
-    /arranque/,
-  );
-  assert.equal(prepared, 3);
+  assert.equal(prepared, 4);
 });
 
 test("only a load from a file carries a disc's other files", () => {

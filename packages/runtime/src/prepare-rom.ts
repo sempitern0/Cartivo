@@ -3,6 +3,7 @@ import type {
   DiscModule,
 } from "../../adapters/src/contract.ts";
 import {
+  cueFiles,
   DiscImage,
   fileReaderSync,
   type ReadSync,
@@ -52,40 +53,38 @@ export async function prepareRom(
   return { rom, hash };
 }
 
-type DiscLoader = Pick<DiscModule, "boots" | "demo" | "prepare">;
-
-/** The file a disc core starts from: the first of `boots` present. */
-export function bootPart(
-  parts: readonly DiscPart[],
-  boots: readonly string[],
-): DiscPart | undefined {
-  for (const extension of boots) {
-    const found = parts.find((p) => p.name.toLowerCase().endsWith(extension));
-    if (found) return found;
-  }
-}
+type DiscLoader = Pick<DiscModule, "demo" | "prepare">;
 
 /**
- * Worker-only, for disc systems (ADR-015): the files the player opened
- * together (or the demo program) as one disc, identified by blocks and never
- * read whole; the core reads its sectors later, on demand.
+ * Worker-only, for disc systems (ADR-015): the file the player chose to boot
+ * (or the demo program) with the files opened alongside, as one disc that is
+ * never read whole; the core reads its sectors later, on demand.
+ * The identity, which keys the memory card and Partidas, covers the boot file
+ * and the tracks a .cue names: never the order the files were picked in or
+ * an unrelated file opened with them.
  */
 export async function prepareDisc(
   module: DiscLoader,
-  files?: readonly File[],
+  file?: File,
+  extra: readonly File[] = [],
   read: ReadSync = fileReaderSync,
 ) {
   let parts: DiscPart[];
-  if (files) parts = files.map((file) => ({ name: file.name, blob: file }));
+  if (file) parts = [file, ...extra].map((f) => ({ name: f.name, blob: f }));
   else if (module.demo) {
     const { name, bytes } = module.demo();
     parts = [{ name, blob: new Blob([bytes as BlobPart]) }];
   } else throw Error("Este sistema no tiene demo integrada.");
-  const primary = bootPart(parts, module.boots);
-  if (!primary)
-    throw Error(
-      `Falta el archivo de arranque del disco (${module.boots.join(", ")}).`,
-    );
-  const [hash] = await Promise.all([discIdentity(parts), module.prepare()]);
-  return { disc: new DiscImage(parts, primary, read), hash };
+  const disc = new DiscImage(parts, parts[0], read);
+  const identified = [disc.primary];
+  if (disc.primary.name.toLowerCase().endsWith(".cue"))
+    for (const name of cueFiles(await disc.primary.blob.text())) {
+      const track = disc.find(name);
+      if (track && !identified.includes(track)) identified.push(track);
+    }
+  const [hash] = await Promise.all([
+    discIdentity(identified),
+    module.prepare(),
+  ]);
+  return { disc, hash };
 }

@@ -8,7 +8,9 @@ import {
   findCoreModule,
 } from "../../../packages/adapters/src/registry.ts";
 import type {
+  CartridgeModule,
   CoreModule,
+  DiscModule,
   EmulatorCore,
 } from "../../../packages/adapters/src/contract.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
@@ -128,34 +130,41 @@ async function remember(): Promise<
     };
   }
 }
+type Loaded = {
+  start: (save?: Uint8Array) => EmulatorCore;
+  rom?: Uint8Array;
+  hash: string;
+};
+
+async function loadCartridge(
+  module: CartridgeModule,
+  r: EmuRequest,
+): Promise<Loaded> {
+  const source = r.file ?? (r.stored ? await storedRom(r.stored) : undefined);
+  if (r.stored && !source)
+    throw Error(
+      "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
+    );
+  const { rom, hash } = await prepareRom(module, source, r.stored);
+  return { start: (save) => module.create(rom, save), rom, hash };
+}
+
+/** Discs stay in the player's files (ADR-015): never in the library yet. */
+async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
+  if (r.stored) throw Error("Los discos no se guardan en la biblioteca.");
+  const { disc, hash } = await prepareDisc(module, r.file, r.extra);
+  return { start: (save) => module.create(disc, save), hash };
+}
+
 async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
     const system = r.system ?? "nes";
     // Protocol v1 without `core` meant JSNES; keep that for old clients.
     module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
-    if (module.disc) {
-      if (r.stored) throw Error("Los discos no se guardan en la biblioteca.");
-      const { disc, hash: identity } = await prepareDisc(
-        module,
-        r.file && [r.file, ...(r.extra ?? [])],
-      );
-      const discModule = module;
-      start = (save) => discModule.create(disc, save);
-      rom = undefined;
-      hash = identity;
-    } else {
-      const source =
-        r.file ?? (r.stored ? await storedRom(r.stored) : undefined);
-      if (r.stored && !source)
-        throw Error(
-          "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
-        );
-      const prepared = await prepareRom(module, source, r.stored);
-      const cartridgeModule = module;
-      start = (save) => cartridgeModule.create(prepared.rom, save);
-      ({ rom, hash } = prepared);
-    }
+    ({ start, rom, hash } = module.disc
+      ? await loadDisc(module, r)
+      : await loadCartridge(module, r));
     title = r.file?.name ?? "";
     use(start());
     await openStorage(system);

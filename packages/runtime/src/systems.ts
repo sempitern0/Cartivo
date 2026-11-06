@@ -326,18 +326,15 @@ export function gameForFiles<F extends { name: string; size: number }>(
     ...candidates.filter((s) => s.disc),
     ...candidates.filter((s) => !s.disc),
   ];
+  /** A lone, cartridge-sized .bin goes to Mega Drive unless a card asked. */
+  const cartridgeBin = (f: F) =>
+    !preferred && files.length === 1 && f.size <= MAX_CARTRIDGE_BIN;
   for (const system of ordered)
     for (const extension of system.extensions) {
       const file = files.find(
         (f) =>
           f.name.toLowerCase().endsWith(extension) &&
-          !(
-            system.disc &&
-            extension === ".bin" &&
-            files.length === 1 &&
-            f.size <= MAX_CARTRIDGE_BIN &&
-            !preferred
-          ),
+          !(system.disc && extension === ".bin" && cartridgeBin(f)),
       );
       if (file)
         return {

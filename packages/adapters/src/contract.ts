@@ -69,12 +69,11 @@ export interface CartridgeModule extends ModuleInfo {
 
 /**
  * Disc systems (ADR-015): the game stays in the player's files and the core
- * reads the sectors it needs. `boots` lists, in order of preference, the
- * extensions of the file the core starts from (a .cue before its tracks).
+ * reads the sectors it needs. The page picks the file to boot (systems.ts
+ * `gameForFiles`); the core opens the rest by name.
  */
 export interface DiscModule extends ModuleInfo {
   disc: true;
-  boots: readonly string[];
   /** Original test program for «Probar demo», as a file the core boots. */
   demo?(): { name: string; bytes: Uint8Array };
   create(disc: DiscImage, save?: Uint8Array): EmulatorCore;

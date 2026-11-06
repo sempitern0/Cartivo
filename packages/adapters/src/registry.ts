@@ -186,8 +186,6 @@ export const coreModules: readonly CoreModule[] = [
     id: "pcsx-rearmed",
     version: PCSX_VERSION,
     disc: true,
-    // A .cue names its tracks; a lone .bin is a single-track image.
-    boots: [".cue", ".iso", ".exe", ".bin"],
     video: { width: 640, height: 480 },
     demo: () => ({ name: "cartivo-demo.exe", bytes: ps1ControlDemo() }),
     prepare: pcsx.prepare,

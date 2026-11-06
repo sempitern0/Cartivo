@@ -28,9 +28,9 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
   - Las pistas se buscan por el nombre que usa el `.cue`, en cualquier carpeta y sin distinguir mayúsculas.
 - **Identidad del disco** (`disc-identity.ts`): SHA-256 de los resúmenes WebCrypto de bloques de 16 MiB, más una cabecera con versión, nombres y tamaños.
   - Es estable y rápida, unos 565 MB/s en Node. No es el SHA-256 plano de la imagen, así que solo se compara consigo misma.
-  - Identifica las Partidas y la tarjeta de memoria.
+  - Identifica las Partidas y la tarjeta de memoria. Solo cubre el archivo de arranque y las pistas que nombra un `.cue`: ni el orden en que se eligieron los archivos ni un archivo ajeno abierto con ellos la cambian.
 - **Contrato:** `CoreModule = CartridgeModule | DiscModule`.
-  - Un `DiscModule` declara `disc: true` y `boots`, las extensiones de arranque por orden de preferencia: `.cue`, `.iso`, `.exe`, `.bin`. Su `create` recibe un `DiscImage`.
+  - Un `DiscModule` declara `disc: true` y su `create` recibe un `DiscImage`. El archivo de arranque lo elige la página (`gameForFiles`, con las `extensions` de `systems.ts` por orden de preferencia: `.cue`, `.iso`, `.exe`, `.bin`) y viaja como `file`; el resto, como `extra`.
   - El Worker prepara cada tipo con `prepareRom` o `prepareDisc` y guarda un único `start(save?)` para cargar, reiniciar e importar.
   - `BridgeCore` acepta un `DiscImage` y pasa el nombre del archivo de arranque a `cartivo_create`.
 - **Varios archivos a la vez:**
