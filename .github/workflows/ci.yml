@@ -85,16 +85,14 @@ jobs:
           CACHED: ${{ steps.browsers.outputs.cache-hit }}
         run: |
           if [ "$CACHED" != "true" ]; then pnpm exec playwright install "$BROWSER"; fi
-          plan=$(pnpm exec playwright install-deps --dry-run "$BROWSER" 2>&1) || { echo "$plan"; exit 1; }
-          echo "$plan"
-          # Every word after --no-install-recommends is a package.
-          deps=$(echo "$plan" | tr -s ' \t\n"\\;&' '\n' \
-            | awk 'found && /^[a-z0-9][a-z0-9.+:-]+$/ {print} /^--no-install-recommends$/ {found=1}' \
-            | grep -vE '^(x?fonts-|ttf-)' | tr '\n' ' ')
-          if [ -z "$deps" ]; then echo "::error::No dependency list from Playwright"; exit 1; fi
-          echo "Installing: $deps"
-          sudo apt-get update -q
-          sudo apt-get install -y -q --no-install-recommends $deps
+          # The dry run lists what is missing (and exits 1 if anything is).
+          missing=$( (pnpm exec playwright install-deps --dry-run "$BROWSER" 2>&1 || true) \
+            | sed -n 's/^  //p' | grep -vE '^(x?fonts-|ttf-)' | tr '\n' ' ')
+          echo "Missing libraries (fonts skipped): ${missing:-none}"
+          if [ -n "${missing// }" ]; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q --no-install-recommends $missing
+          fi
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.
       - name: Virtual audio output
