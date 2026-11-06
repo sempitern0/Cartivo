@@ -1,14 +1,23 @@
 <script lang="ts">
   import type { FrameMetrics } from "../../../packages/media/src/frame-metrics.ts";
   // Paused only: what the last advance requests measured (ADR-001, revision).
-  let { diagnostics, loadMs }: { diagnostics: ReturnType<FrameMetrics["snapshot"]>; loadMs?: number } =
-    $props();
+  let {
+    diagnostics,
+    loadMs,
+  }: {
+    diagnostics: ReturnType<FrameMetrics["snapshot"]>;
+    /** Load request round trip, from creating the Worker to «loaded». */
+    loadMs?: number;
+  } = $props();
 </script>
 
 {#if diagnostics.samples > 0}
   <details data-player-chrome>
     <summary>Rendimiento de la sesión</summary>
-    {#if loadMs !== undefined}<p data-testid="load-duration">Preparación del juego: {loadMs.toFixed(0)} ms (Worker, ROM, núcleo y almacenamiento; no incluye la espera del jugador).</p>{/if}
+    {#if loadMs !== undefined}<p data-testid="load-duration">
+        Preparación del juego: {loadMs.toFixed(0)} ms (Worker, ROM, núcleo y
+        almacenamiento; no incluye la espera del jugador).
+      </p>{/if}
     <p>
       Últimas {diagnostics.samples} solicitudes: {diagnostics.fps.toFixed(1)} fotogramas
       emulados/s. Worker, ida y vuelta: media {diagnostics.meanMs.toFixed(1)} ms;

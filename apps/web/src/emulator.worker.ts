@@ -1,5 +1,5 @@
-import { prepareRom } from "../../../packages/runtime/src/prepare-rom.ts";
 // Generic emulator Worker: one session, any registered system and core.
+import { prepareRom } from "../../../packages/runtime/src/prepare-rom.ts";
 import {
   coreModule,
   findCoreModule,
