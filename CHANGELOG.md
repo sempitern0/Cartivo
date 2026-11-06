@@ -280,5 +280,5 @@
 
 - Activación de actualizaciones limitada a una única pestaña (la que la pide, que se recarga) y bloqueo de inicio durante la actualización; las cachés de versiones anteriores se borran al activar.
 - Verificación offline ligada al Worker activo; manifiestos vacíos o inválidos no acreditan disponibilidad. Fallos de persistencia opcional quedan manejados.
-- Cambio de dispositivo durante la partida sin interferir con la reserva del mando; navegación limitada a controles visibles del diálogo actual.
+- Cambio de dispositivo durante la partida sin interferir con la reserva del mando (configurar el mando en Controles no cambia la interfaz); navegación limitada a controles visibles del diálogo actual.
 - Diagnóstico local en pausa: cadencia emulada y media/p95 de ida y vuelta del Worker, con muestras acotadas y sin cambiar temporización.

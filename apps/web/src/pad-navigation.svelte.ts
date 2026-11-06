@@ -16,19 +16,27 @@ import { ui } from "./input-mode.svelte.ts";
 const FOCUSABLE =
   'button, a[href], summary, select, input:not([type="file"]):not([type="hidden"]), [tabindex="0"]';
 
-const owners = new Set<string>();
+/** Who reads the pad now, and whether using it may switch the interface. */
+const owners = new Map<string, { switchesInterface: boolean }>();
 const intents = new PadIntents();
 let absorbNext = false;
 
 /**
  * From a component: while `busy()` holds (and until the component goes),
  * the pad belongs to `owner` and does not move the menus. When it comes
- * back, buttons still held are ignored until released.
+ * back, buttons still held are ignored until released. Playing with it
+ * still switches the automatic interface to «Mando»; configuring it (the
+ * controls test) passes `switchesInterface: false`, so the screen being
+ * set up does not change under the player.
  */
-export function claimPadWhile(owner: string, busy: () => boolean) {
+export function claimPadWhile(
+  owner: string,
+  busy: () => boolean,
+  { switchesInterface = true } = {},
+) {
   $effect(() => {
     if (!busy()) return;
-    owners.add(owner);
+    owners.set(owner, { switchesInterface });
     return () => {
       if (owners.delete(owner) && !owners.size) absorbNext = true;
     };
@@ -153,7 +161,9 @@ export function startPadNavigation() {
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
     const pad = standardPad();
-    if (activity.read(pad)) ui.lastDevice = "pad";
+    const used = activity.read(pad);
+    if (used && [...owners.values()].every((o) => o.switchesInterface))
+      ui.lastDevice = "pad";
     // Without a pad, the automatic interface goes back to keyboard and mouse.
     if (!pad && ui.lastDevice === "pad") ui.lastDevice = "pointer";
     if (owners.size) return;
