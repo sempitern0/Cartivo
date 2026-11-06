@@ -1,3 +1,4 @@
+import { prepareRom } from "../../../packages/runtime/src/prepare-rom.ts";
 // Generic emulator Worker: one session, any registered system and core.
 import {
   coreModule,
@@ -119,40 +120,18 @@ async function remember(): Promise<
     };
   }
 }
-/**
- * The ROM bytes for the requested source: the core's demo, an opened file or
- * the remembered copy, which must be byte-identical to the game it was saved as.
- */
-async function readRom(r: EmuRequest): Promise<Uint8Array> {
-  if (r.demo) {
-    if (!module.demo) throw Error("Este sistema no tiene demo integrada.");
-    return module.demo();
-  }
-  const source = r.file ?? (await storedRom(r.stored!));
-  if (!source)
-    throw Error(
-      "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
-    );
-  if (source.size > module.maxRomBytes)
-    throw Error("Archivo demasiado grande para este sistema.");
-  const bytes = new Uint8Array(await source.arrayBuffer());
-  if (r.stored && (await digest(bytes)) !== r.stored)
-    throw Error(
-      "La copia guardada de este juego está dañada. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
-    );
-  return bytes;
-}
 async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "load") {
     if (core) throw Error("Ya hay un juego cargado");
     const system = r.system ?? "nes";
     // Protocol v1 without `core` meant JSNES; keep that for old clients.
     module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
-    // Size and integrity are checked before compiling the core.
-    rom = await readRom(r);
-    await module.prepare();
-    module.validate(rom);
-    hash = await digest(rom);
+    const source = r.file ?? (r.stored ? await storedRom(r.stored) : undefined);
+    if (r.stored && !source)
+      throw Error(
+        "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
+      );
+    ({ rom, hash } = await prepareRom(module, source, r.stored));
     title = r.file?.name ?? "";
     use(module.create(rom));
     await openStorage(system);
@@ -160,20 +139,21 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       const saved = await store.load();
       if (saved) use(module.create(rom, saved));
     }
-    session = r.session;
     // Remembered games move to the top of the library when played; for any
     // other game (demos included) updateGame finds no entry and does nothing.
-    const library = r.remember
-      ? await remember()
-      : {
-          remembered: await updateGame(hash, {
-            lastPlayedAt: Date.now(),
-          }).catch(() => false),
-        };
+    const [library, slots] = await Promise.all([
+      r.remember
+        ? remember()
+        : updateGame(hash, { lastPlayedAt: Date.now() })
+            .catch(() => false)
+            .then((remembered) => ({ remembered })),
+      states?.list() ?? Promise.resolve([]),
+    ]);
+    session = r.session;
     return {
       hash,
       core: module.id,
-      states: (await states?.list()) ?? [],
+      states: slots,
       storageError: noStorage,
       battery: core!.battery,
       recovered: store?.recovered ?? false,
@@ -324,6 +304,16 @@ scope.onmessage = async (event) => {
       transfer,
     );
   } catch (e) {
+    if (request.command === "load" && !session) {
+      store?.close();
+      states?.close();
+      core?.dispose();
+      store = undefined;
+      states = undefined;
+      core = undefined;
+      rom = new Uint8Array();
+      noStorage = undefined;
+    }
     scope.postMessage(
       {
         v: 1,

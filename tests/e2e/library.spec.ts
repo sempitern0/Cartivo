@@ -17,8 +17,9 @@ test.skip(
  * pixel of a tile), so each variant is a different game for the library.
  */
 async function game(name = NAME, variant = 0) {
-  const { controlDemo } =
-    await import("../../packages/fixtures/src/control-demo.ts");
+  const { controlDemo } = await import(
+    "../../packages/fixtures/src/control-demo.ts"
+  );
   const rom = controlDemo();
   rom[rom.length - 1] ^= variant;
   return {
@@ -253,4 +254,33 @@ test("«Continuar» works offline in the installed build", async ({
   );
   await running(page);
   await context.setOffline(false);
+});
+
+test.describe("load diagnostics", () => {
+  test.use({ serviceWorkers: "block" });
+  test("a remembered ROM is hashed only once on resume", async ({ page }) => {
+    const { patchWorker } = await import("./play.ts");
+    await page.goto("/");
+    await playAndLeave(page);
+    const size = (await game()).buffer.length;
+    await patchWorker(
+      page,
+      `{
+      const digest = crypto.subtle.digest.bind(crypto.subtle);
+      let romHashes = 0;
+      crypto.subtle.digest = (algorithm, data) => {
+        if (data.byteLength === ${size} && ++romHashes > 1) throw new Error("ROM hashed twice");
+        return digest(algorithm, data);
+      };
+    }`,
+    );
+    await continueCard(page).getByRole("button", { name: "Continuar" }).click();
+    await running(page);
+    await page.keyboard.press("Escape");
+    await page.getByText("Rendimiento de la sesión", { exact: true }).click();
+    await expect(page.getByTestId("load-duration")).toContainText(
+      "Preparación del juego:",
+    );
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  });
 });

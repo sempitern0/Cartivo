@@ -6,6 +6,7 @@
   // modal dialog, so the pad and Tab stay in it; B or Escape resumes.
   let {
     diagnostics,
+    loadMs,
     busy,
     savesAvailable,
     onresume,
@@ -16,6 +17,7 @@
     onexit,
   }: {
     diagnostics: ReturnType<FrameMetrics["snapshot"]>;
+    loadMs?: number;
     busy: boolean;
     savesAvailable: boolean;
     onresume: () => void;
@@ -68,7 +70,7 @@
   <button onclick={oncontrols}>Controles</button>
   <button disabled={busy} onclick={onreset}>Reiniciar consola</button>
   <button class="exit" onclick={onexit}>Salir del juego</button>
-  <PerformanceDetails {diagnostics} />
+  <PerformanceDetails {diagnostics} {loadMs} />
 </dialog>
 
 <style>

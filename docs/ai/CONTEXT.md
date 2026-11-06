@@ -13,6 +13,12 @@ Este documento **no es una lista de lectura obligatoria**. Es una tabla de enrut
 | PWA, caché, modo offline | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts`, `offline-cache.ts`, `apps/web/vite.config.ts` | `tests/pwa.test.ts`, `tests/e2e/{pwa,subpath}.spec.ts`; `docs/compatibility/H1-C-PWA.md` |
 | CI y toolchains | `.github/workflows/ci.yml`, `.github/actions/setup/action.yml`, `tools/verify-*.mjs` | `package.json`, `docs/ADDING_A_SYSTEM.md`, `cores/AGENTS.md` si afecta builds |
 
+## Descubrimiento acotado
+
+`pnpm context load` localiza carga de ROM, biblioteca y pruebas sin volcar código. También admite `input`, `pwa`, `ci` y `media`. Informa líneas y caracteres, no tokens: el tokenizador depende del modelo. Abre solo símbolos/rangos relevantes de los candidatos. La tabla anterior sigue siendo la referencia para áreas no cubiertas.
+
+Antes de editar, comprueba `git status`, la base y los nombres de archivos cambiados en las PR abiertas; consulta parches únicamente si se solapan con el flujo. No descargues ni reconstruyas el repositorio archivo a archivo si existe un checkout Git disponible. No leas `dist`, lockfiles ni todo el historial para identificar el estado actual.
+
 ## Método de trabajo económico en contexto
 
 1. Identifica un único flujo o fallo. Para no reimplementar lo existente busca por concepto en `docs/PLAN_TECNICO_CARTIVO.md` §2; si el encargo es definir próximos pasos, usa §3. **No leas todo el plan por rutina**.

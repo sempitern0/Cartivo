@@ -46,58 +46,53 @@ jobs:
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test
-  # The E2E suite in each browser against each server, all in parallel: the
-  # slowest leg sets the wall time instead of the sum of the four.
+  # Each browser reuses one installation for dev and preview. Chromium also
+  # checks the sub-path build; no browser or server coverage is removed.
   e2e:
-    name: e2e (${{ matrix.browser }}, ${{ matrix.server }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: e2e (${{ matrix.browser }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
-        server: [dev, preview]
-        # The production build deployed under a sub-path (/cartivo/).
-        include:
-          - browser: chromium
-            server: subpath
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
-      # Only the production build has a service worker (PWA tests).
-      - if: matrix.server != 'dev'
-        run: pnpm build ${{ matrix.server == 'subpath' && '--base /cartivo/' || '' }}
-      # The runner's apt mirror often stalls for minutes. Browsers and the
-      # .deb files of the libraries they miss are cached together, keyed by
-      # Playwright's version; Playwright's optional fonts are skipped (no
-      # test reads rendered text). The step fails fast to be re-run.
+      # Cache by Playwright version, architecture and the pinned runner OS.
       - id: playwright
         run: echo "version=$(node -p "require('./package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
       - id: browsers
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/ms-playwright
             ~/apt-cache
-          key: playwright-${{ steps.playwright.outputs.version }}-${{ matrix.browser }}-${{ runner.os }}
+          key: playwright-v2-${{ steps.playwright.outputs.version }}-${{ matrix.browser }}-${{ runner.os }}-${{ runner.arch }}-ubuntu24
       - name: Browser and system libraries
+        id: browser
         timeout-minutes: 8
         env:
           BROWSER: ${{ matrix.browser }}
           CACHED: ${{ steps.browsers.outputs.cache-hit }}
         run: |
           if [ "$CACHED" != "true" ]; then pnpm exec playwright install "$BROWSER"; fi
-          # The dry run lists what is missing (and exits 1 if anything is).
-          missing=$( (pnpm exec playwright install-deps --dry-run "$BROWSER" 2>&1 || true) \
-            | sed -n 's/^  //p' | grep -vE '^(x?fonts-|ttf-)' | tr '\n' ' ')
-          echo "Missing libraries (fonts skipped): ${missing:-none}"
-          if [ -n "${missing// }" ]; then
-            mkdir -p ~/apt-cache/partial
-            sudo apt-get update -q
-            sudo apt-get install -y -q --no-install-recommends \
-              -o Dir::Cache::archives="$HOME/apt-cache" $missing
-            sudo chown -R "$USER" ~/apt-cache
-          fi
+          mkdir -p "$HOME/apt-cache/partial"
+          # Restore .debs into apt's default cache, then let Playwright select
+          # dependencies. Human-readable --dry-run output is not an API.
+          sudo cp -n "$HOME"/apt-cache/*.deb /var/cache/apt/archives/ 2>/dev/null || true
+          printf 'Acquire::Retries "2";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | sudo tee /etc/apt/apt.conf.d/80cartivo-ci >/dev/null
+          pnpm exec playwright install-deps "$BROWSER"
+          sudo cp -n /var/cache/apt/archives/*.deb "$HOME/apt-cache/" 2>/dev/null || true
+          sudo chown -R "$USER" "$HOME/apt-cache"
+      - name: Save browser installation
+        if: steps.browsers.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/apt-cache
+          key: ${{ steps.browsers.outputs.cache-primary-key }}
       # Firefox needs a sound server to open an AudioContext on Linux; the
       # runner has no sound card, so a null sink stands in for speakers.
       - name: Virtual audio output
@@ -106,18 +101,37 @@ jobs:
           sudo apt-get install -y -q pulseaudio
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=cartivo
-      # Headless WebKit on Linux fires requestAnimationFrame about twice a
-      # second (no display), so the game loop falls behind and pauses. With
-      # a virtual display it runs at 60 Hz like Safari.
-      - run: >-
+      # Keep running the other server after a test failure; preserve outputs
+      # separately so a later Playwright invocation cannot erase the evidence.
+      - name: E2E dev
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: >-
           ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
           pnpm exec playwright test --project=${{ matrix.browser }}
           ${{ matrix.browser == 'webkit' && '--headed' || '' }}
-          ${{ matrix.server != 'dev' && format('--config playwright.{0}.config.ts', matrix.server) || '' }}
+          --output=test-results/dev
+      - name: Build preview
+        id: build
+        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        run: pnpm build
+      - name: E2E preview
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: >-
+          ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
+          pnpm exec playwright test --project=${{ matrix.browser }}
+          ${{ matrix.browser == 'webkit' && '--headed' || '' }}
+          --config playwright.preview.config.ts --output=test-results/preview
+      - name: Build subpath
+        id: subpath
+        if: ${{ !cancelled() && matrix.browser == 'chromium' && steps.browser.outcome == 'success' }}
+        run: pnpm build --base /cartivo/
+      - name: E2E subpath
+        if: ${{ !cancelled() && matrix.browser == 'chromium' && steps.subpath.outcome == 'success' }}
+        run: pnpm exec playwright test --project=chromium --config playwright.subpath.config.ts --output=test-results/subpath
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-${{ matrix.browser }}-${{ matrix.server }}
+          name: e2e-${{ matrix.browser }}
           path: |
             screenshots/
             test-results/
