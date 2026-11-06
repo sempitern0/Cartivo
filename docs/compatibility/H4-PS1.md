@@ -29,7 +29,7 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 | `tests/ps1.test.ts` (WASM del bot) | Hash y cabecera del PS-EXE; la BIOS HLE lo arranca por la VFS; oráculo de Cruz, Círculo y Start; cuadrado blanco; 59–61 Hz; tarjeta de 128 KiB conservada en un núcleo nuevo |
 | `tests/core-conformance.test.ts` | Contrato completo con un disco en memoria: fotogramas 640×480, entrada, audio acotado, tarjeta, instantáneas deterministas y corruptas rechazadas; un `.cue` sin su pista se rechaza con «no ha podido abrir el disco» |
 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts`, `input.test.ts` | VFS por sectores; `prepareDisc` sin leer el disco; arranque por extensión; protocolo `extra`; `.cue` + pistas y `.bin` por tamaño; L2/R2 y migración |
-| E2E `tests/e2e/ps1.spec.ts` | Demo 640×480 con Cruz, Círculo y Start comprobados en el canvas; tarjeta exportada (131 072 bytes); F5/F9; varios archivos elegidos a la vez; `.cue` sin pista rechazado; notas en Controles. **CI:** pendiente de la PR |
+| E2E `tests/e2e/ps1.spec.ts` | Demo 640×480 con Cruz, Círculo y Start comprobados en el canvas; tarjeta exportada (131 072 bytes); F5/F9; varios archivos elegidos a la vez; `.cue` sin pista rechazado; notas en Controles. **CI sobre `0d7b73d`** (Foundation CI, run 42259092317): 4/4 PS1 en dev y en preview en Chromium, Firefox y WebKit; suite completa en verde (Chromium 91 + 92, Firefox 91 + 92, WebKit 83 + 83 superadas, el resto omitidas por diseño); `svelte-check` sin errores |
 
 ## QA manual pendiente
 
