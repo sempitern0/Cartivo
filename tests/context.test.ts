@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import {
   areas,
-  filesOf,
+  filesMatching,
   patternToRegExp,
   withTable,
 } from "../tools/context-areas.mjs";
@@ -26,7 +26,7 @@ test("every area pattern still matches a tracked file", () => {
   for (const area of areas)
     for (const pattern of [...area.start, ...area.context])
       assert.ok(
-        filesOf({ ...area, start: [pattern], context: [] }, tracked).length,
+        filesMatching([pattern], tracked).length,
         `${area.id}: ${pattern} matches nothing`,
       );
 });
@@ -45,4 +45,6 @@ test("patterns: exact files, folders, * and {a,b}", () => {
   assert.ok(!match("tools/verify-*.mjs", "tools/sub/verify-x.mjs"));
   assert.ok(match("playwright*.ts", "playwright.preview.config.ts"));
   assert.ok(!match("package.json", "packages.json"));
+  // A comma only separates alternatives inside braces.
+  assert.ok(match("a,b.md", "a,b.md"));
 });

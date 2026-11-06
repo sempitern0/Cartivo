@@ -123,26 +123,33 @@ export const areas = [
 /** A pattern as a regular expression over repo-relative paths. */
 export function patternToRegExp(pattern) {
   let source = "";
+  let braces = 0;
   for (let i = 0; i < pattern.length; i++) {
     const c = pattern[i];
     if (c === "*" && pattern[i + 1] === "*") {
       source += ".*";
       i++;
     } else if (c === "*") source += "[^/]*";
-    else if (c === "{") source += "(?:";
-    else if (c === "}") source += ")";
-    else if (c === ",") source += "|";
+    else if (c === "{" && ++braces) source += "(?:";
+    else if (c === "}" && braces) {
+      braces--;
+      source += ")";
+    } else if (c === "," && braces) source += "|";
     else source += c.replace(/[.+?^$()|[\]\\]/g, "\\$&");
   }
   // A folder matches everything under it.
   return new RegExp(`^${source}${pattern.endsWith("/") ? "" : "$"}`);
 }
 
-/** Paths among `files` that belong to `area` (start and context). */
-export function filesOf(area, files) {
-  const tests = [...area.start, ...area.context].map(patternToRegExp);
+/** Paths among `files` that match any of `patterns`, sorted. */
+export function filesMatching(patterns, files) {
+  const tests = patterns.map(patternToRegExp);
   return files.filter((path) => tests.some((re) => re.test(path))).sort();
 }
+
+/** Paths among `files` that belong to `area` (start and context). */
+export const filesOf = (area, files) =>
+  filesMatching([...area.start, ...area.context], files);
 
 const code = (patterns) => patterns.map((p) => `\`${p}\``).join(", ");
 
