@@ -100,7 +100,7 @@
   }
   function chooseGame(event: Event) {
     const input = event.target as HTMLInputElement;
-    const files = [...(input.files ?? [])];
+    const files = Array.from(input.files ?? []);
     input.value = "";
     if (files.length) openFiles(files, pickerSystem);
   }
@@ -117,7 +117,7 @@
     dragging = false;
     if (!hasFiles(e)) return;
     e.preventDefault();
-    const files = [...(e.dataTransfer?.files ?? [])];
+    const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length && page === "inicio") openFiles(files);
   }
   let pageHeading = $state.raw<HTMLHeadingElement>();

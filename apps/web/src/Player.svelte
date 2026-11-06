@@ -508,7 +508,7 @@
   }
   function romChosen(event: Event) {
     const input = event.target as HTMLInputElement;
-    const next = [...(input.files ?? [])];
+    const next = Array.from(input.files ?? []);
     input.value = "";
     if (next.length) void close(next);
   }
