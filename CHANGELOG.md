@@ -296,3 +296,7 @@
 ### CI: navegadores de Playwright en caché
 
 - El espejo apt del runner se atascaba minutos con frecuencia. La CI guarda en caché, por versión de Playwright y navegador, los navegadores y los paquetes .deb de las librerías que falten; omite las fuentes opcionales de Playwright (ninguna prueba lee texto renderizado). La instalación tiene su propio límite para fallar pronto.
+
+### Un solo mapa de contexto para agentes
+
+- `tools/context-areas.mjs` es el único mapa de áreas (archivos y pruebas por tema). `pnpm context <área>` lo consulta y `pnpm context --write-doc` genera la tabla de `docs/ai/CONTEXT.md`; `tests/context.test.ts` falla si la tabla y el mapa no coinciden o si un patrón deja de encontrar archivos. Áreas: `ui`, `input`, `load`, `runtime`, `cores`, `storage`, `media`, `pwa`, `ci`.

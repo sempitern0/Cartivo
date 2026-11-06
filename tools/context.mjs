@@ -1,43 +1,44 @@
 // Filename-only navigation for agents: no source, ROM, generated glue or logs.
+// The areas live in tools/context-areas.mjs, the one map of the project.
+//   pnpm context <area>        candidate files of an area, with their size
+//   pnpm context --write-doc   regenerate the table in docs/ai/CONTEXT.md
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { areas, filesOf, withTable } from "./context-areas.mjs";
 
-const areas = {
-  load: /^(apps\/web\/src\/(emulator\.worker\.ts|game-source\.ts|Player\.svelte)|packages\/runtime\/src\/(prepare-rom|client|protocol)\.ts|packages\/storage\/src\/(library|sram|states)\.ts|tests\/(prepare-rom|library|client)\.test\.ts|tests\/e2e\/(library|faults)\.spec\.ts|docs\/adr\/012-)/,
-  input:
-    /^(packages\/input\/src\/|apps\/web\/src\/(pad-navigation|input-mode|game-capture)|tests\/(input|capture|ui-navigation)\.test|tests\/e2e\/(pad-navigation|controls-page)\.spec|docs\/adr\/006-)/,
-  pwa: /^(tools\/pwa-plugin|apps\/web\/src\/(pwa|offline-cache)|tests\/pwa\.test|tests\/e2e\/(pwa|subpath)\.spec|docs\/adr\/001-)/,
-  ci: /^(\.github\/(workflows\/ci\.yml|actions\/setup\/action\.yml)|playwright.*\.ts|package\.json|tools\/verify-[^/]+\.mjs)$/,
-  media:
-    /^(packages\/media\/src\/|apps\/web\/src\/(sound|audio|GameStage|GraphicsPanel|PerformanceDetails)|tests\/(frame-|display-|audio)|docs\/DESIGN\.md)/,
-};
-const area = process.argv[2];
-if (!Object.hasOwn(areas, area)) {
-  console.error(
-    `Usage: node tools/context.mjs <${Object.keys(areas).join("|")}>`,
-  );
-  process.exitCode = 1;
+const DOC = "docs/ai/CONTEXT.md";
+const arg = process.argv[2];
+
+if (arg === "--write-doc") {
+  writeFileSync(DOC, withTable(readFileSync(DOC, "utf8")));
+  console.log(`${DOC}: areas table regenerated.`);
 } else {
-  const paths = execFileSync(
-    "git",
-    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-    { encoding: "utf8" },
-  ).split("\0");
-  const files = [...new Set(paths)]
-    .filter((path) => areas[area].test(path))
-    .sort();
-  let characters = 0;
-  console.log(
-    `Area: ${area}. Open relevant ranges only; sizes are not a reading checklist.`,
-  );
-  for (const path of files) {
-    const text = readFileSync(path, "utf8");
-    characters += text.length;
+  const area = areas.find((a) => a.id === arg);
+  if (!area) {
+    console.error(
+      `Usage: pnpm context <${areas.map((a) => a.id).join("|")}> | --write-doc`,
+    );
+    process.exitCode = 1;
+  } else {
+    const tracked = execFileSync(
+      "git",
+      ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+      { encoding: "utf8" },
+    ).split("\0");
+    const files = filesOf(area, [...new Set(tracked)].filter(Boolean));
+    let characters = 0;
     console.log(
-      `${path}\t${text.split("\n").length - 1} lines\t${text.length} chars`,
+      `Area: ${area.id} (${area.title}). Open relevant ranges only; sizes are not a reading checklist.`,
+    );
+    for (const path of files) {
+      const text = readFileSync(path, "utf8");
+      characters += text.length;
+      console.log(
+        `${path}\t${text.split("\n").length - 1} lines\t${text.length} chars`,
+      );
+    }
+    console.log(
+      `${files.length} candidates; ${characters} source characters kept out of this output. Not a token estimate.`,
     );
   }
-  console.log(
-    `${files.length} candidates; ${characters} source characters kept out of this output. Not a token estimate.`,
-  );
 }
