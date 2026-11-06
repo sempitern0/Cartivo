@@ -40,7 +40,7 @@ test("input is ignored until every control is released once", () => {
 
 test("only bound keys are captured and repeats are not re-pressed", () => {
   const { capture } = setup();
-  assert.equal(capture.keyDown("KeyP"), false);
+  assert.equal(capture.keyDown("KeyZ"), false);
   assert.equal(capture.keyDown("ArrowLeft", true), true);
   capture.read();
   assert.equal(capture.read().input.left, false);

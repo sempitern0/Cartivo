@@ -65,6 +65,16 @@ export const SNES_VIDEO: VideoDescriptor = {
   dynamicResolution: false,
 };
 
+/** PlayStation: every mode (256–640 wide, 240 or 480 lines) is 4:3; the
+ * core's bridge scales them all to one 640 × 480 frame. */
+export const PS1_VIDEO: VideoDescriptor = {
+  sourceWidth: 640,
+  sourceHeight: 480,
+  displayAspect: 4 / 3,
+  pixelArt: true,
+  dynamicResolution: false,
+};
+
 export const GBA_VIDEO: VideoDescriptor = {
   sourceWidth: 240,
   sourceHeight: 160,

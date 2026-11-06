@@ -15,10 +15,12 @@ export const actions = [
   "r",
   "x",
   "y",
+  "l2",
+  "r2",
 ] as const;
 export type Action = (typeof actions)[number];
 /** Added after profiles were first saved: older profiles may lack them. */
-const later: readonly Action[] = ["l", "r", "x", "y"];
+const later: readonly Action[] = ["l", "r", "x", "y", "l2", "r2"];
 export type InputState = Record<Action, boolean>;
 export type Binding =
   | { kind: "button"; index: number }
@@ -47,6 +49,8 @@ export const keys: Record<string, Action> = {
   KeyO: "r",
   KeyU: "x",
   KeyJ: "y",
+  KeyY: "l2",
+  KeyP: "r2",
 };
 export const standard: Profile = {
   up: { kind: "button", index: 12 },
@@ -62,6 +66,9 @@ export const standard: Profile = {
   // Standard mapping by position: north = X, west = Y (as on a SNES pad).
   x: { kind: "button", index: 3 },
   y: { kind: "button", index: 2 },
+  // Triggers of the standard mapping (PlayStation L2/R2).
+  l2: { kind: "button", index: 6 },
+  r2: { kind: "button", index: 7 },
 };
 export function bindingPressed(
   pad: Pad,

@@ -7,6 +7,8 @@ import {
   vfsImports,
   type ReadSync,
 } from "../packages/adapters/src/disc.ts";
+import { bootPart, prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
+import { parseRequest } from "../packages/runtime/src/protocol.ts";
 
 const bin = Uint8Array.from({ length: 10_000 }, (_, i) => i & 0xff);
 const parts = [
@@ -60,4 +62,58 @@ test("the VFS reads sectors into wasm memory, nothing more", () => {
   assert.equal(vfs.cartivo_vfs_close(handle), -1);
   new Uint8Array(memory.buffer).set(new TextEncoder().encode("nope.bin"), 100);
   assert.equal(vfs.cartivo_vfs_open(100, 8), 0);
+});
+
+const boots = [".cue", ".iso", ".exe", ".bin"];
+
+test("the boot file is the first of the core's extensions present", () => {
+  assert.equal(bootPart([parts[1], parts[0]], boots), parts[0]);
+  assert.equal(bootPart([parts[1]], boots), parts[1]);
+  assert.equal(
+    bootPart([{ name: "x.txt", blob: new Blob() }], boots),
+    undefined,
+  );
+});
+
+test("a disc is identified and prepared without reading it whole", async () => {
+  let prepared = 0;
+  const module = {
+    boots,
+    prepare: async () => void prepared++,
+    demo: () => ({ name: "demo.exe", bytes: new Uint8Array(2048) }),
+  };
+  const files = [
+    new File([bin], "Game (Track 1).bin"),
+    new File(['FILE "Game (Track 1).bin" BINARY'], "Game.cue"),
+  ];
+  readBytes = 0;
+  const { disc, hash } = await prepareDisc(module, files, read);
+  assert.equal(disc.primary.name, "Game.cue");
+  assert.equal(disc.parts.length, 2);
+  assert.match(hash, /^[0-9a-f]{64}$/);
+  assert.equal(readBytes, 0, "the core reads sectors later, on demand");
+  assert.equal((await prepareDisc(module, files, read)).hash, hash);
+  // The demo is a one-file disc; a disc without a boot file is refused.
+  assert.equal(
+    (await prepareDisc(module, undefined, read)).disc.primary.name,
+    "demo.exe",
+  );
+  await assert.rejects(
+    prepareDisc(module, [new File([bin], "notes.txt")], read),
+    /arranque/,
+  );
+  assert.equal(prepared, 3);
+});
+
+test("only a load from a file carries a disc's other files", () => {
+  const base = { v: 1, session: "s", id: 1, command: "load" } as const;
+  const cue = new File(["FILE"], "Game.cue");
+  const track = new File([bin], "Game (Track 1).bin");
+  const r = parseRequest({ ...base, system: "ps1", file: cue, extra: [track] });
+  assert.deepEqual(r.extra, [track]);
+  assert.throws(() => parseRequest({ ...base, demo: true, extra: [track] }));
+  assert.throws(() => parseRequest({ ...base, file: cue, extra: ["x.bin"] }));
+  assert.throws(() =>
+    parseRequest({ ...base, file: cue, extra: Array(101).fill(track) }),
+  );
 });

@@ -2,6 +2,7 @@
 // A core module is registered in registry.ts and checked by
 // tests/core-conformance.test.ts.
 import type { InputState } from "../../input/src/nes-input.ts";
+import type { DiscImage } from "./disc.ts";
 
 export type Frame = {
   /** RGBA, width × height × 4 bytes, owned by the caller (transferable). */
@@ -45,18 +46,38 @@ export interface EmulatorCore {
   dispose(): void;
 }
 
-export interface CoreModule {
+type ModuleInfo = {
   system: string;
   id: string;
   /** Exact version: snapshots of another version are not loaded. */
   version: string;
   video: { width: number; height: number };
+  /** One-time async setup (e.g. instantiate wasm). */
+  prepare(): Promise<void>;
+};
+
+/** Cartridge systems: the whole ROM is read into memory. */
+export interface CartridgeModule extends ModuleInfo {
+  disc?: undefined;
   maxRomBytes: number;
   /** Throws a user-readable error for unsupported files. */
   validate(rom: Uint8Array): { battery: boolean };
   /** Optional original test ROM for «Probar demo» (never third-party). */
   demo?(): Uint8Array;
-  /** One-time async setup (e.g. instantiate wasm). */
-  prepare(): Promise<void>;
   create(rom: Uint8Array, save?: Uint8Array): EmulatorCore;
 }
+
+/**
+ * Disc systems (ADR-015): the game stays in the player's files and the core
+ * reads the sectors it needs. `boots` lists, in order of preference, the
+ * extensions of the file the core starts from (a .cue before its tracks).
+ */
+export interface DiscModule extends ModuleInfo {
+  disc: true;
+  boots: readonly string[];
+  /** Original test program for «Probar demo», as a file the core boots. */
+  demo?(): { name: string; bytes: Uint8Array };
+  create(disc: DiscImage, save?: Uint8Array): EmulatorCore;
+}
+
+export type CoreModule = CartridgeModule | DiscModule;

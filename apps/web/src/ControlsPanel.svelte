@@ -45,6 +45,8 @@
     start: "Start",
     l: "L",
     r: "R",
+    l2: "L2",
+    r2: "R2",
     x: "X",
     y: "Y",
   };
@@ -88,6 +90,8 @@
     "select",
     "l",
     "r",
+    "l2",
+    "r2",
   ]);
   const notes = buttonNotes((action) => labels[action]);
   const padConnected = $derived(selected !== -1 && !!last);

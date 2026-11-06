@@ -24,7 +24,8 @@
     acceptFor,
     availableSystems,
     system as findSystem,
-    systemForFile,
+    gameForFiles,
+    type GameFiles,
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
   import "./theme.css";
@@ -68,36 +69,40 @@
   let fileInput = $state.raw<HTMLInputElement>();
   /** System whose card opened the file picker. */
   let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
-  /** A file opened from the OS while another game was running. */
-  let pending = $state.raw<{ file: File; system: SystemInfo }>();
+  /** Files opened from the OS while another game was running. */
+  let pending = $state.raw<GameFiles<File>>();
   let openError = $state("");
   let dragging = $state(false);
+  /** The game among the files opened together (a disc may be several). */
+  const sourceOf = ({ file, extra }: GameFiles<File>): GameSource =>
+    extra.length ? { kind: "file", file, extra } : { kind: "file", file };
   /** Picks the system by extension; a card choice wins for its own picker. */
-  function openFile(file: File, preferred?: SystemInfo) {
-    const system = preferred ?? systemForFile(file.name);
-    if (!system) {
-      openError = `No se reconoce «${file.name}». Formatos admitidos: ${acceptFor(consoles)}.`;
+  function openFiles(files: readonly File[], preferred?: SystemInfo) {
+    const found = gameForFiles(files, preferred);
+    if (!found) {
+      openError = `No se reconoce «${files.map((f) => f.name).join("», «")}». Formatos admitidos: ${acceptFor(consoles)}.`;
       return;
     }
     // One active game: never replace a running session without the player
     // closing it first (its SRAM flush is confirmed on close).
-    if (game) pending = { file, system };
+    if (game) pending = found;
     else {
       pending = undefined;
-      startGame(system, { kind: "file", file });
+      startGame(found.system, sourceOf(found));
     }
   }
   function pick(system: SystemInfo) {
     pickerSystem = system;
     if (!fileInput) return;
     fileInput.accept = acceptFor([system]);
+    fileInput.multiple = !!system.disc;
     fileInput.click();
   }
   function chooseGame(event: Event) {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const files = [...(input.files ?? [])];
     input.value = "";
-    if (file) openFile(file, pickerSystem);
+    if (files.length) openFiles(files, pickerSystem);
   }
   const hasFiles = (e: DragEvent) =>
     !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
@@ -112,8 +117,8 @@
     dragging = false;
     if (!hasFiles(e)) return;
     e.preventDefault();
-    const file = e.dataTransfer?.files[0];
-    if (file && page === "inicio") openFile(file);
+    const files = [...(e.dataTransfer?.files ?? [])];
+    if (files.length && page === "inicio") openFiles(files);
   }
   let pageHeading = $state.raw<HTMLHeadingElement>();
   async function showPage() {
@@ -152,8 +157,8 @@
     const queue = (window as Window & { launchQueue?: LaunchQueue })
       .launchQueue;
     queue?.setConsumer(async ({ files }) => {
-      const handle = files[0];
-      if (handle) openFile(await handle.getFile());
+      if (files.length)
+        openFiles(await Promise.all(files.map((h) => h.getFile())));
     });
     void showPage();
     const sync = () => void showPage();
@@ -292,7 +297,7 @@
                 {#if waiting}
                   <button
                     class="primary icon-button play"
-                    onclick={() => openFile(waiting.file, waiting.system)}
+                    onclick={() => openFiles([waiting.file, ...waiting.extra], waiting.system)}
                     >{@html icons.play}<span>Jugar {waiting.file.name}</span
                     ></button
                   >
@@ -347,13 +352,10 @@
             game = undefined;
             void refreshLibrary();
           }}
-          onreplace={(file: File) => {
+          onreplace={(files: File[]) => {
             pending = undefined;
-            const current = game!.system;
-            startGame(systemForFile(file.name) ?? current, {
-              kind: "file",
-              file,
-            });
+            const found = gameForFiles(files) ?? gameForFiles(files, game!.system);
+            if (found) startGame(found.system, sourceOf(found));
           }}
         />
       {/key}

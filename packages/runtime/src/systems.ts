@@ -7,6 +7,7 @@ import {
   GB_VIDEO,
   MD_VIDEO,
   NES_VIDEO,
+  PS1_VIDEO,
   SMS_VIDEO,
   SNES_VIDEO,
   type VideoDescriptor,
@@ -27,8 +28,13 @@ export type SystemInfo = {
   /** Short name used across the UI (cards, kicker, aria labels). */
   name: string;
   longName: string;
-  /** Lower-case file extensions including the dot. */
+  /**
+   * Lower-case file extensions including the dot. For a disc system, in the
+   * order the core prefers to boot them (a .cue before its tracks).
+   */
   extensions: string[];
+  /** Games on CD, read on demand from the player's files (ADR-015). */
+  disc?: true;
   video: VideoDescriptor;
   /** Frames per second the player advances (original hardware rate). */
   frameRate: number;
@@ -178,6 +184,44 @@ export const systems: readonly SystemInfo[] = [
     formatNote:
       "cartuchos NTSC o multirregión, con mando de 3 o 6 botones y SVP (Virtua Racing)",
   }),
+  {
+    id: "ps1",
+    name: "PlayStation",
+    longName: "Sony PlayStation",
+    extensions: [".cue", ".iso", ".exe", ".bin"],
+    disc: true,
+    video: PS1_VIDEO,
+    // NTSC nominal; the core reports each game's rate (PAL 50 Hz).
+    frameRate: 60,
+    // Digital pad by position: Cross/Circle on B/A, Square/Triangle on Y/X.
+    buttons: ["b", "a", "y", "x", "l", "r", "l2", "r2", "start", "select"],
+    labels: {
+      b: "Cruz",
+      a: "Círculo",
+      y: "Cuadrado",
+      x: "Triángulo",
+      l: "L1",
+      r: "R1",
+    },
+    cores: [
+      {
+        id: "pcsx-rearmed",
+        label: "PCSX-ReARMed · WebAssembly",
+        version: "7b0e8f8",
+        licenses: [
+          {
+            name: "GPL-2.0 (PCSX-ReARMed)",
+            href: "licenses/pcsx-rearmed-COPYING.txt",
+          },
+        ],
+      },
+    ],
+    defaultCore: "pcsx-rearmed",
+    formatNote:
+      "discos .cue con sus pistas .bin, imágenes .iso o .bin de una pista y ejecutables .exe, con la BIOS HLE del núcleo",
+    demo: true,
+    available: true,
+  },
 ];
 
 /** Master System and Mega Drive share Genesis Plus GX. */
@@ -256,17 +300,57 @@ export function availableSystems(): SystemInfo[] {
   return systems.filter((s) => s.available);
 }
 
-/** System for a file name by extension (case-insensitive), if any. */
-export function systemForFile(name: string): SystemInfo | undefined {
-  const lower = name.toLowerCase();
-  return availableSystems().find((s) =>
-    s.extensions.some((ext) => lower.endsWith(ext)),
-  );
+/** A lone .bin up to this size is a Mega Drive cartridge, beyond it a CD
+ * track (MAX_MD_ROM_BYTES in packages/adapters/src/sega-header.ts). */
+const MAX_CARTRIDGE_BIN = 10 * 1024 * 1024;
+
+export type GameFiles<F> = {
+  system: SystemInfo;
+  /** The file the core starts from. */
+  file: F;
+  /** A disc's other files (the tracks a .cue names); empty for cartridges. */
+  extra: F[];
+};
+
+/**
+ * The game among files opened together: a disc's boot file with the rest,
+ * or a cartridge. Disc systems are tried first, so a .cue wins over its .bin
+ * tracks; `preferred` (the card whose picker opened them) limits the choice.
+ */
+export function gameForFiles<F extends { name: string; size: number }>(
+  files: readonly F[],
+  preferred?: SystemInfo,
+): GameFiles<F> | undefined {
+  const candidates = preferred ? [preferred] : availableSystems();
+  const ordered = [
+    ...candidates.filter((s) => s.disc),
+    ...candidates.filter((s) => !s.disc),
+  ];
+  for (const system of ordered)
+    for (const extension of system.extensions) {
+      const file = files.find(
+        (f) =>
+          f.name.toLowerCase().endsWith(extension) &&
+          !(
+            system.disc &&
+            extension === ".bin" &&
+            files.length === 1 &&
+            f.size <= MAX_CARTRIDGE_BIN &&
+            !preferred
+          ),
+      );
+      if (file)
+        return {
+          system,
+          file,
+          extra: system.disc ? files.filter((f) => f !== file) : [],
+        };
+    }
 }
 
 /** `accept` attribute for a file picker covering the given systems. */
 export function acceptFor(list: readonly SystemInfo[]): string {
-  return list.flatMap((s) => s.extensions).join(",");
+  return [...new Set(list.flatMap((s) => s.extensions))].join(",");
 }
 
 export function coreLabel(systemId: string, coreId: string): string {

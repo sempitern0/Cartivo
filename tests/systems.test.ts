@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import {
   systems,
   availableSystems,
-  systemForFile,
+  gameForFiles,
+  system,
   acceptFor,
   coreLabel,
   buttonNotes,
@@ -15,7 +16,11 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 test("system ids and extensions are unique", () => {
   assert.equal(new Set(systems.map((s) => s.id)).size, systems.length);
-  const extensions = systems.flatMap((s) => s.extensions);
+  // Only .bin is shared (Mega Drive cartridge or CD track): gameForFiles
+  // tells them apart.
+  const extensions = systems
+    .flatMap((s) => s.extensions)
+    .filter((e) => e !== ".bin");
   assert.equal(new Set(extensions).size, extensions.length);
   for (const ext of extensions) assert.match(ext, /^\.[a-z0-9]+$/);
 });
@@ -45,20 +50,46 @@ test("every core the UI offers exists in the worker registry", () => {
 });
 
 test("files are routed by extension", () => {
-  assert.equal(systemForFile("Contra (USA).NES")?.id, "nes");
-  assert.equal(systemForFile("notes.txt"), undefined);
-  assert.equal(systemForFile("Juego.GB")?.id, "gb");
-  assert.equal(systemForFile("juego.gbc")?.id, "gbc");
-  assert.equal(systemForFile("juego.GBA")?.id, "gba");
-  assert.equal(systemForFile("juego.sfc")?.id, "snes");
-  assert.equal(systemForFile("Juego.SMC")?.id, "snes");
-  assert.equal(systemForFile("juego.sms")?.id, "sms");
-  assert.equal(systemForFile("Juego.MD")?.id, "md");
-  assert.equal(systemForFile("juego.gen")?.id, "md");
-  assert.equal(systemForFile("juego.bin")?.id, "md");
+  const systemFor = (name: string, size = 1024) =>
+    gameForFiles([{ name, size }])?.system.id;
+  assert.equal(systemFor("Contra (USA).NES"), "nes");
+  assert.equal(systemFor("notes.txt"), undefined);
+  assert.equal(systemFor("Juego.GB"), "gb");
+  assert.equal(systemFor("juego.gbc"), "gbc");
+  assert.equal(systemFor("juego.GBA"), "gba");
+  assert.equal(systemFor("juego.sfc"), "snes");
+  assert.equal(systemFor("Juego.SMC"), "snes");
+  assert.equal(systemFor("juego.sms"), "sms");
+  assert.equal(systemFor("Juego.MD"), "md");
+  assert.equal(systemFor("juego.gen"), "md");
+  assert.equal(systemFor("Juego.CUE"), "ps1");
+  assert.equal(systemFor("juego.iso"), "ps1");
+  assert.equal(systemFor("demo.exe"), "ps1");
+  // A lone .bin: a cartridge up to Mega Drive's limit, beyond it a CD track.
+  assert.equal(systemFor("juego.bin"), "md");
+  assert.equal(systemFor("juego.bin", 300 * 1024 * 1024), "ps1");
+});
+
+test("a disc's .cue is booted with its tracks, whatever the order", () => {
+  const cue = { name: "Juego.cue", size: 200 };
+  const tracks = [
+    { name: "Juego (Track 1).bin", size: 1024 },
+    { name: "Juego (Track 2).bin", size: 1024 },
+  ];
+  const found = gameForFiles([tracks[0], cue, tracks[1]]);
+  assert.equal(found?.system.id, "ps1");
+  assert.equal(found?.file, cue);
+  assert.deepEqual(found?.extra, tracks);
+  // The PlayStation card's picker boots a lone .bin as a disc.
+  assert.equal(gameForFiles([tracks[0]], system("ps1"))?.system.id, "ps1");
+  // Cartridges never carry extra files.
+  assert.deepEqual(gameForFiles([{ name: "a.nes", size: 1 }])?.extra, []);
+});
+
+test("pickers accept every available format and cores have short names", () => {
   assert.equal(
     acceptFor(availableSystems()),
-    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin",
+    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.cue,.iso,.exe",
   );
   assert.equal(coreLabel("md", "genesis-plus-gx"), "Genesis Plus GX");
   assert.equal(coreLabel("snes", "snes9x"), "Snes9x");
@@ -67,15 +98,21 @@ test("files are routed by extension", () => {
   assert.equal(coreLabel("gbc", "sameboy"), "SameBoy");
 });
 
-test("the manifest opens exactly the extensions of available systems", () => {
+test("the manifest opens the extensions of available systems", () => {
   const manifest = JSON.parse(
     readFileSync("apps/web/public/manifest.webmanifest", "utf8"),
   ) as { file_handlers: { accept: Record<string, string[]> }[] };
   const handled = manifest.file_handlers.flatMap((h) =>
     Object.values(h.accept).flat(),
   );
-  const offered = availableSystems().flatMap((s) => s.extensions);
-  assert.deepEqual(handled.sort(), offered.sort());
+  // Generic formats (any disc image, any Windows program) are opened from
+  // the app, never claimed in the operating system.
+  const generic = [".iso", ".exe"];
+  const offered = new Set(availableSystems().flatMap((s) => s.extensions));
+  assert.deepEqual(
+    handled.sort(),
+    [...offered].filter((e) => !generic.includes(e)).sort(),
+  );
 });
 
 // The interface takes everything system-specific from systems.ts, so adding
@@ -121,10 +158,12 @@ test("each system declares the buttons of its controller", () => {
   assert.deepEqual(
     buttonNotes((a) => a.toUpperCase()),
     [
-      "L y R solo los usan Game Boy Advance, SNES y Mega Drive.",
-      "X e Y solo los usan SNES y Mega Drive.",
+      "L y R solo los usan Game Boy Advance, SNES, Mega Drive y PlayStation.",
+      "X e Y solo los usan SNES, Mega Drive y PlayStation.",
+      "L2 y R2 solo los usa PlayStation.",
       "En Master System, 1, 2 y Pause están en B, A y START.",
       "En Mega Drive, A, B, C, X, Y, Z y Mode están en Y, B, A, L, X, R y SELECT.",
+      "En PlayStation, Cruz, Círculo, Cuadrado, Triángulo, L1 y R1 están en B, A, Y, X, L y R.",
     ],
   );
 });
