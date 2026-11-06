@@ -276,6 +276,13 @@
 - La interfaz es automática: al usar el mando pasa al modo consola y vuelve a la de escritorio con el ratón o el teclado. En **Ajustes → Interfaz** se puede fijar «Teclado y ratón» o «Mando».
 - Modo consola: leyenda de botones abajo, consolas en carrusel y la pausa como menú vertical modal (Reanudar juego, Partidas, Gráficos, Controles, Reiniciar consola, Salir del juego), con B para reanudar. Solo cambia la presentación: núcleos y protocolo intactos.
 
+### Fiabilidad, entrada y diagnóstico (2026-11-06)
+
+- Activación de actualizaciones limitada a una única pestaña (la que la pide, que se recarga) y bloqueo de inicio durante la actualización; las cachés de versiones anteriores se borran al activar.
+- Verificación offline ligada al Worker activo; manifiestos vacíos o inválidos no acreditan disponibilidad. Fallos de persistencia opcional quedan manejados.
+- Cambio de dispositivo durante la partida sin interferir con la reserva del mando (configurar el mando en Controles no cambia la interfaz); navegación limitada a controles visibles del diálogo actual.
+- Diagnóstico local en pausa: cadencia emulada y media/p95 de ida y vuelta del Worker, con muestras acotadas y sin cambiar temporización.
+
 ### pnpm 12
 
 - pnpm 12.16.1 fijado en `packageManager` (el lockfile registra su versión). La CI toma la versión de ahí, sin un segundo pin en `.github/actions/setup`.

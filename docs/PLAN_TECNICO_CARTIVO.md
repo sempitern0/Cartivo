@@ -58,7 +58,6 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
    - P2–P4 con perfiles.
    - GBA: RTC y sensores.
    - Paletas DMG opcionales.
-   - Perfiles de pantalla por sistema.
    - Presupuestos de rendimiento medidos por núcleo (§7).
 4. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
 5. **H4 · 3D.**

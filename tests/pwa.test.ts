@@ -188,11 +188,106 @@ test("offline is reported only for a complete cache", async () => {
     };
   };
   const files = ["index.html", "assets/core-1.wasm"];
-  assert.equal(await offlineCacheComplete(scope, fake(files, files)), true);
+  const check = (storage: ReturnType<typeof fake>, version = "v1") =>
+    offlineCacheComplete(scope, version, storage);
+  assert.equal(await check(fake(files, files)), true);
+  // Only the active worker's version counts, never an older cache.
+  assert.equal(await check(fake(files, files), "not-installed"), false);
   // A core missing, or an install that never wrote its manifest.
-  assert.equal(
-    await offlineCacheComplete(scope, fake(["index.html"], files)),
-    false,
-  );
-  assert.equal(await offlineCacheComplete(scope, fake(files)), false);
+  assert.equal(await check(fake(["index.html"], files)), false);
+  assert.equal(await check(fake(files)), false);
+  // An empty manifest, or one without the shell, proves nothing.
+  assert.equal(await check(fake([], [])), false);
+  assert.equal(await check(fake(["core.wasm"], ["core.wasm"])), false);
+});
+
+test("update handshake rejects other tabs and unknown senders", async () => {
+  for (const [windows, sender, accepted] of [
+    [[{ id: "a", url: "https://test/app/" }], "a", true],
+    [
+      [
+        { id: "a", url: "https://test/app/" },
+        { id: "b", url: "https://test/app/game" },
+      ],
+      "a",
+      false,
+    ],
+    [[{ id: "a", url: "https://test/app/" }], "b", false],
+    [[], "a", false],
+  ] as const) {
+    const handlers: Record<string, (event: any) => void> = {};
+    let activated = false;
+    let reply: unknown;
+    let pending: Promise<unknown> | undefined;
+    const scope = {
+      registration: { scope: "https://test/app/" },
+      location: { origin: "https://test" },
+      clients: { matchAll: async () => windows },
+      skipWaiting: async () => {
+        activated = true;
+      },
+      addEventListener: (name: string, handler: (event: any) => void) => {
+        handlers[name] = handler;
+      },
+    };
+    new Function("self", buildServiceWorker(entries))(scope);
+    handlers.message({
+      data: { type: "cartivo:activate-update" },
+      source: { id: sender },
+      ports: [
+        {
+          postMessage: (value: unknown) => {
+            reply = value;
+          },
+        },
+      ],
+      waitUntil: (promise: Promise<unknown>) => {
+        pending = promise;
+      },
+    });
+    await pending;
+    assert.deepEqual(reply, { accepted });
+    assert.equal(activated, accepted);
+  }
+});
+
+test("activation removes old shell caches, even with the updating window open", async () => {
+  // The update is accepted only from the single open window, which reloads:
+  // keeping old caches would grow storage by a whole build per update.
+  for (const windows of [[], [{ id: "active" }]]) {
+    const handlers: Record<string, (event: any) => void> = {};
+    const removed: string[] = [];
+    let claimed = false;
+    let pending: Promise<unknown> | undefined;
+    const scope = {
+      registration: { scope: "https://test/" },
+      clients: {
+        matchAll: async () => windows,
+        claim: async () => {
+          claimed = true;
+        },
+      },
+      addEventListener: (name: string, handler: (event: any) => void) => {
+        handlers[name] = handler;
+      },
+    };
+    new Function("self", "caches", buildServiceWorker(entries))(scope, {
+      keys: async () => [
+        CACHE_PREFIX + "old",
+        CACHE_PREFIX + precacheVersion(entries),
+        "other-app",
+      ],
+      delete: async (key: string) => {
+        removed.push(key);
+      },
+    });
+    handlers.activate({
+      waitUntil: (promise: Promise<unknown>) => {
+        pending = promise;
+      },
+    });
+    await pending;
+    assert.deepEqual(removed, [CACHE_PREFIX + "old"]);
+    assert.equal(claimed, true);
+  }
 });

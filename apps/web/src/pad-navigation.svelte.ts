@@ -6,6 +6,7 @@
 import {
   nearest,
   PadIntents,
+  PadActivity,
   type Box,
   type Direction,
 } from "../../../packages/input/src/ui-navigation.ts";
@@ -15,19 +16,27 @@ import { ui } from "./input-mode.svelte.ts";
 const FOCUSABLE =
   'button, a[href], summary, select, input:not([type="file"]):not([type="hidden"]), [tabindex="0"]';
 
-const owners = new Set<string>();
+/** Who reads the pad now, and whether using it may switch the interface. */
+const owners = new Map<string, { switchesInterface: boolean }>();
 const intents = new PadIntents();
 let absorbNext = false;
 
 /**
  * From a component: while `busy()` holds (and until the component goes),
  * the pad belongs to `owner` and does not move the menus. When it comes
- * back, buttons still held are ignored until released.
+ * back, buttons still held are ignored until released. Playing with it
+ * still switches the automatic interface to «Mando»; configuring it (the
+ * controls test) passes `switchesInterface: false`, so the screen being
+ * set up does not change under the player.
  */
-export function claimPadWhile(owner: string, busy: () => boolean) {
+export function claimPadWhile(
+  owner: string,
+  busy: () => boolean,
+  { switchesInterface = true } = {},
+) {
   $effect(() => {
     if (!busy()) return;
-    owners.add(owner);
+    owners.set(owner, { switchesInterface });
     return () => {
       if (owners.delete(owner) && !owners.size) absorbNext = true;
     };
@@ -91,14 +100,18 @@ function adjust(el: Element, dir: Direction) {
   return true;
 }
 
-function move(dir: Direction) {
+/** The focused element, if it is one of `all` (on screen, in the dialog). */
+function focusedIn(all: HTMLElement[]) {
   const current = document.activeElement;
-  if (current && adjust(current, dir)) return;
+  return current instanceof HTMLElement && all.includes(current)
+    ? current
+    : undefined;
+}
+
+function move(dir: Direction) {
   const all = candidates();
-  const from =
-    current instanceof HTMLElement && current !== document.body
-      ? current
-      : undefined;
+  const from = focusedIn(all);
+  if (from && adjust(from, dir)) return;
   if (!from) {
     // Nothing focused yet: start at the first control on screen.
     const first = all.find((el) => box(el).y + box(el).height > 0) ?? all[0];
@@ -111,9 +124,8 @@ function move(dir: Direction) {
 }
 
 function accept() {
-  const current = document.activeElement;
-  if (current instanceof HTMLElement && current !== document.body)
-    current.click();
+  const current = focusedIn(candidates());
+  if (current) current.click();
   else move("down");
 }
 
@@ -145,12 +157,16 @@ function back() {
 /** Starts listening; returns the cleanup. Call once, from the app root. */
 export function startPadNavigation() {
   let frame = 0;
+  const activity = new PadActivity();
   const loop = (now: number) => {
     frame = requestAnimationFrame(loop);
-    if (owners.size) return;
     const pad = standardPad();
+    const used = activity.read(pad);
+    if (used && [...owners.values()].every((o) => o.switchesInterface))
+      ui.lastDevice = "pad";
     // Without a pad, the automatic interface goes back to keyboard and mouse.
     if (!pad && ui.lastDevice === "pad") ui.lastDevice = "pointer";
+    if (owners.size) return;
     if (absorbNext) {
       absorbNext = false;
       intents.absorb(pad, now);
@@ -158,7 +174,6 @@ export function startPadNavigation() {
     }
     const wanted = intents.read(pad, now);
     if (!wanted.length) return;
-    ui.lastDevice = "pad";
     for (const intent of wanted)
       if (intent === "accept") accept();
       else if (intent === "back") back();

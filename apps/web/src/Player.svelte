@@ -6,6 +6,7 @@
   import SavePanel from "./SavePanel.svelte";
   import ResumeOffer from "./ResumeOffer.svelte";
   import FullscreenPause from "./FullscreenPause.svelte";
+  import PerformanceDetails from "./PerformanceDetails.svelte";
   import PauseMenu from "./PauseMenu.svelte";
   import { ui } from "./input-mode.svelte.ts";
   import PlayerActions from "./PlayerActions.svelte";
@@ -13,6 +14,7 @@
   import BackupPanel from "./BackupPanel.svelte";
   import AboutCore from "./AboutCore.svelte";
   import { DisplaySettings } from "./display.svelte.ts";
+  import { FrameMetrics } from "../../../packages/media/src/frame-metrics.ts";
   import { FramePacer } from "../../../packages/media/src/frame-pacer.ts";
   import { slotNames } from "./saves.ts";
   import { downloadJson } from "./download.ts";
@@ -213,6 +215,8 @@
   let loop = 0;
   // svelte-ignore state_referenced_locally
   const pacer = new FramePacer(system.frameRate);
+  const metrics = new FrameMetrics();
+  let diagnostics = $state.raw(metrics.snapshot());
   const controls = new InputCapture(
     readKeyboard(),
     () => navigator.getGamepads?.() ?? [],
@@ -277,6 +281,7 @@
     resumeOffer = undefined;
     controls.start(readKeyboard());
     pacer.start(performance.now());
+    metrics.reset(performance.now());
     phase = "running";
     await tick();
     (actionsElement ?? screen)?.scrollIntoView({ block: "nearest" });
@@ -286,6 +291,7 @@
   async function pause() {
     if (phase !== "running") return;
     phase = "paused";
+    diagnostics = metrics.snapshot();
     cancelAnimationFrame(loop);
     controls.clear();
     sound.pause();
@@ -339,14 +345,14 @@
     padConnected = reading.connected;
     const input = reading.input;
     // The pause gesture never reaches the game; the menus take the pad.
-    // Made on a pad, it means «Mando»: the console pause menu opens.
+    // (Made on a pad, PadActivity has already switched to «Mando».)
     if (reading.ready && isPauseGesture(input)) {
-      if (reading.connected) ui.lastDevice = "pad";
       await pause();
       return;
     }
     if (!reading.ready) {
       pacer.start(now);
+      metrics.reset(now);
       loop = requestAnimationFrame(pump);
       return;
     }
@@ -363,7 +369,11 @@
       return;
     }
     try {
+      const requestedAt = performance.now();
       const r = await client!.request("advance", { count, input });
+      const completedAt = performance.now();
+      if (active && phase === "running")
+        metrics.record(completedAt, completedAt - requestedAt, count);
       if (!active) return;
       if (r.pixels && screen) {
         const ctx = screen.getContext("2d");
@@ -650,6 +660,7 @@
     {/if}
     {#if pauseMenu}
       <PauseMenu
+        {diagnostics}
         {busy}
         savesAvailable={!noStorage}
         onresume={resume}
@@ -719,6 +730,9 @@
         onclose();
       }}>Cerrar descartando los cambios sin guardar</button
     >{/if}
+  {#if phase === "paused" && !pauseMenu}
+    <PerformanceDetails {diagnostics} />
+  {/if}
   <AboutCore
     {system}
     choice={coreChoice}

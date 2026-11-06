@@ -169,3 +169,25 @@ test("on Controls, B goes back and the test keeps the focus", async ({
   await expect(page).not.toHaveURL(/#controles/);
   await expect(page.locator("#inicio")).toBeVisible();
 });
+
+test("gameplay activity switches UI, keyboard takes over, disconnect pauses", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playDemo(page, "NES");
+  const html = page.locator("html");
+  await press(page, A);
+  await expect(html).toHaveAttribute("data-ui", "pad");
+  await page.keyboard.press("l");
+  await expect(html).toHaveAttribute("data-ui", "pointer");
+  await press(page, A);
+  await expect(html).toHaveAttribute("data-ui", "pad");
+  await page.evaluate(() => {
+    (window as any).cartivoPad.connected = false;
+  });
+  await expect(html).toHaveAttribute("data-ui", "pointer");
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  const metrics = page.getByText("Rendimiento de la sesión", { exact: true });
+  await metrics.click();
+  await expect(page.getByText(/Worker, ida y vuelta/)).toBeVisible();
+});

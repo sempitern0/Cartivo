@@ -60,8 +60,10 @@
   let target: HTMLButtonElement;
   let capture = $state<Action>();
   let waitingRelease = $state(false);
-  // The test and the assignment read the pad: menus must not move meanwhile.
-  claimPadWhile("controls", () => active || !!capture || !!keyCapture);
+  // The test and the assignment read the pad: no menu moves, no UI switch.
+  claimPadWhile("controls", () => active || !!capture || !!keyCapture, {
+    switchesInterface: false,
+  });
   let draft: Partial<Profile> = {};
   let held = new Set<string>();
   let last = $state.raw<Pad>();

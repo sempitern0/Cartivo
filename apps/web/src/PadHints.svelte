@@ -24,6 +24,8 @@
     border-top: 1px solid var(--border);
     font-size: 15px;
     color: var(--muted);
+    /* A legend, never a target: it must not cover what the mouse clicks. */
+    pointer-events: none;
   }
   span {
     display: inline-flex;

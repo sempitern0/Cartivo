@@ -7,6 +7,7 @@ import {
   parseUiPreference,
   resolveUiMode,
   PadIntents,
+  PadActivity,
   type Box,
 } from "../packages/input/src/ui-navigation.ts";
 import type { Pad } from "../packages/input/src/nes-input.ts";
@@ -88,4 +89,16 @@ test("the interface follows the last device unless the player fixes it", () => {
   assert.equal(resolveUiMode("auto", "pointer"), "pointer");
   assert.equal(resolveUiMode("pad", "pointer"), "pad");
   assert.equal(resolveUiMode("pointer", "pad"), "pointer");
+});
+
+test("activity observes any control, ignores held input and drift, and resets on disconnect", () => {
+  const activity = new PadActivity();
+  assert.equal(activity.read(pad([], [0.2, 0])), false);
+  assert.equal(activity.read(pad([7])), true);
+  assert.equal(activity.read(pad([7])), false);
+  assert.equal(activity.read(pad([7], [0.8, 0])), true);
+  assert.equal(activity.read(pad([7], [0.9, 0])), false);
+  assert.equal(activity.read(pad([7], [-0.9, 0])), true);
+  assert.equal(activity.read(undefined), false);
+  assert.equal(activity.read(pad([7])), true);
 });

@@ -43,6 +43,28 @@ function heldDirections(pad: Pad): Direction[] {
 }
 
 /**
+ * Whether the pad was just used: a new press, or a stick leaving the dead
+ * zone. Holding does not count, so the keyboard keeps the interface until
+ * the pad is touched again. Runs even while the game owns the pad.
+ */
+export class PadActivity {
+  #held = new Set<string>();
+
+  read(pad: Pad | undefined): boolean {
+    const held = new Set<string>();
+    pad?.buttons.forEach((button, i) => {
+      if (button.pressed) held.add(`button:${i}`);
+    });
+    pad?.axes.forEach((axis, i) => {
+      if (Math.abs(axis) > STICK) held.add(`axis:${i}:${Math.sign(axis)}`);
+    });
+    const changed = [...held].some((key) => !this.#held.has(key));
+    this.#held = held;
+    return changed;
+  }
+}
+
+/**
  * Turns one pad's state per frame into menu intents: a press fires once
  * (A and B never repeat while held); a held direction repeats after a
  * short delay. The pause gesture (Select+Start) belongs to the game, which
