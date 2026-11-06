@@ -5,7 +5,7 @@
 ## Implementado
 
 - **Estado de entrada** (`packages/input/src/nes-input.ts`): un jugador, independiente del núcleo.
-  - Tiene **doce acciones**: cruceta, A, B, X, Y, L, R, Select y Start. Las direcciones opuestas se neutralizan.
+  - Tiene **catorce acciones**: cruceta, A, B, X, Y, L, R, L2, R2, Select y Start (L2/R2 desde PlayStation, ADR-015). Las direcciones opuestas se neutralizan.
   - Cada sistema declara en `packages/runtime/src/systems.ts` qué acciones usa (`buttons`) y cómo se llaman en su mando (`labels`): Mega Drive A/B/C/X/Y/Z/Mode y Master System 1/2/Pause.
   - Los núcleos ignoran las acciones que no tienen.
 - **Teclado por defecto:**
