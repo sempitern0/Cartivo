@@ -23,7 +23,8 @@ const stats = $("#session-stats");
 const logView = $("#session-log");
 const holder = $("#session-screen");
 const file = $<HTMLInputElement>("#rom");
-const MODULE = new URL(".build/n64-core.mjs", location.href).href;
+/** From .build/web/, Vite's publicDir for the lab (vite.config.ts). */
+const MODULE = new URL("n64-core.mjs", location.href).href;
 /** Loading longer than this is reported, with where it stopped. */
 const WATCHDOG_MS = 45_000;
 
@@ -216,9 +217,15 @@ function onEvent(data: SessionEvent) {
 
 async function start(rom: Uint8Array) {
   stop("Arrancando…");
-  if ((await fetch(MODULE, { method: "HEAD" })).status !== 200) {
+  // A dev server answers unknown paths with its HTML page: only JavaScript
+  // means the core is there.
+  const head = await fetch(MODULE, { method: "HEAD" });
+  if (!head.ok || !/javascript/.test(head.headers.get("content-type") ?? "")) {
     status.textContent =
-      "Falta el núcleo local: ejecuta node experiments/n64/build-core.mjs.";
+      "Falta el núcleo local en .build/web/: ejecuta node experiments/n64/build-core.mjs.";
+    log(
+      `[página] ${MODULE}: ${head.status} ${head.headers.get("content-type")}`,
+    );
     return;
   }
   audio = new AudioContext();

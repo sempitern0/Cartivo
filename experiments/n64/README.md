@@ -54,7 +54,7 @@ pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
   ```
 
   Es más rápido clonar el repo dentro del disco de WSL (`~/Cartivo`) que compilar sobre `/mnt/c`.
-- **Qué compila:** `build-core.mjs` descarga el commit fijado del candidato en `.build/` (ignorado por Git) y lo compila con el target `emscripten` de upstream como archivo estático (GLES3, sin dynarec). Luego lo enlaza con `host/frontend.c` (frontend libretro propio) y `fibers/cooperative.c`, que sustituye a libco con Asyncify. Deja `.build/n64-core.{mjs,wasm}` y un JSON de evidencia.
+- **Qué compila:** `build-core.mjs` descarga el commit fijado del candidato en `.build/` (ignorado por Git) y lo compila con el target `emscripten` de upstream como archivo estático (GLES3, sin dynarec). Luego lo enlaza con `host/frontend.c` (frontend libretro propio) y `fibers/cooperative.c`, que sustituye a libco con Asyncify. Deja `.build/web/n64-core.{mjs,wasm}` (el `publicDir` de Vite del laboratorio, servido tal cual) y un JSON de evidencia.
 - **Desvíos respecto a upstream, todos explícitos:**
   - el zlib incluido en el árbol en vez del port de Emscripten, que se descarga durante el build;
   - `-fno-common`, porque WebAssembly no tiene símbolos comunes;
@@ -100,7 +100,10 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
 
 ### Relevo — 2026-11-07, sesión 4
 
-- **QA del titular:** con el build fijado (WSL y Vite), la demo no muestra imagen ni sonido en Chrome ni en Firefox. «Parece que está haciendo algo»: no hay más datos.
+- **QA del titular:** con el build fijado (WSL y Vite), la demo no muestra imagen ni sonido en Chrome ni en Firefox.
+  - El registro dio `Failed to fetch dynamically imported module: …/.build/n64-core.mjs`: Vite trataba el glue de Emscripten como código fuente.
+  - Ahora el núcleo se escribe en `.build/web/`, que `vite.config.ts` declara como `publicDir`, y se sirve sin transformar.
+  - La comprobación previa exige un `content-type` de JavaScript, porque Vite responde 200 con su HTML a cualquier ruta.
 - **Hecho:**
   - estados explícitos, pausa y segundo plano sin ráfaga;
   - ritmo por audio: con la demo, velocidad 1,00× y sin descartes tras el calentamiento. Antes había unos 4 descartes cada 4 s y la cola tocaba el tope;

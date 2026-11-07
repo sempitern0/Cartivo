@@ -125,7 +125,12 @@ copyFileSync(archive, library);
 
 // The laboratory frontend and the fibers libco link before the archive, so
 // the archive's own libco.o (signals, sigaltstack) is never pulled in.
-const module = resolve(out, "n64-core.mjs");
+// What the page loads goes to .build/web/, the lab's Vite publicDir: served
+// as is (Vite must not transform Emscripten's glue), next to its .wasm, and
+// apart from the clone and the archive.
+const web = resolve(out, "web");
+mkdirSync(web, { recursive: true });
+const module = resolve(web, "n64-core.mjs");
 const exports = [
   "n64_init",
   "n64_load",
@@ -176,7 +181,7 @@ run(emcc, [
   "-sEXPORTED_RUNTIME_METHODS=GL,FS,HEAP16,HEAPU8,UTF8ToString,stringToNewUTF8",
 ]);
 
-const wasm = resolve(out, "n64-core.wasm");
+const wasm = resolve(web, "n64-core.wasm");
 const bytes = readFileSync(wasm);
 const imports = WebAssembly.Module.imports(new WebAssembly.Module(bytes)).map(
   ({ module: m, name }) => `${m}.${name}`,
