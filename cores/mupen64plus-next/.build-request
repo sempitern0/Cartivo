@@ -1,2 +1,2 @@
 Bump this file only to build Mupen64Plus-Next once in CI (core-mupen64plus-next.yml).
-Reason: keep the RDRAM copies and shader storage off (WebGL2 cannot map buffers for reading); with the declared defaults the demo rendered black.
+Reason: app integration: battery memory, compressed snapshots and alt-map exports in the frontend.
