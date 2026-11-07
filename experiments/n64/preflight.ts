@@ -47,22 +47,18 @@ export type N64Pad = {
   right: boolean;
 };
 
-/** Radial deadzone preserves diagonal direction and continuous intensity. */
-/** The lab's stick reading is production's (packages/input/src/analog.ts). */
-export const analogStick = (x: number, y: number, deadzone = 0.18) =>
-  stick(x, y, deadzone);
-
 /** Diagnostic mapping only; production must reuse Cartivo's input ownership. */
 export function samplePad(
   pad: Pick<Gamepad, "axes" | "buttons" | "connected" | "mapping"> | null,
 ): N64Pad {
   const active = pad?.connected && pad.mapping === "standard" ? pad : null;
   const pressed = (index: number) => active?.buttons[index]?.pressed === true;
-  const stick = analogStick(active?.axes[0] ?? 0, active?.axes[1] ?? 0);
+  // The stick reading is production's (packages/input/src/analog.ts).
+  const left = stick(active?.axes[0] ?? 0, active?.axes[1] ?? 0);
   const cx = Number.isFinite(active?.axes[2]) ? active!.axes[2] : 0;
   const cy = Number.isFinite(active?.axes[3]) ? active!.axes[3] : 0;
   return {
-    ...stick,
+    ...left,
     a: pressed(0),
     b: pressed(2),
     z: pressed(6),
