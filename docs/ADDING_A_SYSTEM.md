@@ -25,12 +25,14 @@ Checklist para integrar un sistema nuevo. Los núcleos en C/C++ reutilizan la pl
 - Fixture **original** en `packages/fixtures/` (nunca ROMs comerciales ni de terceros) con hash, licencia y oráculo.
 - Registrar un `CoreModule` en `packages/adapters/src/registry.ts` con `system`, `id`, `version` exacta, `video`, `maxRomBytes`, `validate`, `demo`, `prepare` y `create`.
 - **Sistemas de disco** (ADR-015): un `DiscModule` (`disc: true`) no tiene `maxRomBytes` ni `validate` (la página elige el archivo de arranque con `gameForFiles`); su `demo` devuelve `{ name, bytes }` y su `create` recibe un `DiscImage`. El núcleo lee los archivos por la VFS de libretro reenviada a `cartivo_vfs_*` (ver `cores/pcsx-rearmed/src/cartivo.c`); en `systems.ts`, `disc: true` y `extensions` por orden de preferencia de arranque (un `.cue` antes que sus pistas).
+- **Núcleos que dibujan con la GPU** (ADR-017): un `SurfaceModule` (`surface: "webgl2"`) recibe en `create(rom, canvas, save)`, que es asíncrono, el lienzo del juego transferido al Worker y dibuja en él con WebGL2. `advance` no devuelve `pixels` y `lastFrame` va vacío. En `systems.ts`, `surface: "webgl2"`; la UI transfiere el lienzo y comprueba antes los requisitos (`apps/web/src/surface.ts`). Plantilla: `packages/adapters/src/n64.ts` (Emscripten con `instantiateWasm`, audio reducido a 48 kHz mono y un juego por lienzo). La conformidad en Node no los ejecuta: los cubre su E2E.
 
 ## 4. Sistema en la interfaz
 - Añadir la entrada en `packages/runtime/src/systems.ts`:
   - `id`, `name`, `longName` y `extensions`.
   - `video` con resolución y aspecto: GB/GBC 160×144 (10:9) y GBA 240×160 (3:2); no forzar 4:3.
   - `cores` con versión y licencias, `defaultCore`, `formatNote`, `demo` y `available`.
+  - Opcionales: `analogStick` si el stick es el mando principal (no se repite en la cruceta) y `experimental` (la tarjeta lo indica).
 - Añadir las extensiones a `file_handlers` en `apps/web/public/manifest.webmanifest`.
 - La tarjeta de inicio, el selector de archivos, el reproductor, Gráficos, Partidas y la selección de núcleo salen del registro sin más cambios.
 - **Botones:** declarar en `systems.ts` los `buttons` del mando original (acciones de `packages/input/src/nes-input.ts` además de la cruceta). Controles muestra solo los botones que usa alguna consola disponible y genera las notas («L y R solo los usa Game Boy Advance»). Hoy hay catorce acciones (cruceta, A, B, X, Y, L, R, L2, R2, Start y Select); un mando con otros nombres reutiliza las posiciones (Mega Drive: A/B/C sobre Y/B/A) con etiquetas propias. Si el sistema necesita una acción que de verdad no existe, se añade en `packages/input` con migración de perfiles como L/R (lista `later`) y como opcional en el protocolo v1.

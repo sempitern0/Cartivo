@@ -70,4 +70,4 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
   - CHD, `.pbp`, `.m3u` multidisco, cambio de disco, analógico, multitap y pistola;
   - juegos que dependan de la BIOS real;
   - discos en la biblioteca.
-- **N64:** aplazado hasta planificar WebGL2 en el Worker (OffscreenCanvas) o hilos con COOP/COEP. El resultado del spike queda registrado arriba.
+- **N64:** aplazado hasta planificar WebGL2 en el Worker (OffscreenCanvas) o hilos con COOP/COEP. El resultado del spike queda registrado arriba. *Revisión 2026-11-07:* resuelto con WebGL2 en el Worker, en [ADR-017](017-n64-gpu-surface.md).

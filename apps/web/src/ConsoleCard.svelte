@@ -79,7 +79,11 @@
   <ConsoleIcon system={system.id} />
   <div class="console-text">
     <h2 id={`console-${system.id}`}>{system.name}</h2>
-    <p>{system.longName}</p>
+    <p>
+      {system.longName}{#if system.experimental}<span class="tag"
+          >Experimental</span
+        >{/if}
+    </p>
     {#if missing}
       <div class="tracks" role="alert">
         <p>
@@ -166,6 +170,17 @@
     color: var(--muted);
     font-size: 14px;
     line-height: 1.35;
+  }
+  /* A playable system whose limits its compatibility sheet lists. */
+  .tag {
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: 1px;
   }
   .console-foot {
     display: flex;

@@ -6,6 +6,7 @@ import {
   GBA_VIDEO,
   GB_VIDEO,
   MD_VIDEO,
+  N64_VIDEO,
   NES_VIDEO,
   PS1_VIDEO,
   SMS_VIDEO,
@@ -37,6 +38,16 @@ export type SystemInfo = {
   disc?: true;
   /** A portable console (the home card's accent says so). */
   handheld?: true;
+  /**
+   * The core draws with WebGL2 on the game canvas, which the page hands to
+   * the Worker at load (ADR-017); absent: the core returns RGBA frames.
+   */
+  surface?: "webgl2";
+  /** The controller's main control is an analog stick (N64): a pad's left
+   * stick drives it and is not mirrored on the D-pad. */
+  analogStick?: true;
+  /** Shown as experimental: playable, with the limits its sheet lists. */
+  experimental?: true;
   video: VideoDescriptor;
   /** Frames per second the player advances (original hardware rate). */
   frameRate: number;
@@ -222,6 +233,55 @@ export const systems: readonly SystemInfo[] = [
     defaultCore: "pcsx-rearmed",
     formatNote:
       "discos .cue con sus pistas .bin, imágenes .iso o .bin de una pista y ejecutables .exe, con la BIOS HLE del núcleo",
+    demo: true,
+    available: true,
+  },
+  {
+    id: "n64",
+    name: "N64",
+    longName: "Nintendo 64",
+    extensions: [".z64", ".n64", ".v64"],
+    surface: "webgl2",
+    analogStick: true,
+    experimental: true,
+    video: N64_VIDEO,
+    // NTSC nominal; the core reports each game's rate (PAL 50 Hz).
+    frameRate: 60,
+    // Every button on its own RetroPad position (the core's alt-map): A/B
+    // on B/Y, Z on L2, L on Select, R on R2 and the C buttons on X/A/L/R.
+    // The right stick also presses the C buttons.
+    buttons: ["b", "y", "l2", "select", "r2", "x", "a", "l", "r", "start"],
+    labels: {
+      b: "A",
+      y: "B",
+      l2: "Z",
+      select: "L",
+      r2: "R",
+      x: "C↑",
+      a: "C↓",
+      l: "C←",
+      r: "C→",
+    },
+    cores: [
+      {
+        id: "mupen64plus-next",
+        label: "Mupen64Plus-Next · WebGL2",
+        version: "15bada8",
+        licenses: [
+          {
+            name: "GPL-2.0 (Mupen64Plus-Next y GLideN64)",
+            href: "licenses/mupen64plus-next-LICENSE.txt",
+          },
+          {
+            name: "Avisos de terceros (GLideN64, libpng, zlib…)",
+            href: "licenses/mupen64plus-next-NOTICES.txt",
+          },
+        ],
+      },
+    ],
+    defaultCore: "mupen64plus-next",
+    formatNote:
+      "cartuchos .z64, .n64 o .v64 con el mando analógico; experimental, necesita WebGL2",
     demo: true,
     available: true,
   },

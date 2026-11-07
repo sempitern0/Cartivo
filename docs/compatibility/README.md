@@ -15,7 +15,8 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 | SNES · Snes9x (WASM) | Experimental: NTSC LoROM/HiROM/ExHiROM, chips emulados | [H2-SNES](H2-SNES.md) |
 | Master System y Mega Drive · Genesis Plus GX (WASM) | Experimental: cartuchos NTSC, mando de seis botones, SVP | [H2-SEGA](H2-SEGA.md) |
 | PlayStation · PCSX-ReARMed (WASM) | Experimental: `.cue`/`.bin`, `.iso`, `.exe` leídos bajo demanda; BIOS HLE | [H4-PS1](H4-PS1.md) |
-| N64, PSP | Pendiente (H4); N64 aplazado (ADR-015) | — |
+| N64 · Mupen64Plus-Next (WebGL2 en el Worker) | Experimental: `.z64`/`.n64`/`.v64`, stick analógico, batería y Partidas; necesita WebGL2 | [H4-N64](H4-N64.md) |
+| PSP | Pendiente (H4) | — |
 | PS2 | Laboratorio pendiente | — |
 
 ## Plantilla de informe por núcleo o build

@@ -2,7 +2,7 @@
 // (cores/mupen64plus-next/dist, served as the lab's Vite publicDir). One session at a time, in its own Worker; stopping or a
 // failure terminates it, so nothing outlives the session. Everything the
 // Worker reports goes to the visible log, to diagnose a machine from a copy.
-import { n64ControlDemo } from "./fixture/n64-control-demo.ts";
+import { n64ControlDemo } from "../../packages/fixtures/src/n64-control-demo.ts";
 import {
   analogOf,
   digitalStick,

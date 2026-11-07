@@ -6,8 +6,11 @@ import type { Analog } from "../../input/src/analog.ts";
 import type { DiscImage } from "./disc.ts";
 
 export type Frame = {
-  /** RGBA, width × height × 4 bytes, owned by the caller (transferable). */
-  pixels: Uint8ClampedArray;
+  /**
+   * RGBA, width × height × 4 bytes, owned by the caller (transferable).
+   * Absent for a core that draws on its own surface (SurfaceModule).
+   */
+  pixels?: Uint8ClampedArray;
   /** Mono samples at 48 kHz produced by this batch. */
   audio: Float32Array;
   /** Frames emulated since power-on. */
@@ -46,7 +49,8 @@ export interface EmulatorCore {
   snapshot(): Uint8Array;
   /** Restores a snapshot; throws a user-readable error if it does not fit. */
   restore(bytes: Uint8Array): void;
-  /** Copy of the last presented frame (empty before any frame). */
+  /** Copy of the last presented frame (empty before any frame, and always
+   * for a core that draws on its own surface). */
   lastFrame(): Uint8ClampedArray;
   /** Releases resources (wasm memory); the core is unusable afterwards. */
   dispose(): void;
@@ -65,6 +69,7 @@ type ModuleInfo = {
 /** Cartridge systems: the whole ROM is read into memory. */
 export interface CartridgeModule extends ModuleInfo {
   disc?: undefined;
+  surface?: undefined;
   maxRomBytes: number;
   /** Throws a user-readable error for unsupported files. */
   validate(rom: Uint8Array): { battery: boolean };
@@ -80,9 +85,31 @@ export interface CartridgeModule extends ModuleInfo {
  */
 export interface DiscModule extends ModuleInfo {
   disc: true;
+  surface?: undefined;
   /** Original test program for the demo entry, as a file the core boots. */
   demo?(): { name: string; bytes: Uint8Array };
   create(disc: DiscImage, save?: Uint8Array): EmulatorCore;
 }
 
-export type CoreModule = CartridgeModule | DiscModule;
+/**
+ * Cartridge systems whose core draws with the GPU (ADR-017): the page hands
+ * the game canvas to the Worker, the core renders on it with WebGL2 and the
+ * browser presents each frame; no RGBA crosses to the page. Creating a core
+ * is asynchronous (an Emscripten instance per game).
+ */
+export interface SurfaceModule extends ModuleInfo {
+  disc?: undefined;
+  surface: "webgl2";
+  maxRomBytes: number;
+  /** Throws a user-readable error for unsupported files. */
+  validate(rom: Uint8Array): { battery: boolean };
+  /** Optional original test ROM, opened with `#demo/<id>` (never third-party). */
+  demo?(): Uint8Array;
+  create(
+    rom: Uint8Array,
+    canvas: OffscreenCanvas,
+    save?: Uint8Array,
+  ): Promise<EmulatorCore>;
+}
+
+export type CoreModule = CartridgeModule | DiscModule | SurfaceModule;

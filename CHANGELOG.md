@@ -362,3 +362,14 @@
   - Mupen64Plus-Next se compila en CI (`cores/mupen64plus-next`) y CORE-LEGAL-01 queda aceptado para uso privado. El build con emsdk 6.0.12 coincidía con el del titular, pero se cuelga en el primer fotograma, así que el núcleo fija emsdk 4.0.10, el que arranca la demo; la causa sigue en investigación;
   - el laboratorio usa ese núcleo, sin compilar nada en local;
   - la app aún no ofrece N64.
+
+### Nintendo 64 en la app (experimental)
+
+- **N64 jugable en Cartivo** con Mupen64Plus-Next y GLideN64 ([ADR-017](docs/adr/017-n64-gpu-surface.md), [H4-N64](docs/compatibility/H4-N64.md)). Admite `.z64`, `.n64` y `.v64`, tiene demo propia, y la tarjeta lo marca como experimental.
+- **Superficie WebGL2:** un nuevo tipo de módulo, `SurfaceModule`. La página entrega el lienzo del juego al Worker, el núcleo dibuja en él y no viaja RGBA. Antes de descargar nada se comprueba que el navegador tiene WebGL2 y OffscreenCanvas.
+- **Entrada:**
+  - el stick izquierdo del mando no se repite en la cruceta;
+  - con teclado, las teclas de dirección inclinan el stick por completo;
+  - los botones C están en X/A/L/R y en el stick derecho.
+- **Guardado:** batería de 296 960 bytes (EEPROM, controller paks, SRAM y FlashRAM). Partidas con el estado del núcleo comprimido con zlib. Las copias de batería admiten hasta 2 MiB.
+- **Límites:** las Partidas no tienen miniatura; sin Transfer Pak, Rumble Pak ni 64DD; cortes de audio ocasionales.

@@ -76,7 +76,7 @@ pnpm exec vite experiments/n64 --host 127.0.0.1    # «Arrancar demo»
     - tiempos de arranque (glue, WebAssembly, contexto, carga, primer fotograma);
     - underruns y déficit de audio, y memoria;
   - **registro visible y copiable:** user agent, GPU (`WEBGL_debug_renderer_info` cuando el navegador lo da), cada paso del arranque, los mensajes del núcleo (incluidos los fallos de shaders de GLideN64) y los errores con su pila. Avisa si el arranque pasa de 45 s y si el núcleo emula pero no presenta imagen.
-- **Demo original** (`fixture/n64-control-demo.ts`): cartucho de 1 MiB sin código de Nintendo. El PIF HLE copia ROM 0x40–0xFFF a DMEM y salta allí, así que el programa propio sustituye al IPL3: configura el VI, dibuja con rectángulos de relleno del RDP (los presenta GLideN64) y lee el mando 1 por el PIF. Además copia del cartucho (PI DMA) una onda cuadrada de 500 Hz a 32 kHz y mantiene alimentada la FIFO de la interfaz de audio (AI) desde su bucle de espera.
+- **Demo original** (`packages/fixtures/src/n64-control-demo.ts`, también la demo de la app): cartucho de 1 MiB sin código de Nintendo. El PIF HLE copia ROM 0x40–0xFFF a DMEM y salta allí, así que el programa propio sustituye al IPL3: configura el VI, dibuja con rectángulos de relleno del RDP (los presenta GLideN64) y lee el mando 1 por el PIF. Además copia del cartucho (PI DMA) una onda cuadrada de 500 Hz a 32 kHz y mantiene alimentada la FIFO de la interfaz de audio (AI) desde su bucle de espera.
 - **Mando:** el núcleo asigna los botones por posición: libretro B = A de N64, Y = B, Start = Start y L2 = Z.
 
 ## Microprueba de corutinas, sin compilar el núcleo
@@ -93,6 +93,18 @@ La receta exige 6.0.12 y compila únicamente el puente original `cores/mupen64pl
 Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones por ciclo, preservación de variables locales y heap WASM estable tras calentamiento. Esto no mide el coste de Asyncify en el núcleo real, profundidad de pila de N64, audio, WebGL ni recuperación de una partida. El tamaño de pila Asyncify de 64 KiB es provisional y debe medirse con el núcleo. El puente es monohilo y sus contextos no son compartibles; una entrada debe ceder, no retornar.
 
 ## Estado de relevo
+
+### Relevo — 2026-11-07, sesión 6
+
+- **Decisión del titular:** llevar N64 a la app. Rama `feat/n64-en-la-app`.
+- **Núcleo `512ce64d…`.** El frontend añade:
+  - batería: `n64_save_data/size`;
+  - Partidas comprimidas con zlib: `n64_snapshot*`, `n64_restore*`;
+  - el `alt-map`, que da a cada botón N64 su bit, botones C incluidos. El laboratorio sigue ese mapa: L en Select (bit 2) y R en R2 (bit 13).
+- **App:** `SurfaceModule` y el adaptador `packages/adapters/src/n64.ts`, en [ADR-017](../../docs/adr/017-n64-gpu-surface.md) y [H4-N64](../../docs/compatibility/H4-N64.md).
+  - La demo de este laboratorio es ahora la fixture de la app, en `packages/fixtures/src/n64-control-demo.ts`.
+  - La validación de cabecera pasa a `packages/adapters/src/n64-header.ts`.
+- **Siguiente:** QA del titular en la app (batería, Partidas, salir y volver) y el punto 4 de la cola del plan técnico.
 
 ### Relevo — 2026-11-07, sesión 5
 

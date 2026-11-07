@@ -14,7 +14,7 @@ import {
   type Pad,
 } from "./nes-input.ts";
 import type { PadPreference } from "./preferences.ts";
-import { analogOf, centered, type Analog } from "./analog.ts";
+import { analogOf, centered, digitalStick, type Analog } from "./analog.ts";
 
 export type InputReading = {
   input: InputState;
@@ -42,15 +42,23 @@ export class InputCapture {
   #lastPad: Pad | undefined;
   #chosen: number | undefined;
   #selected = false;
+  #analogStick: boolean;
 
+  /**
+   * `analogStick`: the system's main control is its own stick (systems.ts),
+   * so a pad's left stick is not also the D-pad, and the keyboard's
+   * direction keys, having no stick, tilt it fully instead of the D-pad.
+   */
   constructor(
     keyboard: KeyboardProfile,
     pads: () => Iterable<Pad | null>,
     preference: () => PadPreference,
+    analogStick = false,
   ) {
     this.#keyboard = keyboard;
     this.#pads = pads;
     this.#preference = preference;
+    this.#analogStick = analogStick;
   }
 
   /** New play session: fresh profile, pad chosen again, release required. */
@@ -140,25 +148,42 @@ export class InputCapture {
           : undefined;
     if (pad && !profile)
       this.status = "Configura este mando en Controles; teclado disponible.";
+    const deadzone = pref.mode === "pad" ? pref.deadzone : 0.25;
+    const keys = this.#analogStick ? this.#keyStick() : undefined;
     const input = sample(
       pad,
       profile,
-      this.#held,
-      pref.mode === "pad" ? pref.deadzone : 0.25,
+      keys ? keys.others : this.#held,
+      deadzone,
       this.#keyboard,
+      !this.#analogStick,
     );
     for (const action of this.#virtual) input[action] = true;
-    if (!this.#ready && !Object.values(input).some(Boolean)) {
+    const tilted = !!keys && (keys.stick.x !== 0 || keys.stick.y !== 0);
+    if (!this.#ready && !tilted && !Object.values(input).some(Boolean)) {
       this.#ready = true;
       return this.#reading(input, false, !!pad);
     }
-    return this.#reading(
-      input,
-      this.#ready,
-      !!pad,
-      false,
-      this.#ready ? analogOf(pad) : centered(),
+    const sticks = this.#ready ? analogOf(pad) : centered();
+    if (this.#ready && keys && tilted) sticks.left = keys.stick;
+    return this.#reading(input, this.#ready, !!pad, false, sticks);
+  }
+
+  /** The keyboard's direction keys as a stick, and the other held keys. */
+  #keyStick() {
+    const direction = (action: "up" | "down" | "left" | "right") =>
+      this.#held.has(this.#keyboard[action]);
+    const stick = digitalStick(
+      direction("up"),
+      direction("down"),
+      direction("left"),
+      direction("right"),
     );
+    const moves = new Set(
+      (["up", "down", "left", "right"] as const).map((a) => this.#keyboard[a]),
+    );
+    const others = new Set([...this.#held].filter((code) => !moves.has(code)));
+    return { stick, others };
   }
 
   #lost(): InputReading {

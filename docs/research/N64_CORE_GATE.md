@@ -1,6 +1,6 @@
 # N64 — admisión y primer incremento experimental
 
-Fecha: 2026-11-07. **CORE-LEGAL-01: accepted (uso privado)**, ver la [decisión](#core-legal-01-decisión). El núcleo se compila en CI (`cores/mupen64plus-next`, `tools/build-mupen64plus-next.mjs`). Solo lo carga el laboratorio; la app no lo registra hasta el gate de viabilidad.
+Fecha: 2026-11-07. **CORE-LEGAL-01: accepted (uso privado)**, ver la [decisión](#core-legal-01-decisión). El núcleo se compila en CI (`cores/mupen64plus-next`, `tools/build-mupen64plus-next.mjs`). La app lo registra como experimental desde 2026-11-07 ([ADR-017](../adr/017-n64-gpu-surface.md)), y el laboratorio usa el mismo artefacto.
 
 ## Identidad fijada y evidencia primaria
 
