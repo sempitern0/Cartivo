@@ -2,6 +2,7 @@
   import SnapshotThumb from "./SnapshotThumb.svelte";
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
+  import { profiles } from "./profile.svelte.ts";
   import {
     forgetGame,
     rememberGames,
@@ -70,7 +71,11 @@
   async function remove(entry: LibraryEntry) {
     confirming = undefined;
     try {
-      await forgetGame(entry.hash);
+      await forgetGame(
+        entry.hash,
+        profiles.id,
+        profiles.all.map((p) => p.id).filter((id) => id !== profiles.id),
+      );
       note = `${entry.name} ya no está en la lista. Sus partidas se conservan.`;
     } catch {
       note = "No se pudo quitar el juego. Inténtalo de nuevo.";
@@ -136,6 +141,7 @@
                   class="primary"
                   disabled={!system}
                   aria-label={`Continuar ${entry.name}`}
+              data-launch={`continue-${entry.hash}`}
                   onclick={() => system && oncontinue(entry, system)}
                   >Continuar</button
                 ><button

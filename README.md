@@ -11,6 +11,7 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive; L2/R2 en PlayStation) |
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho (o la tarjeta de memoria de PlayStation) se guarda sola sin frenar la imagen |
+| **Perfiles** | «¿Quién juega?» al abrir: cada perfil tiene sus partidas, sus juegos y sus controles en el mismo dispositivo, sin contraseña ([ADR-016](docs/adr/016-player-profiles.md)) |
 | **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola (los discos de PlayStation aún no: se abren desde sus archivos) |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
 | **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) QA de PlayStation con discos reales, PSP y N64 (aplazado, [ADR-015](docs/adr/015-ps1-pcsx-rearmed-discs.md)); Safari/iOS con prioridad baja |
@@ -62,6 +63,7 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x, Genesis Plus GX y PCSX-ReARMed está
 
 ## Jugar
 
+- Al abrir, elige tu perfil en «¿Quién juega?» (o crea uno); el chip de la cabecera cambia de perfil.
 - **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`, y en PlayStation `.cue` con sus pistas `.bin`, `.iso` o `.exe`: elige o arrastra todos los archivos del disco a la vez); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo». **Probar demo** arranca una ROM de prueba original.
 - Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Y** = L2 · **P** = R2 · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L; en PlayStation, Cruz/Círculo en K/L y Cuadrado/Triángulo en J/U. La ayuda de cada demo y la pantalla de Controles lo indican.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**. También maneja la interfaz: cruceta o stick mueven el foco, A pulsa, B cierra o vuelve y **Select+Start** pausa la partida. Al usarlo, Cartivo pasa al **modo consola** (leyenda de botones, consolas en carrusel y menú de pausa con Salir del juego); en **Ajustes → Interfaz** puedes fijar «Teclado y ratón» o «Mando».

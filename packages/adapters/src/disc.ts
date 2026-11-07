@@ -3,6 +3,7 @@
 // to the cartivo_vfs_* imports below, and only the sectors it asks for are
 // read (synchronously: FileReaderSync is allowed in Workers).
 import type { DiscPart } from "../../storage/src/disc-identity.ts";
+import { trackName } from "../../storage/src/cue.ts";
 
 /** Reads [start, end) of a Blob synchronously (FileReaderSync in a Worker). */
 export type ReadSync = (blob: Blob, start: number, end: number) => Uint8Array;
@@ -16,17 +17,6 @@ export const fileReaderSync: ReadSync = (blob, start, end) =>
   new Uint8Array(
     new FileReaderSync().readAsArrayBuffer(blob.slice(start, end)),
   );
-
-/** The files a .cue sheet names, in order (`FILE "name" TYPE` lines). */
-export function cueFiles(text: string): string[] {
-  return [...text.matchAll(/^\s*FILE\s+(?:"([^"]+)"|(\S+))/gim)].map(
-    (m) => m[1] ?? m[2],
-  );
-}
-
-/** The last path component, lowercase: how a .cue names its tracks. */
-const baseName = (path: string) =>
-  path.replace(/\\/g, "/").split("/").pop()!.toLowerCase();
 
 export class DiscImage {
   readonly parts: readonly DiscPart[];
@@ -43,8 +33,8 @@ export class DiscImage {
 
   /** A part by the name the core uses (any folder, any case). */
   find(path: string): DiscPart | undefined {
-    const name = baseName(path);
-    return this.parts.find((p) => baseName(p.name) === name);
+    const name = trackName(path);
+    return this.parts.find((p) => trackName(p.name) === name);
   }
 
   read(part: DiscPart, offset: number, length: number): Uint8Array {

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.ts";
 test("controls have a direct URL and survive leaving and coming back", async ({
   page,
 }) => {

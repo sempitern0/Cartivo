@@ -1,10 +1,10 @@
 # Cartivo — Plan técnico
 
-> **Revisión 6 · 6 de noviembre de 2026.** PlayStation jugable (ocho consolas) con discos leídos bajo demanda; N64 aplazado con evidencia (ADR-015). Antes: H2 completo y la parte automática de H1 cerrada. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 8 · 7 de noviembre de 2026.** Ocho consolas jugables (hasta PlayStation, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
-**Para agentes de IA:** antes de proponer o escribir código, lee §2. Todo lo que aparece allí existe, está probado y se **reutiliza**, no se reescribe. Elige trabajo solo de §3, en su orden, y sigue la skill `cartivo-increment` (y `cartivo-core-gate` si hay núcleo nuevo).
+**Para agentes de IA:** antes de proponer o escribir código, lee §2. Todo lo que aparece allí existe, está probado y se **reutiliza**, no se reescribe. Elige trabajo solo de §3.2, en su orden, y sigue la skill `cartivo-increment` (y `cartivo-core-gate` si hay núcleo nuevo).
 
 ## 1. Objetivo y reglas innegociables
 
@@ -17,7 +17,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 5. **Fidelidad por defecto.** Aspecto y velocidad originales; las mejoras que alteren la imagen o el tiempo son opcionales.
 6. **Solo capacidades reales.** Cada núcleo ofrece instantáneas para «Partidas» (ADR-009) o declara que no puede.
 
-**Fuera de V1:** emuladores propios, netplay, catálogo o descarga de ROMs y telemetría identificable. Las cuentas online, la nube y los logros son el hito futuro H6 (§3), posterior a V1.
+**Fuera de V1:** emuladores propios, netplay, catálogo o descarga de ROMs y telemetría identificable. Las cuentas online, la nube y los logros son el hito futuro H6 (§4), posterior a V1.
 
 ## 2. Hecho — no reimplementar
 
@@ -44,33 +44,62 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
 | Fiabilidad y portabilidad (auditoría del titular): escrituras recuperables de la biblioteca, captura acotada, guardado SRAM separado y en segundo plano, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado, E2E en Firefox y WebKit (Worker de un solo archivo, `FramePacer`), subruta (`--base`), avisos cuando el navegador guarda menos y fallos inyectados en navegador real | `packages/storage/src/{library,background-commit,persistence,idb}.ts`, `wasm-host.ts`, `client.ts`, `offline-cache.ts`, `frame-pacer.ts` | ADR-003/007/012 | `tests/e2e/{faults,storage,subpath}.spec.ts`, [H1-QA](compatibility/H1-QA.md) |
+| **Perfiles de jugador:** «¿Quién juega?» en cada visita (la elección dura la pestaña); cada perfil con sus Partidas, batería/tarjeta, biblioteca y controles; copias de ROM compartidas por hash; el primer perfil conserva los datos anteriores sin migrar; crear, renombrar y borrar (con sus datos), sin contraseña | `packages/storage/src/profiles.ts` (`scoped`), `apps/web/src/profile.svelte.ts`, `ProfilePicker.svelte`; protocolo `load.profile` | ADR-016 | `tests/profiles.test.ts`, `tests/e2e/profiles.spec.ts` |
 | Interfaz con mando: la cruceta o el stick mueven el foco al control más cercano, A pulsa, B equivale a Escape (cierra paneles) o vuelve atrás, Select+Start pausa la partida y sale de la prueba de Controles; el juego y la prueba se apropian del mando mientras lo leen | `packages/input/src/ui-navigation.ts`, `apps/web/src/pad-navigation.svelte.ts` | ADR-006 | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
 | Modo consola: interfaz automática según el último dispositivo, o fijada en Ajustes («Teclado y ratón» o «Mando»); leyenda de botones, carrusel de consolas y menú de pausa modal con Salir del juego. Solo presentación | `apps/web/src/input-mode.svelte.ts`, `PauseMenu.svelte`, `PadHints.svelte`, `InterfacePreference.svelte`; `parseUiPreference`/`resolveUiMode` en `ui-navigation.ts` | ADR-006 | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
 | CI: job `verify` (`verify:core`, Prettier, svelte-check, unitarias) y matriz `e2e` en paralelo (Chromium, Firefox y WebKit × dev y preview, más Chromium con la build bajo `/cartivo/`, build solo en preview, audio virtual en Firefox, pantalla virtual en WebKit, un reintento con traza), con preparación común en `.github/actions/setup`; unos 5 min en total; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
 
 ## 3. Pendiente (lista de trabajo, en orden)
 
-Cada punto es un incremento con rama y PR propias. «Terminado» significa lo indicado **y** la definición de §8.
+Cada punto es un incremento con rama y PR propias. «Terminado» significa su criterio **y** la definición de §8. Prioridad del titular: **un MVP jugable hasta PS2** antes que pulir la CI o publicar.
 
-1. **Cerrar H1.** Solo queda la QA física del titular: mando real, audio en altavoces, instalación, suspensión larga en móvil y actualización de la app con otra pestaña jugando (Android y escritorio Windows/Linux; Safari, macOS e iOS tienen prioridad baja por decisión del titular) ([H1-QA](compatibility/H1-QA.md), sección Manual). Lo automático está hecho.
-2. **H1.5 · sin fricción.** La navegación con mando ya está hecha (§2).
-   - **Aplazado por decisión del titular:** despliegue en Cloudflare con cabeceras reales (`application/wasm`, caché inmutable para assets con hash, revalidación de HTML y `sw.js`) y prueba sin conexión en el dominio.
-3. **Deuda técnica conocida.**
-   - Sincronía A/V fina (la cadencia por juego ya está hecha, §2).
-   - Ajustes de núcleo declarados por schema.
-   - P2–P4 con perfiles.
-   - GBA: RTC y sensores.
-   - Paletas DMG opcionales.
-   - Presupuestos de rendimiento medidos por núcleo (§7).
-4. **H3 · biblioteca y experiencia.** Identidad del juego por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
-5. **H4 · 3D.** PS1 y la lectura de discos bajo demanda están hechos (§2, ADR-015).
-   - **PS1, siguiente:** QA del titular con sus discos (compatibilidad y velocidad del intérprete); discos en la biblioteca (copia a OPFS con aviso de espacio); CHD, `.m3u` multidisco y mando analógico.
-   - **PSP** (PPSSPP): mismo camino de discos (`.iso`/`.cso`); su vídeo es 3D por GPU.
-   - **N64, aplazado** (ADR-015): el único RDP por software (angrylion) exige hilos y Mupen64Plus-Next exige WebGL2. Necesita renderer propio (WebGL2 en OffscreenCanvas) o hilos con COOP/COEP, medidos.
-   - `EmulatorCore` entrega RGBA de tamaño fijo y audio mono a 48 kHz. La resolución variable se diseña con el primer núcleo que la necesite, sin romper los actuales.
-6. **H5 · publicación V1.** Revisar las licencias de cada núcleo para distribución, despliegue real, vuelta atrás y avisos completos.
-7. **H6 · cuentas online (Supabase), posterior a V1.** Ver §4.
-8. **Laboratorio PS2.** Play! opcional con límites publicados.
+### 3.1 Del titular (no es trabajo de agentes)
+
+- **QA física:**
+  - PS1 con sus discos: `.cue` de *Crash Bandicoot*, juegos PAL y velocidad del intérprete ([H4-PS1](compatibility/H4-PS1.md));
+  - selector de perfiles con mando y móvil;
+  - lo manual de [H1-QA](compatibility/H1-QA.md): audio en altavoces, instalación, suspensión en móvil y actualización con otra pestaña jugando.
+  - Safari, macOS e iOS tienen prioridad baja.
+- **Decisiones aplazadas:** despliegue en Cloudflare con cabeceras reales y prueba sin conexión en el dominio.
+
+### 3.2 Cola para agentes
+
+Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está terminada y qué queda fuera. Si una entrada necesita una decisión de producto que no está aquí, se pregunta antes de programar.
+
+1. **PS1 · discos en la biblioteca.**
+   - *Objetivo:* recordar un disco y continuarlo desde «Tus juegos».
+   - *Cómo:* copiar sus archivos a OPFS como grupo y avisar del espacio que ocupa antes de copiarlo.
+   - *Empieza por:* área `load`/`storage`: `library.ts` (`rememberGame`, `storedRom`), `emulator.worker.ts` (`loadDisc` rechaza hoy `stored`) y ADR-012/015.
+   - *Terminado cuando:* la E2E con `ps1-disc-demo` recuerda, continúa y olvida el disco; la tarjeta de memoria se conserva; la copia se comparte entre perfiles.
+   - *Fuera:* CHD y multidisco.
+2. **PS1 · mando analógico y multidisco.**
+   - *Objetivo:* DualShock (sticks) donde el núcleo lo ofrezca, y `.m3u` con cambio de disco desde el menú de pausa.
+   - *Empieza por:* área `input` y `cores`: `InputState`, `pcsx-rearmed.ts` y `cores/pcsx-rearmed/src/cartivo.c`.
+   - *Ojo:* cambiar el puente obliga a reconstruir el núcleo (`cores/AGENTS.md`).
+   - *Terminado cuando:* pruebas unitarias del mapeo, conformidad y fixture original.
+   - *Fuera:* pistola, multitap.
+3. **PS1 · CHD.**
+   - *Cómo:* reconstruir con `HAVE_CHD` (libchdr, lzma y zstd).
+   - *Requisitos previos:* gate de licencias de esas dependencias y lectura por la VFS.
+   - *Terminado cuando:* fixture CHD propia arranca en Node y en E2E.
+4. **Vídeo WebGL2 en el Worker (spike + ADR).**
+   - *Objetivo:* `OffscreenCanvas` con WebGL2 para núcleos que dibujan con GPU. Es el requisito común de N64, PSP y PS2.
+   - *Terminado cuando:* un núcleo de prueba dibuja por GL en el Worker en Chromium y Firefox, con alternativa si falta WebGL2, y un ADR describe el contrato (sin romper el RGBA actual).
+5. **N64**, sobre el punto 4: Mupen64Plus-Next con GLideN64, previo gate CORE-LEGAL-01. El spike de ADR-015 descarta angrylion sin hilos.
+6. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre el punto 4 y el camino de discos (`.iso`/`.cso`).
+7. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
+
+### 3.3 Deuda técnica conocida (cuando toque su área)
+
+- **App.svelte (≈830 líneas):** extraer el flujo de pistas de `.cue` (`missingTracks`, `incomplete`, `pickTracks`) a su propio módulo antes de añadir más casos de disco.
+- **Prettier:** el repositorio usa 3.6.2, y una instalación global más nueva formatea distinto (ver `docs/ai/CONTEXT.md`, «Trampas conocidas»). Subir la versión del repositorio exige regenerar el lockfile con acceso al registro.
+- Sincronía A/V fina; ajustes de núcleo declarados por schema; P2–P4 (varios mandos en una partida); GBA RTC y sensores; paletas DMG opcionales; presupuestos de rendimiento medidos por núcleo (§7).
+- **H3 · biblioteca y experiencia:** identidad por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
+
+### 3.4 Después del MVP
+
+- **H5 · publicación V1:** revisión de licencias para distribución, despliegue real, vuelta atrás y avisos completos.
+- **H6 · cuentas online (Supabase):** ver §4.
 
 ## 4. Hito futuro H6 — Cuentas online con Supabase
 
@@ -79,7 +108,7 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa lo in
 - desbloquear logros;
 - aparecer en rankings por juego.
 
-Sin cuenta, Cartivo sigue funcionando igual: local y offline.
+Sin cuenta, Cartivo sigue funcionando igual: local y offline. Una cuenta se vincula a un perfil local (ADR-016), que ya separa partidas, biblioteca y controles; los logros serán de cada perfil.
 
 **Requisitos previos:**
 - **Regla de AGENTS.md.** El titular revisa «Archivos, partidas y rutas del usuario permanecen locales» para que diga «locales por defecto; nube solo con cuenta y consentimiento explícito».

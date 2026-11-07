@@ -27,11 +27,12 @@ export function selectPad(
     ? { mode: "pad", index: pad.index, id: pad.id, profile, deadzone }
     : { mode: "keyboard" };
 }
-export function readKeyboard(): KeyboardProfile {
+/** Where the keyboard layout is kept; each profile scopes it (ADR-016). */
+export const KEYBOARD_KEY = "cartivo:keyboard:v1";
+
+export function readKeyboard(key = KEYBOARD_KEY): KeyboardProfile {
   try {
-    const stored = JSON.parse(
-      localStorage.getItem("cartivo:keyboard:v1") ?? "null",
-    );
+    const stored = JSON.parse(localStorage.getItem(key) ?? "null");
     const saved = parseKeyboard(stored);
     if (!saved) return { ...defaultKeyboard };
     // Upgrade previous arrow-based defaults individually, preserving manual
@@ -59,7 +60,7 @@ export function readKeyboard(): KeyboardProfile {
     if (parseKeyboard(migrated)) {
       // Also persists L/R filled in for profiles saved before they existed.
       if (JSON.stringify(migrated) !== JSON.stringify(stored))
-        localStorage.setItem("cartivo:keyboard:v1", JSON.stringify(migrated));
+        localStorage.setItem(key, JSON.stringify(migrated));
       return migrated;
     }
     return saved;

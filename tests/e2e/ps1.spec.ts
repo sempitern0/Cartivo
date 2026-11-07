@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 import { playDemo, playing } from "./play.ts";
 
 // PlayStation runs PCSX-ReARMed with its HLE BIOS (ADR-015) and Cartivo's
@@ -73,12 +73,12 @@ test("PlayStation quick-saves with F5 and loads with F9", async ({ page }) => {
   await expect(page.locator('[data-slot="1"]')).toContainText("PCSX-ReARMed");
 });
 
-test("files opened together: the program boots, a disc without its tracks is refused", async ({
+test("files opened together: the program boots with an unrelated file", async ({
   page,
 }) => {
   await page.goto("/");
   const exe = await demoExe();
-  let chooser = page.waitForEvent("filechooser");
+  const chooser = page.waitForEvent("filechooser");
   await card(page).getByRole("button", { name: "Jugar", exact: true }).click();
   await (
     await chooser
@@ -95,20 +95,43 @@ test("files opened together: the program boots, a disc without its tracks is ref
     page.getByRole("heading", { name: "original-demo.exe" }),
   ).toBeVisible();
   await expect.poll(() => shows(page, [255, 255, 255])).toBe(true);
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+});
 
-  chooser = page.waitForEvent("filechooser");
+test("a .cue opened alone asks for its tracks, then the disc boots", async ({
+  page,
+}) => {
+  const { ps1DiscDemo } =
+    await import("../../packages/fixtures/src/ps1-disc-demo.ts");
+  const { cue, bin } = ps1DiscDemo();
+  await page.goto("/");
+  let chooser = page.waitForEvent("filechooser");
   await card(page).getByRole("button", { name: "Jugar", exact: true }).click();
   await (
     await chooser
   ).setFiles({
-    name: "incompleto.cue",
+    name: "Cartivo Demo.cue",
     mimeType: "application/octet-stream",
-    buffer: Buffer.from(
-      'FILE "incompleto.bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n',
-    ),
+    buffer: Buffer.from(cue),
   });
-  await expect(page.getByRole("alert")).toContainText("disco");
+  const alert = card(page).getByRole("alert");
+  await expect(alert).toContainText("Faltan pistas de «Cartivo Demo.cue»");
+  await expect(alert).toContainText("Cartivo Demo (Track 1).bin");
+  const choose = alert.getByRole("button", { name: "Elegir pistas" });
+  await expect(choose).toBeFocused();
+  chooser = page.waitForEvent("filechooser");
+  await choose.click();
+  await (
+    await chooser
+  ).setFiles({
+    name: "Cartivo Demo (Track 1).bin",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(bin),
+  });
+  await playing(page, 30);
+  await expect(
+    page.getByRole("heading", { name: "Cartivo Demo.cue" }),
+  ).toBeVisible();
+  await expect.poll(() => shows(page, [255, 255, 255])).toBe(true);
 });
 
 test("Controles names the PlayStation buttons", async ({ page }) => {

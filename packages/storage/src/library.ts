@@ -3,7 +3,9 @@
 // copies live in OPFS as roms/<sha256> and are written and read only by the
 // emulator Worker. Partidas and battery RAM are keyed by the same hash in
 // their own stores, so forgetting a game never touches them.
+// Each profile has its own index (ADR-016); ROM copies are shared by hash.
 import { done, request } from "./idb.ts";
+import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";
 
 export type LibraryEntry = {
@@ -119,9 +121,9 @@ export function viewGames(
     : byRecent(shown);
 }
 
-function openIndex() {
+function openIndex(profile: string) {
   return new Promise<IDBDatabase>((resolve, reject) => {
-    const req = indexedDB.open("cartivo-library", 1);
+    const req = indexedDB.open(scoped("cartivo-library", profile), 1);
     req.onupgradeneeded = () =>
       req.result.createObjectStore("games", { keyPath: "hash" });
     req.onsuccess = () => resolve(req.result);
@@ -129,8 +131,11 @@ function openIndex() {
   });
 }
 
-async function withIndex<T>(use: (db: IDBDatabase) => Promise<T>) {
-  const db = await openIndex();
+async function withIndex<T>(
+  profile: string,
+  use: (db: IDBDatabase) => Promise<T>,
+) {
+  const db = await openIndex(profile);
   try {
     return await use(db);
   } finally {
@@ -138,8 +143,8 @@ async function withIndex<T>(use: (db: IDBDatabase) => Promise<T>) {
   }
 }
 
-export function listGames(): Promise<LibraryEntry[]> {
-  return withIndex(async (db) => {
+export function listGames(profile = PRINCIPAL): Promise<LibraryEntry[]> {
+  return withIndex(profile, async (db) => {
     const all = await request(
       db.transaction("games", "readonly").objectStore("games").getAll(),
     );
@@ -151,8 +156,9 @@ export function listGames(): Promise<LibraryEntry[]> {
 export function updateGame(
   hash: string,
   patch: Partial<Pick<LibraryEntry, "lastPlayedAt" | "preview" | "name">>,
+  profile = PRINCIPAL,
 ): Promise<boolean> {
-  return withIndex(async (db) => {
+  return withIndex(profile, async (db) => {
     const tx = db.transaction("games", "readwrite");
     const store = tx.objectStore("games");
     const entry = parseEntry(await request(store.get(hash)));
@@ -299,12 +305,15 @@ export async function pruneOrphanRoms(
  * Copies a ROM to OPFS (unless a verified copy is already there) and only
  * then adds or refreshes its entry. Throws a readable message.
  */
-export async function rememberGame(game: {
-  hash: string;
-  system: string;
-  name: string;
-  rom: Uint8Array;
-}) {
+export async function rememberGame(
+  game: {
+    hash: string;
+    system: string;
+    name: string;
+    rom: Uint8Array;
+  },
+  profile = PRINCIPAL,
+) {
   if (!isSha256(game.hash)) throw Error("Juego no identificado");
   try {
     await ensureRomCopy(await romsDir(true), game.hash, game.rom);
@@ -317,7 +326,7 @@ export async function rememberGame(game: {
     );
   }
   const now = Date.now();
-  await withIndex(async (db) => {
+  await withIndex(profile, async (db) => {
     const tx = db.transaction("games", "readwrite");
     const store = tx.objectStore("games");
     const previous = parseEntry(await request(store.get(game.hash)));
@@ -335,19 +344,33 @@ export async function rememberGame(game: {
   });
 }
 
+/** Hashes remembered by any of these profiles (the copies still in use). */
+export async function rememberedBy(
+  profiles: readonly string[],
+): Promise<Set<string>> {
+  const lists = await Promise.all(profiles.map((p) => listGames(p)));
+  return new Set(lists.flat().map((g) => g.hash));
+}
+
 /**
- * Removes the entry and its ROM copy. Partidas («cartivo-states») and
+ * Removes the profile's entry, and the ROM copy unless one of `others` (the
+ * other profiles) still remembers it. Partidas («cartivo-states») and
  * battery RAM («cartivo-saves») are separate stores and stay untouched.
  */
-export async function forgetGame(hash: string) {
+export async function forgetGame(
+  hash: string,
+  profile = PRINCIPAL,
+  others: readonly string[] = [],
+) {
   if (!isSha256(hash)) return;
   // Entry first: an interruption leaves an orphan file (pruned later), never
   // an entry pointing to a missing copy.
-  await withIndex(async (db) => {
+  await withIndex(profile, async (db) => {
     const tx = db.transaction("games", "readwrite");
     tx.objectStore("games").delete(hash);
     await done(tx);
   });
+  if ((await rememberedBy(others)).has(hash)) return;
   const roms = await romsDir(false).catch(() => undefined);
   if (roms) await removeRom(roms, hash);
 }

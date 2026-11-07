@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 
 // Save-data integrity under repetition and damage (handoff stage A).
 // Drives the real emulator Worker through protocol v1, so it runs against

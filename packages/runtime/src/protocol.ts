@@ -7,6 +7,7 @@ import {
 /** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y, PS1 L2/R2). */
 const optional: readonly Action[] = ["l", "r", "x", "y", "l2", "r2"];
 import { system as findSystem } from "./systems.ts";
+import { isProfileId } from "../../storage/src/profiles.ts";
 import {
   isStateSlot,
   type StateMeta,
@@ -47,6 +48,9 @@ export type EmuRequest = {
   system?: string;
   /** Core for `load`; omitted means the system's first core in the worker. */
   core?: string;
+  /** Profile for `load` whose saves, Partidas and library are used
+   * (ADR-016); omitted means the first profile. */
+  profile?: string;
   /** Snapshot slot for state-save/state-load/state-delete/state-export. */
   slot?: StateSlot;
   /** Parsed JSON of an exported snapshot for state-import (checked in the Worker). */
@@ -106,6 +110,8 @@ export function parseRequest(value: unknown): EmuRequest {
     if (!target) throw Error("Sistema desconocido");
     if (r.core !== undefined && !target.cores.some((c) => c.id === r.core))
       throw Error(`Núcleo desconocido para ${target.name}`);
+    if (r.profile !== undefined && !isProfileId(r.profile))
+      throw Error("Perfil inválido");
   }
   if (
     ["state-save", "state-load", "state-delete", "state-export"].includes(
