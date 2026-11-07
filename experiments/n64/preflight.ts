@@ -1,3 +1,4 @@
+import { stick } from "../../packages/input/src/analog.ts";
 export const MAX_N64_ROM_BYTES = 64 * 1024 * 1024;
 export type ByteOrder = "z64" | "v64" | "n64";
 export type RomHeader = { byteOrder: ByteOrder; title: string; bytes: number };
@@ -47,16 +48,9 @@ export type N64Pad = {
 };
 
 /** Radial deadzone preserves diagonal direction and continuous intensity. */
-export function analogStick(x: number, y: number, deadzone = 0.18) {
-  if (!Number.isFinite(deadzone) || deadzone < 0 || deadzone >= 1)
-    throw new Error("Zona muerta inválida.");
-  x = Number.isFinite(x) ? Math.max(-1, Math.min(1, x)) : 0;
-  y = Number.isFinite(y) ? Math.max(-1, Math.min(1, y)) : 0;
-  const length = Math.hypot(x, y);
-  if (length <= deadzone) return { x: 0, y: 0 };
-  const scale = (Math.min(1, length) - deadzone) / (1 - deadzone) / length;
-  return { x: x * scale, y: y * scale };
-}
+/** The lab's stick reading is production's (packages/input/src/analog.ts). */
+export const analogStick = (x: number, y: number, deadzone = 0.18) =>
+  stick(x, y, deadzone);
 
 /** Diagnostic mapping only; production must reuse Cartivo's input ownership. */
 export function samplePad(

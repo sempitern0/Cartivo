@@ -4,6 +4,7 @@
 // (cores/<id>/src/cartivo.c); this file loads it, supplies its system
 // imports and implements EmulatorCore on top of that bridge.
 import type { InputState } from "../../input/src/nes-input.ts";
+import { toInt16, type Analog } from "../../input/src/analog.ts";
 import type { EmulatorCore } from "./contract.ts";
 import { DiscImage, vfsImports } from "./disc.ts";
 
@@ -18,6 +19,14 @@ export type Bridge = {
   cartivo_load_save(core: Pointer, data: Pointer, length: number): void;
   cartivo_save(core: Pointer, out: Pointer): void;
   cartivo_set_input(core: Pointer, bits: number): void;
+  /** Bridges with an analog pad: left x/y, right x/y, −32768…32767, y down. */
+  cartivo_set_analog?(
+    core: Pointer,
+    lx: number,
+    ly: number,
+    rx: number,
+    ry: number,
+  ): void;
   cartivo_frames(core: Pointer, count: number): number;
   cartivo_pixels(core: Pointer): Pointer;
   cartivo_audio(core: Pointer): Pointer;
@@ -333,6 +342,16 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
 
   input(state: InputState) {
     this.#wasm.cartivo_set_input(this.#live(), this.#options.bits(state));
+  }
+
+  analog({ left, right }: Analog) {
+    this.#wasm.cartivo_set_analog?.(
+      this.#live(),
+      toInt16(left.x),
+      toInt16(left.y),
+      toInt16(right.x),
+      toInt16(right.y),
+    );
   }
 
   advance(count: number) {

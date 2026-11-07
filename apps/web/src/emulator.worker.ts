@@ -14,6 +14,7 @@ import type {
   EmulatorCore,
 } from "../../../packages/adapters/src/contract.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
+import { centered } from "../../../packages/input/src/analog.ts";
 import { SramStore, digest } from "../../../packages/storage/src/sram.ts";
 import {
   backupFormat,
@@ -209,6 +210,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     throw Error("Sesión obsoleta o no cargada");
   if (r.command === "advance") {
     core.input(r.input!);
+    core.analog?.(r.analog ?? centered());
     return {
       ...core.advance(r.count!),
       width: module.video.width,
@@ -229,6 +231,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     return { saved, frames: 0 };
   }
   core.input(neutral());
+  core.analog?.(centered());
   if (r.command === "state-list")
     return { states: (await states?.list()) ?? [] };
   if (r.command === "state-save") {
