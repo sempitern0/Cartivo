@@ -8,9 +8,9 @@
     "spdx": "GPL-2.0-or-later"
   },
   "toolchain": {
-    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)",
-    "clang": "24.0.0git",
-    "emsdk": "6.0.12 (35ff8a6d150541276abbc6bae512ca90bcfbe220)"
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.10 (b7dc6e5747465580df5984e723b9d1f10d8e804b)",
+    "clang": "21.0.0git",
+    "emsdk": "4.0.10 (62a853cd3b3134398ce85cde8bb5cbb2ef0194cb)"
   },
   "platforms": [
     "Nintendo 64"
@@ -41,11 +41,11 @@
   "files": [
     {
       "path": "dist/n64-core.mjs",
-      "sha256": "d4842fff94e5ae80bb245cf867a6c3d334bf6dc70d0781f350fa6e81fe9c61e1"
+      "sha256": "5fc348583dc5cf460cb6fce45d337dcd147b65c3cab34562b7c32f60ebccca11"
     },
     {
       "path": "dist/n64-core.wasm",
-      "sha256": "810fb1912eab54a0fc259dcc8be34c4b20f19cbae4cb54f70548751349b8855d"
+      "sha256": "75903b7aec879abde45f2e318e111366a54a4779a26d8bfeecb5cd4c012ae51b"
     }
   ]
 }

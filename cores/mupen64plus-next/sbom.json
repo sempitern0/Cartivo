@@ -79,31 +79,31 @@
   },
   {
     "name": "Emscripten system libraries and JS runtime (GL, FS, fibers, Asyncify)",
-    "version": "6.0.12",
+    "version": "4.0.10",
     "license": "MIT OR NCSA",
     "repository": "https://github.com/emscripten-core/emscripten"
   },
   {
     "name": "libc++ and libc++abi (Emscripten)",
-    "version": "6.0.12",
+    "version": "4.0.10",
     "license": "Apache-2.0 WITH LLVM-exception",
     "repository": "https://github.com/emscripten-core/emscripten"
   },
   {
     "name": "musl libc (Emscripten)",
-    "version": "6.0.12",
+    "version": "4.0.10",
     "license": "MIT",
     "repository": "https://github.com/emscripten-core/emscripten"
   },
   {
     "name": "compiler-rt (Emscripten)",
-    "version": "6.0.12",
+    "version": "4.0.10",
     "license": "Apache-2.0 WITH LLVM-exception",
     "repository": "https://github.com/emscripten-core/emscripten"
   },
   {
     "name": "dlmalloc (Emscripten)",
-    "version": "6.0.12",
+    "version": "4.0.10",
     "license": "CC0-1.0",
     "repository": "https://github.com/emscripten-core/emscripten"
   }
