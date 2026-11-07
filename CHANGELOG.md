@@ -342,3 +342,6 @@
 - El chip del perfil tiene aire alrededor del avatar y del nombre.
 - Entradas de vista y de tarjetas y fichas escalonadas, respuesta al pulsar y realce al arrastrar. Todo se desactiva con «reducir movimiento».
 - Repaso de diseño: el acento de cada tarjeta indica el soporte (coral cartucho de sobremesa, oro portátil, violeta disco); el inicio pierde el lema en mayúsculas y las etiquetas van en minúsculas normales; la entrada escalonada de las tarjetas ocurre una sola vez por visita.
+- Segunda ronda tras la QA del titular: el inicio va directo a las consolas, sin título visible. Sin icono de controles en cada tarjeta (están en Ajustes). Al pasar el ratón solo se ilumina el botón de reproducción. Se ven todos los formatos (sin «+N»). Un clic en cualquier punto de la tarjeta abre el selector: antes solo respondía el botón, porque el hundimiento al pulsar encogía la zona de clic.
+- «Continuar» y los recientes forman una franja compacta en el acento de su consola. «Ver todos tus juegos» es una estantería de cartuchos con el número de juegos que se abre en abanico.
+- `systems.ts` declara `handheld`. El acento por soporte (`accent.ts`) ya no depende de identificadores de consola en la UI.

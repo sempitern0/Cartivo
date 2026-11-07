@@ -32,6 +32,7 @@
   import "./theme.css";
   import ProfilePicker from "./ProfilePicker.svelte";
   import ConsoleIcon from "./ConsoleIcon.svelte";
+  import { accentOf } from "./accent.ts";
   import { profiles } from "./profile.svelte.ts";
   import {
     initials,
@@ -104,23 +105,14 @@
   let pending = $state.raw<GameFiles<File>>();
   let openError = $state("");
   let dragging = $state(false);
-  /**
-   * Each card's accent says what the console plays: home cartridges coral,
-   * handhelds gold, discs violet (the palette, never a maker's colours).
-   */
-  const accent = (system: SystemInfo) =>
-    system.disc
-      ? "var(--profile-4)"
-      : ["gb", "gbc", "gba"].includes(system.id)
-        ? "var(--gold)"
-        : "var(--coral)";
   /** The cards deal in once per visit, not on every return to the start. */
   let dealt = $state(false);
-  /** Up to three format chips; longer lists show two and «+N». */
-  const formatChips = (extensions: readonly string[]) =>
-    extensions.length <= 3
-      ? extensions
-      : [...extensions.slice(0, 2), `+${extensions.length - 2}`];
+  /** «Jugar» on a card: the files waiting there, or the picker. */
+  function launch(system: SystemInfo) {
+    const waiting = pending?.system.id === system.id ? pending : undefined;
+    if (waiting) void openFiles([waiting.file, ...waiting.extra], system);
+    else pick(system);
+  }
   /** The card under a dragged file: dropping there prefers its console. */
   let over = $state<string>();
   /** The game among the files opened together (a disc may be several). */
@@ -400,11 +392,11 @@
     </section>
   {:else if !game}
     <section class="welcome">
-      <div class="titles">
-        <h1 id="inicio" bind:this={pageHeading} tabindex="-1">
-          Elige una consola
-        </h1>
-      </div>
+      <!-- The cards speak for themselves: the heading is for assistive
+           technology and the focus target of the start. -->
+      <h1 id="inicio" class="visually-hidden" bind:this={pageHeading} tabindex="-1">
+        Elige una consola
+      </h1>
       {#if pwa.updateReady}
         <div class="update" role="status">
           Nueva versión de Cartivo lista.
@@ -432,9 +424,11 @@
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
           {@const asking =
             incomplete?.game.system.id === item.id ? incomplete : undefined}
-          <li class:deal={!dealt} style={`--i: ${index}; --accent: ${accent(item)}`}>
-            <!-- The whole card is the «Jugar» target (the button stretches
-                 over it) and a drop zone that prefers this console. -->
+          <li class:deal={!dealt} style={`--i: ${index}; --accent: ${accentOf(item)}`}>
+            <!-- A click anywhere on the card plays (its «Jugar» button is the
+                 keyboard and pad target) and it is a drop zone that prefers
+                 this console. -->
+            <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
             <article
               class="console-card card"
               class:dragging
@@ -444,16 +438,11 @@
               ondragover={(e) => cardDragOver(e, item)}
               ondragleave={cardDragLeave}
               ondrop={(e) => cardDrop(e, item)}
+              onclick={(e) => {
+                if (!(e.target as Element).closest("button, a")) launch(item);
+              }}
             >
-              <div class="console-head">
-                <ConsoleIcon system={item.id} />
-                <a
-                  class="icon-button controls"
-                  href="#controles"
-                  aria-label={`Controles de ${item.name}`}
-                  title={`Controles de ${item.name}`}>{@html icons.sliders}</a
-                >
-              </div>
+              <ConsoleIcon system={item.id} />
               <div class="console-text">
                 <h2 id={`console-${item.id}`}>{item.name}</h2>
                 <p>{item.longName}</p>
@@ -474,10 +463,10 @@
                 {/if}
               </div>
               <div class="console-foot">
-                <span class="formats" title={item.extensions.join(", ")}
+                <span class="formats"
                   ><span class="visually-hidden">Formatos:</span
-                  >{#each formatChips(item.extensions) as chip}<span class="format"
-                      >{chip}</span
+                  >{#each item.extensions as extension}<span class="format"
+                      >{extension}</span
                     >{/each}</span
                 >
                 {#if waiting}
@@ -488,10 +477,7 @@
                 <button
                   class="play"
                   data-launch={`play-${item.id}`}
-                  onclick={() =>
-                    waiting
-                      ? openFiles([waiting.file, ...waiting.extra], waiting.system)
-                      : pick(item)}
+                  onclick={() => launch(item)}
                   ><span class="play-label"
                     >{waiting ? `Jugar ${waiting.file.name}` : "Jugar"}</span
                   ><span class="play-icon">{@html icons.play}</span></button
@@ -609,12 +595,12 @@
     outline: none;
   }
   .welcome {
-    padding: 56px 0 24px;
+    padding: 8px 0 24px;
   }
   .consoles {
     list-style: none;
     padding: 0;
-    margin: 48px 0 0;
+    margin: 32px 0 0;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
     gap: 20px;
@@ -641,7 +627,11 @@
       box-shadow 0.25s ease,
       border-color 0.25s ease;
   }
-  /* Hover, keyboard or pad focus: the card lifts and its badge turns. */
+  /* Hover, keyboard or pad focus: the card lifts, its badge turns and its
+     play button lights up in the card's accent. */
+  .console-card {
+    cursor: pointer;
+  }
   .console-card:hover,
   .console-card:has(.play:focus-visible),
   :global(:root[data-input="pad"]) .console-card:has(.play:focus) {
@@ -655,13 +645,11 @@
   .console-card:has(.play:focus-visible) :global(.badge) {
     transform: rotate(-4deg) scale(1.05);
   }
-  .console-card:active:not(:has(.controls:active, .tracks:active)) {
+  .console-card:active:not(:has(.tracks:active, .other:active)) {
     transform: translateY(-1px) scale(0.985);
   }
-  .console-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+  .console-card > :global(.badge) {
+    justify-self: start;
   }
   .console-text {
     min-width: 0;
@@ -682,16 +670,18 @@
   }
   .console-foot {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     gap: 10px;
     min-width: 0;
   }
+  /* Every format the console opens, wrapping when there are several. */
   .formats {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     min-width: 0;
-    overflow: hidden;
     margin-right: auto;
+    padding-bottom: 8px;
   }
   .waiting .formats {
     display: none;
@@ -704,12 +694,12 @@
     color: var(--muted);
     font-size: 13px;
   }
-  /* «Jugar»: a round play mark whose label slides out on hover or focus; its
-     ::after covers the card, so any click on it opens the game picker. */
+  /* «Jugar»: a round play button. Its name stays for assistive technology;
+     only a waiting file shows its label («Jugar juego.nes»). */
   .play {
     display: inline-flex;
     align-items: center;
-    gap: 0;
+    flex: none;
     max-width: 100%;
     min-height: 44px;
     padding: 0;
@@ -718,11 +708,8 @@
     color: var(--text);
     font-weight: 650;
   }
-  .play::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: var(--card-radius);
+  .play:not(:disabled):active {
+    transform: none;
   }
   .play:focus-visible {
     outline: none;
@@ -732,22 +719,32 @@
     outline-offset: 3px;
   }
   .play-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .waiting .play {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .waiting .play-label {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 0;
-    opacity: 0;
-    transition:
-      max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-      opacity 0.2s ease,
-      margin 0.3s ease;
+    margin-right: 10px;
   }
   .play-icon {
     display: grid;
     place-items: center;
     flex: none;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: 1px solid #ffffff1f;
     background: #ffffff0a;
@@ -755,15 +752,8 @@
       background 0.25s ease,
       color 0.25s ease,
       border-color 0.25s ease,
+      box-shadow 0.25s ease,
       transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .console-card:hover .play-label,
-  .play:focus-visible .play-label,
-  :global(:root[data-input="pad"]) .play:focus .play-label,
-  .waiting .play-label {
-    max-width: 22ch;
-    opacity: 1;
-    margin-right: 10px;
   }
   .console-card:hover .play-icon,
   .play:focus-visible .play-icon,
@@ -772,38 +762,15 @@
     background: var(--accent);
     border-color: transparent;
     color: #0d1016;
+    box-shadow: 0 6px 20px -6px var(--accent);
     transform: scale(1.06);
   }
-  /* Touch screens have no hover: the label stays visible. */
-  @media (hover: none) {
-    .play-label {
-      max-width: 22ch;
-      opacity: 1;
-      margin-right: 10px;
-    }
+  .console-card:active .play-icon {
+    transform: scale(0.94);
   }
-  /* Controls, «Elegir otro juego» and the tracks prompt sit above the
-     stretched «Jugar» target. */
-  .controls,
   .other,
   .tracks {
-    position: relative;
-    z-index: 1;
-  }
-  .controls {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    color: var(--muted);
-    transition:
-      color 0.2s ease,
-      background 0.2s ease,
-      transform 0.2s ease;
-  }
-  .controls:hover {
-    color: var(--text);
-    background: #ffffff0d;
-    transform: rotate(-8deg);
+    cursor: auto;
   }
   /* A file dragged over the page: every card invites it; the card under the
      pointer takes it. */
@@ -1046,7 +1013,7 @@
       padding: 20px 16px 32px;
     }
     .welcome {
-      padding-top: 32px;
+      padding-top: 4px;
     }
     .page-head {
       grid-template-columns: 48px 1fr;

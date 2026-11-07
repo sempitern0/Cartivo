@@ -37,7 +37,7 @@ async function playing(page: Page) {
     .toBeGreaterThan(10);
 }
 
-test("console card starts NES and its settings icon opens controls", async ({
+test("the start shows the consoles and Ajustes opens controls", async ({
   page,
   baseURL,
 }) => {
@@ -52,7 +52,9 @@ test("console card starts NES and its settings icon opens controls", async ({
   await page.screenshot({
     path: `${shots}/${variant(baseURL)}-home-desktop.png`,
   });
-  await page.getByRole("link", { name: "Controles de NES" }).click();
+  // Controls are global: the header's «Ajustes», not each card.
+  await expect(page.getByRole("link", { name: /^Controles de/ })).toHaveCount(0);
+  await page.getByRole("link", { name: "Ajustes" }).click();
   await expect(
     page.getByRole("heading", { name: "Configurar controles" }),
   ).toBeFocused();
@@ -96,6 +98,18 @@ test("a file dropped on a card opens with that console", async ({ page }) => {
   await card.dispatchEvent("drop", { dataTransfer: transfer });
   await playing(page);
   await expect(page.getByRole("heading", { name: "soltado.nes" })).toBeVisible();
+});
+
+test("clicking anywhere on a card opens its game picker", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("article", { name: "NES", exact: true })
+    .getByRole("heading")
+    .click();
+  expect((await chooser).isMultiple()).toBe(false);
 });
 
 test("Cargar ROM replaces the game with a single session", async ({ page }) => {

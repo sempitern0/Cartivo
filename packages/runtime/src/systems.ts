@@ -35,6 +35,8 @@ export type SystemInfo = {
   extensions: string[];
   /** Games on CD, read on demand from the player's files (ADR-015). */
   disc?: true;
+  /** A portable console (the home card's accent says so). */
+  handheld?: true;
   video: VideoDescriptor;
   /** Frames per second the player advances (original hardware rate). */
   frameRate: number;
@@ -108,6 +110,7 @@ export const systems: readonly SystemInfo[] = [
     name: "Game Boy Advance",
     longName: "Nintendo Game Boy Advance",
     extensions: [".gba"],
+    handheld: true,
     video: GBA_VIDEO,
     // 16 777 216 Hz clock, 280 896 cycles per frame ≈ 59.73 fps.
     frameRate: 16777216 / 280896,
@@ -272,6 +275,7 @@ function gameBoy(
 ): SystemInfo {
   return {
     ...info,
+    handheld: true,
     video: GB_VIDEO,
     frameRate: 4194304 / 70224,
     buttons: basicButtons,
