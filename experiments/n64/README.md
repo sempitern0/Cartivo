@@ -129,7 +129,15 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - stick con zona muerta 15 y sensibilidad 100.
 - **Primer build con el arreglo (`079dca91…`):** la demo se veía negra. El registro repetía `glMapBufferRange access does not support MAP_READ`: la copia de color a RDRAM lee la GPU con `glMapBufferRange`, y WebGL2 no lo permite.
   - **Ajuste:** se fijan apagadas las copias de color y de profundidad a RDRAM y el almacén de shaders, porque WebGL2 no tiene binarios de programa. Son los valores con los que ya funcionaba la demo.
-- **Próxima acción:** comprobar la demo en headless con el nuevo build; después, el titular repite *Super Mario 64*.
+- **Build `e93ec23b…`** (verificado con `verify:core`). En Chromium headless con SwiftShader:
+  - la demo se ve y responde a A y a Start;
+  - pausa, reanudar y pérdida de contexto funcionan;
+  - tono a 500,09 Hz;
+  - velocidad de 0,98× a 1×;
+  - unos 6,5 ms por fotograma (p95 de 10 ms);
+  - sin `glMapBufferRange` en el registro;
+  - al arrancar, unos pocos bloques de audio descartados y 2 underruns. Hay que confirmarlo en GPU real.
+- **Próxima acción:** el titular repite *Super Mario 64* (build normal o `N64_CORE=debug` tras `--debug`) y comprueba que pasa de los 10 s y que el stick mueve a Mario.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.
 
 ### Relevo — 2026-11-07, sesión 4
