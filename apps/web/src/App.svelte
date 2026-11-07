@@ -32,7 +32,6 @@
   import "./theme.css";
   import ProfilePicker from "./ProfilePicker.svelte";
   import ConsoleCard from "./ConsoleCard.svelte";
-  import { accentOf } from "./accent.ts";
   import { profiles } from "./profile.svelte.ts";
   import {
     initials,
@@ -188,7 +187,8 @@
   }
   function drop(e: DragEvent) {
     dragging = false;
-    if (!hasFiles(e)) return;
+    // A console card already took it (with that console as preference).
+    if (!hasFiles(e) || e.defaultPrevented) return;
     e.preventDefault();
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length && page === "inicio") void openFiles(files);
@@ -399,7 +399,7 @@
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
           {@const asking =
             incomplete?.game.system.id === item.id ? incomplete : undefined}
-          <li class:deal={!dealt} style={`--i: ${index}; --accent: ${accentOf(item)}`}>
+          <li class:deal={!dealt} style={`--i: ${index}`}>
             <ConsoleCard
               system={item}
               {dragging}
@@ -412,10 +412,7 @@
               onpick={() => pick(item)}
               onpicktracks={pickTracks}
               oncanceltracks={() => (incomplete = undefined)}
-              ondropfiles={(files) => {
-                dragging = false;
-                void openFiles(files, item);
-              }}
+              ondropfiles={(files) => void openFiles(files, item)}
             />
           </li>
         {/each}

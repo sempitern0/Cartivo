@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import ConsoleIcon from "./ConsoleIcon.svelte";
+  import { accentOf } from "./accent.ts";
   import { hasFiles } from "./game-source.ts";
   import { icons } from "./icons.ts";
   import type { SystemInfo } from "../../../packages/runtime/src/systems.ts";
@@ -51,10 +52,9 @@
   }
   function drop(e: DragEvent) {
     if (!hasFiles(e)) return;
-    // The page's own drop handler would open the files without this
-    // console as the preference.
+    // Handled: the page's own drop handler sees defaultPrevented and only
+    // ends its drag state.
     e.preventDefault();
-    e.stopPropagation();
     over = false;
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) ondropfiles(files);
@@ -67,6 +67,7 @@
   class:dragging
   class:over
   class:waiting
+  style={`--accent: ${accentOf(system)}`}
   aria-labelledby={`console-${system.id}`}
   ondragover={dragOver}
   ondragleave={dragLeave}
