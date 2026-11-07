@@ -41,6 +41,17 @@ node experiments/n64/build-core.mjs
 pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
 ```
 
+- **En Windows:** usa WSL, porque el `Makefile` de upstream necesita `make` y una shell Unix. Con Ubuntu en WSL:
+
+  ```sh
+  sudo apt install -y build-essential git python3 nodejs
+  git clone https://github.com/emscripten-core/emsdk ~/emsdk
+  ~/emsdk/emsdk install 6.0.12 && ~/emsdk/emsdk activate 6.0.12
+  source ~/emsdk/emsdk_env.sh   # en cada terminal nueva
+  cd /mnt/c/Users/<usuario>/…/Cartivo && node experiments/n64/build-core.mjs
+  ```
+
+  Es más rápido clonar el repo dentro del disco de WSL (`~/Cartivo`) que compilar sobre `/mnt/c`.
 - **Qué compila:** `build-core.mjs` descarga el commit fijado del candidato en `.build/` (ignorado por Git) y lo compila con el target `emscripten` de upstream como archivo estático (GLES3, sin dynarec). Luego lo enlaza con `host/frontend.c` (frontend libretro propio) y `fibers/cooperative.c`, que sustituye a libco con Asyncify. Deja `.build/n64-core.{mjs,wasm}` y un JSON de evidencia.
 - **Desvíos respecto a upstream, todos explícitos:**
   - el zlib incluido en el árbol en vez del port de Emscripten, que se descarga durante el build;

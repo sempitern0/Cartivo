@@ -22,12 +22,20 @@ const CORE = {
   repository: "https://github.com/libretro/mupen64plus-libretro-nx",
   commit: "15bada85906593376e8fd697f1b0b3af3a20f512",
 };
+// The upstream Makefile needs make and a Unix shell: on Windows, use WSL.
+if (process.platform === "win32")
+  throw new Error(
+    "Este build necesita Linux o macOS (make y una shell Unix). En Windows, ejecútalo dentro de WSL (Ubuntu) con emsdk 6.0.12 activado; ver experiments/n64/README.md.",
+  );
 const emcc = process.env.EMCC || "emcc";
 const run = (cmd, args, opts = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", stdio: "inherit", ...opts });
-const version = execFileSync(emcc, ["--version"], { encoding: "utf8" }).split(
-  "\n",
-)[0];
+const probe = spawnSync(emcc, ["--version"], { encoding: "utf8" });
+if (probe.error)
+  throw new Error(
+    `No se encuentra emcc (${emcc}). Instala y activa emsdk 6.0.12 en esta terminal: ./emsdk install 6.0.12 && ./emsdk activate 6.0.12 && source ./emsdk_env.sh`,
+  );
+const version = probe.stdout.split("\n")[0];
 // emsdk 6.0.12 ships its own LLVM 24: the same emcc over another clang is
 // not the pinned toolchain either.
 const clang = /clang version (\S+)/.exec(
