@@ -3,16 +3,28 @@
  * code: the emulator's HLE PIF copies ROM 0x40–0xFFF to the RSP's DMEM and
  * jumps there, so this program runs from DMEM instead of an IPL3. It sets up
  * the VI for 320×240 RGBA5551, draws with RDP fill rectangles (so the GPU
- * renderer presents it) and reads controller 1 through the PIF.
+ * renderer presents it), reads controller 1 through the PIF and keeps the
+ * audio interface fed with a square wave copied from the cartridge.
  * Oracle (whole screen, white 32×32 square at 16,16):
  * - no button: dark blue; A: red; B: green; Start: yellow (that order).
+ * - audio: N64_DEMO_TONE Hz on both channels (N64_DEMO_TONE * 2 zero
+ *   crossings per second at any output rate).
  */
 
 const BOOT = 0xa4000040; // DMEM, uncached
 const FRAMEBUFFER = 0x00100000;
 const DISPLAY_LIST = 0x00200000;
 const PIF_BLOCK = 0x00300000;
+const AUDIO = 0x00380000;
 const SIZE = 1024 * 1024;
+/** Square wave in the cartridge at 0x1000: 1024 stereo frames, 16 periods. */
+const TONE_ROM = 0x1000;
+const AUDIO_RATE = 32000;
+const AUDIO_FRAMES = 1024;
+const PERIOD = 64;
+export const N64_DEMO_TONE = AUDIO_RATE / PERIOD; // 500 Hz
+/** VI clock (NTSC) over the rate, as the AI expects. */
+const DACRATE = Math.round(48681812 / AUDIO_RATE) - 1;
 
 /** RGBA5551 from 8-bit channels, duplicated for the 32-bit fill colour. */
 function fill(r: number, g: number, b: number) {
@@ -53,6 +65,8 @@ export function n64ControlDemo(): Uint8Array {
     I(op, rs, rt, 0);
     nop();
   };
+  /** bltz (REGIMM, rt 0) to a label. */
+  const bltz = (rs: number, name: string) => branch(0x01, rs, 0, name);
   const beq = (rs: number, rt: number, name: string) =>
     branch(0x04, rs, rt, name);
   const bne = (rs: number, rt: number, name: string) =>
@@ -82,6 +96,21 @@ export function n64ControlDemo(): Uint8Array {
     0x00000400,
   ];
   vi.forEach((value, i) => store(8, i * 4, value));
+
+  // Audio: copy the wave from the cartridge to RDRAM (PI DMA), then set the
+  // AI rate and enable its DMA. s3 (19): PI; s4 (20): AI.
+  li(19, 0xa4600000);
+  store(19, 0x00, AUDIO); // PI_DRAM_ADDR
+  store(19, 0x04, 0x10000000 + TONE_ROM); // PI_CART_ADDR
+  store(19, 0x0c, AUDIO_FRAMES * 4 - 1); // PI_WR_LEN → cartridge to RDRAM
+  label("pi");
+  lw(12, 19, 0x10); // PI_STATUS
+  andi(12, 12, 3);
+  bne(12, 0, "pi");
+  li(20, 0xa4500000);
+  store(20, 0x10, DACRATE); // AI_DACRATE
+  store(20, 0x14, 15); // AI_BITRATE
+  store(20, 0x08, 1); // AI_CONTROL: DMA on
 
   // The PIF request for controller 1: read buttons and stick (command 1).
   li(10, 0xa0000000 | PIF_BLOCK); // t2
@@ -161,9 +190,16 @@ export function n64ControlDemo(): Uint8Array {
   store(17, 0x00, DISPLAY_LIST); // DPC_START
   store(17, 0x04, DISPLAY_LIST + words.length * 4); // DPC_END → run
 
-  // Wait about a frame before drawing again.
+  // Wait about a frame before drawing again, keeping the audio fed: the
+  // wave is queued whenever the AI's two-entry FIFO has room (AI_STATUS
+  // bit 31 is "full").
   li(18, 400000); // s2
   label("wait");
+  lw(12, 20, 0x0c);
+  bltz(12, "queued");
+  store(20, 0x00, AUDIO); // AI_DRAM_ADDR
+  store(20, 0x04, AUDIO_FRAMES * 4); // AI_LEN → enqueue
+  label("queued");
   addiu(18, 18, -1);
   bne(18, 0, "wait");
   branch(0x04, 0, 0, "frame");
@@ -182,5 +218,11 @@ export function n64ControlDemo(): Uint8Array {
   rom.set(new TextEncoder().encode("CARTIVO DEMO".padEnd(20, " ")), 0x20);
   rom.set(new TextEncoder().encode("NCDE"), 0x3b); // homebrew id, NTSC
   code.forEach((word, i) => view.setUint32(0x40 + i * 4, word));
+  // The wave, big-endian 16-bit, left and right alike.
+  for (let i = 0; i < AUDIO_FRAMES; i++) {
+    const level = i % PERIOD < PERIOD / 2 ? 8000 : -8000;
+    view.setInt16(TONE_ROM + i * 4, level);
+    view.setInt16(TONE_ROM + i * 4 + 2, level);
+  }
   return rom;
 }

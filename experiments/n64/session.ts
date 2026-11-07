@@ -8,6 +8,7 @@ import type { SessionEvent, SessionRequest } from "./session-protocol.ts";
 const startDemo = document.querySelector<HTMLButtonElement>("#session-demo")!;
 const startRom = document.querySelector<HTMLButtonElement>("#session-rom")!;
 const stopButton = document.querySelector<HTMLButtonElement>("#session-stop")!;
+const loseButton = document.querySelector<HTMLButtonElement>("#session-lose")!;
 const status = document.querySelector<HTMLElement>("#session-status")!;
 const stats = document.querySelector<HTMLElement>("#session-stats")!;
 const holder = document.querySelector<HTMLElement>("#session-screen")!;
@@ -18,6 +19,41 @@ let worker: Worker | undefined;
 let frame = 0;
 let poll: ReturnType<typeof setInterval> | undefined;
 const keys = new Set<string>();
+
+/**
+ * Audio: created on the click that starts a session (autoplay rules); each
+ * chunk is scheduled right after the previous one. The queue is bounded:
+ * beyond MAX_AHEAD a chunk is dropped instead of drifting into latency.
+ */
+const MAX_AHEAD = 0.25;
+const LEAD = 0.06;
+let audio: AudioContext | undefined;
+let sampleRate = 0;
+let playAt = 0;
+let dropped = 0;
+
+function play(samples: Int16Array) {
+  if (!audio || !sampleRate) return;
+  const now = audio.currentTime;
+  if (playAt < now + LEAD / 2) playAt = now + LEAD;
+  if (playAt - now > MAX_AHEAD) {
+    dropped++;
+    return;
+  }
+  const frames = samples.length / 2;
+  const buffer = audio.createBuffer(2, frames, sampleRate);
+  const left = buffer.getChannelData(0);
+  const right = buffer.getChannelData(1);
+  for (let i = 0; i < frames; i++) {
+    left[i] = samples[i * 2] / 32768;
+    right[i] = samples[i * 2 + 1] / 32768;
+  }
+  const source = audio.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audio.destination);
+  source.start(playAt);
+  playAt += frames / sampleRate;
+}
 
 /** libretro bits as the core maps them: B→N64 A, Y→N64 B, L2→Z. */
 const KEYBOARD: Record<string, number> = {
@@ -46,9 +82,12 @@ function stop(message = "Sesión detenida.") {
   clearInterval(poll);
   worker?.terminate();
   worker = undefined;
+  void audio?.close();
+  audio = undefined;
+  sampleRate = 0;
   keys.clear();
   holder.replaceChildren();
-  stopButton.disabled = true;
+  stopButton.disabled = loseButton.disabled = true;
   startDemo.disabled = startRom.disabled = false;
   status.textContent = message;
 }
@@ -81,6 +120,9 @@ async function start(rom: Uint8Array) {
       "Falta el núcleo local: ejecuta node experiments/n64/build-core.mjs.";
     return;
   }
+  audio = new AudioContext();
+  playAt = 0;
+  dropped = 0;
   const canvas = document.createElement("canvas");
   canvas.width = 640;
   canvas.height = 480;
@@ -90,16 +132,24 @@ async function start(rom: Uint8Array) {
   worker = new Worker(new URL("./session.worker.ts", import.meta.url), {
     type: "module",
   });
-  stopButton.disabled = false;
+  stopButton.disabled = loseButton.disabled = false;
   startDemo.disabled = startRom.disabled = true;
   worker.onerror = () => stop("El Worker de la sesión ha fallado.");
   worker.onmessage = ({ data }: MessageEvent<SessionEvent>) => {
-    if (data.type === "running") {
+    if (data.type === "audio") play(data.samples);
+    else if (data.type === "running") {
+      sampleRate = data.sampleRate;
       status.textContent = `En marcha a ${data.fps.toFixed(2)} Hz.`;
       pumpInput();
       poll = setInterval(() => send({ type: "status", x: 320, y: 240 }), 1000);
-    } else if (data.type === "status") stats.textContent = JSON.stringify(data);
-    else if (data.type === "error") stop(data.message);
+    } else if (data.type === "status") {
+      const queued = audio ? Math.max(0, playAt - audio.currentTime) : 0;
+      stats.textContent = JSON.stringify({
+        ...data,
+        audioQueueMs: Math.round(queued * 1000),
+        audioDropped: dropped,
+      });
+    } else if (data.type === "error") stop(data.message);
   };
   send({ type: "start", canvas: offscreen, rom, module: MODULE }, [
     offscreen,
@@ -117,6 +167,7 @@ startRom.onclick = async () => {
   await start(new Uint8Array(await chosen.arrayBuffer()));
 };
 stopButton.onclick = () => stop();
+loseButton.onclick = () => send({ type: "lose-context" });
 window.addEventListener("keydown", (e) => {
   if (worker && e.code in KEYBOARD) keys.add(e.code);
 });

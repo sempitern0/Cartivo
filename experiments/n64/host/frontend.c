@@ -192,12 +192,16 @@ EMSCRIPTEN_KEEPALIVE int n64_load(const char *path) {
   return 0;
 }
 
-/* One emulated frame; returns the stereo frames of audio it produced. */
-EMSCRIPTEN_KEEPALIVE unsigned n64_run(void) {
+/* One emulated frame. Its audio is read afterwards with n64_audio_frames():
+ * retro_run() switches fibers, and an export whose stack Asyncify unwinds and
+ * rewinds loses its return value. */
+EMSCRIPTEN_KEEPALIVE void n64_run(void) {
   audio_frames = 0;
   retro_run();
-  return audio_frames;
 }
+
+/* Stereo frames of audio the last n64_run() produced (at n64_audio()). */
+EMSCRIPTEN_KEEPALIVE unsigned n64_audio_frames(void) { return audio_frames; }
 
 EMSCRIPTEN_KEEPALIVE int16_t *n64_audio(void) { return audio; }
 EMSCRIPTEN_KEEPALIVE double n64_fps(void) { return av.timing.fps; }

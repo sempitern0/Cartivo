@@ -36,7 +36,7 @@ Las siete unitarias entran en el glob habitual de `pnpm test`. El build del labo
 ## Sesión con el núcleo local (fase 2)
 
 ```sh
-# Emscripten 6.0.12 activo; JOBS=n para paralelizar make.
+# Emscripten 6.0.12 de emsdk (LLVM 24) activo; JOBS=n para paralelizar make.
 node experiments/n64/build-core.mjs
 pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
 ```
@@ -46,15 +46,19 @@ pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
   - el zlib incluido en el árbol en vez del port de Emscripten, que se descarga durante el build;
   - `-fno-common`, porque WebAssembly no tiene símbolos comunes;
   - el parche `patches/emu-thread-entry.patch`, porque la entrada de la corutina tenía un tipo distinto y WebAssembly lo detiene;
-  - un `sem_timedwait` que falla de forma explícita, porque el renderizador con hilos de GLideN64 se enlaza pero nunca arranca.
-- `N64_EXPLORATORY_EMCC=1` acepta otra versión de emcc solo para iterar; la evidencia la marca como no reproducible. `N64_DEBUG=1` añade nombres y aserciones.
+  - un `sem_timedwait` que falla de forma explícita, porque el renderizador con hilos de GLideN64 se enlaza pero nunca arranca;
+  - `-sMAXIMUM_MEMORY=512 MiB`: así falla la reserva de 512 MiB del «full mem base» de Mupen64Plus (todo el espacio de direcciones de la N64) y el núcleo usa su disposición compacta. La sesión pasa de 730 MiB a 256 MiB sin cambio medible de coste por fotograma.
+- `N64_EXPLORATORY_EMCC=1` acepta otra toolchain solo para iterar; la evidencia la marca como no reproducible y guarda la versión de clang. Fijada significa emcc 6.0.12 **con su LLVM 24**: el emcc 6.0.12 sobre LLVM 21 no compila su propia libc (faltan `__builtin_wasm_memory_copy` y `__builtin_wasm_memory_fill`). `N64_DEBUG=1` añade nombres y aserciones.
 - **Sesión** (`session.ts` y `session.worker.ts`):
   - el canvas se transfiere una vez y Emscripten crea WebGL2 sobre él; el núcleo dibuja en el framebuffer por defecto;
   - la ROM va al FS en memoria;
   - los fotogramas van a la cadencia del juego, sin ráfagas;
-  - detener o un fallo terminan el Worker;
-  - el único readback es un píxel de diagnóstico por segundo.
-- **Demo original** (`fixture/n64-control-demo.ts`): cartucho de 1 MiB sin código de Nintendo. El PIF HLE copia ROM 0x40–0xFFF a DMEM y salta allí, así que el programa propio sustituye al IPL3: configura el VI, dibuja con rectángulos de relleno del RDP (los presenta GLideN64) y lee el mando 1 por el PIF.
+  - detener o un fallo terminan el Worker, también durante la carga;
+  - el único readback es un píxel de diagnóstico por segundo;
+  - el audio sale en un bloque por fotograma. El frontend lo cuenta con `n64_audio_frames()`, porque Asyncify pierde el valor de retorno de una exportación que cambia de fibra. La página lo programa con Web Audio (`AudioContext` creado en el clic de arranque) en una cola acotada: más de 250 ms por delante se descarta el bloque;
+  - una pérdida del contexto WebGL detiene la sesión con un mensaje; «Simular pérdida de contexto» la provoca (`WEBGL_lose_context`);
+  - el estado da el tiempo por fotograma (media y p95 de 120), los totales del oráculo de audio y la memoria del módulo.
+- **Demo original** (`fixture/n64-control-demo.ts`): cartucho de 1 MiB sin código de Nintendo. El PIF HLE copia ROM 0x40–0xFFF a DMEM y salta allí, así que el programa propio sustituye al IPL3: configura el VI, dibuja con rectángulos de relleno del RDP (los presenta GLideN64) y lee el mando 1 por el PIF. Además copia del cartucho (PI DMA) una onda cuadrada de 500 Hz a 32 kHz y mantiene alimentada la FIFO de la interfaz de audio (AI) desde su bucle de espera.
 - **Mando:** el núcleo asigna los botones por posición: libretro B = A de N64, Y = B, Start = Start y L2 = Z.
 
 ## Microprueba de corutinas, sin compilar el núcleo
@@ -71,6 +75,26 @@ La receta exige 6.0.12 y compila únicamente el puente original `fibers/cooperat
 Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones por ciclo, preservación de variables locales y heap WASM estable tras calentamiento. Esto no mide el coste de Asyncify en el núcleo real, profundidad de pila de N64, audio, WebGL ni recuperación de una partida. El tamaño de pila Asyncify de 64 KiB es provisional y debe medirse con el núcleo. El puente es monohilo y sus contextos no son compartibles; una entrada debe ceder, no retornar.
 
 ## Estado de relevo
+
+### Relevo — 2026-11-07, sesión 3
+
+- **Base:** `feat/n64-gpu-prototype` con `main` fusionado y el rediseño del inicio. Sin PR abierta; la CI de la rama se lanzó a mano (`workflow_dispatch`) y está en verde. Esa CI no ejecuta este laboratorio.
+- **Fase:** 2 casi completa: vídeo, entrada, audio, pérdida de contexto y cancelación. Empieza la 3 con las primeras mediciones de la demo. El gate CORE-LEGAL-01 sigue **pendiente**.
+- **Build:** sigue **exploratorio** (Emscripten 4.0.10 con LLVM 21). Se probó el emcc 6.0.12 (por git) sobre LLVM 21 y no compila su libc. La toolchain fijada necesita los binarios de emsdk, que este entorno no alcanza.
+- **Medido** (Chromium headless con SwiftShader, demo original, sin GPU física):
+  - **Coste por fotograma:** media 5,6–5,9 ms y p95 8–9 ms, sobre un presupuesto de 16,7 ms. Incluye Asyncify y fibers.
+  - **Memoria:** 256 MiB fijos con el tope de memoria (antes 730 MiB).
+  - **Audio:** el oráculo da 500,09 Hz a 44,1 kHz. El núcleo emite unas 46,9 k muestras por segundo de reloj, más que el tiempo real, y la cola acotada descarta bloques. En producción hará falta pautar por audio o un control de tasa.
+  - **Cadencia:** `setInterval` deja unos 56 fps de 60 con la sonda de estado activa.
+- **Pruebas:**
+  - Unitarias: 8 de 8, con el hash nuevo de la demo y el oráculo de la onda.
+  - Driver de Playwright local sobre el bundle de esbuild: botones, tono, pérdida de contexto y detener.
+  - `browser.spec.ts` añade el tono y la pérdida de contexto, pero no se ha ejecutado con Vite aquí.
+- **Próxima acción:**
+  1. Compilar con emsdk 6.0.12 en una máquina con acceso, o pedir al titular un workflow deliberado (prohibido durante el spike sin su autorización), y repetir `browser.spec.ts`.
+  2. Fase 3 con juegos propios del titular (no versionados): coste por fotograma con GPU real en Chromium, Firefox y Safari, pila de Asyncify, estabilidad de 30 minutos y control de tasa de audio.
+  3. Completar CORE-LEGAL-01 y decidir go o no-go.
+- **No tocar:** producción (Player, protocolo, `cores/`, `.build-request`, workflows) hasta superar la fase 3.
 
 ### Relevo — 2026-11-07, sesión 2
 

@@ -95,7 +95,39 @@ test("a real session runs the original demo cartridge and reads the pad", async 
     (await page.locator("#session-stats").textContent())!,
   );
   expect(stats.presented).toBeGreaterThan(0);
+  // The demo's 500 Hz square wave arrives at the core's output rate: two
+  // sign changes per period, whatever the resampling.
+  const audio = async () =>
+    JSON.parse((await page.locator("#session-stats").textContent())!).audio;
+  const first = await audio();
+  await page.waitForTimeout(2500);
+  const later = await audio();
+  const seconds = (later.frames - first.frames) / later.rate;
+  expect(seconds).toBeGreaterThan(1);
+  const tone = (later.crossings - first.crossings) / 2 / seconds;
+  expect(Math.abs(tone - 500)).toBeLessThan(10);
   await page.getByRole("button", { name: "Detener" }).click();
   await expect(status).toHaveText("Sesión detenida.");
   await expect(page.locator("#session-screen canvas")).toHaveCount(0);
+});
+
+test("a lost WebGL context stops the session and says so", async ({ page }) => {
+  test.skip(
+    !existsSync(new URL(".build/n64-core.mjs", import.meta.url)),
+    "núcleo local no compilado",
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Arrancar demo" }).click();
+  const status = page.locator("#session-status");
+  await expect(status).toContainText("En marcha", { timeout: 30_000 });
+  await page
+    .getByRole("button", { name: "Simular pérdida de contexto" })
+    .click();
+  await expect(status).toHaveText(
+    "Se ha perdido el contexto WebGL: la sesión se ha detenido.",
+  );
+  await expect(page.locator("#session-screen canvas")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Arrancar demo" }),
+  ).toBeEnabled();
 });

@@ -2,9 +2,9 @@
 // normal CI and never written to cores/: the output stays in .build/ (git
 // ignored) until the core passes CORE-LEGAL-01 and the viability gate.
 //   node experiments/n64/build-core.mjs
-// Needs emcc 6.0.12. N64_EXPLORATORY_EMCC=1 accepts another version only to
+// Needs emcc 6.0.12 from emsdk (LLVM 24). N64_EXPLORATORY_EMCC=1 accepts another version only to
 // iterate locally; the evidence then says the build is not reproducible.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   copyFileSync,
@@ -28,9 +28,16 @@ const run = (cmd, args, opts = {}) =>
 const version = execFileSync(emcc, ["--version"], { encoding: "utf8" }).split(
   "\n",
 )[0];
-const pinned = /\b6\.0\.12\b/.test(version);
+// emsdk 6.0.12 ships its own LLVM 24: the same emcc over another clang is
+// not the pinned toolchain either.
+const clang = /clang version (\S+)/.exec(
+  spawnSync(emcc, ["-v"], { encoding: "utf8" }).stderr,
+)?.[1];
+const pinned = /\b6\.0\.12\b/.test(version) && clang?.split(".")[0] === "24";
 if (!pinned && process.env.N64_EXPLORATORY_EMCC !== "1")
-  throw new Error(`Expected emcc 6.0.12; found ${version}`);
+  throw new Error(
+    `Expected emcc 6.0.12 with LLVM 24; found ${version}, clang ${clang}`,
+  );
 
 mkdirSync(out, { recursive: true });
 if (!existsSync(resolve(core, ".git"))) {
@@ -116,6 +123,7 @@ const exports = [
   "n64_load",
   "n64_run",
   "n64_audio",
+  "n64_audio_frames",
   "n64_fps",
   "n64_sample_rate",
   "n64_presented",
@@ -142,6 +150,10 @@ run(emcc, [
   "-sASYNCIFY",
   "-sASYNCIFY_STACK_SIZE=1048576",
   "-sALLOW_MEMORY_GROWTH",
+  // Mupen64Plus first tries a 512 MiB "full mem base" (the whole N64 address
+  // space) and falls back to its compact layout when that allocation fails.
+  // The cap makes it fail: a session then fits in about half the memory.
+  "-sMAXIMUM_MEMORY=536870912",
   "-sINITIAL_MEMORY=268435456",
   "-sSTACK_SIZE=4194304",
   "-sMIN_WEBGL_VERSION=2",
@@ -165,6 +177,7 @@ writeFileSync(
       core: CORE,
       patches: patches.map((p) => p.slice(root.length + 1)),
       emcc: version,
+      clang,
       reproducible: pinned,
       wasm: {
         bytes: bytes.length,

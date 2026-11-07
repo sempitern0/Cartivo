@@ -10,6 +10,7 @@ import { isProbeResult } from "../experiments/n64/protocol.ts";
 import { createHash } from "node:crypto";
 import {
   N64_DEMO_COLORS,
+  N64_DEMO_TONE,
   n64ControlDemo,
 } from "../experiments/n64/fixture/n64-control-demo.ts";
 
@@ -120,11 +121,20 @@ test("the N64 demo cartridge is original and has a stable hash", () => {
     title: "CARTIVO DEMO",
     bytes: rom.length,
   });
-  // Our boot program fills DMEM 0x40–0xFFF; the rest of the cartridge is empty.
-  assert.ok(rom.subarray(0x1000).every((b) => b === 0));
+  // Boot program in 0x40–0xFFF, then 4 KiB of square wave; nothing else.
+  const wave = new DataView(rom.buffer, 0x1000, 0x1000);
+  const levels = new Set<number>();
+  for (let i = 0; i < 0x1000; i += 2) levels.add(wave.getInt16(i));
+  assert.deepEqual(
+    [...levels].sort((a, b) => a - b),
+    [-8000, 8000],
+  );
+  assert.equal(wave.getInt16(0), wave.getInt16(2)); // left = right
+  assert.ok(rom.subarray(0x2000).every((b) => b === 0));
+  assert.equal(N64_DEMO_TONE, 500);
   assert.equal(
     createHash("sha256").update(rom).digest("hex"),
-    "c3b9084c6174e1a01684ca4d3314d8633802bde667660f3b75cc3ddf80a43f2d",
+    "090c9451106597066ea9ef2ac700889b0f1eac81035e96c4971278c2e4b7e105",
   );
   // RGBA5551 pairs, as the RDP fill colour expects.
   for (const color of Object.values(N64_DEMO_COLORS))

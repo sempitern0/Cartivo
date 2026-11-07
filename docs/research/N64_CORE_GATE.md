@@ -70,10 +70,18 @@ Lo enlazado por `experiments/n64/build-core.mjs`: 270 objetos del target `emscri
   - GLideN64 presenta los 484 fotogramas de 8 s (60 Hz) en el framebuffer del canvas transferido;
   - oráculo: centro `[33,33,99]` sin botones, A `[255,0,0]`, B `[0,255,0]`, Start `[255,255,0]`; cuadrado blanco en (16,16);
   - al detener se termina el Worker.
-- **Sin evidencia:** GPU física, Firefox y WebKit, audio, juegos reales, rendimiento sostenido y coste de Asyncify.
+- **Sin evidencia:** GPU física, Firefox y WebKit, juegos reales y rendimiento sostenido. El audio, la pérdida de contexto y una primera medida del coste se cubren en la sesión 3.
+
+## Verificación de la sesión 3 (2026-11-07)
+
+- **Toolchain:** Emscripten 6.0.12 exige LLVM 24. Sobre LLVM 21 no compila su libc (faltan `__builtin_wasm_memory_copy` y `__builtin_wasm_memory_fill`). La receta solo considera fijada la pareja emcc 6.0.12 más clang 24, y lo registra en la evidencia. El binario de esta sesión sigue siendo exploratorio (4.0.10, LLVM 21).
+- **Memoria:** con `-sMAXIMUM_MEMORY=512 MiB` falla la reserva de 512 MiB del «full mem base» y Mupen64Plus usa su disposición compacta, sin parchear el núcleo. Pasa de 730 MiB a 256 MiB.
+- **Audio:** la demo alimenta la AI con una onda propia de 500 Hz. El frontend recibe 44,1 kHz y el oráculo mide 500,09 Hz. Asyncify pierde el valor de retorno de `n64_run`, así que el recuento sale por `n64_audio_frames()`. El núcleo produce más muestras por segundo de reloj que el tiempo real, y la página descarta bloques más allá de 250 ms.
+- **Pérdida de contexto:** detiene la sesión con un mensaje y libera el canvas.
+- **Coste por fotograma** (SwiftShader, demo): media de unos 5,7 ms y p95 de unos 9 ms. No vale como referencia de juegos reales.
 
 ## Siguiente acción concreta
 
-1. Repetir el build con emcc 6.0.12 y la E2E del laboratorio con Vite.
-2. Audio (`n64_audio`, cola acotada, gesto del usuario) y pérdida de contexto WebGL.
+1. Build con emsdk 6.0.12 (LLVM 24) fuera de este entorno o en un workflow deliberado autorizado, y la E2E del laboratorio con Vite.
+2. Control de tasa de audio (pautar por la cola) antes de cualquier integración.
 3. Después medir overhead de Asyncify, profundidad de pila, consumo de CPU, audio y estabilidad sostenida; comprobar si el intérprete cumple. Solo una sesión jugable y repetible permite pasar a integración de producto. Si no cumple, registrar no-go o soporte experimental limitado en vez de ampliar abstracciones.
