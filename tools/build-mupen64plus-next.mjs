@@ -11,6 +11,8 @@
 // loads dist/ while the viability gate is open.
 //   node tools/build-mupen64plus-next.mjs           build + dist/, manifest, sbom
 //   node tools/build-mupen64plus-next.mjs --verify  build into a temp dir and compare
+//   node tools/build-mupen64plus-next.mjs --debug   names, assertions and stack
+//     checks into build/debug/ (git ignored), for `N64_CORE=debug` in the lab
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -33,6 +35,7 @@ const root = resolve(import.meta.dirname, "..");
 const core = join(root, "cores/mupen64plus-next");
 const work = join(core, "build");
 const verify = process.argv.includes("--verify");
+const debug = process.argv.includes("--debug");
 const pins = JSON.parse(readFileSync(join(core, "toolchain.json"), "utf8"));
 const run = (cmd, args, opts = {}) =>
   (
@@ -140,7 +143,11 @@ const exports = [
   "malloc",
   "free",
 ];
-const out = verify ? mkdtempSync(join(tmpdir(), "n64-")) : join(core, "dist");
+const out = verify
+  ? mkdtempSync(join(tmpdir(), "n64-"))
+  : debug
+    ? join(work, "debug")
+    : join(core, "dist");
 if (!verify) rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
 const module = join(out, "n64-core.mjs");
@@ -150,6 +157,16 @@ run(
   "emcc",
   [
     "-O2",
+    // Function names in traces, Emscripten's runtime checks, Asyncify
+    // assertions (buffer overruns) and C stack overflow detection.
+    ...(debug
+      ? [
+          "-g2",
+          "--profiling-funcs",
+          "-sASSERTIONS=2",
+          "-sSTACK_OVERFLOW_CHECK=2",
+        ]
+      : []),
     `-I${join(source, "libretro-common/include")}`,
     `-ffile-prefix-map=${root}=/cartivo`,
     join(core, "src/frontend.c"),
@@ -197,6 +214,12 @@ const files = [
   { path: "dist/n64-core.wasm", sha256: sha256(wasm) },
 ];
 
+if (debug) {
+  console.log(
+    `Build de depuración en ${out}: N64_CORE=debug pnpm exec vite experiments/n64`,
+  );
+  process.exit(0);
+}
 if (verify) {
   const manifest = JSON.parse(
     readFileSync(join(core, "manifest.json"), "utf8"),

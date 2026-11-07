@@ -42,6 +42,15 @@ pnpm exec vite experiments/n64 --host 127.0.0.1    # «Arrancar demo»
 
 - **El núcleo lo compila la CI**, no hace falta Emscripten ni WSL para probar. `.github/workflows/core-mupen64plus-next.yml` corre al cambiar `cores/mupen64plus-next/.build-request` o con `workflow_dispatch`, y el bot versiona `dist/n64-core.{mjs,wasm}`, `manifest.json` y `sbom.json`. `vite.config.ts` sirve esa carpeta tal cual como `publicDir`.
 - **Receta:** `tools/build-mupen64plus-next.mjs`. Descarga el commit fijado en `cores/mupen64plus-next/build/` (ignorado por Git) y lo compila con el target `emscripten` de upstream como archivo estático (GLES3, sin dynarec). Luego lo enlaza con `src/frontend.c` (frontend libretro propio) y `src/cooperative.c` (libco sobre fibers/Asyncify). Exige el emsdk de `toolchain.json` con su propio LLVM: hoy **4.0.10 (LLVM 21)**, porque el build con 6.0.12 (LLVM 24) se cuelga en el primer fotograma. `--verify` recompila en un directorio temporal y compara hashes.
+- **Build de depuración:** para diagnosticar un fallo con un juego propio (por ejemplo `memory access out of bounds`). Lleva nombres de función en las trazas, comprobaciones de Emscripten, aserciones de Asyncify y detección de desbordamiento de la pila C. No se versiona y la CI no lo compila.
+
+  ```sh
+  ~/emsdk/emsdk install 4.0.10 && ~/emsdk/emsdk activate 4.0.10 && source ~/emsdk/emsdk_env.sh
+  node tools/build-mupen64plus-next.mjs --debug     # → cores/mupen64plus-next/build/debug/
+  N64_CORE=debug pnpm exec vite experiments/n64 --host 127.0.0.1
+  ```
+
+  Si el núcleo falla dentro de un fotograma, el Worker escribe en el registro la pila del error antes de detenerse.
 - **Compilar en local** solo hace falta para cambiar la receta o el frontend. Necesita Linux, macOS o WSL con `make` y emsdk activado; en WSL, mejor con el repositorio dentro de su disco (`~/Cartivo`). Ejecuta `node tools/build-mupen64plus-next.mjs`.
 - **Desvíos respecto a upstream, todos explícitos:**
   - el zlib incluido en el árbol en vez del port de Emscripten, que se descarga durante el build;
@@ -104,7 +113,12 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - velocidad 0,99×, tono a 500,09 Hz, ningún bloque de audio descartado ni underrun;
   - unos 5,9 ms por fotograma (p95 de 8,7 ms) y primer fotograma a los 0,29 s.
 - **Entrada analógica:** producción tiene sticks (`packages/input/src/analog.ts`, ADR-006) y el laboratorio reutiliza esa normalización.
-- **Pendiente:** la QA del titular (fase 3) con el núcleo de CI, desde cualquier copia actualizada y sin compilar nada.
+- **QA del titular (2026-11-07, Brave en Windows, servido desde WSL):**
+  - La demo funciona completa: imagen, pausa, reanudar y pérdida de contexto.
+  - *Super Mario 64* (propio, sin versionar) arranca y se ve: 561 fotogramas presentados, velocidad 0,93×, unos 14 ms por fotograma (p95 de 20 ms), 3 underruns de audio (586 ms de déficit).
+  - A los 10 s el Worker cae con `RuntimeError: memory access out of bounds`, con la memoria aún en 256 MiB.
+  - Descartado por lectura: la disposición compacta de memoria pasa toda la traducción de direcciones por `mem_base_u32`.
+- **Próxima acción:** el titular repite *Super Mario 64* con el build de depuración y envía el registro, que ahora incluye la pila del fallo. Candidatos: desbordamiento de la pila C de la fibra (4 MiB en wasm32, la mitad que en 64 bits), del búfer de Asyncify o un fallo del núcleo.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.
 
 ### Relevo — 2026-11-07, sesión 4
