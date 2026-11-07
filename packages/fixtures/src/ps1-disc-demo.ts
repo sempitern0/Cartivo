@@ -39,7 +39,8 @@ function ascii(out: Uint8Array, at: number, text: string, width = 0) {
 
 /** An ISO 9660 directory record. */
 function record(name: Uint8Array, lba: number, size: number, dir: boolean) {
-  const length = 33 + name.length + ((33 + name.length) % 2);
+  let length = 33 + name.length;
+  if (length & 1) length++; // records have an even length
   const out = new Uint8Array(length);
   const view = new DataView(out.buffer);
   out[0] = length;
@@ -110,7 +111,8 @@ export function ps1DiscIso(): Uint8Array {
   return iso;
 }
 
-const bcd = (n: number) => ((n / 10) << 4) | (n % 10);
+/** 0–99 as binary-coded decimal (12 → 0x12). */
+const bcd = (n: number) => parseInt(String(n), 16);
 
 /** The same volume as a raw MODE2/2352 track: sync, header, subheader and
  * user data per sector (EDC/ECC left zero: the core does not check them). */
