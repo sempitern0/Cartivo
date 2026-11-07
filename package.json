@@ -16,7 +16,7 @@
     "test:e2e:preview": "playwright test --config playwright.preview.config.ts --project=chromium",
     "test:e2e:preview:firefox": "playwright test --config playwright.preview.config.ts --project=firefox",
     "test:e2e:preview:webkit": "playwright test --config playwright.preview.config.ts --project=webkit",
-    "verify:core": "node tools/verify-jsnes.mjs && node tools/verify-tetanes.mjs && node tools/verify-core.mjs sameboy mgba snes9x genesis-plus-gx pcsx-rearmed",
+    "verify:core": "node tools/verify-jsnes.mjs && node tools/verify-tetanes.mjs && node tools/verify-core.mjs sameboy mgba snes9x genesis-plus-gx pcsx-rearmed mupen64plus-next",
     "context": "node tools/context.mjs"
   },
   "devDependencies": {
