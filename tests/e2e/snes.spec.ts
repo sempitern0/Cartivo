@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 
 // SNES runs Snes9x (ADR-013) with Cartivo's own 65816 fixture.
 const frames = async (page: Page) =>

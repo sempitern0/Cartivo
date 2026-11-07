@@ -8,6 +8,7 @@
   import {
     listGames,
     pruneOrphanRoms,
+    rememberedBy,
     type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
@@ -29,6 +30,16 @@
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
   import "./theme.css";
+  import ProfilePicker from "./ProfilePicker.svelte";
+  import { profiles } from "./profile.svelte.ts";
+  import {
+    initials,
+    type Profile,
+  } from "../../../packages/storage/src/profiles.ts";
+  import {
+    cueFiles,
+    matchTracks,
+  } from "../../../packages/storage/src/cue.ts";
   /** Screens without a router: the hash names the page (#controles, #juegos). */
   type Page = "inicio" | "controles" | "juegos";
   let page = $state<Page>("inicio");
@@ -38,11 +49,29 @@
   // `id` remounts the player when a ROM replaces the current one.
   let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
   let nextGameId = 0;
+  /**
+   * The control (`data-launch`) that started the game: it gets the focus
+   * back when the game ends, so a pad or the keyboard carries on from the
+   * same card instead of the top of the page.
+   */
+  let launcher: string | undefined;
   const startGame = (system: SystemInfo, source: GameSource = demo) => {
     if (pwa.applyingUpdate) return;
     openError = "";
+    const from = document.activeElement;
+    if (!game) launcher = from instanceof HTMLElement ? from.dataset.launch : undefined;
     game = { source, system, id: ++nextGameId };
   };
+  async function returnFocus() {
+    await tick();
+    const control = launcher
+      ? document.querySelector<HTMLElement>(
+          `[data-launch="${CSS.escape(launcher)}"]`,
+        )
+      : null;
+    (control ?? pageHeading)?.focus({ preventScroll: true });
+    control?.scrollIntoView({ block: "nearest" });
+  }
   // Local library: remembered games, most recent first.
   let games = $state.raw<LibraryEntry[]>([]);
   /** What this browser lets Cartivo keep (notice on the home screen). */
@@ -50,14 +79,15 @@
   let pruned = false;
   async function refreshLibrary() {
     try {
-      games = await listGames();
+      games = await listGames(profiles.id);
       // Once per visit, in the background: copies left by an interrupted
-      // remember/forget. Never blocks nor fails the home screen.
+      // remember/forget or a deleted profile, unless any profile still
+      // remembers them. Never blocks nor fails the home screen.
       if (!pruned) {
         pruned = true;
-        void pruneOrphanRoms(new Set(games.map((g) => g.hash))).catch(
-          () => 0,
-        );
+        void rememberedBy(profiles.all.map((p) => p.id))
+          .then((known) => pruneOrphanRoms(known))
+          .catch(() => 0);
       }
     } catch {
       games = [];
@@ -76,16 +106,38 @@
   /** The game among the files opened together (a disc may be several). */
   const sourceOf = ({ file, extra }: GameFiles<File>): GameSource =>
     extra.length ? { kind: "file", file, extra } : { kind: "file", file };
+  /** A disc's .cue opened without the tracks it names: asked for on its card. */
+  let incomplete = $state.raw<{ game: GameFiles<File>; missing: string[] }>();
+  /** The next pick adds tracks to `incomplete` instead of replacing it. */
+  let addingTracks = false;
+  /** The tracks a .cue names that were not opened with it (a tiny read). */
+  async function missingTracks({ file, extra }: GameFiles<File>) {
+    if (!file.name.toLowerCase().endsWith(".cue")) return [];
+    try {
+      return matchTracks(cueFiles(await file.text()), extra).missing;
+    } catch {
+      return []; // unreadable here: the Worker reports it
+    }
+  }
   /** Picks the system by extension; a card choice wins for its own picker. */
-  function openFiles(files: readonly File[], preferred?: SystemInfo) {
+  async function openFiles(files: readonly File[], preferred?: SystemInfo) {
     const found = gameForFiles(files, preferred);
     if (!found) {
       openError = `No se reconoce «${files.map((f) => f.name).join("», «")}». Formatos admitidos: ${acceptFor(consoles)}.`;
       return;
     }
+    const missing = await missingTracks(found);
+    incomplete = missing.length ? { game: found, missing } : undefined;
+    if (incomplete) {
+      openError = "";
+      await tick();
+      document.querySelector<HTMLElement>(".tracks .primary")?.focus();
+      return;
+    }
     // One active game: never replace a running session without the player
-    // closing it first (its SRAM flush is confirmed on close).
-    if (game) pending = found;
+    // closing it first (its SRAM flush is confirmed on close). Before a
+    // profile is picked, the files wait on their console's card.
+    if (game || !profiles.active) pending = found;
     else {
       pending = undefined;
       startGame(found.system, sourceOf(found));
@@ -98,11 +150,24 @@
     fileInput.multiple = !!system.disc;
     fileInput.click();
   }
+  function pickTracks() {
+    if (!incomplete) return;
+    addingTracks = true;
+    pick(incomplete.game.system);
+  }
   function chooseGame(event: Event) {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = "";
-    if (files.length) openFiles(files, pickerSystem);
+    const adding = addingTracks ? incomplete : undefined;
+    addingTracks = false;
+    if (!files.length) return;
+    if (adding)
+      void openFiles(
+        [adding.game.file, ...adding.game.extra, ...files],
+        adding.game.system,
+      );
+    else void openFiles(files, pickerSystem);
   }
   const hasFiles = (e: DragEvent) =>
     !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");
@@ -118,7 +183,7 @@
     if (!hasFiles(e)) return;
     e.preventDefault();
     const files = Array.from(e.dataTransfer?.files ?? []);
-    if (files.length && page === "inicio") openFiles(files);
+    if (files.length && page === "inicio") void openFiles(files);
   }
   let pageHeading = $state.raw<HTMLHeadingElement>();
   async function showPage() {
@@ -130,6 +195,17 @@
   /** The app's root: "/" or the sub-path it is deployed under. */
   const home = import.meta.env.BASE_URL;
   /** The logo returns to the start without reloading (a running game stays). */
+  /** Who plays this visit (ADR-016): their library, saves and controls. */
+  function chooseProfile(profile: Profile) {
+    profiles.choose(profile);
+    games = [];
+    void refreshLibrary();
+    void showPage();
+  }
+  function switchProfile() {
+    profiles.choose(undefined);
+    games = [];
+  }
   function goHome(event: MouseEvent) {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
       return;
@@ -152,13 +228,13 @@
   onMount(() => {
     startPwa();
     void storageHealth().then((health) => (storage = health));
-    void refreshLibrary();
+    if (profiles.active) void refreshLibrary();
     // "Open with Cartivo" from the operating system (installed PWA).
     const queue = (window as Window & { launchQueue?: LaunchQueue })
       .launchQueue;
     queue?.setConsumer(async ({ files }) => {
       if (files.length)
-        openFiles(await Promise.all(files.map((h) => h.getFile())));
+        void openFiles(await Promise.all(files.map((h) => h.getFile())));
     });
     void showPage();
     const sync = () => void showPage();
@@ -194,26 +270,38 @@
       ></a
     >
     <nav aria-label="Principal">
+      {#if profiles.active && !game}<button
+          class="icon-button settings-link profile-chip"
+          style={`--color: var(--profile-${profiles.active.color})`}
+          aria-label={`Perfil: ${profiles.active.name}. Cambiar de perfil`}
+          title="Cambiar de perfil"
+          onclick={switchProfile}
+          ><span class="chip-avatar" aria-hidden="true"
+            >{initials(profiles.active.name)}</span
+          ><span class="chip-name">{profiles.active.name}</span></button
+        >{/if}
       {#if pwa.canInstall && !pwa.installed}
         <button class="install" onclick={() => void install()}
           >Instalar app</button
         >
       {/if}
-      {#if games.length && !game}<a
+      {#if games.length && !game && profiles.active}<a
           class="icon-button settings-link"
           href="#juegos"
           aria-current={page === "juegos" ? "page" : undefined}
           >{@html icons.library}<span>Tus juegos</span></a
         >{/if}
-      <a
-        class="icon-button settings-link"
-        href="#controles"
-        aria-current={page === "controles" ? "page" : undefined}
-        >{@html icons.gear}<span>Ajustes</span></a
-      >
+      {#if profiles.active || game}<a
+          class="icon-button settings-link"
+          href="#controles"
+          aria-current={page === "controles" ? "page" : undefined}
+          >{@html icons.gear}<span>Ajustes</span></a
+        >{/if}
     </nav>
   </header>
-  {#if page === "controles"}
+  {#if !game && !profiles.active}
+    <ProfilePicker onchoose={chooseProfile} />
+  {:else if page === "controles"}
     <section class="controls-page">
       <div class="page-head">
         <a
@@ -280,6 +368,8 @@
       <ul class="consoles" aria-label="Consolas">
         {#each consoles as item (item.id)}
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
+          {@const asking =
+            incomplete?.game.system.id === item.id ? incomplete : undefined}
           <li>
             <article
               class="console-card card"
@@ -293,10 +383,26 @@
                 <h2 id={`console-${item.id}`}>{item.name}</h2>
                 <p>{item.longName}</p>
               </div>
+              {#if asking}
+                <div class="tracks" role="alert">
+                  <p>
+                    <strong>Faltan pistas de «{asking.game.file.name}»</strong>
+                    {asking.missing.join(", ")}. Elígelas para jugar.
+                  </p>
+                  <div class="tracks-actions">
+                    <button class="primary" onclick={pickTracks}
+                      >Elegir pistas</button
+                    ><button class="link" onclick={() => (incomplete = undefined)}
+                      >Cancelar</button
+                    >
+                  </div>
+                </div>
+              {/if}
               <div class="console-actions">
                 {#if waiting}
                   <button
                     class="primary icon-button play"
+                    data-launch={`play-${item.id}`}
                     onclick={() => openFiles([waiting.file, ...waiting.extra], waiting.system)}
                     >{@html icons.play}<span>Jugar {waiting.file.name}</span
                     ></button
@@ -304,6 +410,7 @@
                 {:else}
                   <button
                     class="primary icon-button play"
+                    data-launch={`play-${item.id}`}
                     onclick={() => pick(item)}
                     >{@html icons.play}<span>Jugar</span></button
                   >
@@ -321,6 +428,7 @@
                   >{/if}
                 {#if item.demo}<button
                     class="link"
+                    data-launch={`demo-${item.id}`}
                     onclick={() => startGame(item)}>Probar demo</button
                   >{/if}
                 <span class="drop-hint"
@@ -351,6 +459,7 @@
           onclose={() => {
             game = undefined;
             void refreshLibrary();
+            void returnFocus();
           }}
           onreplace={(files: File[]) => {
             pending = undefined;
@@ -553,6 +662,53 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 4px 14px;
+  }
+  .profile-chip {
+    padding-left: 6px;
+    border-radius: 999px;
+  }
+  .chip-avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background:
+      radial-gradient(120% 120% at 20% 10%, #ffffff40, transparent 55%),
+      var(--color);
+    color: #111218;
+    font-size: 13px;
+    font-weight: 750;
+  }
+  .chip-name {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tracks {
+    display: grid;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent);
+    background: color-mix(in srgb, var(--gold) 10%, transparent);
+  }
+  .tracks p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+  .tracks strong {
+    display: block;
+    color: var(--text);
+  }
+  .tracks-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
   }
   .link {
     background: transparent;

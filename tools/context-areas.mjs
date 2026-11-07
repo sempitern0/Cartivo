@@ -69,15 +69,16 @@ export const areas = [
   },
   {
     id: "storage",
-    title: "SRAM, Partidas y biblioteca",
+    title: "SRAM, Partidas, biblioteca y perfiles",
     start: [
       "packages/storage/src/",
-      "apps/web/src/{SavePanel,LibraryPage,RecentGames,ContinueCard}.svelte",
+      "apps/web/src/{SavePanel,LibraryPage,RecentGames,ContinueCard,ProfilePicker}.svelte",
+      "apps/web/src/profile.svelte.ts",
     ],
     context: [
-      "tests/{storage,snapshots,library,state-file,background-commit,persistence}.test.ts",
-      "tests/e2e/{saves,storage,library,integrity,faults}.spec.ts",
-      "docs/adr/{003,009,012}-*.md",
+      "tests/{storage,snapshots,library,state-file,background-commit,persistence,profiles}.test.ts",
+      "tests/e2e/{saves,storage,library,integrity,faults,profiles}.spec.ts",
+      "docs/adr/{003,009,012,016}-*.md",
     ],
   },
   {

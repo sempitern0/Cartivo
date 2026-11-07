@@ -14,10 +14,18 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 | Entrada | Mando digital: Cruz/Círculo en K/L, Cuadrado/Triángulo en J/U, L1/R1 en I/O, L2/R2 en Y/P; en el mando estándar, por posición y gatillos 6/7 |
 | Guardado | Tarjeta de memoria 1 (128 KiB, `cartivo-ps1-sram-v1`) como batería; Partidas con `retro_serialize` (≈ 4,4 MB) |
 
-## Fixture original
+## QA del titular
+
+- 2026-11-07, mando físico: *Crash Bandicoot* (USA, disco propio) jugable abriendo el `.bin`.
+- Abrir solo el `.cue` fallaba con «El núcleo no ha podido abrir el disco»: faltaba la pista.
+  - Ahora la tarjeta pide las pistas antes de arrancar, y se aceptan una pista renombrada y una hoja guardada con BOM.
+  - Pendiente: confirmar el `.cue` con ese disco.
+
+## Fixtures originales
 
 **`ps1-control-demo.ts`** (emisor MIPS R3000 propio; PS-EXE de 4 KiB sin texto de licencia de Sony). SHA-256 `2ec37a8d0e7b68d644b5efc4e131bd7f3c413cdb1ca85640893be1aa89a617b3`.
 - Inicializa la GPU (320×240, 15 bits) y el mando con `InitPad`/`StartPad` de la BIOS HLE.
+- **`ps1-disc-demo.ts`:** el mismo programa dentro de una imagen de CD propia: ISO 9660 con SYSTEM.CNF y PSX.EXE, 24 sectores MODE2/2352 y su `.cue`. SHA-256 del `.bin`: `70b0fe39…13ebc`. El núcleo la arranca desde el `.cue` con su pista, desde el `.bin` solo y como `.iso`.
 - Pinta la pantalla de un color y un cuadrado blanco de 32×32 en (16, 16); un bucle de espera deja la GPU libre medio fotograma.
 - Sin botones, azul oscuro; Cruz, rojo; Círculo, verde; Start, amarillo (el núcleo amplía el color de 15 bits: 0x20 → 0x21).
 

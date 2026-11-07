@@ -20,6 +20,7 @@ import {
   sramKey,
 } from "../../../packages/storage/src/formats.ts";
 import { coreLabel } from "../../../packages/runtime/src/systems.ts";
+import { PRINCIPAL } from "../../../packages/storage/src/profiles.ts";
 import { StorageUnavailable } from "../../../packages/storage/src/idb.ts";
 import {
   StateStore,
@@ -61,6 +62,8 @@ let start: (save?: Uint8Array) => EmulatorCore;
 /** The cartridge in memory, kept to remember it; discs stay in their files. */
 let rom: Uint8Array | undefined;
 let hash = "";
+/** The profile whose saves, Partidas and library this session uses. */
+let profile = PRINCIPAL;
 /** File name of the running game, needed to remember it; empty otherwise. */
 let title = "";
 let session = "";
@@ -98,9 +101,13 @@ let noStorage: string | undefined;
  */
 async function openStorage(system: string) {
   try {
-    states = await StateStore.open(hash);
+    states = await StateStore.open(hash, profile);
     if (core!.battery)
-      store = await SramStore.open(sramKey(system, hash), core!.saveBytes);
+      store = await SramStore.open(
+        sramKey(system, hash),
+        core!.saveBytes,
+        profile,
+      );
   } catch (e) {
     states?.close();
     states = undefined;
@@ -121,7 +128,10 @@ async function remember(): Promise<
   // from the files the player opens.
   if (!title || !rom) return { remembered: false };
   try {
-    await rememberGame({ hash, system: module.system, name: title, rom });
+    await rememberGame(
+      { hash, system: module.system, name: title, rom },
+      profile,
+    );
     return { remembered: true };
   } catch (e) {
     return {
@@ -162,6 +172,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     const system = r.system ?? "nes";
     // Protocol v1 without `core` meant JSNES; keep that for old clients.
     module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
+    profile = r.profile ?? PRINCIPAL;
     ({ start, rom, hash } = module.disc
       ? await loadDisc(module, r)
       : await loadCartridge(module, r));
@@ -177,7 +188,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     const [library, slots] = await Promise.all([
       r.remember
         ? remember()
-        : updateGame(hash, { lastPlayedAt: Date.now() })
+        : updateGame(hash, { lastPlayedAt: Date.now() }, profile)
             .catch(() => false)
             .then((remembered) => ({ remembered })),
       states?.list() ?? Promise.resolve([]),
@@ -239,9 +250,11 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     });
     // The «Continuar» card shows where the player left off.
     if (r.slot === "auto" && preview)
-      await updateGame(hash, { preview, lastPlayedAt: Date.now() }).catch(
-        () => false,
-      );
+      await updateGame(
+        hash,
+        { preview, lastPlayedAt: Date.now() },
+        profile,
+      ).catch(() => false);
     return { ...flushed, states: await snapshots().list() };
   }
   if (r.command === "state-load") {

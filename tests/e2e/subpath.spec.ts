@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.ts";
 import { openNesFile, playDemo, playing } from "./play.ts";
 
 // Cartivo deployed under a sub-path (/cartivo/): every link, the manifest,

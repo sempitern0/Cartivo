@@ -13,6 +13,8 @@ import {
 } from "../packages/adapters/src/pcsx-rearmed.ts";
 import { DiscImage } from "../packages/adapters/src/disc.ts";
 import { ps1ControlDemo } from "../packages/fixtures/src/ps1-control-demo.ts";
+import { ps1DiscDemo } from "../packages/fixtures/src/ps1-disc-demo.ts";
+import { prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
 import { neutral, type InputState } from "../packages/input/src/nes-input.ts";
 
 providePcsxBinary(
@@ -75,4 +77,35 @@ test("memory card 1 is the battery save and survives a new core", async () => {
   const again = new PcsxRearmedAdapter(demoDisc(), card);
   assert.deepEqual(again.save().subarray(0, 2), Uint8Array.from([0x4d, 0x43]));
   again.dispose();
+});
+
+test("a CD image boots from its .cue with the track, or from the .bin alone", async () => {
+  await preparePcsx();
+  const { cue, bin } = ps1DiscDemo();
+  // 24 raw MODE2/2352 sectors: ISO 9660 volume, SYSTEM.CNF and PSX.EXE.
+  assert.equal(
+    createHash("sha256").update(bin).digest("hex"),
+    "70b0fe391f54d20a418368dbc2c59c10844af7a90d0e0b008a6042f19ae13ebc",
+  );
+  const sheet = new File([cue], "Cartivo Demo.cue");
+  const track = new File([bin as BlobPart], "Cartivo Demo (Track 1).bin");
+  const bytes = new Map<Blob, Uint8Array>([
+    [sheet, new TextEncoder().encode(cue)],
+    [track, bin],
+  ]);
+  const read = (blob: Blob, start: number, end: number) =>
+    bytes.get(blob)!.slice(start, end);
+  const module = { prepare: preparePcsx };
+  for (const [file, extra] of [
+    [sheet, [track]],
+    [track, []],
+  ] as const) {
+    const { disc } = await prepareDisc(module, file, extra, read);
+    const core = new PcsxRearmedAdapter(disc);
+    core.input({ ...neutral(), b: true });
+    let frame = core.advance(3);
+    for (let i = 0; i < 39; i++) frame = core.advance(3);
+    assert.equal(pixel(frame.pixels, 160, 120), 0xff0000, file.name);
+    core.dispose();
+  }
 });

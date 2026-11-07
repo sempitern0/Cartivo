@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 
 // Game Boy Advance runs mGBA (ADR-011) with Cartivo's own fixture, which
 // starts at once (HLE BIOS, no boot animation).

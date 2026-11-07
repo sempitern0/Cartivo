@@ -2,6 +2,7 @@
 // Separate from battery RAM (sram.ts): a snapshot is tied to one core and
 // version, battery RAM is shared by every core.
 import { done, locks, openDatabase, request } from "./idb.ts";
+import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";
 
 export const stateSlots = ["auto", "1", "2", "3"] as const;
@@ -86,7 +87,7 @@ export class StateStore {
    * Takes the per-game writer lock (any game, battery or not) and opens the
    * store. A second tab with the same game is rejected.
    */
-  static async open(game: string): Promise<StateStore> {
+  static async open(game: string, profile = PRINCIPAL): Promise<StateStore> {
     const lockManager = locks();
     let release!: () => void;
     const hold = new Promise<void>((resolve) => (release = resolve));
@@ -98,7 +99,7 @@ export class StateStore {
       acquired = await new Promise<boolean>((resolve, reject) => {
         void lockManager
           .request(
-            "cartivo:game:" + game,
+            scoped("cartivo:game:" + game, profile),
             { ifAvailable: true },
             async (lock) => {
               resolve(!!lock);
@@ -113,7 +114,10 @@ export class StateStore {
         "Este juego ya está abierto en otra pestaña. Ciérrala antes de continuar.",
       );
     try {
-      const db = await openDatabase("cartivo-states", "states");
+      const db = await openDatabase(
+        scoped("cartivo-states", profile),
+        "states",
+      );
       return new StateStore(db, game, release);
     } catch (error) {
       release();

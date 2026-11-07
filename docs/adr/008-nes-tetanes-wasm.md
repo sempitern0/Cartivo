@@ -4,7 +4,7 @@ Estado: **aceptado para el incremento experimental H0-WASM-NES**, 2026-11-01. Su
 
 ## Contexto
 
-ADR-007 dejó abierto el gate WASM porque el entorno no tenía toolchain Rust. La investigación (`docs/research/H0_NES_CORE_CANDIDATES.md`) prioriza TetaNES por su licencia permisiva y su soporte wasm32. El entorno del agente sigue sin poder descargar crates, así que la compilación se traslada a GitHub Actions con resultados versionados y verificables.
+ADR-007 dejó abierto el gate WASM porque el entorno no tenía toolchain Rust. La investigación preliminar de candidatos (retirada al completarse; queda en el historial de git) priorizó TetaNES por su licencia permisiva y su soporte wasm32. El entorno del agente sigue sin poder descargar crates, así que la compilación se traslada a GitHub Actions con resultados versionados y verificables.
 
 ## Decisión
 

@@ -1,7 +1,7 @@
 // Shared steps for E2E specs: open a game, wait until it really runs, and
 // inject a fault into the emulator Worker. Older specs keep their own copies
 // for now; new specs use these.
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page } from "./fixtures.ts";
 
 export const frames = async (page: Page) =>
   Number(await page.locator("canvas").getAttribute("data-frames"));

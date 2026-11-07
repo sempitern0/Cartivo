@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures.ts";
 
 // Game Boy and Game Boy Color run SameBoy (ADR-010) with Cartivo's own
 // fixture; the boot ROM animation takes a few seconds before the program.
