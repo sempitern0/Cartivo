@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cartivo · Laboratorio N64</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font:
+          1rem/1.6 system-ui,
+          sans-serif;
+        background: #10161d;
+        color: #ecf2f8;
+      }
+      body {
+        max-width: 52rem;
+        margin: 3rem auto;
+        padding: 0 1.25rem;
+      }
+      h1 {
+        line-height: 1.2;
+      }
+      p {
+        max-width: 68ch;
+      }
+      button,
+      input {
+        font: inherit;
+        max-width: 100%;
+      }
+      button {
+        padding: 0.55rem 1rem;
+        margin: 0.5rem 0.5rem 0.5rem 0;
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: 3px solid #8bdcff;
+        outline-offset: 4px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        padding: 1rem;
+        background: #1c2936;
+        border-radius: 0.5rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      .note {
+        color: #bdcedd;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>Cartivo · Experimental</p>
+      <h1>Laboratorio N64</h1>
+      <p>
+        Comprueba la ruta gráfica y la cabecera de un cartucho antes de compilar
+        el núcleo. <strong>Este laboratorio todavía no ejecuta juegos.</strong>
+      </p>
+      <label for="rom">Cartucho local opcional (.z64, .v64, .n64)</label>
+      <input id="rom" type="file" accept=".z64,.v64,.n64" />
+      <p class="note">
+        Solo se leen 64 bytes en un Worker. El archivo no se sube ni se guarda.
+      </p>
+      <button id="probe" type="button">Comprobar requisitos</button>
+      <button id="cancel" type="button" disabled>Cancelar</button>
+      <p id="status" role="status" aria-live="polite">Preparado.</p>
+      <pre id="result" aria-label="Resultado del diagnóstico">
+Sin resultados.</pre
+      >
+      <h2>Entrada analógica</h2>
+      <p>
+        Prueba opcional de mando estándar: stick izquierdo analógico; stick
+        derecho para C; A en el botón inferior, B en el izquierdo, Z en el
+        gatillo izquierdo. No controla el foco de esta página.
+      </p>
+      <button id="pad" type="button" aria-pressed="false">Probar mando</button>
+      <pre id="pad-state" aria-label="Estado del mando">Prueba detenida.</pre>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
