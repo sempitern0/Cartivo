@@ -333,3 +333,11 @@
 - Receta de build local `build-core.mjs` con un parche mínimo documentado e inventario de licencias en `docs/research/N64_CORE_GATE.md`.
 - N64 sigue sin estar disponible en la app; queda pendiente el gate, el audio y la medición.
 
+
+### Inicio más limpio y con movimiento
+
+- Cada consola tiene una insignia propia de la marca Cartivo (marco turquesa a coral, sello «C» y una silueta genérica de hardware, sin logotipos de terceros) en lugar del campo de píxeles.
+- La tarjeta entera es «Jugar»: sin botón azul ni «Probar demo». Los formatos pasan a chips compactos; al pasar el ratón o enfocar, la tarjeta se eleva y despliega «Jugar». Un archivo soltado sobre una tarjeta se abre con esa consola («Suelta para jugar»).
+- Las demos originales solo se abren con la entrada oculta `#demo/<consola>`, que usan las pruebas.
+- El chip del perfil tiene aire alrededor del avatar y del nombre.
+- Entradas de vista y de tarjetas y fichas escalonadas, respuesta al pulsar y realce al arrastrar. Todo se desactiva con «reducir movimiento».

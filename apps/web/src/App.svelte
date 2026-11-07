@@ -31,6 +31,7 @@
   } from "../../../packages/runtime/src/systems.ts";
   import "./theme.css";
   import ProfilePicker from "./ProfilePicker.svelte";
+  import ConsoleIcon from "./ConsoleIcon.svelte";
   import { profiles } from "./profile.svelte.ts";
   import {
     initials,
@@ -103,6 +104,13 @@
   let pending = $state.raw<GameFiles<File>>();
   let openError = $state("");
   let dragging = $state(false);
+  /** Up to three format chips; longer lists show two and «+N». */
+  const formatChips = (extensions: readonly string[]) =>
+    extensions.length <= 3
+      ? extensions
+      : [...extensions.slice(0, 2), `+${extensions.length - 2}`];
+  /** The card under a dragged file: dropping there prefers its console. */
+  let over = $state<string>();
   /** The game among the files opened together (a disc may be several). */
   const sourceOf = ({ file, extra }: GameFiles<File>): GameSource =>
     extra.length ? { kind: "file", file, extra } : { kind: "file", file };
@@ -180,13 +188,48 @@
   }
   function drop(e: DragEvent) {
     dragging = false;
+    over = undefined;
     if (!hasFiles(e)) return;
     e.preventDefault();
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length && page === "inicio") void openFiles(files);
   }
+  function cardDragOver(e: DragEvent, system: SystemInfo) {
+    if (!hasFiles(e) || game) return;
+    e.preventDefault();
+    over = system.id;
+  }
+  function cardDragLeave(e: DragEvent) {
+    const card = e.currentTarget as HTMLElement;
+    if (!card.contains(e.relatedTarget as Node | null)) over = undefined;
+  }
+  function cardDrop(e: DragEvent, system: SystemInfo) {
+    if (!hasFiles(e) || game) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragging = false;
+    over = undefined;
+    const files = Array.from(e.dataTransfer?.files ?? []);
+    if (files.length) void openFiles(files, system);
+  }
+  /**
+   * `#demo/<console>` starts that console's original demo ROM. The demos left
+   * the interface; this hidden entry keeps them for tests and diagnosis.
+   */
+  function startDemoFromHash() {
+    const id = /^#demo\/([\w-]+)$/.exec(location.hash)?.[1];
+    if (!id) return false;
+    history.replaceState(null, "", location.pathname + location.search);
+    const found = consoles.find((item) => item.id === id && item.demo);
+    if (found && profiles.active && !game) startGame(found);
+    return true;
+  }
   let pageHeading = $state.raw<HTMLHeadingElement>();
   async function showPage() {
+    if (startDemoFromHash()) {
+      page = "inicio";
+      return;
+    }
     page = pageFromHash(location.hash);
     await tick();
     pageHeading?.focus({ preventScroll: true });
@@ -252,7 +295,9 @@
 <svelte:window
   ondragover={dragOver}
   ondragleave={(e) => {
-    if (!e.relatedTarget) dragging = false;
+    if (e.relatedTarget) return;
+    dragging = false;
+    over = undefined;
   }}
   ondrop={drop}
 />
@@ -366,75 +411,78 @@
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
       <RecentGames {games} oncontinue={continueGame} />
       <ul class="consoles" aria-label="Consolas">
-        {#each consoles as item (item.id)}
+        {#each consoles as item, index (item.id)}
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
           {@const asking =
             incomplete?.game.system.id === item.id ? incomplete : undefined}
-          <li>
+          <li style={`--i: ${index}`}>
+            <!-- The whole card is the «Jugar» target (the button stretches
+                 over it) and a drop zone that prefers this console. -->
             <article
               class="console-card card"
               class:dragging
+              class:over={over === item.id}
+              class:waiting
               aria-labelledby={`console-${item.id}`}
+              ondragover={(e) => cardDragOver(e, item)}
+              ondragleave={cardDragLeave}
+              ondrop={(e) => cardDrop(e, item)}
             >
-              <div class="console-art" aria-hidden="true">
-                {#each Array(48) as _}<i></i>{/each}
-              </div>
-              <div class="console-text">
-                <h2 id={`console-${item.id}`}>{item.name}</h2>
-                <p>{item.longName}</p>
-              </div>
-              {#if asking}
-                <div class="tracks" role="alert">
-                  <p>
-                    <strong>Faltan pistas de «{asking.game.file.name}»</strong>
-                    {asking.missing.join(", ")}. Elígelas para jugar.
-                  </p>
-                  <div class="tracks-actions">
-                    <button class="primary" onclick={pickTracks}
-                      >Elegir pistas</button
-                    ><button class="link" onclick={() => (incomplete = undefined)}
-                      >Cancelar</button
-                    >
-                  </div>
-                </div>
-              {/if}
-              <div class="console-actions">
-                {#if waiting}
-                  <button
-                    class="primary icon-button play"
-                    data-launch={`play-${item.id}`}
-                    onclick={() => openFiles([waiting.file, ...waiting.extra], waiting.system)}
-                    >{@html icons.play}<span>Jugar {waiting.file.name}</span
-                    ></button
-                  >
-                {:else}
-                  <button
-                    class="primary icon-button play"
-                    data-launch={`play-${item.id}`}
-                    onclick={() => pick(item)}
-                    >{@html icons.play}<span>Jugar</span></button
-                  >
-                {/if}
+              <div class="console-head">
+                <ConsoleIcon system={item.id} />
                 <a
-                  class="icon-button square"
+                  class="icon-button controls"
                   href="#controles"
                   aria-label={`Controles de ${item.name}`}
                   title={`Controles de ${item.name}`}>{@html icons.sliders}</a
                 >
               </div>
+              <div class="console-text">
+                <h2 id={`console-${item.id}`}>{item.name}</h2>
+                <p>{item.longName}</p>
+                {#if asking}
+                  <div class="tracks" role="alert">
+                    <p>
+                      <strong>Faltan pistas de «{asking.game.file.name}»</strong>
+                      {asking.missing.join(", ")}. Elígelas para jugar.
+                    </p>
+                    <div class="tracks-actions">
+                      <button class="primary" onclick={pickTracks}
+                        >Elegir pistas</button
+                      ><button class="link" onclick={() => (incomplete = undefined)}
+                        >Cancelar</button
+                      >
+                    </div>
+                  </div>
+                {/if}
+              </div>
               <div class="console-foot">
-                {#if waiting}<button class="link" onclick={() => pick(item)}
+                <span class="formats" title={item.extensions.join(", ")}
+                  ><span class="visually-hidden">Formatos:</span
+                  >{#each formatChips(item.extensions) as chip}<span class="format"
+                      >{chip}</span
+                    >{/each}</span
+                >
+                {#if waiting}
+                  <button class="link other" onclick={() => pick(item)}
                     >Elegir otro juego</button
-                  >{/if}
-                {#if item.demo}<button
-                    class="link"
-                    data-launch={`demo-${item.id}`}
-                    onclick={() => startGame(item)}>Probar demo</button
-                  >{/if}
-                <span class="drop-hint"
-                  >o arrastra un archivo {item.extensions.join(", ")}</span
+                  >
+                {/if}
+                <button
+                  class="play"
+                  data-launch={`play-${item.id}`}
+                  onclick={() =>
+                    waiting
+                      ? openFiles([waiting.file, ...waiting.extra], waiting.system)
+                      : pick(item)}
+                  ><span class="play-label"
+                    >{waiting ? `Jugar ${waiting.file.name}` : "Jugar"}</span
+                  ><span class="play-icon">{@html icons.play}</span></button
                 >
               </div>
+              <span class="drop-cue" aria-hidden="true"
+                >{@html icons.play}Suelta para jugar</span
+              >
             </article>
           </li>
         {/each}
@@ -554,118 +602,249 @@
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
     gap: 20px;
   }
-  /* Each card spans three rows of a shared subgrid (text, actions, foot), so
-     a longer title or extension list in one card moves the whole row and the
-     «Jugar» buttons stay aligned. */
+  /* Each card spans three rows of a shared subgrid (badge, text, foot), so a
+     longer title in one card moves the whole row and the feet stay aligned. */
   .consoles > li {
     display: grid;
     grid-row: span 3;
     grid-template-rows: subgrid;
-    row-gap: 18px;
+    row-gap: 16px;
   }
   .console-card {
     position: relative;
-    overflow: hidden;
     min-width: 0;
     grid-row: 1 / -1;
-    padding: 22px;
+    padding: 20px 20px 18px;
     display: grid;
     grid-template-rows: subgrid;
-    row-gap: 18px;
-    box-shadow: var(--glow);
+    row-gap: 16px;
+    box-shadow: 0 0 0 1px #2c3040;
+    transition:
+      transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.25s ease,
+      border-color 0.25s ease;
   }
-  .console-card.dragging {
-    outline: 2px dashed var(--teal);
-    outline-offset: -10px;
+  /* Hover, keyboard or pad focus: the card lifts and its badge turns. */
+  .console-card:hover,
+  .console-card:has(.play:focus-visible),
+  :global(:root[data-input="pad"]) .console-card:has(.play:focus) {
+    transform: translateY(-4px);
+    border-color: #40c2ae80;
+    box-shadow:
+      0 0 0 1px #40c2ae55,
+      0 18px 40px -18px #40c2ae66,
+      0 10px 30px -20px #ed587166;
   }
-  /* Original abstract art: a cartridge-label pixel field in Cartivo colours. */
-  .console-art {
-    position: absolute;
-    inset: -18px -28px auto auto;
-    width: 150px;
-    /* Fade towards the text so labels and buttons stay legible. */
-    mask-image: linear-gradient(225deg, #000 30%, transparent 78%);
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 5px;
-    transform: rotate(-12deg);
-    opacity: 0.7;
-    pointer-events: none;
+  .console-card:hover :global(.badge),
+  .console-card:has(.play:focus-visible) :global(.badge) {
+    transform: rotate(-4deg) scale(1.05);
   }
-  .console-art i {
-    aspect-ratio: 1;
-    border-radius: 3px;
-    background: #262a39;
+  .console-card:active:not(:has(.controls:active, .tracks:active)) {
+    transform: translateY(-1px) scale(0.985);
   }
-  .console-art i:nth-child(7n + 1) {
-    background: var(--coral);
-  }
-  .console-art i:nth-child(11n + 4) {
-    background: var(--blue);
-  }
-  .console-art i:nth-child(13n + 6) {
-    background: var(--teal);
-  }
-  .console-art i:nth-child(17n + 3) {
-    background: var(--gold);
+  .console-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
   }
   .console-text {
-    position: relative;
-    /* Keeps the original card height (248 px) when titles are short. */
-    min-height: 88px;
+    min-width: 0;
   }
   .console-text h2 {
     margin: 0;
-    font-size: 34px;
+    font-size: 30px;
     font-weight: 800;
     letter-spacing: -0.04em;
     line-height: 1.05;
     text-wrap: balance;
-    max-width: 9ch;
   }
-  .console-text p {
-    margin: 8px 0 0;
+  .console-text > p {
+    margin: 6px 0 0;
     color: var(--muted);
     font-size: 14px;
-    max-width: 22ch;
     line-height: 1.35;
   }
-  .console-actions {
-    position: relative;
-    margin-top: auto;
+  .console-foot {
     display: flex;
-    gap: 12px;
     align-items: center;
-  }
-  .play {
-    flex: 1;
+    gap: 10px;
     min-width: 0;
-    font-size: 17px;
   }
-  .play span {
+  .formats {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    margin-right: auto;
+  }
+  .waiting .formats {
+    display: none;
+  }
+  .format {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #ffffff0d;
+    border: 1px solid #ffffff14;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  /* «Jugar»: a round play mark whose label slides out on hover or focus; its
+     ::after covers the card, so any click on it opens the game picker. */
+  .play {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font-weight: 650;
+  }
+  .play::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius);
+  }
+  .play:focus-visible {
+    outline: none;
+  }
+  .console-card:has(.play:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .play-label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 0;
+    opacity: 0;
+    transition:
+      max-width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+      opacity 0.2s ease,
+      margin 0.3s ease;
   }
-  .square {
-    width: 52px;
-    height: 48px;
+  .play-icon {
+    display: grid;
+    place-items: center;
     flex: none;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: #11131bcc;
-    color: var(--text);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #ffffff1f;
+    background: #ffffff0a;
+    transition:
+      background 0.25s ease,
+      color 0.25s ease,
+      border-color 0.25s ease,
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-  .console-foot {
+  .console-card:hover .play-label,
+  .play:focus-visible .play-label,
+  :global(:root[data-input="pad"]) .play:focus .play-label,
+  .waiting .play-label {
+    max-width: 22ch;
+    opacity: 1;
+    margin-right: 10px;
+  }
+  .console-card:hover .play-icon,
+  .play:focus-visible .play-icon,
+  :global(:root[data-input="pad"]) .play:focus .play-icon,
+  .waiting .play-icon {
+    background: linear-gradient(135deg, var(--teal), #3aa6c4);
+    border-color: transparent;
+    color: #0d1016;
+    transform: scale(1.06);
+  }
+  /* Touch screens have no hover: the label stays visible. */
+  @media (hover: none) {
+    .play-label {
+      max-width: 22ch;
+      opacity: 1;
+      margin-right: 10px;
+    }
+  }
+  /* Controls, «Elegir otro juego» and the tracks prompt sit above the
+     stretched «Jugar» target. */
+  .controls,
+  .other,
+  .tracks {
     position: relative;
+    z-index: 1;
+  }
+  .controls {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: var(--muted);
+    transition:
+      color 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease;
+  }
+  .controls:hover {
+    color: var(--text);
+    background: #ffffff0d;
+    transform: rotate(-8deg);
+  }
+  /* A file dragged over the page: every card invites it; the card under the
+     pointer takes it. */
+  .console-card.dragging {
+    border-style: dashed;
+    border-color: #40c2ae66;
+  }
+  .console-card.over {
+    border-color: var(--teal);
+    box-shadow:
+      0 0 0 2px var(--teal),
+      0 20px 50px -18px #40c2ae99;
+    transform: translateY(-4px) scale(1.01);
+  }
+  .drop-cue {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 4px 14px;
+    justify-content: center;
+    gap: 10px;
+    border-radius: var(--card-radius);
+    background: #0f1a1fd9;
+    backdrop-filter: blur(3px);
+    color: var(--teal);
+    font-weight: 700;
+    font-size: 17px;
+    opacity: 0;
+    transform: scale(0.96);
+    pointer-events: none;
+    transition:
+      opacity 0.18s ease,
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .over .drop-cue {
+    opacity: 1;
+    transform: none;
   }
   .profile-chip {
-    padding-left: 6px;
+    gap: 10px;
+    padding: 5px 16px 5px 5px;
     border-radius: 999px;
+    border: 1px solid var(--border);
+    background: #151824cc;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease,
+      transform 0.2s ease;
+  }
+  .profile-chip:hover {
+    border-color: var(--color);
+    background: color-mix(in srgb, var(--color) 12%, #151824);
+  }
+  .profile-chip:hover .chip-avatar {
+    transform: scale(1.08);
   }
   .chip-avatar {
     display: grid;
@@ -679,6 +858,7 @@
     color: #111218;
     font-size: 13px;
     font-weight: 750;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .chip-name {
     max-width: 14ch;
@@ -733,10 +913,6 @@
     background: #34202a;
     text-align: center;
   }
-  .drop-hint {
-    font-size: 13px;
-    color: var(--muted);
-  }
   .update {
     display: flex;
     align-items: center;
@@ -777,21 +953,87 @@
     background: #151720cc;
     color: var(--text);
   }
-  @media (prefers-reduced-motion: no-preference) {
-    .welcome,
-    .controls-page,
-    .games-page {
-      animation: view-enter 180ms ease-out both;
-    }
+  /* Movement (docs/DESIGN.md): short view entrances and answers to what the
+     user does; theme.css turns all of it off under prefers-reduced-motion. */
+  .welcome,
+  .controls-page,
+  .games-page {
+    animation: view-enter 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .welcome .titles {
+    animation: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .welcome .titles .kicker {
+    animation: fade 600ms 80ms ease both;
+  }
+  .consoles > li {
+    animation: rise 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(60ms + var(--i, 0) * 45ms);
+  }
+  .open-error {
+    animation: nudge 360ms ease both;
+  }
+  .settings-link:not(.profile-chip) {
+    position: relative;
+  }
+  .settings-link:not(.profile-chip)::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 6px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .settings-link:hover::after,
+  .settings-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+  .back {
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+  .back:hover {
+    transform: translateX(-3px);
+    border-color: #ffffff40;
   }
   @keyframes view-enter {
     from {
       opacity: 0;
-      transform: translateY(5px);
+      transform: translateY(10px);
     }
-    to {
+  }
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+      letter-spacing: 0.4em;
+    }
+  }
+  @keyframes nudge {
+    0% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    30% {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(-6px);
+    }
+    60% {
+      transform: translateX(4px);
+    }
+    100% {
+      transform: none;
     }
   }
   @media (max-width: 640px) {

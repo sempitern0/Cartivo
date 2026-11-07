@@ -14,24 +14,24 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 | Superficie | `#1B1D26` | Tarjetas y paneles |
 | Texto / Secundario | `#F3F1ED` / `#B3B5C2` | Lectura / explicaciones |
 
-**Sin arte de terceros:** nada de logotipos, tipografías de marca, fotos de consolas, personajes ni capturas de juegos. Cada consola se identifica con su nombre en la tipografía de Cartivo y arte abstracto original (campo de píxeles con la paleta). Iconos propios en `apps/web/src/icons.ts`, decorativos (`aria-hidden`); el nombre accesible lo lleva el control.
+**Sin arte de terceros:** nada de logotipos, tipografías de marca, fotos de consolas, personajes ni capturas de juegos. Cada consola se identifica con su nombre en la tipografía de Cartivo y una insignia propia (`ConsoleIcon.svelte`): el marco de la marca, con borde turquesa a coral, brillo diagonal y sello «C», alrededor de una silueta genérica de hardware dibujada para Cartivo (cartucho, portátil, mando o disco), nunca el logotipo de la consola. Iconos propios en `apps/web/src/icons.ts`, decorativos (`aria-hidden`); el nombre accesible lo lleva el control.
 
 ## Principios
 
 - **Una acción principal por pantalla.** Lo técnico (núcleo, diagnóstico, laboratorio) vive plegado en opciones avanzadas.
 - **Automático primero, corrección manual accesible.** Mando y teclado se detectan; pantalla con valores fieles al original.
 - **Accesible:** contraste AA, objetivos de 44 px, anillo de foco discreto (2 px, blanco cálido translúcido) y nunca sobre la imagen del juego, estados con texto además de color, `prefers-reduced-motion`.
-- **Movimiento sobrio:** solo transiciones breves de entrada de vista y respuestas a acciones del usuario.
+- **Movimiento sobrio:** entradas de vista breves (300–450 ms, con las tarjetas y las fichas de perfil escalonadas) y respuestas a lo que hace el usuario: elevación al pasar o enfocar, leve hundimiento al pulsar y realce al arrastrar un archivo. Todo se apaga con `prefers-reduced-motion` (regla global en `theme.css`).
 
 ## Pantallas
 
 ### ¿Quién juega? (perfiles, ADR-016)
 Aparece en cada visita, antes del inicio, y empieza enfocado en quien jugó por última vez: Enter o A juegan al momento. Las fichas de perfil van centradas, cada una con un avatar de iniciales sobre un color de la paleta y el nombre debajo; al enfocarla o pasar el ratón, la ficha se eleva y el avatar se rodea de su color (sin movimiento si el sistema pide reducirlo). La última ficha es **Añadir perfil**, con un avatar discontinuo y «+». **Gestionar perfiles** atenúa los avatares y muestra en cada ficha editar (lápiz) y borrar (papelera; el primer perfil no se borra). Crear, editar (nombre y color con muestras accesibles) y confirmar el borrado ocurren dentro de la propia ficha, y Escape o B los cierran. Sin contraseña. Ajustes y Tus juegos no se ofrecen hasta elegir. En la cabecera, el chip del perfil (avatar redondo y nombre) vuelve a este selector cuando no hay partida.
 
-**Foco al jugar:** mientras hay un juego abierto, el mando solo recorre los controles del reproductor. Al salir, el foco vuelve al control que lo inició (Jugar, Probar demo o Continuar), y no al principio de la página.
+**Foco al jugar:** mientras hay un juego abierto, el mando solo recorre los controles del reproductor. Al salir, el foco vuelve al control que lo inició (Jugar o Continuar), y no al principio de la página.
 
 ### Inicio · «Elige una consola»
-El logo de la cabecera lleva siempre al inicio. Rejilla de tarjetas de igual altura (cuatro por fila en escritorio, una en móvil) que crece con cada sistema aceptado; hoy, NES, Game Boy, Game Boy Color, Game Boy Advance, SNES, Master System, Mega Drive y PlayStation. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Acción **Jugar** (abre las extensiones de esa consola: `.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`), icono **Controles de {consola}**, **Probar demo** y arrastrar y soltar. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida. Si el navegador guarda menos (ventana privada sin OPFS, o sin Web Locks/IndexedDB), una línea discreta en dorado bajo el título lo explica; nunca un modal que impida jugar.
+El logo de la cabecera lleva siempre al inicio. Rejilla de tarjetas de igual altura (cuatro por fila en escritorio, una en móvil) que crece con cada sistema aceptado; hoy, NES, Game Boy, Game Boy Color, Game Boy Advance, SNES, Master System, Mega Drive y PlayStation. Solo aparecen consolas jugables (sin tarjetas «próximamente»). Cada tarjeta es una sola acción: toda ella es **Jugar** y abre las extensiones de esa consola, que se muestran como chips compactos al pie (hasta tres; si hay más, dos y «+N», con la lista completa en el título). Arriba van la insignia y el icono **Controles de {consola}**. Al pasar el ratón o enfocar, la tarjeta se eleva, la insignia gira y el círculo de reproducción se rellena y despliega «Jugar»; en pantallas táctiles la etiqueta está siempre visible. Al arrastrar un archivo, todas las tarjetas se marcan con un borde discontinuo y la que queda bajo el puntero muestra «Suelta para jugar» y lo abre con esa consola; soltarlo fuera de las tarjetas elige la consola por la extensión. No hay botón «Probar demo»: las ROM de prueba originales solo se abren con la entrada oculta `#demo/<consola>`, para pruebas y diagnóstico. Un archivo abierto desde el sistema durante una partida queda en espera como «Jugar {archivo}». El aviso «Actualizar ahora» aparece aquí, nunca durante una partida. Si el navegador guarda menos (ventana privada sin OPFS, o sin Web Locks/IndexedDB), una línea discreta en dorado bajo el título lo explica; nunca un modal que impida jugar.
 
 Con juegos recordados (ADR-012), encima de la rejilla aparecen los tres más recientes: la tarjeta grande **Continuar** (miniatura de «Al salir», nombre, consola y fecha) y dos compactos con su botón de continuar. Todos cargan el juego desde el dispositivo y siguen desde «Al salir» sin aviso. Debajo, «Ver todos tus juegos (N)» y, en la cabecera, **Tus juegos** junto a Ajustes.
 
@@ -65,7 +65,7 @@ Panel propio (pausa la partida al abrirse). Tarjetas con diagrama para **Escalad
   - leyenda fija abajo «A Aceptar · B Volver · Select + Start Pausa», oculta mientras se juega;
   - las consolas pasan a un carrusel horizontal;
   - la pausa es un **menú vertical modal** sobre el juego (Reanudar juego, Partidas, Gráficos, Controles, Reiniciar consola, Salir del juego). El foco empieza en Reanudar; B o Escape reanudan, y al cerrar Partidas o Gráficos se vuelve al menú.
-  - El selector de archivos del sistema no se maneja con mando: con mando se juega desde los recientes, «Tus juegos» y las demos.
+  - El selector de archivos del sistema no se maneja con mando: con mando se juega desde los recientes y «Tus juegos».
 - **Instalación:** **Instalar app** en la cabecera cuando el navegador ofrece el prompt; en iOS se instala desde Compartir.
 
 ## Pendiente

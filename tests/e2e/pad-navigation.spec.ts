@@ -51,19 +51,22 @@ const focusedName = (page: Page) =>
     return el?.getAttribute("aria-label") ?? el?.textContent?.trim() ?? "";
   });
 
-test("the D-pad moves between cards and A starts a demo", async ({ page }) => {
+test("the D-pad moves between cards; leaving a game refocuses its card", async ({
+  page,
+}) => {
   await page.goto("/");
   const nes = page
     .getByRole("article", { name: "NES", exact: true })
-    .getByRole("button", { name: "Probar demo" });
+    .getByRole("button", { name: "Jugar", exact: true });
   await nes.focus();
   await press(page, RIGHT);
   await expect(nes).not.toBeFocused();
   await expect(page.locator("html")).toHaveAttribute("data-input", "pad");
   await press(page, LEFT);
   await expect(nes).toBeFocused();
-  await press(page, A);
-  await playing(page);
+  // A on «Jugar» opens the system file picker (not drivable by a pad), so
+  // the game starts from the demo entry while the card holds the focus.
+  await playDemo(page, "NES");
   // Leaving with the pad gives the focus back to the control that started
   // the game; the pad stays inside the player meanwhile.
   await press(page, SELECT, START);
@@ -133,7 +136,7 @@ test("automatic interface follows the device; Ajustes can fix «Mando»", async 
   await expect(html).toHaveAttribute("data-ui", "pointer");
   await page
     .getByRole("article", { name: "NES", exact: true })
-    .getByRole("button", { name: "Probar demo" })
+    .getByRole("button", { name: "Jugar", exact: true })
     .focus();
   await press(page, RIGHT);
   await expect(html).toHaveAttribute("data-ui", "pad");

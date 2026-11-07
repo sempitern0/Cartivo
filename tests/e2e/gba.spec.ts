@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 
 // Game Boy Advance runs mGBA (ADR-011) with Cartivo's own fixture, which
 // starts at once (HLE BIOS, no boot animation).
@@ -62,7 +63,7 @@ test("GBA demo runs mGBA: L/R recolour, battery save survives", async ({
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await card(page).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "Game Boy Advance");
   await playing(page, 30);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "240");
@@ -84,7 +85,7 @@ test("GBA demo runs mGBA: L/R recolour, battery save survives", async ({
   expect(backup.bytes[0]).toBe(0); // 0xFF + one press
 
   await page.getByRole("button", { name: "Salir", exact: true }).click();
-  await card(page).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "Game Boy Advance");
   await playing(page, 30);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   expect((await exportBackup(page)).bytes[0]).toBe(0);
@@ -93,7 +94,7 @@ test("GBA demo runs mGBA: L/R recolour, battery save survives", async ({
 
 test("GBA quick-saves with F5 and loads with F9", async ({ page }) => {
   await page.goto("/");
-  await card(page).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "Game Boy Advance");
   await playing(page);
   await page.keyboard.press("F5");
   await expect(page.getByTestId("toast")).toContainText("ranura 1");

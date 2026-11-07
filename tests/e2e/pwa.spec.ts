@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 /** A previous exit snapshot shows «Continuar»; these tests start over. */
 async function startOver(page: import("./fixtures.ts").Page) {
   const offer = page.getByRole("button", { name: "Empezar de nuevo" });
@@ -97,7 +98,7 @@ test("installed shell reopens offline and plays the demo", async ({
   await expect(
     page
       .getByRole("article", { name: "NES", exact: true })
-      .getByRole("button", { name: "Probar demo" }),
+      .getByRole("button", { name: "Jugar", exact: true }),
     problems.join("\n"),
   )
     .toBeVisible({ timeout: 10000 })
@@ -105,10 +106,7 @@ test("installed shell reopens offline and plays the demo", async ({
       const html = (await page.content()).slice(0, 800);
       throw new Error(`${e.message}\n${problems.join("\n")}\n${html}`);
     });
-  await page
-    .getByRole("article", { name: "NES", exact: true })
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "NES");
   await startOver(page);
   await expect
     .poll(async () =>

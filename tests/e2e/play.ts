@@ -24,12 +24,24 @@ export async function playing(page: Page, minFrames = 10) {
     .toBeGreaterThan(minFrames);
 }
 
-/** «Probar demo» on a console card (name as shown, e.g. "Game Boy"). */
+/**
+ * Starts a console's original demo (name as shown on its card, e.g. "Game
+ * Boy") through the hidden `#demo/<id>` entry, from that card's «Jugar» so
+ * the focus comes back there on leaving, as with a real launch.
+ */
+export async function startDemo(page: Page, console: string) {
+  const card = page.getByRole("article", { name: console, exact: true });
+  const heading = await card.getByRole("heading").getAttribute("id");
+  const id = heading!.replace(/^console-/, "");
+  await card.getByRole("button", { name: /^Jugar/ }).focus();
+  await page.evaluate((id) => {
+    location.hash = `#demo/${id}`;
+  }, id);
+}
+
+/** startDemo, then waits until it really runs. */
 export async function playDemo(page: Page, console: string, minFrames = 10) {
-  await page
-    .getByRole("article", { name: console, exact: true })
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, console);
   await playing(page, minFrames);
 }
 

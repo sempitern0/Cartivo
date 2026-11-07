@@ -62,7 +62,7 @@ export interface CartridgeModule extends ModuleInfo {
   maxRomBytes: number;
   /** Throws a user-readable error for unsupported files. */
   validate(rom: Uint8Array): { battery: boolean };
-  /** Optional original test ROM for «Probar demo» (never third-party). */
+  /** Optional original test ROM, opened with `#demo/<id>` (never third-party). */
   demo?(): Uint8Array;
   create(rom: Uint8Array, save?: Uint8Array): EmulatorCore;
 }
@@ -74,7 +74,7 @@ export interface CartridgeModule extends ModuleInfo {
  */
 export interface DiscModule extends ModuleInfo {
   disc: true;
-  /** Original test program for «Probar demo», as a file the core boots. */
+  /** Original test program for the demo entry, as a file the core boots. */
   demo?(): { name: string; bytes: Uint8Array };
   create(disc: DiscImage, save?: Uint8Array): EmulatorCore;
 }

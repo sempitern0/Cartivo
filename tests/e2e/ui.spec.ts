@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 import { mkdirSync } from "node:fs";
 
 // Screenshots for visual review are kept outside test-results, which
@@ -79,11 +80,29 @@ test("keyboard drawing lights the pressed key during the test", async ({
   await expect(page.locator(".keyboard-art .cap.lit")).toHaveCount(0);
 });
 
+test("a file dropped on a card opens with that console", async ({ page }) => {
+  const { controlDemo } =
+    await import("../../packages/fixtures/src/control-demo.ts");
+  await page.goto("/");
+  const card = page.getByRole("article", { name: "NES", exact: true });
+  const bytes = [...controlDemo()];
+  const transfer = await page.evaluateHandle((bytes) => {
+    const data = new DataTransfer();
+    data.items.add(new File([new Uint8Array(bytes)], "soltado.nes"));
+    return data;
+  }, bytes);
+  await card.dispatchEvent("dragover", { dataTransfer: transfer });
+  await expect(card).toHaveClass(/\bover\b/);
+  await card.dispatchEvent("drop", { dataTransfer: transfer });
+  await playing(page);
+  await expect(page.getByRole("heading", { name: "soltado.nes" })).toBeVisible();
+});
+
 test("Cargar ROM replaces the game with a single session", async ({ page }) => {
   const { controlDemo } =
     await import("../../packages/fixtures/src/control-demo.ts");
   await page.goto("/");
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "NES");
   await playing(page);
   const chooser = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Cargar ROM" }).click();
@@ -123,7 +142,7 @@ test("status footer reports keyboard and a connected pad", async ({
   });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "NES");
   await playing(page);
   await expect(page.getByTestId("keyboard-status")).toHaveText(
     "Teclado conectado",
@@ -155,7 +174,7 @@ test("home, controls and player fit a 375px phone", async ({
     fullPage: true,
   });
   await page.goto("/");
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "NES");
   await playing(page);
   await noHorizontalScroll(page);
   await page.screenshot({
@@ -175,6 +194,10 @@ test("the logo returns to the start and the console cards line up", async ({
   ).toBeVisible();
   const url = new URL(page.url());
   expect(url.pathname + url.hash).toBe("/");
+  // The cards rise in one after another: measure once they have settled.
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().map((a) => a.finished)),
+  );
   // Four cards per row on a laptop; within a row the «Jugar» buttons line up.
   const rows = await page
     .getByRole("list", { name: "Consolas" })

@@ -46,7 +46,7 @@ export type SystemInfo = {
   defaultCore: string;
   /** Formats the current build accepts, in user terms. */
   formatNote: string;
-  /** The registered cores ship an original demo ROM («Probar demo»). */
+  /** The registered cores ship an original demo ROM (hidden `#demo/<id>`). */
   demo: boolean;
   /** Only available systems get a card on the home screen. */
   available: boolean;
