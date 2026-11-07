@@ -17,7 +17,7 @@
   ],
   "biosRequired": false,
   "bios": "None: PIF and CIC are the core's HLE and each cartridge carries its own IPL3",
-  "status": "laboratory: not registered in the app until the viability gate (N64_PLAN_INTEGRACION)",
+  "status": "experimental: registered in the app (packages/adapters/src/n64.ts) and used by the laboratory",
   "patchedFiles": [
     "libretro/libretro.c (patches/emu-thread-entry.patch)"
   ],
@@ -32,6 +32,13 @@
     "n64_presented",
     "n64_duped",
     "n64_input",
+    "n64_save_data",
+    "n64_save_size",
+    "n64_snapshot",
+    "n64_snapshot_data",
+    "n64_snapshot_size",
+    "n64_restore",
+    "n64_restore_status",
     "n64_unload",
     "malloc",
     "free"
@@ -41,11 +48,11 @@
   "files": [
     {
       "path": "dist/n64-core.mjs",
-      "sha256": "5fc348583dc5cf460cb6fce45d337dcd147b65c3cab34562b7c32f60ebccca11"
+      "sha256": "93bc00a16e01818648044c8dd91613a2803650163def04da48106a01af97b970"
     },
     {
       "path": "dist/n64-core.wasm",
-      "sha256": "e93ec23b02df8709aab39250b29c8eb8dfefa8dfa7fbbd2484f517ca2acca2ed"
+      "sha256": "512ce64d84bf4b5eb4888b68e4db0f055c161ca535f482b1dcc2bb0354c47f6d"
     }
   ]
 }
