@@ -60,6 +60,7 @@ pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
   - `-fno-common`, porque WebAssembly no tiene símbolos comunes;
   - el parche `patches/emu-thread-entry.patch`, porque la entrada de la corutina tenía un tipo distinto y WebAssembly lo detiene;
   - un `sem_timedwait` que falla de forma explícita, porque el renderizador con hilos de GLideN64 se enlaza pero nunca arranca;
+  - `-sDEFAULT_TO_CXX`, porque GLideN64 es C++ y desde Emscripten 5 emcc solo enlaza las bibliotecas de C si no se le pide (la 4.x lo hacía por defecto);
   - `-sMAXIMUM_MEMORY=512 MiB`: así falla la reserva de 512 MiB del «full mem base» de Mupen64Plus (todo el espacio de direcciones de la N64) y el núcleo usa su disposición compacta. La sesión pasa de 730 MiB a 256 MiB sin cambio medible de coste por fotograma.
 - `N64_EXPLORATORY_EMCC=1` acepta otra toolchain solo para iterar; la evidencia la marca como no reproducible y guarda la versión de clang. Fijada significa emcc 6.0.12 **con su LLVM 24**: el emcc 6.0.12 sobre LLVM 21 no compila su propia libc (faltan `__builtin_wasm_memory_copy` y `__builtin_wasm_memory_fill`). `N64_DEBUG=1` añade nombres y aserciones.
 - **Sesión** (`session.ts` y `session.worker.ts`):

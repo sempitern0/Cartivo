@@ -169,6 +169,9 @@ run(emcc, [
   "-sFULL_ES3",
   "-sGL_ENABLE_GET_PROC_ADDRESS",
   "-sFORCE_FILESYSTEM",
+  // GLideN64 is C++: since Emscripten 5, emcc links only the C libraries
+  // unless told to (4.x did it by default).
+  "-sDEFAULT_TO_CXX",
   `-sEXPORTED_FUNCTIONS=${exports.join(",")}`,
   "-sEXPORTED_RUNTIME_METHODS=GL,FS,HEAP16,HEAPU8,UTF8ToString,stringToNewUTF8",
 ]);
