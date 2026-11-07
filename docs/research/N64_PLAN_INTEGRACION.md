@@ -1,6 +1,6 @@
 # Cartivo — Plan de integración de Nintendo 64
 
-Fecha: 2026-11-07. Estado: **fases 0–2 en curso** en `feat/n64-gpu-prototype`. El relevo vivo está en [experiments/n64/README.md](../../experiments/n64/README.md#estado-de-relevo) y la evidencia en [N64_CORE_GATE.md](N64_CORE_GATE.md).
+Fecha: 2026-11-07. Estado: **fase 2 completa en el laboratorio** (falta la QA del titular con GPU real) y **fase 3 iniciada**, en `feat/n64-gpu-prototype`. El relevo vivo está en [experiments/n64/README.md](../../experiments/n64/README.md#estado-de-relevo) y la evidencia en [N64_CORE_GATE.md](N64_CORE_GATE.md).
 
 ## 1. Objetivo y mandato
 

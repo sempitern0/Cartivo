@@ -9,7 +9,10 @@ export const areas = [
   {
     id: "ui",
     title: "Pantalla inicial, navegación y estilo",
-    start: ["apps/web/src/{App,Player}.svelte", "apps/web/src/theme.css"],
+    start: [
+      "apps/web/src/{App,Player,ConsoleCard,ConsoleIcon}.svelte",
+      "apps/web/src/{theme.css,accent.ts}",
+    ],
     context: ["tests/e2e/{ui,pad-navigation}.spec.ts", "docs/DESIGN.md"],
   },
   {
@@ -63,6 +66,7 @@ export const areas = [
     context: [
       "docs/ADDING_A_SYSTEM.md",
       "docs/research/",
+      "experiments/n64/README.md",
       "tests/{core-conformance,wasm-host}.test.ts",
       "tests/e2e/{nes,gb,gba,snes,sega,pal,ps1}.spec.ts",
     ],
