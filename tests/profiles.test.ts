@@ -4,6 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   deleteProfileData,
+  initials,
+  lastUsed,
   MAX_PROFILES,
   newProfile,
   PRINCIPAL,
@@ -119,4 +121,28 @@ test("load names a valid profile or none", () => {
   assert.equal(parseRequest({ ...base, profile: "ana1" }).profile, "ana1");
   assert.equal(parseRequest(base).profile, undefined);
   assert.throws(() => parseRequest({ ...base, profile: "../x" }), /Perfil/);
+});
+
+test("avatars show up to two initials; the picker starts on the last player", () => {
+  assert.equal(initials("ana"), "A");
+  assert.equal(initials("Ana  López García"), "AL");
+  assert.equal(initials("Jugador 1"), "J1");
+  assert.equal(initials("ñu"), "Ñ");
+  const profiles: Profile[] = [
+    { id: PRINCIPAL, name: "Jugador 1", color: 0 },
+    { id: "ana1", name: "Ana", color: 1, lastUsedAt: 20 },
+    { id: "luis", name: "Luis", color: 2, lastUsedAt: 10 },
+  ];
+  assert.equal(lastUsed(profiles).id, "ana1");
+  assert.equal(lastUsed(profiles.slice(0, 1)).id, PRINCIPAL);
+  const store = memory({
+    [PROFILES_KEY]: JSON.stringify([
+      { id: "ana1", name: "Ana", color: 1, lastUsedAt: 20 },
+      { id: "luis", name: "Luis", color: 2, lastUsedAt: "ayer" },
+    ]),
+  });
+  assert.deepEqual(readProfiles(store).slice(1), [
+    { id: "ana1", name: "Ana", color: 1, lastUsedAt: 20 },
+    { id: "luis", name: "Luis", color: 2 },
+  ]);
 });

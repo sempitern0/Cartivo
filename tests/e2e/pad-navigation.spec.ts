@@ -64,6 +64,16 @@ test("the D-pad moves between cards and A starts a demo", async ({ page }) => {
   await expect(nes).toBeFocused();
   await press(page, A);
   await playing(page);
+  // Leaving with the pad gives the focus back to the control that started
+  // the game; the pad stays inside the player meanwhile.
+  await press(page, SELECT, START);
+  const menu = page.getByRole("dialog", { name: "En pausa" });
+  for (let i = 0; i < 5; i++) await press(page, DOWN);
+  await expect(
+    menu.getByRole("button", { name: "Salir del juego" }),
+  ).toBeFocused();
+  await press(page, A);
+  await expect(nes).toBeFocused();
 });
 
 test("modo consola: Select+Start opens the pause menu; Partidas and B", async ({

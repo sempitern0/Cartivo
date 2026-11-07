@@ -26,8 +26,8 @@ Las cuentas online siguen siendo el hito H6, posterior a V1, con su propio ADR.
   - La poda de huérfanas usa la unión de todas las bibliotecas (`rememberedBy`).
 - **Protocolo:** `load` lleva `profile` (validado; si falta, el primer perfil). El Worker abre las tiendas de ese perfil durante toda la sesión.
 - **Interfaz:**
-  - «¿Quién juega?» (`ProfilePicker.svelte`) aparece en cada visita, antes del inicio, con una acción principal: elegir.
-  - «Nuevo perfil» y «Gestionar perfiles» (renombrar; borrar con confirmación en línea; el primero no se borra).
+  - «¿Quién juega?» (`ProfilePicker.svelte`) aparece en cada visita, antes del inicio, con una acción principal: elegir. Empieza enfocado en quien jugó por última vez (`lastUsedAt`), así que Enter o A juegan al momento.
+  - Cada perfil es una ficha con su avatar (iniciales sobre un color de la paleta) y su nombre. La última ficha es «Añadir perfil»; «Gestionar perfiles» muestra en cada ficha editar (nombre y color) y borrar. Los formularios y la confirmación ocurren dentro de la ficha, y Escape o B los cierran. El primero no se borra.
   - La elección dura la pestaña (`sessionStorage`), así que recargar o actualizar no vuelve a preguntar.
   - En la cabecera, el chip del perfil permite cambiar de perfil cuando no hay partida en curso.
   - Un archivo abierto antes de elegir perfil espera en su tarjeta.

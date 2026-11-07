@@ -3,12 +3,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  cueFiles,
   DiscImage,
   vfsImports,
   type ReadSync,
 } from "../packages/adapters/src/disc.ts";
 import { prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
+import { cueFiles, matchTracks } from "../packages/storage/src/cue.ts";
 import { parseRequest } from "../packages/runtime/src/protocol.ts";
 
 const bin = Uint8Array.from({ length: 10_000 }, (_, i) => i & 0xff);
@@ -75,6 +75,24 @@ test("a .cue sheet names its files, quoted or not", () => {
   assert.deepEqual(cueFiles(cue), ["Game (Track 1).bin", "track2.bin"]);
 });
 
+test("tracks are matched by name; one renamed track is still found", () => {
+  const names = ["Game (Track 1).bin", "Game (Track 2).bin"];
+  const t1 = { name: "game (track 1).BIN" };
+  const t2 = { name: "pista2.bin" };
+  const notes = { name: "LEEME.txt" };
+  assert.deepEqual(matchTracks(names, [t1, notes]).missing, [
+    "Game (Track 2).bin",
+  ]);
+  const { tracks, missing } = matchTracks(names, [notes, t2, t1]);
+  assert.deepEqual(missing, []);
+  assert.equal(tracks.get("Game (Track 2).bin"), t2);
+  // Two unclaimed tracks for two missing names: nothing is guessed.
+  assert.deepEqual(
+    matchTracks(names, [{ name: "a.bin" }, { name: "b.bin" }]).missing,
+    names,
+  );
+});
+
 test("a disc is identified and prepared without reading it whole", async () => {
   let prepared = 0;
   const module = {
@@ -98,12 +116,24 @@ test("a disc is identified and prepared without reading it whole", async () => {
   );
   const other = new File([bin.subarray(1)], "Game (Track 1).bin");
   assert.notEqual((await prepareDisc(module, cue, [other], read)).hash, hash);
+  // Missing tracks are named before the core starts; a renamed one and a
+  // sheet saved with a UTF-8 BOM still boot, under the names the core uses.
+  await assert.rejects(
+    prepareDisc(module, cue, [notes], read),
+    /Track 1\)\.bin/,
+  );
+  const bom = new File(['\uFEFFFILE "Game (Track 1).bin" BINARY'], "Game.cue");
+  const renamed = new File([bin], "game.bin");
+  const fixed = await prepareDisc(module, bom, [renamed], read);
+  assert.equal(fixed.disc.primary.blob.size, bom.size - 3);
+  assert.equal(fixed.disc.find("Game (Track 1).bin")?.blob, renamed);
+  assert.equal(fixed.hash, hash, "same disc, same memory card");
   // The demo is a one-file disc.
   assert.equal(
     (await prepareDisc(module, undefined, [], read)).disc.primary.name,
     "demo.exe",
   );
-  assert.equal(prepared, 4);
+  assert.equal(prepared, 5);
 });
 
 test("only a load from a file carries a disc's other files", () => {

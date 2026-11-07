@@ -141,6 +141,7 @@
                   class="primary"
                   disabled={!system}
                   aria-label={`Continuar ${entry.name}`}
+              data-launch={`continue-${entry.hash}`}
                   onclick={() => system && oncontinue(entry, system)}
                   >Continuar</button
                 ><button

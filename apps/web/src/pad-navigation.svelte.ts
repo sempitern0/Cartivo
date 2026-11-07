@@ -70,9 +70,18 @@ function box(el: Element): Box {
   return { x: r.x, y: r.y, width: r.width, height: r.height };
 }
 
-/** Controls on screen; inside an open modal (the pause menu), only its own. */
+/**
+ * Controls on screen; inside an open modal (the pause menu), only its own,
+ * and while a game is open, only the player's (`[data-pad-scope]`), so the
+ * pad never wanders to the page around it.
+ */
 function candidates() {
-  const scope = document.querySelector("dialog:modal") ?? document;
+  const scope =
+    document.querySelector("dialog:modal") ??
+    Array.from(document.querySelectorAll<HTMLElement>("[data-pad-scope]")).find(
+      usable,
+    ) ??
+    document;
   return Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
     usable,
   );

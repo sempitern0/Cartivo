@@ -36,6 +36,7 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
 - **Varios archivos a la vez:**
   - El protocolo `load` admite `extra: File[]` (hasta 100) junto al archivo principal.
   - Selectores, arrastre y «Abrir con» entregan todos los archivos. `gameForFiles` (en `systems.ts`) elige el juego: prueba primero los sistemas de disco, de modo que un `.cue` gana a sus pistas.
+- **Hojas `.cue` incompletas:** si se abre un `.cue` sin las pistas que nombra, la tarjeta de PlayStation lo dice antes de arrancar y ofrece «Elegir pistas» para añadirlas (`storage/src/cue.ts`, `matchTracks`). El Worker repite la comprobación. Se acepta una única pista renombrada tras el volcado, que se ofrece al núcleo con el nombre del `.cue`, y una hoja guardada con BOM UTF-8 se entrega sin él, porque el núcleo no lo espera.
 - **`.bin` compartido con Mega Drive:**
   - Un `.bin` suelto de hasta 10 MiB (el límite de Mega Drive) es un cartucho.
   - Si es mayor, o se abre con su `.cue`, o desde la tarjeta de PlayStation, es una pista de CD.
@@ -50,7 +51,7 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
   - Instantáneas con `retro_serialize`, de unos 4,4 MB.
   - La tarjeta de memoria 1 (128 KiB, gestionada por libretro) se guarda con `SramStore`, igual que la batería de un cartucho.
   - El núcleo nunca escribe archivos.
-- **Demo:** un PS-EXE original (`ps1-control-demo.ts`) que la BIOS HLE arranca como un disco de un archivo.
+- **Demo:** un PS-EXE original (`ps1-control-demo.ts`) que la BIOS HLE arranca como un disco de un archivo. Para las pruebas existe además una imagen de CD original (`ps1-disc-demo.ts`: volumen ISO 9660 con SYSTEM.CNF y PSX.EXE en sectores MODE2/2352, con su `.cue`), que recorre el camino de un disco real.
 - **Biblioteca:** los discos todavía **no** se recuerdan (no se copian a OPFS) y se juegan desde los archivos abiertos. Copiar cientos de MB pide su propia decisión de espacio y consentimiento.
 
 ## Alternativas descartadas

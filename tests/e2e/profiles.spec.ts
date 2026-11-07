@@ -46,9 +46,11 @@ test("¿Quién juega? on every visit; profiles keep their Partidas and controls 
   await page
     .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
     .click();
-  await page.getByRole("button", { name: "Nuevo perfil" }).click();
-  await page.getByLabel("Nombre del perfil").fill("Ana");
-  await page.getByRole("button", { name: "Crear perfil" }).click();
+  await page.getByRole("button", { name: "Añadir perfil" }).click();
+  const create = page.getByRole("form", { name: "Nuevo perfil" });
+  await expect(create.getByLabel("Nombre")).toBeFocused();
+  await create.getByLabel("Nombre").fill("Ana");
+  await create.getByRole("button", { name: "Crear perfil" }).click();
   await expect(page.getByText("Perfil creado: Ana.")).toBeVisible();
   await pick(page, "Ana");
   slot = await slotOne(page);
@@ -79,12 +81,17 @@ test("¿Quién juega? on every visit; profiles keep their Partidas and controls 
   await expect(slot).toContainText("TetaNES");
   await leave(page);
 
-  // A new visit asks again.
+  // A new visit asks again, starting on whoever played last.
   const again = await page.context().newPage();
   await again.goto("/");
   await expect(
     again.getByRole("heading", { name: "¿Quién juega?" }),
   ).toBeVisible();
+  await expect(
+    again
+      .getByRole("list", { name: "Perfiles" })
+      .getByRole("button", { name: "Jugador 1", exact: true }),
+  ).toBeFocused();
   await again.close();
 });
 
@@ -92,28 +99,30 @@ test("profiles are renamed and deleted with their data; the first one stays", as
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Nuevo perfil" }).click();
-  await page.getByLabel("Nombre del perfil").fill("Luis");
+  await page.getByRole("button", { name: "Añadir perfil" }).click();
+  await page.getByLabel("Nombre").fill("Luis");
   await page.getByRole("button", { name: "Crear perfil" }).click();
   await page.getByRole("button", { name: "Gestionar perfiles" }).click();
   await expect(
     page.getByRole("button", { name: "Borrar Jugador 1" }),
   ).toHaveCount(0);
-  await page.getByRole("button", { name: "Renombrar Jugador 1" }).click();
-  await page.getByLabel("Nuevo nombre de Jugador 1").fill("Casa");
-  await page.getByRole("button", { name: "Guardar" }).click();
+  await page.getByRole("button", { name: "Editar Jugador 1" }).click();
+  const form = page.getByRole("form", { name: "Editar Jugador 1" });
+  await form.getByLabel("Nombre").fill("Casa");
+  await form.getByRole("radio", { name: "Coral" }).check();
+  await form.getByRole("button", { name: "Guardar" }).click();
+  await expect(page.getByText("Cambios guardados: Casa.")).toBeVisible();
   // The first click asks; the confirmation takes its place.
   const remove = page.getByRole("button", { name: "Borrar Luis" });
   await remove.click();
-  await expect(
-    page.getByText("Se borran sus partidas, juegos y controles."),
-  ).toBeVisible();
+  await expect(page.getByText("¿Borrar a Luis?")).toBeVisible();
   await remove.click();
   await expect(
     page.getByText("Luis y sus partidas se han borrado"),
   ).toBeVisible();
   const list = page.getByRole("list", { name: "Perfiles" });
-  await expect(list.getByRole("listitem")).toHaveCount(1);
+  // Casa and the «Añadir perfil» tile.
+  await expect(list.getByRole("listitem")).toHaveCount(2);
   await page.reload();
   await expect(
     list.getByRole("button", { name: "Casa", exact: true }),

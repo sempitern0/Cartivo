@@ -48,6 +48,7 @@
             <button
               class="icon-button"
               aria-label={`Continuar ${entry.name}`}
+              data-launch={`continue-${entry.hash}`}
               onclick={() => oncontinue(entry, system)}
               >{@html icons.play}</button
             >

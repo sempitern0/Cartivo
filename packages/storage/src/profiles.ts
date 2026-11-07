@@ -10,6 +10,8 @@ export type Profile = {
   name: string;
   /** Index into the profile palette (theme.css `--profile-<n>`). */
   color: number;
+  /** When it was last picked (ms), so «¿Quién juega?» starts on it. */
+  lastUsedAt?: number;
 };
 
 export const PRINCIPAL = "principal";
@@ -19,6 +21,11 @@ export const MAX_PROFILES = 8;
 export const PROFILES_KEY = "cartivo:profiles:v1";
 
 const principal: Profile = { id: PRINCIPAL, name: "Jugador 1", color: 0 };
+
+export const isProfileColor = (value: unknown): value is number =>
+  Number.isInteger(value) &&
+  (value as number) >= 0 &&
+  (value as number) < PROFILE_COLORS;
 
 export const isProfileId = (value: unknown): value is string =>
   typeof value === "string" && /^[a-z0-9]{1,16}$/.test(value);
@@ -38,16 +45,30 @@ function parseProfile(value: unknown): Profile | undefined {
   if (!value || typeof value !== "object") return undefined;
   const p = value as Record<string, unknown>;
   const name = profileName(p.name);
-  if (
-    !isProfileId(p.id) ||
-    !name ||
-    !Number.isInteger(p.color) ||
-    (p.color as number) < 0 ||
-    (p.color as number) >= PROFILE_COLORS
-  )
-    return undefined;
-  return { id: p.id, name, color: p.color as number };
+  if (!isProfileId(p.id) || !name || !isProfileColor(p.color)) return undefined;
+  const used =
+    typeof p.lastUsedAt === "number" &&
+    Number.isFinite(p.lastUsedAt) &&
+    p.lastUsedAt > 0;
+  return used
+    ? { id: p.id, name, color: p.color, lastUsedAt: p.lastUsedAt as number }
+    : { id: p.id, name, color: p.color };
 }
+
+/** Up to two letters for the avatar: the first of the first two words. */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words
+    .slice(0, 2)
+    .map((w) => [...w][0]!.toLocaleUpperCase("es"))
+    .join("");
+}
+
+/** The profile picked most recently (or the first one). */
+export const lastUsed = (profiles: readonly Profile[]) =>
+  profiles.reduce((a, b) =>
+    (b.lastUsedAt ?? 0) > (a.lastUsedAt ?? 0) ? b : a,
+  );
 
 type Store = Pick<Storage, "getItem" | "setItem">;
 

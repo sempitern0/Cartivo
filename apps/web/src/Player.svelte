@@ -565,6 +565,7 @@
   class:focus-mode={focusMode && phase === "running" && !fullscreen}
   class:immersive={fullscreen}
   aria-label={`Reproductor ${system.name}`}
+  data-pad-scope
 >
   {#if focusMode && phase === "running"}
     <button

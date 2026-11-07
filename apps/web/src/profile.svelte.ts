@@ -2,6 +2,7 @@
 // for the tab (sessionStorage), so a reload or an update keeps it.
 import {
   deleteProfileData,
+  isProfileColor,
   newProfile,
   PRINCIPAL,
   profileName,
@@ -38,6 +39,15 @@ class Profiles {
   id = $derived(this.active?.id ?? PRINCIPAL);
 
   choose(profile: Profile | undefined) {
+    if (profile) {
+      profile = { ...profile, lastUsedAt: Date.now() };
+      // Remembering who played last is a convenience: never block on it.
+      try {
+        this.#save(this.all.map((p) => (p.id === profile!.id ? profile! : p)));
+      } catch {
+        // Storage refused: the picker just starts on the first profile.
+      }
+    }
     this.active = profile;
     try {
       if (profile) sessionStorage.setItem(ACTIVE_KEY, profile.id);
@@ -53,18 +63,21 @@ class Profiles {
   }
 
   /** Throws a readable message (invalid name, too many profiles, storage). */
-  add(name: string): Profile {
-    const profile = newProfile(name, this.all);
+  add(name: string, color?: number): Profile {
+    const created = newProfile(name, this.all);
+    const profile = isProfileColor(color) ? { ...created, color } : created;
     this.#save([...this.all, profile]);
     return profile;
   }
 
-  rename(profile: Profile, name: string) {
+  /** New name and colour; throws a readable message. */
+  update(profile: Profile, name: string, color: number) {
     const valid = profileName(name);
     if (!valid) throw Error("Escribe un nombre de 1 a 24 caracteres.");
-    const renamed = { ...profile, name: valid };
-    this.#save(this.all.map((p) => (p.id === profile.id ? renamed : p)));
-    if (this.active?.id === profile.id) this.active = renamed;
+    if (!isProfileColor(color)) throw Error("Elige uno de los colores.");
+    const updated = { ...profile, name: valid, color };
+    this.#save(this.all.map((p) => (p.id === profile.id ? updated : p)));
+    if (this.active?.id === profile.id) this.active = updated;
   }
 
   /** Deletes a profile and everything it saved (never the first one). */
