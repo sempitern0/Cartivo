@@ -99,6 +99,10 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - **No era el búfer de Asyncify.** Subirlo a 1 MiB no lo arregló; se mantiene como margen.
   - **El glue de fibras es idéntico** al de 4.0.10, así que la diferencia está en el wasm (LLVM 24, libc o Binaryen 133).
 - **Decisión:** `cores/mupen64plus-next/toolchain.json` fija **emsdk 4.0.10 (LLVM 21)**, la combinación que arranca la demo. El fallo de 6.0.12 queda como investigación abierta en [N64_CORE_GATE](../../docs/research/N64_CORE_GATE.md#emscripten-6012-se-cuelga-investigación-abierta).
+- **Build de CI con 4.0.10:** `n64-core.wasm` `75903b7a…`, verificado por `pnpm verify:core`. En Chromium headless:
+  - demo, botones, pausa con los fotogramas congelados, reanudar y pérdida de contexto;
+  - velocidad 0,99×, tono a 500,09 Hz, ningún bloque de audio descartado ni underrun;
+  - unos 5,9 ms por fotograma (p95 de 8,7 ms) y primer fotograma a los 0,29 s.
 - **Entrada analógica:** producción tiene sticks (`packages/input/src/analog.ts`, ADR-006) y el laboratorio reutiliza esa normalización.
 - **Pendiente:** la QA del titular (fase 3) con el núcleo de CI, desde cualquier copia actualizada y sin compilar nada.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.
