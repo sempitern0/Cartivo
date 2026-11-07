@@ -351,3 +351,15 @@
 - Segunda ronda tras la QA del titular: el inicio va directo a las consolas, sin título visible. Sin icono de controles en cada tarjeta (están en Ajustes). Al pasar el ratón solo se ilumina el botón de reproducción. Se ven todos los formatos (sin «+N»). Un clic en cualquier punto de la tarjeta abre el selector: antes solo respondía el botón, porque el hundimiento al pulsar encogía la zona de clic.
 - «Continuar» y los recientes forman una franja compacta en el acento de su consola. «Ver todos tus juegos» es una estantería de cartuchos con el número de juegos que se abre en abanico.
 - `systems.ts` declara `handheld`. El acento por soporte (`accent.ts`) ya no depende de identificadores de consola en la UI.
+
+### Sticks analógicos y núcleo N64 en CI
+
+- **Sticks analógicos:**
+  - el mando estándar envía sus dos sticks, normalizados y con zona muerta radial;
+  - en PS1 el mando es un DualShock: digital como antes hasta que el juego lo pasa a analógico o se pulsa L1+R1+Select;
+  - el stick izquierdo sigue moviendo la cruceta.
+- **N64:**
+  - Mupen64Plus-Next se compila en CI (`cores/mupen64plus-next`) con el mismo hash que el build del titular, y CORE-LEGAL-01 queda aceptado para uso privado;
+  - el laboratorio usa ese núcleo, sin compilar nada en local;
+  - el búfer de Asyncify por fibra sube a 1 MiB, porque el build con LLVM 24 lo desbordaba en el primer fotograma;
+  - la app aún no ofrece N64.

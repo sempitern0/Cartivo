@@ -282,6 +282,10 @@ cartivo_t *cartivo_create(const char *path, size_t length)
     retro_set_input_poll(input_poll);
     retro_set_input_state(input_state);
     retro_init();
+    /* The core's RETRO_DEVICE_PSE_DUALSHOCK (frontend/libretro.c), chosen
+     * before the game loads: changed afterwards, the core simulates
+     * plugging a new pad in and answers no pad for 32 frames. */
+    retro_set_controller_port_device(0, RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1));
     const struct retro_game_info game = {name, NULL, 0, NULL};
     const bool loaded = retro_load_game(&game);
     free(name);
@@ -291,8 +295,6 @@ cartivo_t *cartivo_create(const char *path, size_t length)
         free(c);
         return NULL;
     }
-    /* The core's RETRO_DEVICE_PSE_DUALSHOCK (frontend/libretro.c). */
-    retro_set_controller_port_device(0, RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1));
     struct retro_system_av_info av;
     retro_get_system_av_info(&av);
     set_timing(&av.timing);

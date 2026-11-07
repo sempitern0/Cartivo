@@ -46,7 +46,7 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
 - **Mando digital por posición:**
   - Cruz y Círculo sobre B y A, Cuadrado y Triángulo sobre Y y X, L1 y R1 sobre L y R.
   - Se añaden las acciones **L2/R2** a Cartivo: gatillos 6 y 7 del mando estándar, Y y P en el teclado. Los perfiles antiguos se completan con la misma migración que L/R y X/Y.
-  - El analógico (DualShock) queda para después.
+  - **DualShock** desde el 2026-11-07 (revisión de ADR-006). El puente elige el `RETRO_DEVICE_PSE_DUALSHOCK` del núcleo **antes de cargar el juego**: cambiarlo después hace que el núcleo simule enchufar un mando nuevo y no responda durante 32 fotogramas. Empieza en modo digital, igual que el mando estándar. El juego lo pasa a analógico con sus comandos de configuración, o el jugador con L1+R1+Select (`pcsx_rearmed_analog_combo`). Los sticks llegan por `cartivo_set_analog` como `RETRO_DEVICE_ANALOG`.
 - **Partidas y tarjeta:**
   - Instantáneas con `retro_serialize`, de unos 4,4 MB.
   - La tarjeta de memoria 1 (128 KiB, gestionada por libretro) se guarda con `SramStore`, igual que la batería de un cartucho.

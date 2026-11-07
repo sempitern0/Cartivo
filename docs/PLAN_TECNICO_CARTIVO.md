@@ -31,7 +31,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | **GBA:** mGBA 0.10.5 con BIOS HLE; SRAM, Flash y EEPROM | `packages/adapters/src/mgba.ts`, `gba-header.ts` | ADR-011 | `tests/gba-saves.test.ts`, `tests/e2e/gba.spec.ts`, [H2-GBA](compatibility/H2-GBA.md) |
 | **SNES:** Snes9x 1.63 (C++ sobre su frontend libretro); NTSC y PAL (50 Hz) LoROM/HiROM/ExHiROM, chips emulados; botones X/Y | `packages/adapters/src/snes9x.ts`, `snes-header.ts`; `cores/snes9x` | ADR-013 | `tests/snes.test.ts`, `tests/e2e/snes.spec.ts`, [H2-SNES](compatibility/H2-SNES.md) |
 | **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` suelto de hasta 10 MiB | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
-| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; mando digital con L2/R2. Los discos aún no se recuerdan en la biblioteca | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
+| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos aún no se recuerdan en la biblioteca | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
 | Discos bajo demanda: `DiscModule` en el contrato, `prepareDisc` (identidad por bloques WebCrypto, sin leer el disco entero), VFS de libretro sobre `FileReaderSync` (`cartivo_vfs_*`), varios archivos por `load` (`extra`) y `gameForFiles` para elegir el juego | `packages/adapters/src/disc.ts`, `contract.ts`; `packages/storage/src/disc-identity.ts`; `packages/runtime/src/prepare-rom.ts`, `systems.ts` | ADR-015 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts` |
 | Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive, PlayStation) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | Cadencia por juego: el núcleo libretro informa de la frecuencia del juego cargado (`cartivo_frame_rate`, 50 Hz en PAL) y el host la usa; sin ese dato, la nominal del sistema | `EmulatorCore.frameRate`, `wasm-host.ts`, `Player.svelte`; puentes de `cores/snes9x` y `cores/genesis-plus-gx` | ADR-002 | `tests/wasm-host.test.ts`, `tests/e2e/pal.spec.ts` |
@@ -72,11 +72,11 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
    - *Empieza por:* área `load`/`storage`: `library.ts` (`rememberGame`, `storedRom`), `emulator.worker.ts` (`loadDisc` rechaza hoy `stored`) y ADR-012/015.
    - *Terminado cuando:* la E2E con `ps1-disc-demo` recuerda, continúa y olvida el disco; la tarjeta de memoria se conserva; la copia se comparte entre perfiles.
    - *Fuera:* CHD y multidisco.
-2. **PS1 · mando analógico y multidisco.**
-   - *Objetivo:* DualShock (sticks) donde el núcleo lo ofrezca, y `.m3u` con cambio de disco desde el menú de pausa.
-   - *Empieza por:* área `input` y `cores`: `InputState`, `pcsx-rearmed.ts` y `cores/pcsx-rearmed/src/cartivo.c`.
+2. **PS1 · multidisco.** El DualShock con sticks ya está hecho (ADR-006, revisión de 2026-11-07); falta la QA con un juego analógico propio.
+   - *Objetivo:* `.m3u` con cambio de disco desde el menú de pausa.
+   - *Empieza por:* área `load` y `cores`: `pcsx-rearmed.ts`, `cores/pcsx-rearmed/src/cartivo.c` (interfaz de disco de libretro) y ADR-015.
    - *Ojo:* cambiar el puente obliga a reconstruir el núcleo (`cores/AGENTS.md`).
-   - *Terminado cuando:* pruebas unitarias del mapeo, conformidad y fixture original.
+   - *Terminado cuando:* fixture original de dos discos, cambio desde la pausa y conformidad.
    - *Fuera:* pistola, multitap.
 3. **PS1 · CHD.**
    - *Cómo:* reconstruir con `HAVE_CHD` (libchdr, lzma y zstd).
@@ -87,7 +87,11 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
    - *Terminado cuando:* un núcleo de prueba dibuja por GL en el Worker en Chromium y Firefox, con alternativa si falta WebGL2, y un ADR describe el contrato (sin romper el RGBA actual).
 5. **N64 (en curso, rama `feat/n64-gpu-prototype`).** Se sigue [N64_PLAN_INTEGRACION](research/N64_PLAN_INTEGRACION.md).
    - *Hecho en el laboratorio:* Mupen64Plus-Next + GLideN64 dibuja por WebGL2 en un Worker, sin hilos (libco sobre fibers/Asyncify). Arranca una demo original con mando y audio. Una pérdida de contexto detiene la sesión. Con la demo en SwiftShader cuesta unos 6 ms por fotograma y ocupa 256 MiB.
-   - *Pendiente:* build con emsdk 6.0.12 (LLVM 24, no accesible desde aquí), control de tasa de audio, medición con juegos propios y GPU real, CORE-LEGAL-01, y decisión go o no-go antes de tocar producción.
+   - *Hecho fuera del laboratorio:*
+     - núcleo compilado en CI (`cores/mupen64plus-next`, reproducible: mismo hash que el build del titular);
+     - CORE-LEGAL-01 accepted (uso privado);
+     - ritmo por cola de audio en la sesión.
+   - *Pendiente:* medición con juegos propios y GPU real (fase 3) y decisión go o no-go antes de registrarlo en la app.
    - *Empieza por:* el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
    - El punto 4 (contrato de vídeo GPU en producción) se diseña con N64 como primer consumidor, en su fase 4.
 6. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre el punto 4 y el camino de discos (`.iso`/`.cso`).

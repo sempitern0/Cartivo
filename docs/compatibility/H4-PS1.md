@@ -11,7 +11,7 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 | Firmware | BIOS HLE del núcleo forzada; sin directorio de sistema, nunca se busca la BIOS de Sony |
 | Formatos | `.cue` con sus pistas, `.iso`, `.bin` de una pista y `.exe` (PS-EXE). Fuera: CHD, `.pbp`, `.m3u` multidisco |
 | Lectura | VFS de libretro de solo lectura hacia `cartivo_vfs_*` (`FileReaderSync` sobre `Blob.slice()`); el disco nunca se copia entero |
-| Entrada | Mando digital: Cruz/Círculo en K/L, Cuadrado/Triángulo en J/U, L1/R1 en I/O, L2/R2 en Y/P; en el mando estándar, por posición y gatillos 6/7 |
+| Entrada | DualShock: empieza digital (Cruz/Círculo en K/L, Cuadrado/Triángulo en J/U, L1/R1 en I/O, L2/R2 en Y/P; en el mando estándar, por posición y gatillos 6/7) y pasa a analógico cuando lo pide el juego o con L1+R1+Select. Sticks del mando estándar, sin equivalente en teclado |
 | Guardado | Tarjeta de memoria 1 (128 KiB, `cartivo-ps1-sram-v1`) como batería; Partidas con `retro_serialize` (≈ 4,4 MB) |
 
 ## QA del titular
@@ -42,6 +42,7 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 ## QA manual pendiente
 
 1. Demo con mando físico: Cruz/Círculo en sur/este, Cuadrado/Triángulo en oeste/norte, L2/R2 en los gatillos.
+1. Un juego propio que use el analógico: los sticks mueven y la cruceta sigue funcionando. Comprobar también uno solo digital, que debe seguir igual.
 2. Discos propios (solo en local, nunca en git ni CI):
    - un juego `.cue` con varias pistas de audio y otro `.bin` de una pista;
    - guardar en la tarjeta desde el juego, salir y volver;
