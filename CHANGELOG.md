@@ -321,3 +321,8 @@
 - Mando: al salir de un juego, el foco vuelve al control que lo inició; mientras se juega, el mando solo recorre el reproductor.
 - PlayStation: un `.cue` abierto sin sus pistas ya no falla al arrancar; la tarjeta indica qué pistas faltan y permite elegirlas. Se aceptan una pista renombrada y hojas guardadas con BOM. Nueva imagen de CD de prueba original (ISO 9660 + `.cue`).
 
+### Preparado para los siguientes incrementos
+
+- El plan técnico (revisión 8) convierte lo pendiente en una cola para agentes: cada entrada indica por dónde empezar, cuándo está terminada y qué queda fuera. La QA del titular va aparte. El siguiente paso es recordar discos de PlayStation en la biblioteca, y después el vídeo WebGL2 que necesitan N64, PSP y PS2.
+- `docs/ai/CONTEXT.md` añade «Recetas» (patrones ya resueltos: datos por perfil, sistemas de disco, foco con `data-launch` y `data-pad-scope`, botones nuevos, fixtures) y «Trampas conocidas» (Prettier 3.6 frente a uno global, entorno sin `node_modules`, `FileList`, opciones de Playwright, builds de núcleo).
+
