@@ -33,6 +33,20 @@ export function stick(x: number, y: number, deadzone = STICK_DEADZONE): Stick {
   return { x: x * scale, y: y * scale };
 }
 
+/** A stick from four digital directions (keyboard, D-pad): full deflection,
+ * diagonals on the unit circle, opposite directions cancel. */
+export function digitalStick(
+  up: boolean,
+  down: boolean,
+  left: boolean,
+  right: boolean,
+): Stick {
+  const x = Number(right) - Number(left);
+  const y = Number(down) - Number(up);
+  const length = Math.hypot(x, y) || 1;
+  return { x: x / length, y: y / length };
+}
+
 /** Both sticks of a standard-mapping pad (axes 0–1 left, 2–3 right); any
  * other mapping has no known stick layout and reads as centred. */
 export function analogOf(

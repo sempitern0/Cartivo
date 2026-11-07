@@ -137,7 +137,16 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - unos 6,5 ms por fotograma (p95 de 10 ms);
   - sin `glMapBufferRange` en el registro;
   - al arrancar, unos pocos bloques de audio descartados y 2 underruns. Hay que confirmarlo en GPU real.
-- **Próxima acción:** el titular repite *Super Mario 64* (build normal o `N64_CORE=debug` tras `--debug`) y comprueba que pasa de los 10 s y que el stick mueve a Mario.
+- **QA del titular con `e93ec23b` (Brave en Windows):** *Super Mario 64* se juega con mando.
+  - Medidas: 2688 fotogramas, velocidad 0,99×, 4,7 ms por fotograma (p95 de 9,9 ms), ningún bloque de audio descartado, 5 underruns (593 ms de déficit).
+  - Con teclado no podía moverse: el laboratorio no daba stick al teclado.
+  - El audio tiene pequeños fallos, sobre todo con sonidos fuertes.
+- **Ajustes en el laboratorio:**
+  - Las flechas son el stick y WASD el stick derecho, que el núcleo lee como botones C. Usan `digitalStick` de `packages/input/src/analog.ts`, con dirección completa y diagonales en el círculo.
+  - El stick derecho del mando ya llega al núcleo; antes iba a 0, así que tampoco había botones C con mando. La cruceta del mando también.
+  - El `AudioContext` se crea a 44,1 kHz, la frecuencia fija del núcleo. A otra frecuencia, cada bloque se remuestreaba por separado y las uniones podían chasquear.
+  - Comprobado en headless: las teclas llegan al Worker como sticks y la salida va a 44,1 kHz.
+- **Próxima acción:** el titular repite con teclado y escucha si desaparecen los chasquidos. Si quedan cortes, son underruns por tirones del Worker y se miden con su contador.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.
 
 ### Relevo — 2026-11-07, sesión 4

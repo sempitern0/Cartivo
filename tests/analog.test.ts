@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   analogOf,
   centered,
+  digitalStick,
   isAnalog,
   stick,
   STICK_DEADZONE,
@@ -116,4 +117,14 @@ test("a bridge without sticks ignores them (no export, no error)", async () => {
   core.analog({ left: { x: 1, y: -1 }, right: { x: -1, y: 1 } });
   core.advance(1);
   assert.ok(core.frames >= 1);
+});
+
+test("digitalStick: dirección completa, diagonales en el círculo y opuestas anuladas", () => {
+  assert.deepEqual(digitalStick(false, false, false, false), { x: 0, y: 0 });
+  assert.deepEqual(digitalStick(true, false, false, false), { x: 0, y: -1 });
+  assert.deepEqual(digitalStick(false, false, false, true), { x: 1, y: 0 });
+  const diagonal = digitalStick(false, true, true, false);
+  assert.ok(Math.abs(Math.hypot(diagonal.x, diagonal.y) - 1) < 1e-12);
+  assert.ok(diagonal.x < 0 && diagonal.y > 0);
+  assert.deepEqual(digitalStick(true, true, true, true), { x: 0, y: 0 });
 });
