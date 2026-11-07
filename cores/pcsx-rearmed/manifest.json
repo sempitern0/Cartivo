@@ -55,7 +55,7 @@
   "files": [
     {
       "path": "dist/pcsx-rearmed.wasm",
-      "sha256": "afac7f0bd056b97fe700ba0ec05f77ff0bc0a3a5b9b10285e40777f2984e54e9"
+      "sha256": "a1dced8399013aca1a18f77758db010ad5b1593310b9e025be0e25f1e5f260c7"
     }
   ]
 }
