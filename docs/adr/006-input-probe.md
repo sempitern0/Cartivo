@@ -51,3 +51,16 @@ El menú de pausa (`PauseMenu.svelte`) es un `<dialog>` modal: el resto queda in
 ## Revisión: actividad durante la partida (2026-11-06)
 
 La observación de actividad (`PadActivity`) sigue funcionando aunque el juego reserve la navegación. Una pulsación nueva o un eje que supera la zona muerta cambia el último dispositivo; mantenerlo pulsado no recupera el modo tras usar teclado o ratón. La reserva sigue impidiendo que el juego pulse menús. Controles reserva el mando con `switchesInterface: false`: mientras se prueba o se asigna, usarlo no cambia la presentación (la pantalla que se configura no cambia bajo el jugador; en WebKit, el cambio interfería con la asignación de teclas). Al desconectar el mando estándar se recupera la presentación de teclado, respetando cualquier preferencia fija. Aceptar y ajustar controles comprueba que pertenezcan a los candidatos visibles del diálogo actual.
+
+## Revisión: sticks analógicos (2026-11-07)
+
+- **Modelo:** `packages/input/src/analog.ts` añade `Analog` (stick izquierdo y derecho) junto al `InputState` digital. Cada eje va de −1 a 1, con x a la derecha e y hacia abajo, como la Gamepad API y libretro.
+- **Lectura:** solo en mandos con mapeo estándar (ejes 0–1 izquierdo, 2–3 derecho), con zona muerta radial de 0,18 que reescala desde su borde y recorta al círculo unidad. Con mapeo desconocido, sin mando, antes de soltar los controles o con el mando perdido, los sticks van centrados. El teclado no tiene sticks.
+- **Viaje:**
+  - `advance` lleva `analog` opcional y validado (falta = centrado, para clientes anteriores);
+  - el contrato añade `analog?()`;
+  - el Worker centra los sticks fuera de `advance`;
+  - `wasm-host` los pasa a 16 bits solo si el puente exporta `cartivo_set_analog`.
+- **El stick izquierdo sigue moviendo también la cruceta**, como antes: los juegos digitales lo necesitan y los analógicos lo ignoran o lo tratan igual.
+- **Primer consumidor:** el DualShock de PS1 (ADR-015). El laboratorio N64 reutiliza la misma normalización.
+

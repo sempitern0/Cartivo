@@ -2,7 +2,7 @@
 // a WebGL2 context that the core draws into directly, the ROM goes to the
 // module's in-memory FS, and frames run at the game's rate, paced by the
 // page's audio queue. Audio leaves in one chunk per frame. The module is the
-// local build from build-core.mjs (.build/, git ignored): this file is never
+// CI build in cores/mupen64plus-next/dist (tools/build-mupen64plus-next.mjs): this file is never
 // imported by the application.
 //
 // States: loading → running ⇄ paused → stopping. A request that does not fit
@@ -139,10 +139,16 @@ function tick() {
     pacing.skipped++;
     return;
   }
-  runFrame();
-  if (ahead >= 0 && ahead < LOW_MS) {
+  try {
     runFrame();
-    pacing.doubled++;
+    if (ahead >= 0 && ahead < LOW_MS) {
+      runFrame();
+      pacing.doubled++;
+    }
+  } catch (error) {
+    // A trap inside the core (out-of-bounds access, abort): its stack, with
+    // function names in a debug build, goes to the log before stopping.
+    fail(error);
   }
 }
 

@@ -1,5 +1,6 @@
 // Checks that each committed Emscripten core build (SameBoy, mGBA, Snes9x,
-// Genesis Plus GX) matches its manifest and SBOM, without compiling anything.
+// Genesis Plus GX, PCSX-ReARMed, Mupen64Plus-Next) matches its manifest and
+// SBOM, without compiling anything.
 // Usage: node tools/verify-core.mjs <id>... (ids are folders in cores/).
 // The builds themselves happen in CI on explicit request (core-<id>.yml).
 // TetaNES keeps its own stricter check (tools/verify-tetanes.mjs, ADR-005).
@@ -11,7 +12,7 @@ import { join, resolve } from "node:path";
 // licence, including the named non-commercial ones of the integrated cores.
 // Unknown or missing licences still fail.
 const allowed =
-  /^(MIT|Apache-2\.0|Apache-2\.0 WITH LLVM-exception|BSD-[23]-Clause|0BSD|ISC|Zlib|Unlicense|Unicode-3\.0|MPL-2\.0|NCSA|CC0-1\.0|LicenseRef-public-domain|LicenseRef-(Snes9x|GenesisPlusGX|Musashi|MAME-Z80|notaz-SVP|NukedOPLL)-noncommercial|L?GPL-[23]\.[01](-only|-or-later)?)$/;
+  /^(MIT|Apache-2\.0|Apache-2\.0 WITH LLVM-exception|BSD-[23]-Clause|0BSD|ISC|Zlib|Unlicense|Unicode-3\.0|Libpng|MPL-2\.0|NCSA|CC0-1\.0|LicenseRef-public-domain|LicenseRef-(Snes9x|GenesisPlusGX|Musashi|MAME-Z80|notaz-SVP|NukedOPLL)-noncommercial|L?GPL-[23]\.[01](-only|-or-later)?)$/;
 
 /** "MIT OR Apache-2.0", "(A AND B) / C": some alternative fully allowed. */
 const licensed = (expression) =>

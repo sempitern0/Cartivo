@@ -1,0 +1,51 @@
+{
+  "id": "mupen64plus-next-n64-wasm",
+  "engine": "WebAssembly + Emscripten ES module (WebGL2, Asyncify)",
+  "upstream": {
+    "name": "Mupen64Plus-Next",
+    "commit": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx",
+    "spdx": "GPL-2.0-or-later"
+  },
+  "toolchain": {
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.10 (b7dc6e5747465580df5984e723b9d1f10d8e804b)",
+    "clang": "21.0.0git",
+    "emsdk": "4.0.10 (62a853cd3b3134398ce85cde8bb5cbb2ef0194cb)"
+  },
+  "platforms": [
+    "Nintendo 64"
+  ],
+  "biosRequired": false,
+  "bios": "None: PIF and CIC are the core's HLE and each cartridge carries its own IPL3",
+  "status": "laboratory: not registered in the app until the viability gate (N64_PLAN_INTEGRACION)",
+  "patchedFiles": [
+    "libretro/libretro.c (patches/emu-thread-entry.patch)"
+  ],
+  "exports": [
+    "n64_init",
+    "n64_load",
+    "n64_run",
+    "n64_audio",
+    "n64_audio_frames",
+    "n64_fps",
+    "n64_sample_rate",
+    "n64_presented",
+    "n64_duped",
+    "n64_input",
+    "n64_unload",
+    "malloc",
+    "free"
+  ],
+  "imports": 407,
+  "dependencies": 18,
+  "files": [
+    {
+      "path": "dist/n64-core.mjs",
+      "sha256": "5fc348583dc5cf460cb6fce45d337dcd147b65c3cab34562b7c32f60ebccca11"
+    },
+    {
+      "path": "dist/n64-core.wasm",
+      "sha256": "e93ec23b02df8709aab39250b29c8eb8dfefa8dfa7fbbd2484f517ca2acca2ed"
+    }
+  ]
+}

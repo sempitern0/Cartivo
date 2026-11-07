@@ -1,0 +1,110 @@
+[
+  {
+    "name": "mupen64plus-core (CPU cached interpreter, PIF/CIC HLE, memory) and custom/mupen64plus-core",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "GPL-2.0-or-later",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "Mupen64Plus-Next libretro frontend (libretro/libretro.c, patched: patches/emu-thread-entry.patch)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "GPL-2.0-or-later",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "mupen64plus-rsp-hle",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "GPL-2.0-or-later",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "GLideN64 (GL RDP, uCodes, GLideNHQ, OpenGLContext)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "GPL-2.0-only",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "gles2n64-derived code in GLideN64 (GLideN64/licenses/gles2n64)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "LGPL-3.0-only",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "GLSL-FXAA shader in GLideN64 (GLideN64/licenses/GLSL-FXAA)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "MIT",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "Glow bloom shader in GLideN64 (GLideN64/licenses/Glow)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "MIT",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "readerwriterqueue in GLideN64 (GLideN64/licenses/readerwriterqueue)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "BSD-2-Clause AND Zlib",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "libretro API header and libretro-common",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "MIT",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "libpng 1.6.34 (custom/dependencies/libpng)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "Libpng",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "zlib 1.2.8 (custom/dependencies/libzlib)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "Zlib",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "minizip (mupen64plus-core/subprojects/minizip)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "Zlib",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "md5 by L. Peter Deutsch (mupen64plus-core/subprojects/md5)",
+    "version": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "license": "Zlib",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx"
+  },
+  {
+    "name": "Emscripten system libraries and JS runtime (GL, FS, fibers, Asyncify)",
+    "version": "4.0.10",
+    "license": "MIT OR NCSA",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "libc++ and libc++abi (Emscripten)",
+    "version": "4.0.10",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "musl libc (Emscripten)",
+    "version": "4.0.10",
+    "license": "MIT",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "compiler-rt (Emscripten)",
+    "version": "4.0.10",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "dlmalloc (Emscripten)",
+    "version": "4.0.10",
+    "license": "CC0-1.0",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  }
+]

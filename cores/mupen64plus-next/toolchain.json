@@ -1,0 +1,14 @@
+{
+  "mupen64plusNext": {
+    "commit": "15bada85906593376e8fd697f1b0b3af3a20f512",
+    "repository": "https://github.com/libretro/mupen64plus-libretro-nx",
+    "spdx": "GPL-2.0-or-later"
+  },
+  "emsdk": {
+    "version": "4.0.10",
+    "commit": "62a853cd3b3134398ce85cde8bb5cbb2ef0194cb",
+    "llvm": "21",
+    "repository": "https://github.com/emscripten-core/emsdk",
+    "why": "6.0.12 (LLVM 24) builds hang on the first frame: corrupted locals inside the core's fiber (docs/research/N64_CORE_GATE.md); 4.0.10 runs the demo"
+  }
+}

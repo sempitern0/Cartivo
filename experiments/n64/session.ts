@@ -1,9 +1,15 @@
-// Laboratory page: a real N64 session with the local core build (see
-// build-core.mjs). One session at a time, in its own Worker; stopping or a
+// Laboratory page: a real N64 session with the core built by CI
+// (cores/mupen64plus-next/dist, served as the lab's Vite publicDir). One session at a time, in its own Worker; stopping or a
 // failure terminates it, so nothing outlives the session. Everything the
 // Worker reports goes to the visible log, to diagnose a machine from a copy.
 import { n64ControlDemo } from "./fixture/n64-control-demo.ts";
-import { analogStick, MAX_N64_ROM_BYTES } from "./preflight.ts";
+import {
+  analogOf,
+  digitalStick,
+  toInt16,
+  type Stick,
+} from "../../packages/input/src/analog.ts";
+import { MAX_N64_ROM_BYTES } from "./preflight.ts";
 import type {
   SessionEvent,
   SessionRequest,
@@ -23,7 +29,7 @@ const stats = $("#session-stats");
 const logView = $("#session-log");
 const holder = $("#session-screen");
 const file = $<HTMLInputElement>("#rom");
-/** From .build/web/, Vite's publicDir for the lab (vite.config.ts). */
+/** From cores/mupen64plus-next/dist, Vite's publicDir for the lab. */
 const MODULE = new URL("n64-core.mjs", location.href).href;
 /** Loading longer than this is reported, with where it stopped. */
 const WATCHDOG_MS = 45_000;
@@ -98,7 +104,8 @@ function play(samples: Int16Array) {
   send({ type: "audio-queue", ms: Math.round(queued() * 1000) });
 }
 
-/** libretro bits as the core maps them: B→N64 A, Y→N64 B, L2→Z. */
+/** libretro bits as the core maps them: B→N64 A, Y→N64 B, L2→Z; the
+ * D-pad is libretro's up/down/left/right (4–7). */
 const KEYBOARD: Record<string, number> = {
   KeyK: 0, // A
   KeyJ: 1, // B
@@ -107,6 +114,12 @@ const KEYBOARD: Record<string, number> = {
   KeyI: 10, // L
   KeyO: 11, // R
 };
+/** Keys read as sticks: arrows are the control stick; WASD the right stick,
+ * which the core reads as the C buttons. */
+const STICK_KEYS = {
+  left: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"],
+  right: ["KeyW", "KeyS", "KeyA", "KeyD"],
+} as const;
 const PAD: [number, number][] = [
   [0, 0], // south → A
   [2, 1], // west → B
@@ -114,7 +127,15 @@ const PAD: [number, number][] = [
   [6, 12], // left trigger → Z
   [4, 10], // L
   [5, 11], // R
+  [12, 4], // D-pad
+  [13, 5],
+  [14, 6],
+  [15, 7],
 ];
+const keyStick = ([up, down, left, right]: readonly string[]) =>
+  digitalStick(keys.has(up), keys.has(down), keys.has(left), keys.has(right));
+/** A pressed key direction wins over the pad's stick. */
+const either = (key: Stick, pad: Stick) => (key.x || key.y ? key : pad);
 
 function send(request: SessionRequest, transfer: Transferable[] = []) {
   worker?.postMessage(request, transfer);
@@ -150,20 +171,24 @@ function stop(message = "Sesión detenida.") {
 function pumpInput() {
   let buttons = 0;
   for (const key of keys) if (key in KEYBOARD) buttons |= 1 << KEYBOARD[key];
-  let lx = 0;
-  let ly = 0;
   const pad = Array.from(navigator.getGamepads?.() ?? []).find(
     (p) => p?.connected && p.mapping === "standard",
   );
-  if (pad) {
+  if (pad)
     for (const [from, to] of PAD)
       if (pad.buttons[from]?.pressed) buttons |= 1 << to;
-    const stick = analogStick(pad.axes[0] ?? 0, pad.axes[1] ?? 0);
-    // Gamepad API y grows downwards, like libretro's.
-    lx = Math.round(stick.x * 32767);
-    ly = Math.round(stick.y * 32767);
-  }
-  send({ type: "input", buttons, lx, ly, rx: 0, ry: 0 });
+  // Gamepad API y grows downwards, like libretro's.
+  const sticks = analogOf(pad ?? undefined);
+  const left = either(keyStick(STICK_KEYS.left), sticks.left);
+  const right = either(keyStick(STICK_KEYS.right), sticks.right);
+  send({
+    type: "input",
+    buttons,
+    lx: toInt16(left.x),
+    ly: toInt16(left.y),
+    rx: toInt16(right.x),
+    ry: toInt16(right.y),
+  });
   frame = requestAnimationFrame(pumpInput);
 }
 
@@ -187,7 +212,7 @@ function onEvent(data: SessionEvent) {
       clearTimeout(watchdog);
       sampleRate = data.sampleRate;
       log(
-        `[página] en marcha: ${data.fps.toFixed(2)} Hz, audio ${data.sampleRate} Hz, ${data.renderer}`,
+        `[página] en marcha: ${data.fps.toFixed(2)} Hz, audio ${data.sampleRate} Hz (salida ${audio?.sampleRate} Hz), ${data.renderer}`,
       );
       status.textContent = `En marcha a ${data.fps.toFixed(2)} Hz.`;
       pumpInput();
@@ -221,13 +246,17 @@ async function start(rom: Uint8Array) {
   // means the core is there.
   const head = await fetch(MODULE, { method: "HEAD" });
   if (!head.ok || !/javascript/.test(head.headers.get("content-type") ?? "")) {
-    status.textContent = `Falta el núcleo en ${new URL(".build/web/", import.meta.url).pathname} de esta copia del repositorio. Compílalo desde su raíz con «node experiments/n64/build-core.mjs»`;
+    status.textContent =
+      "Falta cores/mupen64plus-next/dist/n64-core.mjs en esta copia del repositorio: actualízala con git pull (lo compila la CI) o compílalo con «node tools/build-mupen64plus-next.mjs»";
     log(
       `[página] ${MODULE}: ${head.status} ${head.headers.get("content-type")}`,
     );
     return;
   }
-  audio = new AudioContext();
+  // At the core's fixed 44.1 kHz (libretro.c): each chunk is its own buffer
+  // source, and at another rate every one is resampled separately, with a
+  // click at the joins that loud sounds make audible.
+  audio = new AudioContext({ sampleRate: 44100 });
   playAt = 0;
   Object.assign(sound, { chunks: 0, dropped: 0, underruns: 0, deficitMs: 0 });
   blank = 0;
@@ -308,8 +337,12 @@ document.addEventListener("visibilitychange", () => {
     send({ type: "resume" });
   }
 });
+const STICKS = new Set<string>([...STICK_KEYS.left, ...STICK_KEYS.right]);
 window.addEventListener("keydown", (e) => {
-  if (worker && e.code in KEYBOARD) keys.add(e.code);
+  if (worker && (e.code in KEYBOARD || STICKS.has(e.code))) {
+    keys.add(e.code);
+    e.preventDefault(); // the arrows would scroll the page
+  }
 });
 window.addEventListener("keyup", (e) => keys.delete(e.code));
 window.addEventListener("blur", () => keys.clear());

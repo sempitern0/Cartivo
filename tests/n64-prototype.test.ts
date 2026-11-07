@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  analogStick,
   inspectRomHeader,
   MAX_N64_ROM_BYTES,
   samplePad,
@@ -38,19 +37,6 @@ test("N64 probe rejects invalid size, truncation and unknown magic", () => {
     assert.throws(() => inspectRomHeader(header("z64"), size));
   assert.throws(() => inspectRomHeader(new Uint8Array(63), 4096));
   assert.throws(() => inspectRomHeader(new Uint8Array(64), 4096));
-});
-test("N64 radial stick retains intensity and diagonal direction", () => {
-  assert.deepEqual(analogStick(0.05, -0.05), { x: 0, y: 0 });
-  assert.deepEqual(analogStick(0, 0, 0), { x: 0, y: 0 });
-  assert.deepEqual(analogStick(NaN, Infinity), { x: 0, y: 0 });
-  assert.deepEqual(analogStick(9, 0), { x: 1, y: 0 });
-  const half = analogStick(0.59, 0);
-  assert.ok(Math.abs(half.x - 0.5) < 1e-9);
-  const diagonal = analogStick(1, -1);
-  assert.ok(Math.abs(Math.hypot(diagonal.x, diagonal.y) - 1) < 1e-9);
-  assert.equal(diagonal.x, -diagonal.y);
-  for (const deadzone of [-1, 1, NaN])
-    assert.throws(() => analogStick(0, 0, deadzone));
 });
 test("N64 diagnostic mapping clears disconnected or nonstandard controllers", () => {
   const pad = {

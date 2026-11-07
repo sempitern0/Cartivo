@@ -1,0 +1,88 @@
+name: Core Mupen64Plus-Next
+# EXPENSIVE: builds the Mupen64Plus-Next (Nintendo 64) WebAssembly core with
+# Emscripten. Normal CI only checks the committed artefacts (verify:core).
+# Runs exclusively on deliberate request: a commit that changes
+# cores/mupen64plus-next/.build-request, or workflow_dispatch once this file is on
+# main. Never rebuild just because application code or a PR changed.
+on:
+  push:
+    # Work branches only: merging a PR that carried a build request must not
+    # rebuild on main (main uses workflow_dispatch for deliberate builds).
+    branches-ignore: [main]
+    paths:
+      - "cores/mupen64plus-next/.build-request"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "EXPLICIT ONLY: build and commit artefacts, or rebuild once to verify reproducibility"
+        default: build
+        type: choice
+        options: [build, verify]
+permissions:
+  contents: read
+concurrency:
+  group: core-mupen64plus-next-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'build' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - name: Read pinned emsdk
+        id: pins
+        run: |
+          echo "version=$(node -p "require('./cores/mupen64plus-next/toolchain.json').emsdk.version")" >> "$GITHUB_OUTPUT"
+          echo "commit=$(node -p "require('./cores/mupen64plus-next/toolchain.json').emsdk.commit")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/emsdk
+          key: emsdk-${{ steps.pins.outputs.version }}-${{ steps.pins.outputs.commit }}
+      - name: Emscripten (pinned)
+        env:
+          VERSION: ${{ steps.pins.outputs.version }}
+          COMMIT: ${{ steps.pins.outputs.commit }}
+        run: |
+          if [ ! -d ~/emsdk/.git ]; then
+            git clone https://github.com/emscripten-core/emsdk ~/emsdk
+          fi
+          git -C ~/emsdk fetch -q --depth 1 origin "$COMMIT"
+          git -C ~/emsdk -c advice.detachedHead=false checkout -q "$COMMIT"
+          ~/emsdk/emsdk install "$VERSION"
+          ~/emsdk/emsdk activate "$VERSION"
+      - name: Licence and source gate (CORE-LEGAL-01)
+        run: |
+          # Pinned licence identifier; the notice itself is compared after the build.
+          node -e '
+            const p = require("./cores/mupen64plus-next/toolchain.json").mupen64plusNext;
+            if (p.spdx !== "GPL-2.0-or-later") throw Error("Mupen64Plus-Next spdx changed");'
+      - name: Build
+        run: |
+          source ~/emsdk/emsdk_env.sh
+          node tools/build-mupen64plus-next.mjs ${{ env.MODE == 'verify' && '--verify' || '' }}
+          if [ "$MODE" = build ]; then
+            # The committed notice must match the pinned upstream licence.
+            cmp cores/mupen64plus-next/build/mupen64plus-libretro-nx/LICENSE apps/web/public/licenses/mupen64plus-next-LICENSE.txt
+            node tools/verify-core.mjs mupen64plus-next
+          fi
+      - name: Commit artefacts
+        if: env.MODE == 'build'
+        run: |
+          git config user.name "cartivo-core-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cores/mupen64plus-next/dist cores/mupen64plus-next/manifest.json cores/mupen64plus-next/sbom.json
+          if git diff --cached --quiet; then echo "Artefacts unchanged"; exit 0; fi
+          HASH=$(sha256sum cores/mupen64plus-next/dist/n64-core.wasm | cut -c1-12)
+          git commit -m "chore(core): build Mupen64Plus-Next WASM ${HASH}"
+          git push
+          # GITHUB_TOKEN pushes do not start other workflows; the next normal
+          # push runs Foundation CI. No automatic reproducibility rebuild.

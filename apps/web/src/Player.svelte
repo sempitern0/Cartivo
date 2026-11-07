@@ -381,7 +381,11 @@
     }
     try {
       const requestedAt = performance.now();
-      const r = await client!.request("advance", { count, input });
+      const r = await client!.request("advance", {
+        count,
+        input,
+        analog: reading.analog,
+      });
       const completedAt = performance.now();
       if (active && phase === "running")
         metrics.record(completedAt, completedAt - requestedAt, count);
