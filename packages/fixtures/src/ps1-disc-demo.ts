@@ -19,12 +19,10 @@ const both32 = (view: DataView, at: number, value: number) => {
   view.setUint32(at, value, true);
   view.setUint32(at + 4, value, false);
 };
-const ascii = (
-  out: Uint8Array,
-  at: number,
-  text: string,
-  width = text.length,
-) => out.set(new TextEncoder().encode(text.padEnd(width, " ")), at);
+/** Text padded with spaces to `width`, as ISO 9660 fields are. */
+function ascii(out: Uint8Array, at: number, text: string, width = 0) {
+  out.set(new TextEncoder().encode(text.padEnd(width, " ")), at);
+}
 
 /** An ISO 9660 directory record. */
 function record(name: Uint8Array, lba: number, size: number, dir: boolean) {
@@ -48,9 +46,9 @@ export function ps1DiscIso(): Uint8Array {
   const cnf = new TextEncoder().encode(
     "BOOT = cdrom:\\PSX.EXE;1\r\nTCB = 4\r\nEVENT = 10\r\nSTACK = 801FFFF0\r\n",
   );
-  const ROOT = 20,
-    CNF = 21,
-    EXE = 22;
+  const ROOT = 20;
+  const CNF = 21;
+  const EXE = 22;
   const sectors = EXE + Math.ceil(exe.length / SECTOR);
   const iso = new Uint8Array(sectors * SECTOR);
   const view = new DataView(iso.buffer);
@@ -78,21 +76,21 @@ export function ps1DiscIso(): Uint8Array {
   iso[17 * SECTOR + 6] = 1;
 
   // Path tables (little- and big-endian), root directory, then the files.
-  for (const [at, little] of [
-    [18 * SECTOR, true],
-    [19 * SECTOR, false],
-  ] as const) {
+  const pathTable = (at: number, little: boolean) => {
     iso[at] = 1;
     view.setUint32(at + 2, ROOT, little);
     view.setUint16(at + 6, 1, little);
-  }
+  };
+  pathTable(18 * SECTOR, true);
+  pathTable(19 * SECTOR, false);
   let at = ROOT * SECTOR;
-  for (const entry of [
+  const entries = [
     root,
     record(new Uint8Array([1]), ROOT, SECTOR, true),
     record(text.encode("PSX.EXE;1"), EXE, exe.length, false),
     record(text.encode("SYSTEM.CNF;1"), CNF, cnf.length, false),
-  ]) {
+  ];
+  for (const entry of entries) {
     iso.set(entry, at);
     at += entry.length;
   }
@@ -113,15 +111,9 @@ export function ps1DiscDemo(): { cue: string; bin: Uint8Array } {
     const at = lba * RAW;
     bin.fill(0xff, at + 1, at + 11); // sync: 00 FF×10 00
     const msf = lba + 150;
-    bin.set(
-      [
-        bcd(Math.floor(msf / 4500)),
-        bcd(Math.floor(msf / 75) % 60),
-        bcd(msf % 75),
-        2,
-      ],
-      at + 12,
-    );
+    const minute = bcd(Math.floor(msf / 4500));
+    const second = bcd(Math.floor(msf / 75) % 60);
+    bin.set([minute, second, bcd(msf % 75), 2], at + 12);
     bin.set([0, 0, 8, 0, 0, 0, 8, 0], at + 16); // form 1, data
     bin.set(iso.subarray(lba * SECTOR, (lba + 1) * SECTOR), at + 24);
   }
