@@ -1,11 +1,18 @@
-/* Experimental single-thread libco ABI over Emscripten fibers (Asyncify).
- * Not linked into Cartivo or an N64 core yet. */
+/* Single-thread libco ABI over Emscripten fibers (Asyncify), for the N64
+ * core (cores/mupen64plus-next). Original Cartivo code. */
 #include "cooperative.h"
 #include <emscripten/fiber.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-enum { ASYNC_STACK_BYTES = 64 * 1024, MAX_C_STACK_BYTES = 64 * 1024 * 1024 };
+/* Each fiber's Asyncify buffer holds the locals of every frame on its stack
+ * when it yields. 64 KiB sufficed with LLVM 21; the LLVM 24 build of the
+ * core overran it on the first frame (corrupted locals: musl's stderr write
+ * looped forever), so 1 MiB, as the main stack's -sASYNCIFY_STACK_SIZE. */
+enum {
+  ASYNC_STACK_BYTES = 1024 * 1024,
+  MAX_C_STACK_BYTES = 64 * 1024 * 1024
+};
 typedef struct {
   emscripten_fiber_t fiber;
   void *stack;
