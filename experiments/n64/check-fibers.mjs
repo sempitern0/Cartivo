@@ -29,7 +29,8 @@ execFileSync(
   emcc,
   [
     ...flags,
-    resolve(root, "fibers/cooperative.c"),
+    `-I${resolve(root, "../../cores/mupen64plus-next/src")}`,
+    resolve(root, "../../cores/mupen64plus-next/src/cooperative.c"),
     resolve(root, "fibers/smoke.c"),
     "-o",
     artifact,

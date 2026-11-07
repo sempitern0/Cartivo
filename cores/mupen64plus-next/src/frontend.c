@@ -1,6 +1,6 @@
 /* Experimental libretro frontend for the N64 laboratory (not Cartivo's
  * production host). Original Cartivo code. Linked with Mupen64Plus-Next built
- * as a static archive; the libco it expects comes from fibers/cooperative.c.
+ * as a static archive; the libco it expects comes from cooperative.c (fibers/Asyncify).
  *
  * The page's Worker owns an OffscreenCanvas and makes a WebGL2 context
  * current (Emscripten's GL library) before n64_load(); the core then draws

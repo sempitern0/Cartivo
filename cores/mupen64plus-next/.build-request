@@ -1,0 +1,2 @@
+Bump this file only to build Mupen64Plus-Next once in CI (core-mupen64plus-next.yml).
+Reason: first CI build of Mupen64Plus-Next 15bada8 for the N64 laboratory (GLideN64 on WebGL2, libco on fibers/Asyncify); not registered in the app until the viability gate (docs/research/N64_PLAN_INTEGRACION.md).

@@ -1,5 +1,5 @@
-// Laboratory page: a real N64 session with the local core build (see
-// build-core.mjs). One session at a time, in its own Worker; stopping or a
+// Laboratory page: a real N64 session with the core built by CI
+// (cores/mupen64plus-next/dist, served as the lab's Vite publicDir). One session at a time, in its own Worker; stopping or a
 // failure terminates it, so nothing outlives the session. Everything the
 // Worker reports goes to the visible log, to diagnose a machine from a copy.
 import { n64ControlDemo } from "./fixture/n64-control-demo.ts";
@@ -23,7 +23,7 @@ const stats = $("#session-stats");
 const logView = $("#session-log");
 const holder = $("#session-screen");
 const file = $<HTMLInputElement>("#rom");
-/** From .build/web/, Vite's publicDir for the lab (vite.config.ts). */
+/** From cores/mupen64plus-next/dist, Vite's publicDir for the lab. */
 const MODULE = new URL("n64-core.mjs", location.href).href;
 /** Loading longer than this is reported, with where it stopped. */
 const WATCHDOG_MS = 45_000;
@@ -221,7 +221,8 @@ async function start(rom: Uint8Array) {
   // means the core is there.
   const head = await fetch(MODULE, { method: "HEAD" });
   if (!head.ok || !/javascript/.test(head.headers.get("content-type") ?? "")) {
-    status.textContent = `Falta el núcleo en ${new URL(".build/web/", import.meta.url).pathname} de esta copia del repositorio. Compílalo desde su raíz con «node experiments/n64/build-core.mjs»`;
+    status.textContent =
+      "Falta cores/mupen64plus-next/dist/n64-core.mjs en esta copia del repositorio: actualízala con git pull (lo compila la CI) o compílalo con «node tools/build-mupen64plus-next.mjs»";
     log(
       `[página] ${MODULE}: ${head.status} ${head.headers.get("content-type")}`,
     );
