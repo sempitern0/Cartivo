@@ -359,7 +359,6 @@
   - en PS1 el mando es un DualShock: digital como antes hasta que el juego lo pasa a analógico o se pulsa L1+R1+Select;
   - el stick izquierdo sigue moviendo la cruceta.
 - **N64:**
-  - Mupen64Plus-Next se compila en CI (`cores/mupen64plus-next`) con el mismo hash que el build del titular, y CORE-LEGAL-01 queda aceptado para uso privado;
+  - Mupen64Plus-Next se compila en CI (`cores/mupen64plus-next`) y CORE-LEGAL-01 queda aceptado para uso privado. El build con emsdk 6.0.12 coincidía con el del titular, pero se cuelga en el primer fotograma, así que el núcleo fija emsdk 4.0.10, el que arranca la demo; la causa sigue en investigación;
   - el laboratorio usa ese núcleo, sin compilar nada en local;
-  - el búfer de Asyncify por fibra sube a 1 MiB, porque el build con LLVM 24 lo desbordaba en el primer fotograma;
   - la app aún no ofrece N64.

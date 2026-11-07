@@ -41,7 +41,7 @@ pnpm exec vite experiments/n64 --host 127.0.0.1    # «Arrancar demo»
 ```
 
 - **El núcleo lo compila la CI**, no hace falta Emscripten ni WSL para probar. `.github/workflows/core-mupen64plus-next.yml` corre al cambiar `cores/mupen64plus-next/.build-request` o con `workflow_dispatch`, y el bot versiona `dist/n64-core.{mjs,wasm}`, `manifest.json` y `sbom.json`. `vite.config.ts` sirve esa carpeta tal cual como `publicDir`.
-- **Receta:** `tools/build-mupen64plus-next.mjs`. Descarga el commit fijado en `cores/mupen64plus-next/build/` (ignorado por Git) y lo compila con el target `emscripten` de upstream como archivo estático (GLES3, sin dynarec). Luego lo enlaza con `src/frontend.c` (frontend libretro propio) y `src/cooperative.c` (libco sobre fibers/Asyncify). Exige emsdk 6.0.12 **con su LLVM 24**: el emcc 6.0.12 sobre LLVM 21 no compila su propia libc. `--verify` recompila en un directorio temporal y compara hashes.
+- **Receta:** `tools/build-mupen64plus-next.mjs`. Descarga el commit fijado en `cores/mupen64plus-next/build/` (ignorado por Git) y lo compila con el target `emscripten` de upstream como archivo estático (GLES3, sin dynarec). Luego lo enlaza con `src/frontend.c` (frontend libretro propio) y `src/cooperative.c` (libco sobre fibers/Asyncify). Exige el emsdk de `toolchain.json` con su propio LLVM: hoy **4.0.10 (LLVM 21)**, porque el build con 6.0.12 (LLVM 24) se cuelga en el primer fotograma. `--verify` recompila en un directorio temporal y compara hashes.
 - **Compilar en local** solo hace falta para cambiar la receta o el frontend. Necesita Linux, macOS o WSL con `make` y emsdk activado; en WSL, mejor con el repositorio dentro de su disco (`~/Cartivo`). Ejecuta `node tools/build-mupen64plus-next.mjs`.
 - **Desvíos respecto a upstream, todos explícitos:**
   - el zlib incluido en el árbol en vez del port de Emscripten, que se descarga durante el build;
@@ -94,12 +94,11 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - receta de CI `tools/build-mupen64plus-next.mjs` y workflow `core-mupen64plus-next.yml`;
   - avisos de licencia en `apps/web/public/licenses/` y gate CORE-LEGAL-01 **accepted (uso privado)** en [N64_CORE_GATE](../../docs/research/N64_CORE_GATE.md);
   - el laboratorio carga `cores/mupen64plus-next/dist` y ya no tiene receta propia.
-- **Build de CI:** reproducible. El wasm (`269939ab…`) coincide con el del titular en WSL, y `pnpm verify:core` ya lo comprueba.
-- **Fallo encontrado y corregido:** ese build (LLVM 24) se colgaba en el primer fotograma.
-  - La fibra del núcleo desbordaba su búfer de Asyncify de 64 KiB y corrompía variables locales: musl repetía para siempre una escritura vacía a stderr.
-  - Se diagnosticó pausando el Worker por CDP e instrumentando `fd_write` del glue.
-  - Ahora el búfer es de 1 MiB por fibra y hay un build nuevo.
-  - Con LLVM 21 bastaban 64 KiB. Esto explica también parte de la pantalla negra del titular.
+- **Build de CI con emsdk 6.0.12:** reproducible, porque su wasm (`269939ab…`) coincide con el del titular en WSL. **Pero se cuelga en el primer fotograma**, y probablemente esa sea la pantalla negra que vio el titular, además del fallo de Vite.
+  - **Síntoma:** al pausar el Worker por CDP e instrumentar `fd_write` del glue, la primera línea que el núcleo escribe desde su fibra no termina nunca. musl repite escrituras vacías a stderr porque las variables locales están corruptas.
+  - **No era el búfer de Asyncify.** Subirlo a 1 MiB no lo arregló; se mantiene como margen.
+  - **El glue de fibras es idéntico** al de 4.0.10, así que la diferencia está en el wasm (LLVM 24, libc o Binaryen 133).
+- **Decisión:** `cores/mupen64plus-next/toolchain.json` fija **emsdk 4.0.10 (LLVM 21)**, la combinación que arranca la demo. El fallo de 6.0.12 queda como investigación abierta en [N64_CORE_GATE](../../docs/research/N64_CORE_GATE.md#emscripten-6012-se-cuelga-investigación-abierta).
 - **Entrada analógica:** producción tiene sticks (`packages/input/src/analog.ts`, ADR-006) y el laboratorio reutiliza esa normalización.
 - **Pendiente:** la QA del titular (fase 3) con el núcleo de CI, desde cualquier copia actualizada y sin compilar nada.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.

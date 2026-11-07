@@ -27,7 +27,7 @@ Toolchain usada para la microprueba: **Emscripten 6.0.12**, compilador `5488e087
   - No es asesoramiento legal.
 - **Firmware:** ninguno externo, solo cartuchos N64 (sin 64DD, Transfer Pak ni BIOS). PIF y CIC son HLE del núcleo e IPL3 viene en cada cartucho.
 - **Partidas (ADR-009):** el núcleo implementa `retro_serialize`. Se integra o se rechaza con motivo en la fase 5, con su formato ligado a núcleo y versión.
-- **Trazabilidad:** build en CI con emsdk 6.0.12 (LLVM 24), `--verify` para reproducibilidad y hashes en `manifest.json`. `pnpm verify:core` lo comprobará en cuanto existan los artefactos del bot.
+- **Trazabilidad:** build en CI con el emsdk de `toolchain.json` (4.0.10, LLVM 21; ver [Emscripten 6.0.12](#emscripten-6012-se-cuelga-investigación-abierta)), `--verify` para reproducibilidad y hashes en `manifest.json`. `pnpm verify:core` lo comprobará en cuanto existan los artefactos del bot.
 - **Worker y carga diferida** no crean independencia jurídica del trabajo combinado.
 
 ## Inventario del artefacto
@@ -99,6 +99,20 @@ Primer build reproducible, hecho por el titular en WSL (Ubuntu) con emsdk 6.0.12
 | Imports | 407 |
 
 El binario no se versiona (laboratorio, fuera de `cores/`). Falta repetirlo en un segundo entorno para comprobar que el hash coincide.
+
+## Emscripten 6.0.12 se cuelga (investigación abierta)
+
+- **Builds afectados:** el del titular en WSL y el de la CI, con el mismo hash, `269939ab…`. Arrancan, cargan el cartucho y crean el contexto WebGL2. Tras `M64CMD_EXECUTE` el Worker no vuelve a responder.
+- **Diagnóstico en Chromium headless:**
+  - pausando el Worker por CDP, siempre está en `fd_write` desde la misma función;
+  - instrumentando el glue, la primera línea que el núcleo imprime desde su fibra escribe el prefijo `[n64 1] ` y luego entra en un bucle de escrituras vacías a stderr: musl cree que quedan datos mientras el iovec que pasa mide 0.
+  - Son variables corruptas dentro de la fibra.
+- **Descartado:**
+  - el búfer de Asyncify por fibra: de 64 KiB a 1 MiB, sigue igual;
+  - el glue de fibras (`_emscripten_fiber_swap`, `finishContextSwitch`): idéntico en 4.0.10 y 6.0.12;
+  - la API `emscripten_fiber_init`: misma semántica.
+- **Candidatos:** LLVM 24 (snapshot `24.0.0git`), la libc de Emscripten 6 o el pase Asyncify de Binaryen 133. Aquí no se puede reproducir: falta LLVM 24, y Binaryen 133 no encaja con el emcc 4.0.10.
+- **Decisión:** el núcleo fija emsdk **4.0.10** con LLVM 21 (`toolchain.json`), con el que la demo, los botones, el audio, la pausa y la pérdida de contexto funcionan. Volver a 6.x requiere un build de diagnóstico (`-g2 -sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2`) en una máquina con emsdk.
 
 ## Siguiente acción concreta
 

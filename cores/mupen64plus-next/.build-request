@@ -1,2 +1,2 @@
 Bump this file only to build Mupen64Plus-Next once in CI (core-mupen64plus-next.yml).
-Reason: 1 MiB Asyncify buffer per fiber (src/cooperative.c); the LLVM 24 build overran 64 KiB on the first frame.
+Reason: pin emsdk 4.0.10 (LLVM 21): the 6.0.12 (LLVM 24) build hangs on the first frame; 4.0.10 runs the demo.

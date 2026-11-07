@@ -88,7 +88,7 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
 5. **N64 (en curso, rama `feat/n64-gpu-prototype`).** Se sigue [N64_PLAN_INTEGRACION](research/N64_PLAN_INTEGRACION.md).
    - *Hecho en el laboratorio:* Mupen64Plus-Next + GLideN64 dibuja por WebGL2 en un Worker, sin hilos (libco sobre fibers/Asyncify). Arranca una demo original con mando y audio. Una pérdida de contexto detiene la sesión. Con la demo en SwiftShader cuesta unos 6 ms por fotograma y ocupa 256 MiB.
    - *Hecho fuera del laboratorio:*
-     - núcleo compilado en CI (`cores/mupen64plus-next`, reproducible: mismo hash que el build del titular);
+     - núcleo compilado en CI (`cores/mupen64plus-next`) con emsdk 4.0.10: el de 6.0.12 se cuelga en el primer fotograma y la causa sigue en investigación;
      - CORE-LEGAL-01 accepted (uso privado);
      - ritmo por cola de audio en la sesión.
    - *Pendiente:* medición con juegos propios y GPU real (fase 3) y decisión go o no-go antes de registrarlo en la app.

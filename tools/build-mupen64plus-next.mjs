@@ -46,7 +46,8 @@ const sha256 = (file) =>
   createHash("sha256").update(readFileSync(file)).digest("hex");
 
 // emsdk ships its own LLVM: the same emcc over another clang is not the
-// pinned toolchain (6.0.12 over LLVM 21 cannot build its own libc).
+// pinned toolchain. toolchain.json says which emsdk and why (4.0.10: the
+// 6.0.12 build hangs on the first frame).
 const probe = spawnSync("emcc", ["--version"], { encoding: "utf8" });
 if (probe.error)
   throw Error(`emcc no encontrado: activa emsdk ${pins.emsdk.version}`);

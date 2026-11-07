@@ -6,9 +6,9 @@
 #include <stdlib.h>
 
 /* Each fiber's Asyncify buffer holds the locals of every frame on its stack
- * when it yields. 64 KiB sufficed with LLVM 21; the LLVM 24 build of the
- * core overran it on the first frame (corrupted locals: musl's stderr write
- * looped forever), so 1 MiB, as the main stack's -sASYNCIFY_STACK_SIZE. */
+ * when it yields: 1 MiB, as the main stack's -sASYNCIFY_STACK_SIZE (64 KiB
+ * was enough with emsdk 4.0.10; it is margin, not a fix for the 6.0.12
+ * hang described in docs/research/N64_CORE_GATE.md). */
 enum {
   ASYNC_STACK_BYTES = 1024 * 1024,
   MAX_C_STACK_BYTES = 64 * 1024 * 1024
