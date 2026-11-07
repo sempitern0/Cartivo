@@ -142,6 +142,6 @@ test("Controles names the PlayStation buttons", async ({ page }) => {
     ),
   ).toBeVisible();
   await expect(
-    page.getByText("L2 y R2 solo los usa PlayStation."),
+    page.getByText("L2 y R2 solo los usan PlayStation y N64."),
   ).toBeVisible();
 });

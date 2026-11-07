@@ -51,7 +51,7 @@ La QA del titular (2026-11-07, Brave en Windows, GPU real) jugó *Super Mario 64
 ## Consecuencias
 
 - La PWA crece unos 3,4 MB (glue y wasm), que se descargan al abrir el primer juego de N64 y se precachean como los demás núcleos.
-- El navegador necesita WebGL2 en Workers: Chrome, Edge y Firefox recientes. WebKit queda sin demostrar.
+- El navegador necesita WebGL2 en Workers. Está demostrado en Chromium (QA del titular y E2E). En la CI headless, Firefox y WebKit no lo ofrecen: muestran el mensaje y su E2E se salta.
 - Memoria: 256 MiB por instancia. Al cargar con batería existen dos instancias un momento.
 - **Límites:**
   - sin miniaturas de Partidas;
