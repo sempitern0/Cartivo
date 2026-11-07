@@ -44,7 +44,9 @@ pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
 - **En Windows:** usa WSL, porque el `Makefile` de upstream necesita `make` y una shell Unix. Con Ubuntu en WSL:
 
   ```sh
-  sudo apt install -y build-essential git python3 nodejs
+  sudo apt install -y build-essential git python3
+  # Node 20.11 o posterior (el de apt suele ser antiguo): emsdk trae uno,
+  # o instala Node 22 con nvm.
   git clone https://github.com/emscripten-core/emsdk ~/emsdk
   ~/emsdk/emsdk install 6.0.12 && ~/emsdk/emsdk activate 6.0.12
   source ~/emsdk/emsdk_env.sh   # en cada terminal nueva
