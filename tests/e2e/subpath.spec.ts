@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.ts";
-import { openNesFile, playDemo, playing } from "./play.ts";
+import { openNesFile, playDemo, playing, startDemo } from "./play.ts";
 
 // Cartivo deployed under a sub-path (/cartivo/): every link, the manifest,
 // the service worker, the Worker and the cores stay inside it.
@@ -62,10 +62,7 @@ test("the app works under /cartivo/, also offline", async ({
     .toBe(true);
   await context.setOffline(true);
   await page.reload();
-  await page
-    .getByRole("article", { name: "NES", exact: true })
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "NES");
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
   await context.setOffline(false);
 

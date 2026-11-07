@@ -326,3 +326,28 @@
 - El plan técnico (revisión 8) convierte lo pendiente en una cola para agentes: cada entrada indica por dónde empezar, cuándo está terminada y qué queda fuera. La QA del titular va aparte. El siguiente paso es recordar discos de PlayStation en la biblioteca, y después el vídeo WebGL2 que necesitan N64, PSP y PS2.
 - `docs/ai/CONTEXT.md` añade «Recetas» (patrones ya resueltos: datos por perfil, sistemas de disco, foco con `data-launch` y `data-pad-scope`, botones nuevos, fixtures) y «Trampas conocidas» (Prettier 3.6 frente a uno global, entorno sin `node_modules`, `FileList`, opciones de Playwright, builds de núcleo).
 
+### N64 en laboratorio (experimental, sin integrar)
+
+- `experiments/n64` arranca una sesión real: Mupen64Plus-Next con GLideN64 dibuja por WebGL2 en un Worker. No usa hilos (libco sobre fibers/Asyncify) ni lee el framebuffer en cada fotograma.
+- Demo original de 1 MiB sin código de Nintendo: dibuja con el RDP y lee el mando por el PIF. Comprobada en Chromium headless: 60 Hz, oráculo de colores y botones.
+- Receta de build local `build-core.mjs` con un parche mínimo documentado e inventario de licencias en `docs/research/N64_CORE_GATE.md`.
+- Sesión 3: audio, con una onda propia de 500 Hz en la demo que el oráculo mide a 500,09 Hz, y una cola de Web Audio acotada. Una pérdida del contexto WebGL detiene la sesión con aviso. Primeras medidas: unos 6 ms por fotograma en SwiftShader y 256 MiB de memoria, tras evitar la reserva de 512 MiB del núcleo. Se confirma que Emscripten 6.0.12 necesita su LLVM 24.
+- Sesión 4:
+  - estados explícitos, pausa y segundo plano;
+  - ritmo de emulación guiado por la cola de audio (1,00× con la demo, sin descartes);
+  - métricas de fase 3 (velocidad, percentiles, arranque, underruns);
+  - un registro copiable para diagnosticar la pantalla negra que vio el titular con el build fijado en su equipo.
+- N64 sigue sin estar disponible en la app. Quedan pendientes el gate y la medición con juegos reales.
+
+
+### Inicio más limpio y con movimiento
+
+- Cada consola tiene una insignia propia de la marca Cartivo (marco turquesa a coral, sello «C» y una silueta genérica de hardware, sin logotipos de terceros) en lugar del campo de píxeles.
+- La tarjeta entera es «Jugar»: sin botón azul ni «Probar demo». Los formatos pasan a chips compactos; al pasar el ratón o enfocar, la tarjeta se eleva y despliega «Jugar». Un archivo soltado sobre una tarjeta se abre con esa consola («Suelta para jugar»).
+- Las demos originales solo se abren con la entrada oculta `#demo/<consola>`, que usan las pruebas.
+- El chip del perfil tiene aire alrededor del avatar y del nombre.
+- Entradas de vista y de tarjetas y fichas escalonadas, respuesta al pulsar y realce al arrastrar. Todo se desactiva con «reducir movimiento».
+- Repaso de diseño: el acento de cada tarjeta indica el soporte (coral cartucho de sobremesa, oro portátil, violeta disco); el inicio pierde el lema en mayúsculas y las etiquetas van en minúsculas normales; la entrada escalonada de las tarjetas ocurre una sola vez por visita.
+- Segunda ronda tras la QA del titular: el inicio va directo a las consolas, sin título visible. Sin icono de controles en cada tarjeta (están en Ajustes). Al pasar el ratón solo se ilumina el botón de reproducción. Se ven todos los formatos (sin «+N»). Un clic en cualquier punto de la tarjeta abre el selector: antes solo respondía el botón, porque el hundimiento al pulsar encogía la zona de clic.
+- «Continuar» y los recientes forman una franja compacta en el acento de su consola. «Ver todos tus juegos» es una estantería de cartuchos con el número de juegos que se abre en abanico.
+- `systems.ts` declara `handheld`. El acento por soporte (`accent.ts`) ya no depende de identificadores de consola en la UI.

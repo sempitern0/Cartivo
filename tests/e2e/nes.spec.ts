@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 /** A previous exit snapshot shows «Continuar»; these tests start over. */
 async function startOver(page: import("./fixtures.ts").Page) {
   const offer = page.getByRole("button", { name: "Empezar de nuevo" });
@@ -15,7 +16,7 @@ async function startOver(page: import("./fixtures.ts").Page) {
 }
 async function start(page: import("./fixtures.ts").Page) {
   await page.goto("/");
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "NES");
   await startOver(page);
   await expect
     .poll(async () =>
@@ -102,7 +103,7 @@ test("single writer prevents simultaneous sessions for the same game", async ({
   await page.getByRole("button", { name: "Pausar juego" }).click();
   const second = await context.newPage();
   await second.goto("/");
-  await second.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(second, "NES");
   await expect(second.getByRole("alert")).toContainText("otra pestaña");
   await second.close();
   await page.bringToFront();
@@ -307,7 +308,7 @@ test("cancel loading destroys the session without late navigation", async ({
     await route.continue().catch(() => {});
   });
   await page.goto("/");
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "NES");
   await page.getByRole("button", { name: "Cancelar carga" }).click();
   await expect(
     page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
@@ -473,7 +474,7 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   await expect(canvas).toHaveClass(/smooth/);
   // Choices persist for NES on this device.
   await page.reload();
-  await page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "NES");
   await startOver(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByRole("button", { name: "Gráficos" }).click();

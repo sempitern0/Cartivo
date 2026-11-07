@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 
 // Master System and Mega Drive run Genesis Plus GX (ADR-014) with Cartivo's
 // own Z80 and 68000 fixtures. Mega Drive colours use 3-bit levels (239).
@@ -62,9 +63,7 @@ test("Mega Drive demo: six-button pad recolours, SRAM survives", async ({
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await card(page, "Mega Drive")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Mega Drive");
   await playing(page, 30);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "320");
@@ -94,9 +93,7 @@ test("Mega Drive demo: six-button pad recolours, SRAM survives", async ({
   expect(backup.bytes[1]).toBe(0);
 
   await page.getByRole("button", { name: "Salir", exact: true }).click();
-  await card(page, "Mega Drive")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Mega Drive");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 0, 239])).toBe(true);
   expect(errors).toEqual([]);
@@ -106,9 +103,7 @@ test("Master System demo: button 1 recolours, cartridge RAM survives", async ({
   page,
 }) => {
   await page.goto("/");
-  await card(page, "Master System")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Master System");
   await playing(page, 30);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "256");
@@ -123,18 +118,14 @@ test("Master System demo: button 1 recolours, cartridge RAM survives", async ({
   expect(backup.format).toBe("cartivo-sms-sram-v1");
   expect(backup.bytes[0]).toBe(0);
   await page.getByRole("button", { name: "Salir", exact: true }).click();
-  await card(page, "Master System")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Master System");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 0, 255])).toBe(true);
 });
 
 test("Mega Drive quick-saves with F5 and loads with F9", async ({ page }) => {
   await page.goto("/");
-  await card(page, "Mega Drive")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Mega Drive");
   await playing(page);
   await page.keyboard.press("F5");
   await expect(page.getByTestId("toast")).toContainText("ranura 1");
