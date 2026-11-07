@@ -42,8 +42,9 @@ class Profiles {
     if (profile) {
       profile = { ...profile, lastUsedAt: Date.now() };
       // Remembering who played last is a convenience: never block on it.
+      const used = profile;
       try {
-        this.#save(this.all.map((p) => (p.id === profile!.id ? profile! : p)));
+        this.#change((all) => all.map((p) => (p.id === used.id ? used : p)));
       } catch {
         // Storage refused: the picker just starts on the first profile.
       }
@@ -57,16 +58,25 @@ class Profiles {
     }
   }
 
-  #save(next: Profile[]) {
+  /**
+   * Read-modify-write against storage, not this tab's copy: another tab may
+   * have added or removed a profile meanwhile, and overwriting it with a
+   * stale list would hide that profile and its saves.
+   */
+  #change(update: (current: Profile[]) => Profile[]) {
+    const next = update(readProfiles());
     writeProfiles(next);
     this.all = next;
   }
 
   /** Throws a readable message (invalid name, too many profiles, storage). */
   add(name: string, color?: number): Profile {
-    const created = newProfile(name, this.all);
-    const profile = isProfileColor(color) ? { ...created, color } : created;
-    this.#save([...this.all, profile]);
+    let profile!: Profile;
+    this.#change((all) => {
+      const created = newProfile(name, all);
+      profile = isProfileColor(color) ? { ...created, color } : created;
+      return [...all, profile];
+    });
     return profile;
   }
 
@@ -76,7 +86,7 @@ class Profiles {
     if (!valid) throw Error("Escribe un nombre de 1 a 24 caracteres.");
     if (!isProfileColor(color)) throw Error("Elige uno de los colores.");
     const updated = { ...profile, name: valid, color };
-    this.#save(this.all.map((p) => (p.id === profile.id ? updated : p)));
+    this.#change((all) => all.map((p) => (p.id === profile.id ? updated : p)));
     if (this.active?.id === profile.id) this.active = updated;
   }
 
@@ -84,7 +94,7 @@ class Profiles {
   async remove(profile: Profile) {
     if (profile.id === PRINCIPAL)
       throw Error("Este perfil no se puede borrar.");
-    this.#save(this.all.filter((p) => p.id !== profile.id));
+    this.#change((all) => all.filter((p) => p.id !== profile.id));
     if (this.active?.id === profile.id) this.choose(undefined);
     await deleteProfileData(profile.id);
   }
