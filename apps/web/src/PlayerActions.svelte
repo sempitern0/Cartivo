@@ -87,7 +87,7 @@
   }
   button,
   a {
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 14px;
     font-size: 14px;
   }

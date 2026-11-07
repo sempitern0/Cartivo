@@ -5,12 +5,9 @@
   import RecentGames from "./RecentGames.svelte";
   import LibraryPage from "./LibraryPage.svelte";
   import { demo, hasFiles, type GameSource } from "./game-source.ts";
-  import {
-    listGames,
-    pruneOrphanRoms,
-    rememberedBy,
-    type LibraryEntry,
-  } from "../../../packages/storage/src/library.ts";
+  import { sharedGames, pruneSharedRoms, type GameSort } from "../../../packages/storage/src/library.ts";
+  import { resumeIndex } from "../../../packages/storage/src/state-index.ts";
+  import { chooseResume, type GameCard } from "./library-view.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
   import {
     storageHealth,
@@ -74,29 +71,49 @@
     control?.scrollIntoView({ block: "nearest" });
   }
   // Local library: remembered games, most recent first.
-  let games = $state.raw<LibraryEntry[]>([]);
-  /** What this browser lets Cartivo keep (notice on the home screen). */
+  let games = $state.raw<GameCard[]>([]);
+  let libraryQuery = $state("");
+  let libraryFilter = $state("");
+  let librarySort = $state<GameSort>("recent");
+  let libraryProblem = $state("");
+  let libraryLoading = $state(true);
   let storage = $state<StorageHealth>("ok");
   let pruned = false;
+  let libraryRequest = 0;
   async function refreshLibrary() {
+    const id = profiles.id;
+    const request = ++libraryRequest;
+    libraryLoading = true;
     try {
-      games = await listGames(profiles.id);
-      // Once per visit, in the background: copies left by an interrupted
-      // remember/forget or a deleted profile, unless any profile still
-      // remembers them. Never blocks nor fails the home screen.
+      const entries = await sharedGames(id, profiles.all.map((p) => p.id));
+      let warning = "";
+      const states = await resumeIndex(id).catch((error: unknown) => {
+        warning = error instanceof Error
+          ? error.message
+          : "No se pudieron consultar las partidas. Puedes revisarlas desde Partidas.";
+        return undefined;
+      });
+      if (request !== libraryRequest || profiles.active?.id !== id) return;
+      games = entries.map((entry) => {
+        const system = findSystem(entry.system);
+        const saved = states?.get(entry.hash) ?? [];
+        const resume = system ? chooseResume(saved, system) : undefined;
+        return { ...entry, resume, stateUnavailable: saved.length > 0 && !resume };
+      });
+      libraryProblem = warning;
       if (!pruned) {
         pruned = true;
-        void rememberedBy(profiles.all.map((p) => p.id))
-          .then((known) => pruneOrphanRoms(known))
-          .catch(() => 0);
+        void pruneSharedRoms().catch(() => 0);
       }
     } catch {
-      games = [];
+      if (request === libraryRequest && profiles.active?.id === id)
+        libraryProblem = "No se pudo leer la biblioteca. Tus archivos no se han borrado.";
+    } finally {
+      if (request === libraryRequest) libraryLoading = false;
     }
   }
-  /** «Continuar» from the home screen or the games page: from «Al salir». */
-  const continueGame = (entry: LibraryEntry, system: SystemInfo) =>
-    startGame(system, { kind: "library", entry, resume: true });
+  const continueGame = (entry: GameCard, system: SystemInfo) =>
+    startGame(system, { kind: "library", entry, resume: !!entry.resume, resumeState: entry.resume });
   let fileInput = $state.raw<HTMLInputElement>();
   /** System whose card opened the file picker. */
   let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
@@ -223,12 +240,17 @@
   function chooseProfile(profile: Profile) {
     profiles.choose(profile);
     games = [];
+    libraryQuery = "";
+    libraryFilter = "";
+    libraryProblem = "";
     void refreshLibrary();
     void showPage();
   }
   function switchProfile() {
+    ++libraryRequest;
     profiles.choose(undefined);
     games = [];
+    libraryProblem = "";
   }
   function goHome(event: MouseEvent) {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
@@ -309,7 +331,7 @@
           >Instalar app</button
         >
       {/if}
-      {#if games.length && !game && profiles.active}<a
+      {#if !game && profiles.active}<a
           class="icon-button settings-link"
           href="#juegos"
           aria-current={page === "juegos" ? "page" : undefined}
@@ -323,6 +345,7 @@
         >{/if}
     </nav>
   </header>
+  {#if libraryProblem && profiles.active && !game}<p class="storage-note" role="status">{libraryProblem} <button onclick={refreshLibrary}>Reintentar</button></p>{/if}
   {#if !game && !profiles.active}
     <ProfilePicker onchoose={chooseProfile} />
   {:else if page === "controles"}
@@ -337,11 +360,16 @@
           >{@html icons.back}</a
         >
         <div class="titles">
-          <p class="kicker">Mando y teclado</p>
-          <h1 bind:this={pageHeading} tabindex="-1">Configurar controles</h1>
+          <p class="kicker">A tu manera</p>
+          <h1 bind:this={pageHeading} tabindex="-1">Ajustes</h1>
         </div>
       </div>
-      <InterfacePreference />
+      <nav class="settings-sections" aria-label="Secciones de ajustes">
+        <button onclick={() => document.getElementById("interfaz")?.scrollIntoView({ block: "start" })}>Interfaz</button><button onclick={() => document.getElementById("configurar-controles")?.focus()}>Controles</button>
+        {#if !game}<a href="#juegos">Biblioteca y almacenamiento</a>{/if}
+      </nav>
+      <div id="interfaz"><InterfacePreference /></div>
+      <h2 id="configurar-controles" tabindex="-1">Configurar controles</h2>
       <ControlsPanel />
     </section>
   {:else if page === "juegos" && !game}
@@ -360,6 +388,10 @@
         </div>
       </div>
       <LibraryPage
+        loading={libraryLoading}
+        bind:query={libraryQuery}
+        bind:systemFilter={libraryFilter}
+        bind:sort={librarySort}
         {games}
         oncontinue={continueGame}
         onchange={refreshLibrary}
@@ -367,9 +399,8 @@
     </section>
   {:else if !game}
     <section class="welcome">
-      <!-- The cards speak for themselves: the heading is for assistive
-           technology and the focus target of the start. -->
-      <h1 id="inicio" class="visually-hidden" bind:this={pageHeading} tabindex="-1">
+      <!-- Visible orientation and focus target when returning home. -->
+      <h1 id="inicio" class="home-title" bind:this={pageHeading} tabindex="-1">
         Elige una consola
       </h1>
       {#if pwa.updateReady}
@@ -387,6 +418,7 @@
             : "Este navegador no guarda copias de tus juegos (ventana privada o almacenamiento restringido): «Continuar» no estará disponible y tus partidas podrían borrarse al cerrarlo. Exporta las que quieras conservar desde Partidas."}
         </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
+      <p class="home-hint">Carga tu ROM y juega. Tus partidas se quedan en este dispositivo.</p>
       <RecentGames {games} oncontinue={continueGame} />
       <ul
         class="consoles"
@@ -723,22 +755,9 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
-  /* Modo consola: the consoles become a horizontal carousel the D-pad
-     scrolls through, and the page keeps room for the button legend. */
-  :global(:root[data-ui="pad"]) main {
-    padding-bottom: 96px;
-  }
-  :global(:root[data-ui="pad"]) .consoles {
-    grid-auto-flow: column;
-    grid-template-columns: none;
-    grid-template-rows: repeat(3, auto);
-    grid-auto-columns: minmax(260px, 30%);
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding: 8px 8px 16px;
-  }
-  :global(:root[data-ui="pad"]) .consoles > li {
-    grid-row: 1 / span 3;
-    scroll-snap-align: start;
-  }
+  .home-title { font-size: clamp(24px, 4vw, 34px); margin: 20px 0 8px; }
+  .home-hint { color: var(--muted); margin: 0; }
+  .settings-sections { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+  .settings-sections a { min-height: 44px; display: inline-flex; align-items: center; }
+  :global(:root[data-ui="pad"]) main { padding-bottom: 96px; }
 </style>

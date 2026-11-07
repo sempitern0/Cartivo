@@ -3,10 +3,16 @@
 // copies live in OPFS as roms/<sha256> and are written and read only by the
 // emulator Worker. Partidas and battery RAM are keyed by the same hash in
 // their own stores, so forgetting a game never touches them.
-// Each profile has its own index (ADR-016); ROM copies are shared by hash.
-import { done, request } from "./idb.ts";
+// The catalogue is shared; personal indices retain history only (ADR-017).
+import { done, request, locks } from "./idb.ts";
 import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";
+import {
+  catalogue,
+  migrateTitles,
+  overlayCatalogue,
+  publishTitle,
+} from "./catalogue.ts";
 
 export type LibraryEntry = {
   /** SHA-256 of the ROM (lowercase hex); also its OPFS file name. */
@@ -68,7 +74,7 @@ export function parseEntry(value: unknown): LibraryEntry | undefined {
 }
 
 /** Most recently played first. */
-export const byRecent = (entries: readonly LibraryEntry[]) =>
+export const byRecent = <T extends LibraryEntry>(entries: readonly T[]) =>
   [...entries].sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
 
 /** Whether opened files are remembered: yes unless the player turned it off. */
@@ -106,8 +112,8 @@ const fold = (text: string) =>
     .toLowerCase();
 
 /** The «Tus juegos» page: search by name, one console (or ""), an order. */
-export function viewGames(
-  entries: readonly LibraryEntry[],
+export function viewGames<T extends LibraryEntry>(
+  entries: readonly T[],
   { query, system, sort }: GameView,
 ) {
   const words = fold(query).split(/\s+/).filter(Boolean);
@@ -152,20 +158,44 @@ export function listGames(profile = PRINCIPAL): Promise<LibraryEntry[]> {
   });
 }
 
+/** Common catalogue, overlaid only with the selected profile's history. */
+export async function sharedGames(
+  profile: string,
+  profiles: readonly string[],
+) {
+  const lists = await Promise.all(
+    profiles.map(async (id) => {
+      const entries = await listGames(id);
+      await migrateTitles(id, entries);
+      return { id, entries };
+    }),
+  );
+  return byRecent(
+    overlayCatalogue(
+      await catalogue(),
+      lists.find((list) => list.id === profile)?.entries ?? [],
+    ),
+  );
+}
+
 /** Merges `patch` into an existing entry; does nothing if it is not there. */
 export function updateGame(
   hash: string,
   patch: Partial<Pick<LibraryEntry, "lastPlayedAt" | "preview" | "name">>,
   profile = PRINCIPAL,
 ): Promise<boolean> {
-  return withIndex(profile, async (db) => {
-    const tx = db.transaction("games", "readwrite");
-    const store = tx.objectStore("games");
-    const entry = parseEntry(await request(store.get(hash)));
-    if (entry) store.put({ ...entry, ...patch });
-    await done(tx);
-    return !!entry;
-  });
+  return catalogue().then((shared) =>
+    withIndex(profile, async (db) => {
+      const tx = db.transaction("games", "readwrite");
+      const store = tx.objectStore("games");
+      const entry =
+        parseEntry(await request(store.get(hash))) ??
+        shared.find((game) => game.hash === hash);
+      if (entry) store.put({ ...entry, ...patch });
+      await done(tx);
+      return !!entry;
+    }),
+  );
 }
 
 async function romsDir(create: boolean) {
@@ -314,63 +344,42 @@ export async function rememberGame(
   },
   profile = PRINCIPAL,
 ) {
-  if (!isSha256(game.hash)) throw Error("Juego no identificado");
-  try {
-    await ensureRomCopy(await romsDir(true), game.hash, game.rom);
-  } catch (error) {
-    throw Error(
-      error instanceof DOMException && error.name === "QuotaExceededError"
-        ? "No hay espacio para recordar este juego. Puedes seguir jugando; tus partidas se guardan igual."
-        : "No se pudo recordar este juego en el dispositivo. Puedes seguir jugando; tus partidas se guardan igual.",
-      { cause: error },
-    );
-  }
-  const now = Date.now();
-  await withIndex(profile, async (db) => {
-    const tx = db.transaction("games", "readwrite");
-    const store = tx.objectStore("games");
-    const previous = parseEntry(await request(store.get(game.hash)));
-    const entry: LibraryEntry = {
-      ...previous,
-      hash: game.hash,
-      system: game.system,
-      name: (game.name || "Juego sin nombre").slice(0, MAX_NAME),
-      size: game.rom.length,
-      addedAt: previous?.addedAt ?? now,
-      lastPlayedAt: now,
-    };
-    store.put(entry);
-    await done(tx);
+  return locks().request("cartivo:catalogue", async () => {
+    if (!isSha256(game.hash)) throw Error("Juego no identificado");
+    try {
+      await ensureRomCopy(await romsDir(true), game.hash, game.rom);
+    } catch (error) {
+      throw Error(
+        error instanceof DOMException && error.name === "QuotaExceededError"
+          ? "No hay espacio para recordar este juego. Puedes seguir jugando; tus partidas se guardan igual."
+          : "No se pudo recordar este juego en el dispositivo. Puedes seguir jugando; tus partidas se guardan igual.",
+        { cause: error },
+      );
+    }
+    const now = Date.now();
+    await withIndex(profile, async (db) => {
+      const tx = db.transaction("games", "readwrite");
+      const store = tx.objectStore("games");
+      const previous = parseEntry(await request(store.get(game.hash)));
+      const entry: LibraryEntry = {
+        ...previous,
+        hash: game.hash,
+        system: game.system,
+        name: (game.name || "Juego sin nombre").slice(0, MAX_NAME),
+        size: game.rom.length,
+        addedAt: previous?.addedAt ?? now,
+        lastPlayedAt: now,
+      };
+      store.put(entry);
+      await done(tx);
+      await publishTitle(entry);
+    });
   });
 }
 
-/** Hashes remembered by any of these profiles (the copies still in use). */
-export async function rememberedBy(
-  profiles: readonly string[],
-): Promise<Set<string>> {
-  const lists = await Promise.all(profiles.map((p) => listGames(p)));
-  return new Set(lists.flat().map((g) => g.hash));
-}
-
-/**
- * Removes the profile's entry, and the ROM copy unless one of `others` (the
- * other profiles) still remembers it. Partidas («cartivo-states») and
- * battery RAM («cartivo-saves») are separate stores and stay untouched.
- */
-export async function forgetGame(
-  hash: string,
-  profile = PRINCIPAL,
-  others: readonly string[] = [],
-) {
-  if (!isSha256(hash)) return;
-  // Entry first: an interruption leaves an orphan file (pruned later), never
-  // an entry pointing to a missing copy.
-  await withIndex(profile, async (db) => {
-    const tx = db.transaction("games", "readwrite");
-    tx.objectStore("games").delete(hash);
-    await done(tx);
-  });
-  if ((await rememberedBy(others)).has(hash)) return;
-  const roms = await romsDir(false).catch(() => undefined);
-  if (roms) await removeRom(roms, hash);
+/** Call only after legacy indices have been migrated. Serialize with writers. */
+export function pruneSharedRoms() {
+  return locks().request("cartivo:catalogue", async () =>
+    pruneOrphanRoms(new Set((await catalogue()).map((entry) => entry.hash))),
+  );
 }

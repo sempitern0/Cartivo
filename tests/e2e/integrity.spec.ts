@@ -124,7 +124,7 @@ test("100 open → play → save → close cycles keep SRAM and snapshots intact
 async function damage(page: Page, mode: "corrupt" | "version") {
   await page.evaluate(async (mode) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
-      const r = indexedDB.open("cartivo-states", 1);
+      const r = indexedDB.open("cartivo-states");
       r.onsuccess = () => resolve(r.result);
       r.onerror = () => reject(r.error);
     });

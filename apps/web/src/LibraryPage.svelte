@@ -2,14 +2,14 @@
   import SnapshotThumb from "./SnapshotThumb.svelte";
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
-  import { profiles } from "./profile.svelte.ts";
+  import { tick } from "svelte";
+  import { removeTitle } from "../../../packages/storage/src/catalogue.ts";
+  import { playLabel, type GameCard } from "./library-view.ts";
   import {
-    forgetGame,
     rememberGames,
     viewGames,
     writeRemember,
     type GameSort,
-    type LibraryEntry,
   } from "../../../packages/storage/src/library.ts";
   import {
     availableSystems,
@@ -21,20 +21,36 @@
   // Removing a game never touches its Partidas or SRAM.
   let {
     games,
+    loading = false,
     oncontinue,
     onchange,
+    query = $bindable(""),
+    systemFilter = $bindable(""),
+    sort = $bindable<GameSort>("recent"),
   }: {
-    games: LibraryEntry[];
-    oncontinue: (entry: LibraryEntry, system: SystemInfo) => void;
+    games: GameCard[];
+    loading?: boolean;
+    oncontinue: (entry: GameCard, system: SystemInfo) => void;
     /** The list changed on disk; the parent reloads it. */
-    onchange: () => void;
+    onchange: () => void | Promise<void>;
+    query?: string;
+    systemFilter?: string;
+    sort?: GameSort;
   } = $props();
-  let query = $state("");
-  let systemFilter = $state("");
-  let sort = $state<GameSort>("recent");
   let remember = $state(rememberGames());
   let note = $state("");
   let confirming = $state<string>();
+  let managing = $state<string>();
+  async function confirmRemove(hash: string) {
+    confirming = hash;
+    await tick();
+    document.getElementById(`remove-${hash}`)?.focus();
+  }
+  async function cancelRemove(hash: string) {
+    confirming = undefined;
+    await tick();
+    document.getElementById(`manage-${hash}`)?.focus();
+  }
   /** Consoles that have at least one game, in the order of systems.ts. */
   const consoles = $derived.by(() => {
     const present = new Set(games.map((g) => g.system));
@@ -68,23 +84,23 @@
         : "Los juegos nuevos no se recordarán. Los de la lista siguen aquí."
       : "El navegador no permite guardar esta preferencia.";
   }
-  async function remove(entry: LibraryEntry) {
+  async function remove(entry: GameCard) {
     confirming = undefined;
+    managing = undefined;
     try {
-      await forgetGame(
-        entry.hash,
-        profiles.id,
-        profiles.all.map((p) => p.id).filter((id) => id !== profiles.id),
-      );
+      await removeTitle(entry.hash);
       note = `${entry.name} ya no está en la lista. Sus partidas se conservan.`;
     } catch {
       note = "No se pudo quitar el juego. Inténtalo de nuevo.";
     }
-    onchange();
+    await onchange();
+    await tick();
+    document.querySelector<HTMLInputElement>('.library input[type="search"]')?.focus();
   }
 </script>
 
 <section class="library" aria-label="Tus juegos">
+  <p class="hint">Biblioteca compartida con todos los perfiles de este dispositivo. Partidas y recientes propios para cada perfil.</p>
   {#if games.length}
     <div class="filters">
       <label class="search"
@@ -123,31 +139,39 @@
             <div class="info">
               <span class="name">{entry.name}</span>
               <span class="hint"
-                >{system?.name ?? entry.system} · {when(entry.lastPlayedAt)} · {megabytes(
+                >{system?.name ?? entry.system} · {entry.lastPlayedAt ? when(entry.lastPlayedAt) : "Aún no has jugado"} · {megabytes(
                   entry.size,
                 )}</span
               >
             </div>
+            {#if entry.stateUnavailable}<p class="hint">Guardado de otra versión. Revisa Partidas antes de sobrescribirlo.</p>{/if}
             <div class="actions">
               {#if confirming === entry.hash}
-                <span class="hint">Sus partidas se conservan.</span>
-                <button class="danger" onclick={() => remove(entry)}
+                <span class="hint">Se quitará de todos los perfiles. Sus partidas se conservan.</span>
+                <button id={`remove-${entry.hash}`} class="danger" onclick={() => remove(entry)}
                   >Quitar {entry.name}</button
-                ><button onclick={() => (confirming = undefined)}
+                ><button onclick={() => cancelRemove(entry.hash)}
                   >Cancelar</button
                 >
               {:else}
                 <button
                   class="primary"
                   disabled={!system}
-                  aria-label={`Continuar ${entry.name}`}
-              data-launch={`continue-${entry.hash}`}
+                  aria-label={`${playLabel(entry)} ${entry.name}`}
+                  data-launch={`continue-${entry.hash}`}
                   onclick={() => system && oncontinue(entry, system)}
-                  >Continuar</button
+                  >{playLabel(entry)}</button
                 ><button
+                  id={`manage-${entry.hash}`}
+                  aria-label={`Opciones de ${entry.name}`}
+                  aria-expanded={managing === entry.hash}
+                  aria-controls={`options-${entry.hash}`}
+                  onclick={() => (managing = managing === entry.hash ? undefined : entry.hash)}>Opciones</button>
+                <div id={`options-${entry.hash}`} hidden={managing !== entry.hash}>
+                <button
                   aria-label={`Quitar ${entry.name} de la lista`}
-                  onclick={() => (confirming = entry.hash)}>Quitar</button
-                >
+                  onclick={() => confirmRemove(entry.hash)}>Quitar de la biblioteca compartida</button>
+                </div>
               {/if}
             </div>
           </li>
@@ -157,10 +181,12 @@
       <p class="hint empty" role="status">Ningún juego coincide.</p>
     {/if}
     <p class="hint">{usage}</p>
+  {:else if loading}
+    <p class="hint empty" role="status">Cargando tus juegos…</p>
   {:else}
     <p class="hint empty">
-      Aún no hay juegos. Los que abras desde el inicio aparecerán aquí para
-      continuar con un clic.
+      Aún no hay juegos. Elige una consola y carga una ROM para empezar.
+      <a href="#inicio">Elegir consola</a>
     </p>
   {/if}
   <label class="toggle"
@@ -169,7 +195,7 @@
   >
   <p class="hint">
     Se guarda una copia del archivo solo en este navegador; nunca se envía a
-    ningún sitio. El navegador puede borrarla si se queda sin espacio.
+    ningún sitio. Los juegos de CD se abren desde sus archivos y no se copian a la biblioteca. El navegador puede borrarla si se queda sin espacio.
   </p>
   {#if note}<p class="note" role="status">{note}</p>{/if}
 </section>
@@ -233,7 +259,7 @@
     gap: 8px;
   }
   .chips button {
-    min-height: 36px;
+    min-height: 44px;
     padding: 6px 14px;
     border-radius: 999px;
     font-size: 14px;
@@ -247,7 +273,7 @@
     margin: 0;
     padding: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
     gap: 14px;
   }
   li {
@@ -281,7 +307,7 @@
     flex-wrap: wrap;
   }
   .actions button {
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 14px;
     font-size: 14px;
   }

@@ -176,6 +176,9 @@ test("removing a game from the list keeps its Partidas", async ({ page }) => {
   await playAndLeave(page);
   await games(page);
   await library(page)
+    .getByRole("button", { name: `Opciones de ${NAME}` })
+    .click();
+  await library(page)
     .getByRole("button", { name: `Quitar ${NAME} de la lista` })
     .click();
   await library(page)
@@ -292,4 +295,232 @@ test.describe("load diagnostics", () => {
     );
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
+});
+
+test("profiles share cartridges but keep their resume state and recent games", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  await page
+    .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
+    .click();
+  await page.getByRole("button", { name: "Añadir perfil" }).click();
+  await page
+    .getByRole("form", { name: "Nuevo perfil" })
+    .getByLabel("Nombre")
+    .fill("Ana");
+  await page.getByRole("button", { name: "Crear perfil" }).click();
+  await page
+    .getByRole("list", { name: "Perfiles" })
+    .getByRole("button", { name: "Ana", exact: true })
+    .click();
+  await expect(continueCard(page)).toHaveCount(0);
+  await games(page);
+  await expect(library(page).getByRole("listitem")).toHaveCount(1);
+  await expect(library(page)).toContainText("Aún no has jugado");
+  await library(page)
+    .getByRole("button", { name: `Jugar ${NAME}`, exact: true })
+    .click();
+  await running(page);
+  await expect(
+    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+  ).toHaveCount(0);
+  await exit(page);
+  await expect(
+    library(page).getByRole("button", { name: `Continuar ${NAME}` }),
+  ).toBeVisible();
+  // Deleting this profile removes its progress, never the shared cartridge.
+  await page
+    .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
+    .click();
+  await page.getByRole("button", { name: "Gestionar perfiles" }).click();
+  await page.getByRole("button", { name: "Borrar Ana", exact: true }).click();
+  await page.getByRole("button", { name: "Borrar Ana", exact: true }).click();
+  await expect(
+    page.getByText("Ana y sus partidas se han borrado", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Listo", exact: true }).click();
+  await page
+    .getByRole("list", { name: "Perfiles" })
+    .getByRole("button", { name: "Jugador 1", exact: true })
+    .click();
+  await games(page);
+  await library(page)
+    .getByRole("button", { name: `Continuar ${NAME}` })
+    .click();
+  await expect(page.getByTestId("toast")).toContainText(
+    "Partida cargada: al salir",
+  );
+  await running(page);
+});
+
+test("a manual snapshot is offered as Cargar partida and filters survive playing", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  // Move the committed automatic snapshot to slot 2, as an existing manual save.
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const r = indexedDB.open("cartivo-states");
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+    const tx = db.transaction(["states", "meta"], "readwrite");
+    for (const name of ["states", "meta"]) {
+      const store = tx.objectStore(name);
+      const r = store.openCursor();
+      r.onsuccess = () => {
+        const row = r.result;
+        if (!row) return;
+        if (String(row.key).endsWith(":auto")) {
+          store.put(
+            { ...row.value, slot: "2" },
+            String(row.key).replace(/:auto$/, ":2"),
+          );
+          row.delete();
+        }
+        row.continue();
+      };
+    }
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+  await page.reload();
+  await games(page);
+  await library(page).getByRole("searchbox").fill("mi-juego");
+  await library(page).getByRole("combobox").selectOption("name");
+  await library(page)
+    .getByRole("button", { name: `Cargar partida ${NAME}` })
+    .click();
+  await expect(page.getByTestId("toast")).toContainText(
+    "Partida cargada: ranura 2",
+  );
+  await running(page);
+  await exit(page);
+  await expect(library(page).getByRole("searchbox")).toHaveValue("mi-juego");
+  await expect(library(page).getByRole("combobox")).toHaveValue("name");
+  await expect(
+    library(page).getByRole("button", { name: `Continuar ${NAME}` }),
+  ).toBeFocused();
+});
+
+test("legacy libraries and v1 snapshots migrate without copying progress to another profile", async ({
+  page,
+}) => {
+  await page.goto("/");
+  // Let the initial reader finish, then seed the previous release's databases.
+  await games(page);
+  await expect(library(page)).toContainText("Aún no hay juegos");
+  await page.evaluate(async () => {
+    const remove = (name: string) =>
+      new Promise<void>((resolve, reject) => {
+        const r = indexedDB.deleteDatabase(name);
+        r.onsuccess = () => resolve();
+        r.onerror = () => reject(r.error);
+      });
+    await remove("cartivo-catalogue");
+    await remove("cartivo-states");
+    const seed = async (
+      name: string,
+      storeName: string,
+      value: object,
+      key?: string,
+    ) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const r = indexedDB.open(name, 1);
+        r.onupgradeneeded = () =>
+          r.result.createObjectStore(
+            storeName,
+            key ? undefined : { keyPath: "hash" },
+          );
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      const tx = db.transaction(storeName, "readwrite");
+      if (key) tx.objectStore(storeName).put(value, key);
+      else tx.objectStore(storeName).put(value);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    };
+    const hash = "a".repeat(64);
+    await seed("cartivo-library", "games", {
+      hash,
+      name: "Legado.nes",
+      system: "nes",
+      size: 1024,
+      addedAt: 1,
+      lastPlayedAt: 2,
+    });
+    await seed(
+      "cartivo-states",
+      "states",
+      {
+        slot: "auto",
+        core: "tetanes",
+        coreVersion: "0.17.0",
+        createdAt: 3,
+        frames: 4,
+        size: 2,
+        bytes: new Uint8Array([7, 8]),
+        sha256: "old-digest",
+      },
+      `${hash}:auto`,
+    );
+  });
+  await page.reload();
+  await expect(
+    library(page).getByRole("button", { name: "Continuar Legado.nes" }),
+  ).toBeVisible();
+  const migrated = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const r = indexedDB.open("cartivo-states");
+      r.onsuccess = () => resolve(r.result);
+    });
+    const read = (store: string) =>
+      new Promise<any>((resolve) => {
+        const r = db
+          .transaction(store)
+          .objectStore(store)
+          .get("a".repeat(64) + ":auto");
+        r.onsuccess = () => resolve(r.result);
+      });
+    const [record, metadata] = await Promise.all([
+      read("states"),
+      read("meta"),
+    ]);
+    const result = {
+      version: db.version,
+      bytes: Array.from(record.bytes),
+      digest: record.sha256,
+      indexedBytes: metadata.bytes,
+    };
+    db.close();
+    return result;
+  });
+  expect(migrated).toEqual({
+    version: 2,
+    bytes: [7, 8],
+    digest: "old-digest",
+    indexedBytes: undefined,
+  });
+  await library(page)
+    .getByRole("button", { name: "Opciones de Legado.nes" })
+    .click();
+  await library(page)
+    .getByRole("button", { name: "Quitar Legado.nes de la lista" })
+    .click();
+  await library(page)
+    .getByRole("button", { name: "Quitar Legado.nes", exact: true })
+    .click();
+  await expect(library(page)).toContainText("Sus partidas se conservan");
+  await page.reload();
+  await expect(library(page).getByRole("listitem")).toHaveCount(0);
 });

@@ -153,7 +153,7 @@
     <p class="kicker">Cartivo</p>
     <h1 id="profiles-title">¿Quién juega?</h1>
     <p class="lede">
-      Cada perfil guarda sus partidas, sus juegos y sus controles en este
+      Los juegos son compartidos. Cada perfil guarda sus partidas y sus controles en este
       dispositivo.
     </p>
   </div>
@@ -173,7 +173,7 @@
             {@render avatar(profile.name, profile.color)}
             <p>
               <strong>¿Borrar a {profile.name}?</strong>
-              Se borran sus partidas, sus juegos y sus controles. No se puede deshacer.
+              Se borran sus partidas y sus controles. Los juegos compartidos se conservan. No se puede deshacer.
             </p>
             <div class="form-actions">
               <button class="danger" onclick={() => remove(profile)}

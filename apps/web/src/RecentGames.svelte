@@ -4,7 +4,7 @@
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
   import { accentOf } from "./accent.ts";
-  import type { LibraryEntry } from "../../../packages/storage/src/library.ts";
+  import { playLabel, type GameCard } from "./library-view.ts";
   import {
     system as findSystem,
     type SystemInfo,
@@ -17,11 +17,12 @@
     oncontinue,
   }: {
     /** Remembered games, most recent first. */
-    games: LibraryEntry[];
-    oncontinue: (entry: LibraryEntry, system: SystemInfo) => void;
+    games: GameCard[];
+    oncontinue: (entry: GameCard, system: SystemInfo) => void;
   } = $props();
   const recent = $derived(
     games
+      .filter((entry) => entry.lastPlayedAt > 0)
       .flatMap((entry) => {
         const system = findSystem(entry.system);
         return system ? [{ entry, system }] : [];
@@ -52,7 +53,7 @@
               </div>
               <button
                 class="icon-button"
-                aria-label={`Continuar ${entry.name}`}
+                aria-label={`${playLabel(entry)} ${entry.name}`}
                 data-launch={`continue-${entry.hash}`}
                 onclick={() => oncontinue(entry, system)}
                 >{@html icons.play}</button

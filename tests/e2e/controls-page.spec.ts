@@ -29,7 +29,7 @@ test("controls have a direct URL and survive leaving and coming back", async ({
   await page.goBack();
   await page.goBack();
   await expect(
-    page.getByRole("heading", { name: "Configurar controles", exact: true }),
+    page.getByRole("heading", { name: "Ajustes", exact: true }),
   ).toBeFocused();
   await expect(page.locator("[data-action=a]")).toHaveText("ALibre");
   await expect(

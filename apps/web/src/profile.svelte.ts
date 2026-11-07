@@ -12,6 +12,8 @@ import {
   type Profile,
 } from "../../../packages/storage/src/profiles.ts";
 
+import { sharedGames } from "../../../packages/storage/src/library.ts";
+
 const ACTIVE_KEY = "cartivo:profile:active";
 
 function list(): Profile[] {
@@ -94,6 +96,10 @@ class Profiles {
   async remove(profile: Profile) {
     if (profile.id === PRINCIPAL)
       throw Error("Este perfil no se puede borrar.");
+    await sharedGames(
+      profile.id,
+      readProfiles().map((p) => p.id),
+    );
     this.#change((all) => all.filter((p) => p.id !== profile.id));
     if (this.active?.id === profile.id) this.choose(undefined);
     await deleteProfileData(profile.id);

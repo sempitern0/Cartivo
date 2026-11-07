@@ -1,9 +1,10 @@
 // «Partidas»: full-console snapshots stored per game and slot (ADR-009).
 // Separate from battery RAM (sram.ts): a snapshot is tied to one core and
 // version, battery RAM is shared by every core.
-import { done, locks, openDatabase, request } from "./idb.ts";
+import { done, locks, request } from "./idb.ts";
 import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";
+import { openStates } from "./state-index.ts";
 
 export const stateSlots = ["auto", "1", "2", "3"] as const;
 export type StateSlot = (typeof stateSlots)[number];
@@ -114,10 +115,7 @@ export class StateStore {
         "Este juego ya está abierto en otra pestaña. Ciérrala antes de continuar.",
       );
     try {
-      const db = await openDatabase(
-        scoped("cartivo-states", profile),
-        "states",
-      );
+      const db = await openStates(profile);
       return new StateStore(db, game, release);
     } catch (error) {
       release();
@@ -163,8 +161,9 @@ export class StateStore {
     if (!bytes.length || bytes.length > MAX_STATE_BYTES)
       throw Error("La partida supera el tamaño admitido (8 MB)");
     const record: StateRecord = { ...info, bytes, sha256 };
-    const tx = this.db.transaction("states", "readwrite");
+    const tx = this.db.transaction(["states", "meta"], "readwrite");
     tx.objectStore("states").put(record, this.key(info.slot));
+    tx.objectStore("meta").put(meta(record), this.key(info.slot));
     // Only report success once the transaction is durable.
     await new Promise<void>((resolve, reject) => {
       tx.oncomplete = () => resolve();
@@ -210,8 +209,9 @@ export class StateStore {
   }
 
   async delete(slot: StateSlot) {
-    const tx = this.db.transaction("states", "readwrite");
+    const tx = this.db.transaction(["states", "meta"], "readwrite");
     tx.objectStore("states").delete(this.key(slot));
+    tx.objectStore("meta").delete(this.key(slot));
     await done(tx);
   }
 

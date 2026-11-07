@@ -83,7 +83,7 @@
   // The player is remounted for each game ({#key} in App), so the system
   // is fixed for its lifetime and reading its initial value is intended.
   // svelte-ignore state_referenced_locally
-  let coreChoice = $state<string>(readCore(system));
+  let coreChoice = $state<string>(source.kind === "library" && source.resumeState ? source.resumeState.core : readCore(system));
   // «Partidas»: full-console snapshots (ADR-009).
   let saves = $state.raw<StateMeta[]>([]);
   let savesOpen = $state(false);
@@ -270,10 +270,10 @@
             : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
       if (r.libraryError) problem = r.libraryError;
-      const exit = saves.find((s) => s.slot === "auto");
+      const exit = saves.find((s) => s.slot === "auto" && system.cores.some((core) => core.id === coreChoice && s.core === core.id && s.coreVersion === core.version));
       // «Continuar» from the home screen goes straight to the exit snapshot.
-      if (source.kind === "library" && source.resume && exit)
-        await loadSlot("auto");
+      if (source.kind === "library" && source.resume && (source.resumeState || exit))
+        await loadSlot(source.resumeState?.slot ?? "auto");
       else {
         // Offer to continue from the exit snapshot instead of starting over.
         resumeOffer = exit;

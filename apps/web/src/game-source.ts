@@ -2,6 +2,7 @@
 // remembered game the Worker reads from this device (ADR-012). One explicit
 // union instead of several optional props whose combinations were implied.
 import type { EmuRequest } from "../../../packages/runtime/src/protocol.ts";
+import type { StateMeta } from "../../../packages/storage/src/states.ts";
 import type { LibraryEntry } from "../../../packages/storage/src/library.ts";
 
 export type GameSource =
@@ -17,6 +18,7 @@ export type GameSource =
       entry: LibraryEntry;
       /** Continue from «Al salir» directly, without the offer. */
       resume: boolean;
+      resumeState?: StateMeta;
     };
 
 export const demo: GameSource = { kind: "demo" };
