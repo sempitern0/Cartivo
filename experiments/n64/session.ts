@@ -221,8 +221,7 @@ async function start(rom: Uint8Array) {
   // means the core is there.
   const head = await fetch(MODULE, { method: "HEAD" });
   if (!head.ok || !/javascript/.test(head.headers.get("content-type") ?? "")) {
-    status.textContent =
-      "Falta el núcleo local en .build/web/: ejecuta node experiments/n64/build-core.mjs.";
+    status.textContent = `Falta el núcleo en ${new URL(".build/web/", import.meta.url).pathname} de esta copia del repositorio. Compílalo desde su raíz con «node experiments/n64/build-core.mjs»`;
     log(
       `[página] ${MODULE}: ${head.status} ${head.headers.get("content-type")}`,
     );

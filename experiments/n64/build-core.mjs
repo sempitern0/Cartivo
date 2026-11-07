@@ -207,5 +207,5 @@ writeFileSync(
   ) + "\n",
 );
 console.log(
-  `n64-core.wasm ${bytes.length} bytes, ${imports.length} imports, emcc ${pinned ? "pinned" : "EXPLORATORY"}`,
+  `n64-core.wasm ${bytes.length} bytes, ${imports.length} imports, emcc ${pinned ? "pinned" : "EXPLORATORY"} → ${web}`,
 );
