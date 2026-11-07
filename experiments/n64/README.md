@@ -118,7 +118,16 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - *Super Mario 64* (propio, sin versionar) arranca y se ve: 561 fotogramas presentados, velocidad 0,93×, unos 14 ms por fotograma (p95 de 20 ms), 3 underruns de audio (586 ms de déficit).
   - A los 10 s el Worker cae con `RuntimeError: memory access out of bounds`, con la memoria aún en 256 MiB.
   - Descartado por lectura: la disposición compacta de memoria pasa toda la traducción de direcciones por `mem_base_u32`.
-- **Próxima acción:** el titular repite *Super Mario 64* con el build de depuración y envía el registro, que ahora incluye la pila del fallo. Candidatos: desbordamiento de la pila C de la fibra (4 MiB en wasm32, la mitad que en 64 bits), del búfer de Asyncify o un fallo del núcleo.
+- **Causa del cierre de *Super Mario 64*:** el titular repitió la prueba con el build de depuración. La pila es `abort()` en `free` ← `TextureCache::_addTexture` ← `_updateTextures`: dlmalloc detecta el heap corrupto.
+  - **Origen:** el frontend del laboratorio solo respondía a sus siete opciones fijas, así que el resto quedaba con los inicializadores a 0 del núcleo.
+  - Con `MaxTxCacheSize = 0`, GLideN64 expulsa una textura en cada inserción y hace `pop_back` sobre una lista vacía, y eso corrompe el heap.
+  - Por el mismo motivo, la sensibilidad del stick también era 0.
+- **Arreglo:** `src/frontend.c` responde `GET_CORE_OPTIONS_VERSION = 2` y guarda la tabla de `SET_CORE_OPTIONS_V2`/`_INTL`. Una opción no fijada toma el valor por defecto que declara el núcleo, como en RetroArch. Cambian así de 0 a ese valor, entre otras:
+  - caché de texturas 8000;
+  - copia de color a RDRAM `Async` y de profundidad `Software`;
+  - LOD y escritura de profundidad en el fragmento;
+  - stick con zona muerta 15 y sensibilidad 100.
+- **Próxima acción:** build de CI deliberado; demo en headless con ese núcleo; el titular repite *Super Mario 64* y compara la velocidad, porque las copias a RDRAM tienen coste.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.
 
 ### Relevo — 2026-11-07, sesión 4

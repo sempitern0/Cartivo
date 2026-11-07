@@ -40,7 +40,14 @@ static unsigned frames_presented, frames_duped;
 static uint16_t buttons;
 static int16_t axes[4]; /* left x, left y, right x, right y */
 
-/* Fixed laboratory options: GLideN64 with HLE RSP, the cached interpreter
+/* The core's own option table (SET_CORE_OPTIONS_V2): every option it does
+ * not find falls back to the default it declares, as in RetroArch. Without
+ * it the core keeps its C zero-initialisers, which are not valid settings:
+ * MaxTxCacheSize = 0 made GLideN64 evict a texture on every insertion and
+ * pop an empty list, corrupting the heap (the SM64 crash). */
+static const struct retro_core_option_v2_definition *declared;
+
+/* Fixed laboratory overrides: GLideN64 with HLE RSP, the cached interpreter
  * (no JIT in WebAssembly) and no threaded renderer. */
 static const char *option(const char *key) {
   static const char *const options[][2] = {
@@ -54,6 +61,10 @@ static const char *option(const char *key) {
   };
   for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++)
     if (!strcmp(key, options[i][0])) return options[i][1];
+  for (const struct retro_core_option_v2_definition *d = declared; d && d->key;
+       d++)
+    if (!strcmp(key, d->key))
+      return d->default_value ? d->default_value : d->values[0].value;
   return NULL;
 }
 
@@ -83,6 +94,16 @@ static bool environment(unsigned cmd, void *data) {
     hw = *cb;
     return true;
   }
+  case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
+    *(unsigned *)data = 2;
+    return true;
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
+    declared = ((const struct retro_core_options_v2 *)data)->definitions;
+    return true;
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL:
+    declared =
+        ((const struct retro_core_options_v2_intl *)data)->us->definitions;
+    return true;
   case RETRO_ENVIRONMENT_GET_VARIABLE: {
     struct retro_variable *var = data;
     var->value = var->key ? option(var->key) : NULL;

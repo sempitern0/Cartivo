@@ -1,2 +1,2 @@
 Bump this file only to build Mupen64Plus-Next once in CI (core-mupen64plus-next.yml).
-Reason: pin emsdk 4.0.10 (LLVM 21): the 6.0.12 (LLVM 24) build hangs on the first frame; 4.0.10 runs the demo.
+Reason: the frontend answers with the core's declared option defaults (SET_CORE_OPTIONS_V2); MaxTxCacheSize = 0 corrupted the heap in GLideN64 (SM64 crash).
