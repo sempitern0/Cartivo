@@ -94,7 +94,7 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
 
 - **Base:** `feat/n64-gpu-prototype` con `main` fusionado y el rediseño del inicio. Sin PR abierta; la CI de la rama se lanzó a mano (`workflow_dispatch`) y está en verde. Esa CI no ejecuta este laboratorio.
 - **Fase:** 2 casi completa: vídeo, entrada, audio, pérdida de contexto y cancelación. Empieza la 3 con las primeras mediciones de la demo. El gate CORE-LEGAL-01 sigue **pendiente**.
-- **Build:** sigue **exploratorio** (Emscripten 4.0.10 con LLVM 21). Se probó el emcc 6.0.12 (por git) sobre LLVM 21 y no compila su libc. La toolchain fijada necesita los binarios de emsdk, que este entorno no alcanza.
+- **Build:** aquí sigue siendo **exploratorio** (Emscripten 4.0.10 con LLVM 21). El emcc 6.0.12 sobre LLVM 21 no compila su libc. El titular compiló con emsdk 6.0.12 (LLVM 24) en WSL: `reproducible: true` y SHA-256 `269939ab…6a6b`. Ver [N64_CORE_GATE](../../docs/research/N64_CORE_GATE.md#build-con-la-toolchain-fijada-titular-2026-11-07).
 - **Medido** (Chromium headless con SwiftShader, demo original, sin GPU física):
   - **Coste por fotograma:** media 5,6–5,9 ms y p95 8–9 ms, sobre un presupuesto de 16,7 ms. Incluye Asyncify y fibers.
   - **Memoria:** 256 MiB fijos con el tope de memoria (antes 730 MiB).
@@ -105,7 +105,7 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - Driver de Playwright local sobre el bundle de esbuild: botones, tono, pérdida de contexto y detener.
   - `browser.spec.ts` añade el tono y la pérdida de contexto, pero no se ha ejecutado con Vite aquí.
 - **Próxima acción:**
-  1. Compilar con emsdk 6.0.12 en una máquina con acceso, o pedir al titular un workflow deliberado (prohibido durante el spike sin su autorización), y repetir `browser.spec.ts`.
+  1. Hecho por el titular: build fijado. Falta repetir `browser.spec.ts` con Vite sobre ese build.
   2. Fase 3 con juegos propios del titular (no versionados): coste por fotograma con GPU real en Chromium, Firefox y Safari, pila de Asyncify, estabilidad de 30 minutos y control de tasa de audio.
   3. Completar CORE-LEGAL-01 y decidir go o no-go.
 - **No tocar:** producción (Player, protocolo, `cores/`, `.build-request`, workflows) hasta superar la fase 3.

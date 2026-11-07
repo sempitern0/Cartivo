@@ -80,8 +80,24 @@ Lo enlazado por `experiments/n64/build-core.mjs`: 270 objetos del target `emscri
 - **Pérdida de contexto:** detiene la sesión con un mensaje y libera el canvas.
 - **Coste por fotograma** (SwiftShader, demo): media de unos 5,7 ms y p95 de unos 9 ms. No vale como referencia de juegos reales.
 
+## Build con la toolchain fijada (titular, 2026-11-07)
+
+Primer build reproducible, hecho por el titular en WSL (Ubuntu) con emsdk 6.0.12. Enlazarlo con Emscripten 6 exigió `-sDEFAULT_TO_CXX`, porque desde la 5 emcc ya no añade libc++ y GLideN64 es C++.
+
+| Campo | Valor |
+|---|---|
+| Núcleo | `libretro/mupen64plus-libretro-nx` `15bada85906593376e8fd697f1b0b3af3a20f512` |
+| Parche | `patches/emu-thread-entry.patch` |
+| emcc | 6.0.12 (`5488e0871d46d19a3209988190fa6a653126256f`) |
+| clang | 24.0.0git |
+| `reproducible` | `true` |
+| `n64-core.wasm` | 3 201 180 bytes, SHA-256 `269939ab35ed02229edb82d763f0dd064697882e7967f69a985b975fc08b6a6b` |
+| Imports | 407 |
+
+El binario no se versiona (laboratorio, fuera de `cores/`). Falta repetirlo en un segundo entorno para comprobar que el hash coincide.
+
 ## Siguiente acción concreta
 
-1. Build con emsdk 6.0.12 (LLVM 24) fuera de este entorno o en un workflow deliberado autorizado, y la E2E del laboratorio con Vite.
+1. La E2E del laboratorio con Vite sobre el build fijado, y QA del titular con GPU y juegos propios.
 2. Control de tasa de audio (pautar por la cola) antes de cualquier integración.
 3. Después medir overhead de Asyncify, profundidad de pila, consumo de CPU, audio y estabilidad sostenida; comprobar si el intérprete cumple. Solo una sesión jugable y repetible permite pasar a integración de producto. Si no cumple, registrar no-go o soporte experimental limitado en vez de ampliar abstracciones.
