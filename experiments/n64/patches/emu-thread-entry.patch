@@ -1,0 +1,28 @@
+diff --git a/libretro/libretro.c b/libretro/libretro.c
+index 4a9f129..5f185f9 100644
+--- a/libretro/libretro.c
++++ b/libretro/libretro.c
+@@ -445,6 +445,14 @@ static void emu_step_initialize(void)
+     plugin_connect_all();
+ }
+ 
++static void* EmuThreadFunction(void* param);
++/* libco entries take no argument: call through the right type (WebAssembly
++ * traps on mismatched indirect calls). */
++static void EmuThreadEntry(void)
++{
++    EmuThreadFunction(NULL);
++}
++
+ static void* EmuThreadFunction(void* param)
+ {
+     uint32_t netplay_port = 0;
+@@ -725,7 +733,7 @@ void retro_init(void)
+         initializing = true;
+ 
+         retro_thread = co_active();
+-        game_thread = co_create(65536 * sizeof(void*) * 16, (void (*)(void))EmuThreadFunction);
++        game_thread = co_create(65536 * sizeof(void*) * 16, EmuThreadEntry);
+     }
+ 
+     m64p_error ret = CoreStartup(FRONTEND_API_VERSION, ".", ".", NULL, n64DebugCallback, 0, n64StateCallback);

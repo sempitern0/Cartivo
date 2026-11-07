@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cartivo · Laboratorio N64</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font:
+          1rem/1.6 system-ui,
+          sans-serif;
+        background: #10161d;
+        color: #ecf2f8;
+      }
+      body {
+        max-width: 52rem;
+        margin: 3rem auto;
+        padding: 0 1.25rem;
+      }
+      h1 {
+        line-height: 1.2;
+      }
+      p {
+        max-width: 68ch;
+      }
+      button,
+      input {
+        font: inherit;
+        max-width: 100%;
+      }
+      button {
+        padding: 0.55rem 1rem;
+        margin: 0.5rem 0.5rem 0.5rem 0;
+        cursor: pointer;
+      }
+      :focus-visible {
+        outline: 3px solid #8bdcff;
+        outline-offset: 4px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        padding: 1rem;
+        background: #1c2936;
+        border-radius: 0.5rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      .log {
+        max-height: 18rem;
+        overflow: auto;
+        font-size: 0.8rem;
+      }
+      #session-screen canvas {
+        width: 100%;
+        max-width: 640px;
+        aspect-ratio: 4 / 3;
+        background: #000;
+        border-radius: 0.5rem;
+      }
+      .note {
+        color: #bdcedd;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>Cartivo · Experimental</p>
+      <h1>Laboratorio N64</h1>
+      <p>
+        Comprueba la ruta gráfica y la cabecera de un cartucho y, con el núcleo
+        compilado en local (<code>node experiments/n64/build-core.mjs</code>),
+        arranca una sesión real.
+        <strong>Experimental: no es soporte de N64.</strong>
+      </p>
+      <label for="rom">Cartucho local opcional (.z64, .v64, .n64)</label>
+      <input id="rom" type="file" accept=".z64,.v64,.n64" />
+      <p class="note">
+        Solo se leen 64 bytes en un Worker. El archivo no se sube ni se guarda.
+      </p>
+      <button id="probe" type="button">Comprobar requisitos</button>
+      <button id="cancel" type="button" disabled>Cancelar</button>
+      <p id="status" role="status" aria-live="polite">Preparado.</p>
+      <pre id="result" aria-label="Resultado del diagnóstico">
+Sin resultados.</pre
+      >
+      <h2>Entrada analógica</h2>
+      <p>
+        Prueba opcional de mando estándar: stick izquierdo analógico; stick
+        derecho para C; A en el botón inferior, B en el izquierdo, Z en el
+        gatillo izquierdo. No controla el foco de esta página.
+      </p>
+      <button id="pad" type="button" aria-pressed="false">Probar mando</button>
+      <pre id="pad-state" aria-label="Estado del mando">Prueba detenida.</pre>
+      <h2>Sesión con el núcleo local</h2>
+      <p>
+        Mupen64Plus-Next con GLideN64 dibuja por WebGL2 en un Worker. La demo es
+        un cartucho original de Cartivo. Teclado: K = A, J = B, Enter = Start, Q
+        = Z, I/O = L/R; o un mando estándar.
+      </p>
+      <button id="session-demo" type="button">Arrancar demo</button>
+      <button id="session-rom" type="button">Arrancar cartucho elegido</button>
+      <button id="session-pause" type="button" disabled>Pausar</button>
+      <button id="session-stop" type="button" disabled>Detener</button>
+      <button id="session-lose" type="button" disabled>
+        Simular pérdida de contexto
+      </button>
+      <p id="session-status" role="status" aria-live="polite">Sin sesión.</p>
+      <div id="session-screen"></div>
+      <pre id="session-stats" aria-label="Estado de la sesión">Sin datos.</pre>
+      <h3>Registro</h3>
+      <p>
+        Todo lo que dicen el Worker y el núcleo, para diagnosticar un equipo:
+        cópialo entero si la sesión no arranca o no se ve.
+      </p>
+      <button id="session-copy" type="button">Copiar registro</button>
+      <pre
+        id="session-log"
+        class="log"
+        aria-label="Registro de la sesión"
+      ></pre>
+    </main>
+    <script type="module" src="./main.ts"></script>
+    <script type="module" src="./session.ts"></script>
+  </body>
+</html>

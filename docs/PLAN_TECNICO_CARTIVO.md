@@ -85,7 +85,11 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
 4. **Vídeo WebGL2 en el Worker (spike + ADR).**
    - *Objetivo:* `OffscreenCanvas` con WebGL2 para núcleos que dibujan con GPU. Es el requisito común de N64, PSP y PS2.
    - *Terminado cuando:* un núcleo de prueba dibuja por GL en el Worker en Chromium y Firefox, con alternativa si falta WebGL2, y un ADR describe el contrato (sin romper el RGBA actual).
-5. **N64**, sobre el punto 4: Mupen64Plus-Next con GLideN64, previo gate CORE-LEGAL-01. El spike de ADR-015 descarta angrylion sin hilos.
+5. **N64 (en curso, rama `feat/n64-gpu-prototype`).** Se sigue [N64_PLAN_INTEGRACION](research/N64_PLAN_INTEGRACION.md).
+   - *Hecho en el laboratorio:* Mupen64Plus-Next + GLideN64 dibuja por WebGL2 en un Worker, sin hilos (libco sobre fibers/Asyncify). Arranca una demo original con mando y audio. Una pérdida de contexto detiene la sesión. Con la demo en SwiftShader cuesta unos 6 ms por fotograma y ocupa 256 MiB.
+   - *Pendiente:* build con emsdk 6.0.12 (LLVM 24, no accesible desde aquí), control de tasa de audio, medición con juegos propios y GPU real, CORE-LEGAL-01, y decisión go o no-go antes de tocar producción.
+   - *Empieza por:* el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
+   - El punto 4 (contrato de vídeo GPU en producción) se diseña con N64 como primer consumidor, en su fase 4.
 6. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre el punto 4 y el camino de discos (`.iso`/`.cso`).
 7. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
 

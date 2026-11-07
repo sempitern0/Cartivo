@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 
 // Game Boy and Game Boy Color run SameBoy (ADR-010) with Cartivo's own
 // fixture; the boot ROM animation takes a few seconds before the program.
@@ -56,7 +57,7 @@ for (const { name, color, format } of [
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
     await page.goto("/");
-    await card(page, name).getByRole("button", { name: "Probar demo" }).click();
+    await startDemo(page, name);
     await playing(page, 320); // past the boot ROM animation
     const canvas = page.locator("canvas");
     await expect(canvas).toHaveAttribute("width", "160");
@@ -77,7 +78,7 @@ for (const { name, color, format } of [
 
     // Reopening the same game keeps the counter (battery RAM in IndexedDB).
     await page.getByRole("button", { name: "Salir", exact: true }).click();
-    await card(page, name).getByRole("button", { name: "Probar demo" }).click();
+    await startDemo(page, name);
     await playing(page, 320);
     await page.getByRole("button", { name: "Pausar juego" }).click();
     expect((await exportBackup(page)).bytes[0]).toBe(counter);
@@ -91,9 +92,7 @@ for (const { name, color, format } of [
 
 test("Game Boy quick-saves with F5 and loads with F9", async ({ page }) => {
   await page.goto("/");
-  await card(page, "Game Boy")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Game Boy");
   await playing(page, 320);
   await page.keyboard.press("F5");
   await expect(page.getByTestId("toast")).toContainText("ranura 1");
@@ -158,9 +157,7 @@ test("square-pixel systems hide the redundant aspect options", async ({
   page,
 }) => {
   await page.goto("/");
-  await card(page, "Game Boy")
-    .getByRole("button", { name: "Probar demo" })
-    .click();
+  await startDemo(page, "Game Boy");
   await playing(page);
   await page.getByRole("button", { name: "Gráficos" }).click();
   const panel = page.locator("#graphics-panel");

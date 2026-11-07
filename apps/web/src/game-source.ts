@@ -39,3 +39,7 @@ export function loadFields(
   if (source.kind === "library") return { stored: source.entry.hash };
   return { demo: true };
 }
+
+/** A drag that carries files (not text or a link). */
+export const hasFiles = (e: DragEvent) =>
+  !!e.dataTransfer && [...e.dataTransfer.types].includes("Files");

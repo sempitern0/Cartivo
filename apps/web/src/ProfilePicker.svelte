@@ -159,8 +159,13 @@
   </div>
 
   <ul class="profiles" aria-label="Perfiles" bind:this={grid}>
-    {#each profiles.all as profile (profile.id)}
-      <li class="tile" data-tile={profile.id} class:managing>
+    {#each profiles.all as profile, index (profile.id)}
+      <li
+        class="tile"
+        style={`--i: ${index}`}
+        data-tile={profile.id}
+        class:managing
+      >
         {#if editing === profile.id}
           {@render form(`Editar ${profile.name}`, "Guardar")}
         {:else if confirming === profile.id}
@@ -215,7 +220,7 @@
       </li>
     {/each}
     {#if profiles.all.length < MAX_PROFILES}
-      <li class="tile" data-tile={NEW}>
+      <li class="tile" style={`--i: ${profiles.all.length}`} data-tile={NEW}>
         {#if editing === NEW}
           {@render form("Nuevo perfil", "Crear perfil")}
         {:else}
@@ -322,7 +327,9 @@
     color: #111218;
     font-weight: 750;
     letter-spacing: 0.02em;
-    transition: box-shadow 0.18s ease;
+    transition:
+      box-shadow 0.18s ease,
+      transform 0.14s ease;
     user-select: none;
   }
   .avatar.lg {
@@ -491,6 +498,24 @@
       width: 88px;
       height: 88px;
       font-size: 32px;
+    }
+  }
+  /* Entrance: the intro, then the tiles one after another (theme.css turns
+     it off under prefers-reduced-motion). */
+  .intro {
+    animation: tile-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  .tile {
+    animation: tile-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(120ms + var(--i, 0) * 60ms);
+  }
+  .profile:not(:disabled):active .avatar {
+    transform: scale(0.94);
+  }
+  @keyframes tile-in {
+    from {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
     }
   }
   @media (prefers-reduced-motion: reduce) {

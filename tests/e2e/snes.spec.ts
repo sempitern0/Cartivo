@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures.ts";
+import { startDemo } from "./play.ts";
 
 // SNES runs Snes9x (ADR-013) with Cartivo's own 65816 fixture.
 const frames = async (page: Page) =>
@@ -61,7 +62,7 @@ test("SNES demo runs Snes9x: X/Y/L/R recolour, battery save survives", async ({
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await card(page).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "SNES");
   await playing(page, 30);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "256");
@@ -90,7 +91,7 @@ test("SNES demo runs Snes9x: X/Y/L/R recolour, battery save survives", async ({
   expect(backup.bytes[0]).toBe(1);
 
   await page.getByRole("button", { name: "Salir", exact: true }).click();
-  await card(page).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "SNES");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 255, 0])).toBe(true);
   await page.getByRole("button", { name: "Pausar juego" }).click();
@@ -100,7 +101,7 @@ test("SNES demo runs Snes9x: X/Y/L/R recolour, battery save survives", async ({
 
 test("SNES quick-saves with F5 and loads with F9", async ({ page }) => {
   await page.goto("/");
-  await card(page).getByRole("button", { name: "Probar demo" }).click();
+  await startDemo(page, "SNES");
   await playing(page);
   await page.keyboard.press("F5");
   await expect(page.getByTestId("toast")).toContainText("ranura 1");
