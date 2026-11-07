@@ -127,7 +127,9 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
   - copia de color a RDRAM `Async` y de profundidad `Software`;
   - LOD y escritura de profundidad en el fragmento;
   - stick con zona muerta 15 y sensibilidad 100.
-- **Próxima acción:** build de CI deliberado; demo en headless con ese núcleo; el titular repite *Super Mario 64* y compara la velocidad, porque las copias a RDRAM tienen coste.
+- **Primer build con el arreglo (`079dca91…`):** la demo se veía negra. El registro repetía `glMapBufferRange access does not support MAP_READ`: la copia de color a RDRAM lee la GPU con `glMapBufferRange`, y WebGL2 no lo permite.
+  - **Ajuste:** se fijan apagadas las copias de color y de profundidad a RDRAM y el almacén de shaders, porque WebGL2 no tiene binarios de programa. Son los valores con los que ya funcionaba la demo.
+- **Próxima acción:** comprobar la demo en headless con el nuevo build; después, el titular repite *Super Mario 64*.
 - **No tocar:** el registro de la app (`registry.ts`, `systems.ts`) hasta el go.
 
 ### Relevo — 2026-11-07, sesión 4

@@ -1,2 +1,2 @@
 Bump this file only to build Mupen64Plus-Next once in CI (core-mupen64plus-next.yml).
-Reason: the frontend answers with the core's declared option defaults (SET_CORE_OPTIONS_V2); MaxTxCacheSize = 0 corrupted the heap in GLideN64 (SM64 crash).
+Reason: keep the RDRAM copies and shader storage off (WebGL2 cannot map buffers for reading); with the declared defaults the demo rendered black.

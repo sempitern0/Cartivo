@@ -48,7 +48,9 @@ static int16_t axes[4]; /* left x, left y, right x, right y */
 static const struct retro_core_option_v2_definition *declared;
 
 /* Fixed laboratory overrides: GLideN64 with HLE RSP, the cached interpreter
- * (no JIT in WebAssembly) and no threaded renderer. */
+ * (no JIT in WebAssembly) and no threaded renderer. WebGL2 has neither
+ * glMapBufferRange for reading nor program binaries, so the colour and depth
+ * copies to RDRAM and the shader storage stay off (their defaults are on). */
 static const char *option(const char *key) {
   static const char *const options[][2] = {
       {"mupen64plus-rdp-plugin", "gliden64"},
@@ -58,6 +60,9 @@ static const char *option(const char *key) {
       {"mupen64plus-43screensize", "640x480"},
       {"mupen64plus-pak1", "memory"},
       {"mupen64plus-EnableFBEmulation", "True"},
+      {"mupen64plus-EnableCopyColorToRDRAM", "Off"},
+      {"mupen64plus-EnableCopyDepthToRDRAM", "Off"},
+      {"mupen64plus-EnableShadersStorage", "False"},
   };
   for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++)
     if (!strcmp(key, options[i][0])) return options[i][1];
