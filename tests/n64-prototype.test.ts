@@ -7,6 +7,11 @@ import {
   samplePad,
 } from "../experiments/n64/preflight.ts";
 import { isProbeResult } from "../experiments/n64/protocol.ts";
+import { createHash } from "node:crypto";
+import {
+  N64_DEMO_COLORS,
+  n64ControlDemo,
+} from "../experiments/n64/fixture/n64-control-demo.ts";
 
 function header(order: "z64" | "v64" | "n64") {
   const normal = new Uint8Array(64);
@@ -107,10 +112,7 @@ test("N64 worker result rejects malformed or unversioned messages", () => {
     assert.equal(isProbeResult(bad), false);
 });
 
-test("the original N64 demo cartridge has no Nintendo code and a stable hash", async () => {
-  const { createHash } = await import("node:crypto");
-  const { n64ControlDemo, N64_DEMO_COLORS } =
-    await import("../experiments/n64/fixture/n64-control-demo.ts");
+test("the N64 demo cartridge is original and has a stable hash", () => {
   const rom = n64ControlDemo();
   assert.equal(rom.length, 1024 * 1024);
   assert.deepEqual(inspectRomHeader(rom.subarray(0, 64), rom.length), {

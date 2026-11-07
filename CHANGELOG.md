@@ -341,3 +341,4 @@
 - Las demos originales solo se abren con la entrada oculta `#demo/<consola>`, que usan las pruebas.
 - El chip del perfil tiene aire alrededor del avatar y del nombre.
 - Entradas de vista y de tarjetas y fichas escalonadas, respuesta al pulsar y realce al arrastrar. Todo se desactiva con «reducir movimiento».
+- Repaso de diseño: el acento de cada tarjeta indica el soporte (coral cartucho de sobremesa, oro portátil, violeta disco); el inicio pierde el lema en mayúsculas y las etiquetas van en minúsculas normales; la entrada escalonada de las tarjetas ocurre una sola vez por visita.

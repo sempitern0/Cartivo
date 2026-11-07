@@ -104,6 +104,18 @@
   let pending = $state.raw<GameFiles<File>>();
   let openError = $state("");
   let dragging = $state(false);
+  /**
+   * Each card's accent says what the console plays: home cartridges coral,
+   * handhelds gold, discs violet (the palette, never a maker's colours).
+   */
+  const accent = (system: SystemInfo) =>
+    system.disc
+      ? "var(--profile-4)"
+      : ["gb", "gbc", "gba"].includes(system.id)
+        ? "var(--gold)"
+        : "var(--coral)";
+  /** The cards deal in once per visit, not on every return to the start. */
+  let dealt = $state(false);
   /** Up to three format chips; longer lists show two and «+N». */
   const formatChips = (extensions: readonly string[]) =>
     extensions.length <= 3
@@ -389,7 +401,6 @@
   {:else if !game}
     <section class="welcome">
       <div class="titles">
-        <p class="kicker">Tus consolas. Tu momento.</p>
         <h1 id="inicio" bind:this={pageHeading} tabindex="-1">
           Elige una consola
         </h1>
@@ -410,12 +421,18 @@
         </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
       <RecentGames {games} oncontinue={continueGame} />
-      <ul class="consoles" aria-label="Consolas">
+      <ul
+        class="consoles"
+        aria-label="Consolas"
+        onanimationend={(e) => {
+          if (e.target === e.currentTarget.lastElementChild) dealt = true;
+        }}
+      >
         {#each consoles as item, index (item.id)}
           {@const waiting = pending?.system.id === item.id ? pending : undefined}
           {@const asking =
             incomplete?.game.system.id === item.id ? incomplete : undefined}
-          <li style={`--i: ${index}`}>
+          <li class:deal={!dealt} style={`--i: ${index}; --accent: ${accent(item)}`}>
             <!-- The whole card is the «Jugar» target (the button stretches
                  over it) and a drop zone that prefers this console. -->
             <article
@@ -629,11 +646,10 @@
   .console-card:has(.play:focus-visible),
   :global(:root[data-input="pad"]) .console-card:has(.play:focus) {
     transform: translateY(-4px);
-    border-color: #40c2ae80;
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
     box-shadow:
-      0 0 0 1px #40c2ae55,
-      0 18px 40px -18px #40c2ae66,
-      0 10px 30px -20px #ed587166;
+      0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+      0 18px 40px -18px color-mix(in srgb, var(--accent) 45%, transparent);
   }
   .console-card:hover :global(.badge),
   .console-card:has(.play:focus-visible) :global(.badge) {
@@ -686,8 +702,7 @@
     background: #ffffff0d;
     border: 1px solid #ffffff14;
     color: var(--muted);
-    font-size: 12px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
   }
   /* «Jugar»: a round play mark whose label slides out on hover or focus; its
      ::after covers the card, so any click on it opens the game picker. */
@@ -754,7 +769,7 @@
   .play:focus-visible .play-icon,
   :global(:root[data-input="pad"]) .play:focus .play-icon,
   .waiting .play-icon {
-    background: linear-gradient(135deg, var(--teal), #3aa6c4);
+    background: var(--accent);
     border-color: transparent;
     color: #0d1016;
     transform: scale(1.06);
@@ -794,13 +809,13 @@
      pointer takes it. */
   .console-card.dragging {
     border-style: dashed;
-    border-color: #40c2ae66;
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent);
   }
   .console-card.over {
-    border-color: var(--teal);
+    border-color: var(--accent);
     box-shadow:
-      0 0 0 2px var(--teal),
-      0 20px 50px -18px #40c2ae99;
+      0 0 0 2px var(--accent),
+      0 20px 50px -18px color-mix(in srgb, var(--accent) 60%, transparent);
     transform: translateY(-4px) scale(1.01);
   }
   .drop-cue {
@@ -812,9 +827,9 @@
     justify-content: center;
     gap: 10px;
     border-radius: var(--card-radius);
-    background: #0f1a1fd9;
+    background: #12141cdb;
     backdrop-filter: blur(3px);
-    color: var(--teal);
+    color: var(--accent);
     font-weight: 700;
     font-size: 17px;
     opacity: 0;
@@ -960,13 +975,9 @@
   .games-page {
     animation: view-enter 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
-  .welcome .titles {
-    animation: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  }
-  .welcome .titles .kicker {
-    animation: fade 600ms 80ms ease both;
-  }
-  .consoles > li {
+  /* The one orchestrated moment: the console shelf deals in on the first
+     visit to the start; later returns only fade the view in. */
+  .consoles > li.deal {
     animation: rise 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
     animation-delay: calc(60ms + var(--i, 0) * 45ms);
   }
@@ -1012,12 +1023,6 @@
     from {
       opacity: 0;
       transform: translateY(16px) scale(0.98);
-    }
-  }
-  @keyframes fade {
-    from {
-      opacity: 0;
-      letter-spacing: 0.4em;
     }
   }
   @keyframes nudge {
