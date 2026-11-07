@@ -71,7 +71,15 @@ pnpm exec vite experiments/n64 --host 127.0.0.1   # «Arrancar demo»
   - el único readback es un píxel de diagnóstico por segundo;
   - el audio sale en un bloque por fotograma. El frontend lo cuenta con `n64_audio_frames()`, porque Asyncify pierde el valor de retorno de una exportación que cambia de fibra. La página lo programa con Web Audio (`AudioContext` creado en el clic de arranque) en una cola acotada: más de 250 ms por delante se descarta el bloque;
   - una pérdida del contexto WebGL detiene la sesión con un mensaje; «Simular pérdida de contexto» la provoca (`WEBGL_lose_context`);
-  - el estado da el tiempo por fotograma (media y p95 de 120), los totales del oráculo de audio y la memoria del módulo.
+  - **estados explícitos** `loading → running ⇄ paused → stopping`. Una petición que no encaja con el estado se ignora y queda en el registro. Pausar, o que la pestaña pase a segundo plano, detiene el bucle y el audio. Al reanudar se sigue desde ese momento, sin ráfaga para recuperar el tiempo;
+  - **ritmo por audio:** tras cada bloque la página dice al Worker cuánto audio tiene en cola. Con más de 150 ms un tic no emula; con menos de 40 ms emula dos fotogramas, nunca más. El Worker descuenta el tiempo transcurrido desde el último aviso, porque un tic saltado no produce audio ni aviso;
+  - **métricas de fase 3** en el estado:
+    - velocidad (tiempo emulado / tiempo real);
+    - p50, p95 y p99 entre tics, y tiempo por fotograma;
+    - tics saltados y dobles;
+    - tiempos de arranque (glue, WebAssembly, contexto, carga, primer fotograma);
+    - underruns y déficit de audio, y memoria;
+  - **registro visible y copiable:** user agent, GPU (`WEBGL_debug_renderer_info` cuando el navegador lo da), cada paso del arranque, los mensajes del núcleo (incluidos los fallos de shaders de GLideN64) y los errores con su pila. Avisa si el arranque pasa de 45 s y si el núcleo emula pero no presenta imagen.
 - **Demo original** (`fixture/n64-control-demo.ts`): cartucho de 1 MiB sin código de Nintendo. El PIF HLE copia ROM 0x40–0xFFF a DMEM y salta allí, así que el programa propio sustituye al IPL3: configura el VI, dibuja con rectángulos de relleno del RDP (los presenta GLideN64) y lee el mando 1 por el PIF. Además copia del cartucho (PI DMA) una onda cuadrada de 500 Hz a 32 kHz y mantiene alimentada la FIFO de la interfaz de audio (AI) desde su bucle de espera.
 - **Mando:** el núcleo asigna los botones por posición: libretro B = A de N64, Y = B, Start = Start y L2 = Z.
 
@@ -89,6 +97,23 @@ La receta exige 6.0.12 y compila únicamente el puente original `fibers/cooperat
 Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones por ciclo, preservación de variables locales y heap WASM estable tras calentamiento. Esto no mide el coste de Asyncify en el núcleo real, profundidad de pila de N64, audio, WebGL ni recuperación de una partida. El tamaño de pila Asyncify de 64 KiB es provisional y debe medirse con el núcleo. El puente es monohilo y sus contextos no son compartibles; una entrada debe ceder, no retornar.
 
 ## Estado de relevo
+
+### Relevo — 2026-11-07, sesión 4
+
+- **QA del titular:** con el build fijado (WSL y Vite), la demo no muestra imagen ni sonido en Chrome ni en Firefox. «Parece que está haciendo algo»: no hay más datos.
+- **Hecho:**
+  - estados explícitos, pausa y segundo plano sin ráfaga;
+  - ritmo por audio: con la demo, velocidad 1,00× y sin descartes tras el calentamiento. Antes había unos 4 descartes cada 4 s y la cola tocaba el tope;
+  - métricas de fase 3, y registro visible con botón «Copiar registro».
+  - Arranque en SwiftShader: unos 0,1 s el WebAssembly, unos 0,23 s el cartucho cargado y unos 0,4 s el primer fotograma.
+- **Pruebas:**
+  - driver local sobre el bundle: botones, tono, pausa que congela los fotogramas, reanudar, velocidad > 0,9, GPU en el registro y pérdida de contexto;
+  - `browser.spec.ts` añade la prueba de pausa, métricas y registro (sin ejecutar con Vite aquí).
+- **Próxima acción:**
+  1. El titular repite la demo y envía el registro copiado. Por ahí sale el paso en que se queda: glue, WebAssembly, contexto, cartucho, o shaders sin imagen.
+  2. Corregir según el registro y repetir.
+  3. Después, fase 3 con juegos propios.
+- **No tocar:** producción hasta superar la fase 3.
 
 ### Relevo — 2026-11-07, sesión 3
 

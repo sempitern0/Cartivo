@@ -332,7 +332,12 @@
 - Demo original de 1 MiB sin código de Nintendo: dibuja con el RDP y lee el mando por el PIF. Comprobada en Chromium headless: 60 Hz, oráculo de colores y botones.
 - Receta de build local `build-core.mjs` con un parche mínimo documentado e inventario de licencias en `docs/research/N64_CORE_GATE.md`.
 - Sesión 3: audio, con una onda propia de 500 Hz en la demo que el oráculo mide a 500,09 Hz, y una cola de Web Audio acotada. Una pérdida del contexto WebGL detiene la sesión con aviso. Primeras medidas: unos 6 ms por fotograma en SwiftShader y 256 MiB de memoria, tras evitar la reserva de 512 MiB del núcleo. Se confirma que Emscripten 6.0.12 necesita su LLVM 24.
-- N64 sigue sin estar disponible en la app. Queda pendiente el gate, el build con la toolchain fijada y la medición con juegos reales.
+- Sesión 4:
+  - estados explícitos, pausa y segundo plano;
+  - ritmo de emulación guiado por la cola de audio (1,00× con la demo, sin descartes);
+  - métricas de fase 3 (velocidad, percentiles, arranque, underruns);
+  - un registro copiable para diagnosticar la pantalla negra que vio el titular con el build fijado en su equipo.
+- N64 sigue sin estar disponible en la app. Quedan pendientes el gate y la medición con juegos reales.
 
 
 ### Inicio más limpio y con movimiento

@@ -131,3 +131,36 @@ test("a lost WebGL context stops the session and says so", async ({ page }) => {
     page.getByRole("button", { name: "Arrancar demo" }),
   ).toBeEnabled();
 });
+
+test("pause holds the emulation, resume continues, the log names the GPU", async ({
+  page,
+}) => {
+  test.skip(
+    !existsSync(new URL(".build/n64-core.mjs", import.meta.url)),
+    "núcleo local no compilado",
+  );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Arrancar demo" }).click();
+  const status = page.locator("#session-status");
+  await expect(status).toContainText("En marcha", { timeout: 30_000 });
+  const stats = async () =>
+    JSON.parse((await page.locator("#session-stats").textContent())!);
+  const next = async () => {
+    const before = await page.locator("#session-stats").textContent();
+    await expect(page.locator("#session-stats")).not.toHaveText(before!);
+    return stats();
+  };
+  await page.getByRole("button", { name: "Pausar" }).click();
+  await expect(status).toHaveText("En pausa.");
+  const held = (await next()).frames;
+  expect((await next()).frames).toBe(held);
+  await page.getByRole("button", { name: "Reanudar" }).click();
+  await expect(status).toContainText("En marcha");
+  await expect.poll(async () => (await stats()).frames).toBeGreaterThan(held);
+  const { startup, speed } = await next();
+  expect(startup.firstFrame).toBeGreaterThan(0);
+  expect(speed).toBeGreaterThan(0.9);
+  await expect(page.getByLabel("Registro de la sesión")).toContainText(
+    "[gpu] WebGL 2.0",
+  );
+});

@@ -49,6 +49,11 @@
         display: block;
         margin-bottom: 0.5rem;
       }
+      .log {
+        max-height: 18rem;
+        overflow: auto;
+        font-size: 0.8rem;
+      }
       #session-screen canvas {
         width: 100%;
         max-width: 640px;
@@ -98,6 +103,7 @@ Sin resultados.</pre
       </p>
       <button id="session-demo" type="button">Arrancar demo</button>
       <button id="session-rom" type="button">Arrancar cartucho elegido</button>
+      <button id="session-pause" type="button" disabled>Pausar</button>
       <button id="session-stop" type="button" disabled>Detener</button>
       <button id="session-lose" type="button" disabled>
         Simular pérdida de contexto
@@ -105,6 +111,17 @@ Sin resultados.</pre
       <p id="session-status" role="status" aria-live="polite">Sin sesión.</p>
       <div id="session-screen"></div>
       <pre id="session-stats" aria-label="Estado de la sesión">Sin datos.</pre>
+      <h3>Registro</h3>
+      <p>
+        Todo lo que dicen el Worker y el núcleo, para diagnosticar un equipo:
+        cópialo entero si la sesión no arranca o no se ve.
+      </p>
+      <button id="session-copy" type="button">Copiar registro</button>
+      <pre
+        id="session-log"
+        class="log"
+        aria-label="Registro de la sesión"
+      ></pre>
     </main>
     <script type="module" src="./main.ts"></script>
     <script type="module" src="./session.ts"></script>
