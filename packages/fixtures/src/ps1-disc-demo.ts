@@ -9,6 +9,19 @@
 import { ps1ControlDemo } from "./ps1-control-demo.ts";
 
 const SECTOR = 2048;
+const SYSTEM_CNF = [
+  "BOOT = cdrom:\\PSX.EXE;1",
+  "TCB = 4",
+  "EVENT = 10",
+  "STACK = 801FFFF0",
+  "",
+].join("\r\n");
+const CUE = [
+  'FILE "Cartivo Demo (Track 1).bin" BINARY',
+  "  TRACK 01 MODE2/2352",
+  "    INDEX 01 00:00:00",
+  "",
+].join("\n");
 const RAW = 2352;
 
 const both16 = (view: DataView, at: number, value: number) => {
@@ -43,9 +56,7 @@ function record(name: Uint8Array, lba: number, size: number, dir: boolean) {
 /** The volume as 2048-byte sectors (logical image, like an .iso). */
 export function ps1DiscIso(): Uint8Array {
   const exe = ps1ControlDemo();
-  const cnf = new TextEncoder().encode(
-    "BOOT = cdrom:\\PSX.EXE;1\r\nTCB = 4\r\nEVENT = 10\r\nSTACK = 801FFFF0\r\n",
-  );
+  const cnf = new TextEncoder().encode(SYSTEM_CNF);
   const ROOT = 20;
   const CNF = 21;
   const EXE = 22;
@@ -118,7 +129,7 @@ export function ps1DiscDemo(): { cue: string; bin: Uint8Array } {
     bin.set(iso.subarray(lba * SECTOR, (lba + 1) * SECTOR), at + 24);
   }
   return {
-    cue: 'FILE "Cartivo Demo (Track 1).bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n',
+    cue: CUE,
     bin,
   };
 }
