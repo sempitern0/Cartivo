@@ -49,6 +49,13 @@
         display: block;
         margin-bottom: 0.5rem;
       }
+      #session-screen canvas {
+        width: 100%;
+        max-width: 640px;
+        aspect-ratio: 4 / 3;
+        background: #000;
+        border-radius: 0.5rem;
+      }
       .note {
         color: #bdcedd;
       }
@@ -59,8 +66,10 @@
       <p>Cartivo · Experimental</p>
       <h1>Laboratorio N64</h1>
       <p>
-        Comprueba la ruta gráfica y la cabecera de un cartucho antes de compilar
-        el núcleo. <strong>Este laboratorio todavía no ejecuta juegos.</strong>
+        Comprueba la ruta gráfica y la cabecera de un cartucho y, con el núcleo
+        compilado en local (<code>node experiments/n64/build-core.mjs</code>),
+        arranca una sesión real.
+        <strong>Experimental: no es soporte de N64.</strong>
       </p>
       <label for="rom">Cartucho local opcional (.z64, .v64, .n64)</label>
       <input id="rom" type="file" accept=".z64,.v64,.n64" />
@@ -81,7 +90,20 @@ Sin resultados.</pre
       </p>
       <button id="pad" type="button" aria-pressed="false">Probar mando</button>
       <pre id="pad-state" aria-label="Estado del mando">Prueba detenida.</pre>
+      <h2>Sesión con el núcleo local</h2>
+      <p>
+        Mupen64Plus-Next con GLideN64 dibuja por WebGL2 en un Worker. La demo es
+        un cartucho original de Cartivo. Teclado: K = A, J = B, Enter = Start, Q
+        = Z, I/O = L/R; o un mando estándar.
+      </p>
+      <button id="session-demo" type="button">Arrancar demo</button>
+      <button id="session-rom" type="button">Arrancar cartucho elegido</button>
+      <button id="session-stop" type="button" disabled>Detener</button>
+      <p id="session-status" role="status" aria-live="polite">Sin sesión.</p>
+      <div id="session-screen"></div>
+      <pre id="session-stats" aria-label="Estado de la sesión">Sin datos.</pre>
     </main>
     <script type="module" src="./main.ts"></script>
+    <script type="module" src="./session.ts"></script>
   </body>
 </html>

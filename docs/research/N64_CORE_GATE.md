@@ -25,6 +25,26 @@ Toolchain usada para la microprueba: **Emscripten 6.0.12**, compilador `5488e087
 - SBOM, manifiesto de fuentes, hashes de artefactos, avisos y decisión de admisión del núcleo: **pendientes**. No generar registros que aparenten un build ya existente.
 - Uso privado según política vigente; no inferir que Worker, carga dinámica o repositorios separados resuelven la distribución de un trabajo combinado.
 
+## Inventario del artefacto de laboratorio (sesión 2)
+
+Lo enlazado por `experiments/n64/build-core.mjs`: 270 objetos del target `emscripten` de upstream, con GLES3, sin dynarec y sin hilos usados. Las licencias se leyeron en los archivos del checkout fijado.
+
+| Componente | Objetos | Licencia (archivo del checkout) |
+|---|---|---|
+| mupen64plus-core (CPU, intérprete en caché, PIF/CIC HLE, memoria) y `custom/mupen64plus-core` | 65 | GPL-2.0-or-later (`mupen64plus-core/LICENSES`) |
+| GLideN64 (RDP por GL, uCodes, GLideNHQ, OpenGLContext; el envoltorio con hilos se enlaza pero no se usa) | 131 | GPL-2.0-or-later (`GLideN64/LICENSE`, `GLideN64/licenses/`) |
+| mupen64plus-rsp-hle | 14 | GPL-2.0-or-later (`mupen64plus-rsp-hle/LICENSES`) |
+| Frontend libretro del núcleo (`libretro/libretro.c`) | 1 | GPL-2.0 (`LICENSE` raíz) |
+| libretro-common (audio, glsm, glsym, VFS, streams…; su libco.o queda en el archivo, pero no se enlaza) | 23 | MIT |
+| libpng y zlib incluidos (`custom/dependencies`) | 30 | libpng-2.0 y Zlib |
+| minizip y md5 (`mupen64plus-core/subprojects`) | 4 | Zlib y licencia de L. Peter Deutsch (tipo zlib) |
+| `host/frontend.c` y `fibers/cooperative.c` (Cartivo) | 2 | código original del repositorio |
+
+- **No se compilan:** paraLLEl-RDP, paraLLEl-RSP (con GNU lightning), cxd4, angrylion ni el dynarec.
+- **Parche aplicado:** `patches/emu-thread-entry.patch`, dos funciones en `libretro/libretro.c`. La entrada de la corutina se llama con el tipo `void (void)` que espera libco, porque WebAssembly detiene las llamadas indirectas con otro tipo. Es candidato a enviarse upstream.
+- **Firmware:** ninguno externo. El PIF y el CIC son HLE del núcleo, y cada cartucho trae su propio IPL3; la demo de Cartivo lo sustituye por código original.
+- **Pendiente para CORE-LEGAL-01:** SBOM completo con versiones (libpng, zlib), avisos, revisar las cabeceras «only/or-later» de cada archivo compilado y build reproducible con la toolchain fijada. La decisión sigue en **candidate**.
+
 ## Decisiones del primer incremento
 
 1. No cambiar contrato RGBA, registros, PS1, Player, PWA ni preferencias. La PR #35 sigue siendo propietaria del trabajo activo de perfiles/foco.
@@ -42,10 +62,18 @@ Toolchain usada para la microprueba: **Emscripten 6.0.12**, compilador `5488e087
 - Navegador: instalación Playwright no pudo descargar un ZIP válido. Chromium del sistema tampoco arrancó: `socket() failed: Operation not permitted`. Los E2E dev quedan bloqueados antes del cuerpo de las pruebas; preview y GPU física pendientes. No repetir el mismo lanzamiento en este entorno ni presentarlo como fallo del núcleo.
 - PASS: `pnpm check` (cero errores y warnings), `pnpm lint` y `pnpm test` (157/157, incluidas las siete pruebas nuevas). PASS: `pnpm build` y build aislado del laboratorio; el precache de producción conserva sus 32 archivos (7,5 MB), sin assets N64.
 
+## Verificación de la sesión 2 (2026-11-07)
+
+- **Build local exploratorio:** Emscripten 4.0.10 con LLVM 21, no la toolchain fijada, porque el registro de Emscripten 6.0.12 no era accesible en este entorno. Resultado: `n64-core.wasm` de 3,2 MB con 407 imports y Asyncify. Ese binario no se versiona.
+- **Chromium headless (SwiftShader) con la demo original:**
+  - Asyncify y las fibers ejecutan el hilo del emulador; el núcleo carga el cartucho («CIC desconocido → 6102»);
+  - GLideN64 presenta los 484 fotogramas de 8 s (60 Hz) en el framebuffer del canvas transferido;
+  - oráculo: centro `[33,33,99]` sin botones, A `[255,0,0]`, B `[0,255,0]`, Start `[255,255,0]`; cuadrado blanco en (16,16);
+  - al detener se termina el Worker.
+- **Sin evidencia:** GPU física, Firefox y WebKit, audio, juegos reales, rendimiento sostenido y coste de Asyncify.
+
 ## Siguiente acción concreta
 
-Revisar de nuevo main/#35. Mantener el spike aislado. Completar el inventario y preparar un build local del commit fijado con GLES3, intérprete y renderer sin hilos; sustituir el libco seleccionado por el puente comprobado, enlazando Asyncify. Verificar las opciones reales del Makefile (no suponer que STATIC_LINKING produce un módulo listo para cargar).
-
-El frontend debe implementar la negociación libretro de contexto/framebuffer, opciones, entrada analógica, audio, temporización, carga/cierre y callbacks. Elegir glue modular de Emscripten con imports acotados; no emular el framebuffer RGBA actual con readPixels. Probar una fixture original antes de medir juegos locales. Mantener gate bloqueado si falta licencia, procedencia o artefacto reproducible.
-
-Después medir overhead de Asyncify, profundidad de pila, consumo de CPU, audio y estabilidad sostenida; comprobar si el intérprete cumple. Solo una sesión jugable y repetible permite pasar a integración de producto. Si no cumple, registrar no-go o soporte experimental limitado en vez de ampliar abstracciones.
+1. Repetir el build con emcc 6.0.12 y la E2E del laboratorio con Vite.
+2. Audio (`n64_audio`, cola acotada, gesto del usuario) y pérdida de contexto WebGL.
+3. Después medir overhead de Asyncify, profundidad de pila, consumo de CPU, audio y estabilidad sostenida; comprobar si el intérprete cumple. Solo una sesión jugable y repetible permite pasar a integración de producto. Si no cumple, registrar no-go o soporte experimental limitado en vez de ampliar abstracciones.

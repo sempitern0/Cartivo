@@ -1,0 +1,182 @@
+// Explicit local build of the N64 laboratory core. Never invoked by the
+// normal CI and never written to cores/: the output stays in .build/ (git
+// ignored) until the core passes CORE-LEGAL-01 and the viability gate.
+//   node experiments/n64/build-core.mjs
+// Needs emcc 6.0.12. N64_EXPLORATORY_EMCC=1 accepts another version only to
+// iterate locally; the evidence then says the build is not reproducible.
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { resolve } from "node:path";
+
+const root = import.meta.dirname;
+const out = resolve(root, ".build");
+const core = resolve(out, "mupen64plus-libretro-nx");
+const CORE = {
+  repository: "https://github.com/libretro/mupen64plus-libretro-nx",
+  commit: "15bada85906593376e8fd697f1b0b3af3a20f512",
+};
+const emcc = process.env.EMCC || "emcc";
+const run = (cmd, args, opts = {}) =>
+  execFileSync(cmd, args, { encoding: "utf8", stdio: "inherit", ...opts });
+const version = execFileSync(emcc, ["--version"], { encoding: "utf8" }).split(
+  "\n",
+)[0];
+const pinned = /\b6\.0\.12\b/.test(version);
+if (!pinned && process.env.N64_EXPLORATORY_EMCC !== "1")
+  throw new Error(`Expected emcc 6.0.12; found ${version}`);
+
+mkdirSync(out, { recursive: true });
+if (!existsSync(resolve(core, ".git"))) {
+  run("git", ["init", "-q", core]);
+  run("git", [
+    "-C",
+    core,
+    "fetch",
+    "-q",
+    "--depth",
+    "1",
+    CORE.repository,
+    CORE.commit,
+  ]);
+  run("git", [
+    "-C",
+    core,
+    "-c",
+    "advice.detachedHead=false",
+    "checkout",
+    "-q",
+    "FETCH_HEAD",
+  ]);
+}
+const head = execFileSync("git", ["-C", core, "rev-parse", "HEAD"], {
+  encoding: "utf8",
+}).trim();
+if (head !== CORE.commit)
+  throw new Error(`Core at ${head}, not ${CORE.commit}`);
+// Laboratory patches (patches/*.patch), each one documented in the gate.
+const patches = ["emu-thread-entry.patch"].map((p) =>
+  resolve(root, "patches", p),
+);
+for (const patch of patches) {
+  const applied = (() => {
+    try {
+      execFileSync(
+        "git",
+        ["-C", core, "apply", "--reverse", "--check", patch],
+        { stdio: "ignore" },
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+  if (!applied) run("git", ["-C", core, "apply", patch]);
+}
+
+// Upstream's emscripten target as a static archive, with GLES3. Two
+// deviations, both outside the sources: the bundled zlib instead of
+// Emscripten's port (downloaded at build time), and -fno-common, because
+// WebAssembly has no common symbols.
+const archive = resolve(core, "mupen64plus_next_libretro_emscripten.bc");
+run(
+  "make",
+  [
+    "-C",
+    core,
+    "platform=emscripten",
+    "GLES3=1",
+    "STATIC_LINKING=1",
+    "CPUFLAGS=-DEMSCRIPTEN -DNO_ASM",
+    `-j${process.env.JOBS || 2}`,
+  ],
+  {
+    env: {
+      ...process.env,
+      EMCC_CFLAGS: "-fno-common -Wno-unknown-warning-option",
+    },
+  },
+);
+
+// Upstream names the archive .bc; emcc decides by extension.
+const library = resolve(out, "libmupen64plus_next.a");
+copyFileSync(archive, library);
+
+// The laboratory frontend and the fibers libco link before the archive, so
+// the archive's own libco.o (signals, sigaltstack) is never pulled in.
+const module = resolve(out, "n64-core.mjs");
+const exports = [
+  "n64_init",
+  "n64_load",
+  "n64_run",
+  "n64_audio",
+  "n64_fps",
+  "n64_sample_rate",
+  "n64_presented",
+  "n64_duped",
+  "n64_input",
+  "n64_unload",
+  "malloc",
+  "free",
+].map((name) => `_${name}`);
+// N64_DEBUG=1: symbol names and runtime assertions, for stack traces.
+const debug = process.env.N64_DEBUG === "1" ? ["-g2", "-sASSERTIONS=1"] : [];
+run(emcc, [
+  "-O2",
+  ...debug,
+  `-I${resolve(core, "libretro-common/include")}`,
+  resolve(root, "host/frontend.c"),
+  resolve(root, "fibers/cooperative.c"),
+  library,
+  "-o",
+  module,
+  "-sMODULARIZE",
+  "-sEXPORT_ES6",
+  "-sENVIRONMENT=worker",
+  "-sASYNCIFY",
+  "-sASYNCIFY_STACK_SIZE=1048576",
+  "-sALLOW_MEMORY_GROWTH",
+  "-sINITIAL_MEMORY=268435456",
+  "-sSTACK_SIZE=4194304",
+  "-sMIN_WEBGL_VERSION=2",
+  "-sMAX_WEBGL_VERSION=2",
+  "-sFULL_ES3",
+  "-sGL_ENABLE_GET_PROC_ADDRESS",
+  "-sFORCE_FILESYSTEM",
+  `-sEXPORTED_FUNCTIONS=${exports.join(",")}`,
+  "-sEXPORTED_RUNTIME_METHODS=GL,FS,HEAP16,HEAPU8,UTF8ToString,stringToNewUTF8",
+]);
+
+const wasm = resolve(out, "n64-core.wasm");
+const bytes = readFileSync(wasm);
+const imports = WebAssembly.Module.imports(new WebAssembly.Module(bytes)).map(
+  ({ module: m, name }) => `${m}.${name}`,
+);
+writeFileSync(
+  resolve(out, "n64-core-evidence.json"),
+  JSON.stringify(
+    {
+      core: CORE,
+      patches: patches.map((p) => p.slice(root.length + 1)),
+      emcc: version,
+      reproducible: pinned,
+      wasm: {
+        bytes: bytes.length,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      },
+      imports: imports.length,
+      scope: "laboratory build; not admitted, not in cores/",
+    },
+    null,
+    2,
+  ) + "\n",
+);
+console.log(
+  `n64-core.wasm ${bytes.length} bytes, ${imports.length} imports, emcc ${pinned ? "pinned" : "EXPLORATORY"}`,
+);

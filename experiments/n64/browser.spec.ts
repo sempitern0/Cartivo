@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { existsSync } from "node:fs";
 
 test("real worker diagnoses the graphics route and reads only the header", async ({
   page,
@@ -13,9 +14,7 @@ test("real worker diagnoses the graphics route and reads only the header", async
     buffer: rom,
   });
   await page.getByRole("button", { name: "Comprobar requisitos" }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "Diagnóstico completado",
-  );
+  await expect(page.locator("#status")).toContainText("Diagnóstico completado");
   const result = JSON.parse((await page.locator("#result").textContent())!);
   expect(result.rom).toEqual({
     title: "CARTIVO TEST",
@@ -32,9 +31,7 @@ test("real worker diagnoses the graphics route and reads only the header", async
     contentType: "application/json",
   });
   await page.getByRole("button", { name: "Comprobar requisitos" }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "Diagnóstico completado",
-  );
+  await expect(page.locator("#status")).toContainText("Diagnóstico completado");
 });
 
 test("invalid ROM is rejected and a subsequent probe recovers", async ({
@@ -47,12 +44,10 @@ test("invalid ROM is rejected and a subsequent probe recovers", async ({
     buffer: Buffer.alloc(4096),
   });
   await page.locator("#probe").click();
-  await expect(page.getByRole("status")).toContainText("No se reconoce");
+  await expect(page.locator("#status")).toContainText("No se reconoce");
   await page.locator("#rom").setInputFiles([]);
   await page.locator("#probe").click();
-  await expect(page.getByRole("status")).toContainText(
-    "Diagnóstico completado",
-  );
+  await expect(page.locator("#status")).toContainText("Diagnóstico completado");
 });
 
 test("cancel terminates an in-flight probe and discards stale results", async ({
@@ -63,10 +58,44 @@ test("cancel terminates an in-flight probe and discards stale results", async ({
     (document.querySelector("#probe") as HTMLButtonElement).click();
     (document.querySelector("#cancel") as HTMLButtonElement).click();
   });
-  await expect(page.getByRole("status")).toHaveText("Diagnóstico cancelado.");
+  await expect(page.locator("#status")).toHaveText("Diagnóstico cancelado.");
   await expect(page.locator("#cancel")).toBeDisabled();
   await page.locator("#probe").click();
-  await expect(page.getByRole("status")).toContainText(
-    "Diagnóstico completado",
+  await expect(page.locator("#status")).toContainText("Diagnóstico completado");
+});
+
+// Needs the local core build (node experiments/n64/build-core.mjs); without
+// it the test is skipped and does not count as N64 support demonstrated.
+test("a real session runs the original demo cartridge and reads the pad", async ({
+  page,
+}) => {
+  test.skip(
+    !existsSync(new URL(".build/n64-core.mjs", import.meta.url)),
+    "núcleo local no compilado",
   );
+  await page.goto("/");
+  await page.getByRole("button", { name: "Arrancar demo" }).click();
+  const status = page.locator("#session-status");
+  await expect(status).toContainText("En marcha", { timeout: 30_000 });
+  const pixel = async () => {
+    const before = await page.locator("#session-stats").textContent();
+    await expect(page.locator("#session-stats")).not.toHaveText(before!);
+    return JSON.parse((await page.locator("#session-stats").textContent())!)
+      .pixel as number[];
+  };
+  // 15-bit colour widened by the RDP: 0x20 → 0x21, 0x60 → 0x63.
+  await expect.poll(pixel).toEqual([33, 33, 99]);
+  await page.keyboard.down("KeyK");
+  await expect.poll(pixel).toEqual([255, 0, 0]);
+  await page.keyboard.up("KeyK");
+  await page.keyboard.down("Enter");
+  await expect.poll(pixel).toEqual([255, 255, 0]);
+  await page.keyboard.up("Enter");
+  const stats = JSON.parse(
+    (await page.locator("#session-stats").textContent())!,
+  );
+  expect(stats.presented).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Detener" }).click();
+  await expect(status).toHaveText("Sesión detenida.");
+  await expect(page.locator("#session-screen canvas")).toHaveCount(0);
 });

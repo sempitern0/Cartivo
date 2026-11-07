@@ -326,3 +326,10 @@
 - El plan técnico (revisión 8) convierte lo pendiente en una cola para agentes: cada entrada indica por dónde empezar, cuándo está terminada y qué queda fuera. La QA del titular va aparte. El siguiente paso es recordar discos de PlayStation en la biblioteca, y después el vídeo WebGL2 que necesitan N64, PSP y PS2.
 - `docs/ai/CONTEXT.md` añade «Recetas» (patrones ya resueltos: datos por perfil, sistemas de disco, foco con `data-launch` y `data-pad-scope`, botones nuevos, fixtures) y «Trampas conocidas» (Prettier 3.6 frente a uno global, entorno sin `node_modules`, `FileList`, opciones de Playwright, builds de núcleo).
 
+### N64 en laboratorio (experimental, sin integrar)
+
+- `experiments/n64` arranca una sesión real: Mupen64Plus-Next con GLideN64 dibuja por WebGL2 en un Worker. No usa hilos (libco sobre fibers/Asyncify) ni lee el framebuffer en cada fotograma.
+- Demo original de 1 MiB sin código de Nintendo: dibuja con el RDP y lee el mando por el PIF. Comprobada en Chromium headless: 60 Hz, oráculo de colores y botones.
+- Receta de build local `build-core.mjs` con un parche mínimo documentado e inventario de licencias en `docs/research/N64_CORE_GATE.md`.
+- N64 sigue sin estar disponible en la app; queda pendiente el gate, el audio y la medición.
+

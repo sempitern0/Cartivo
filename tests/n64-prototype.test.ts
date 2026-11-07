@@ -106,3 +106,25 @@ test("N64 worker result rejects malformed or unversioned messages", () => {
   ])
     assert.equal(isProbeResult(bad), false);
 });
+
+test("the original N64 demo cartridge has no Nintendo code and a stable hash", async () => {
+  const { createHash } = await import("node:crypto");
+  const { n64ControlDemo, N64_DEMO_COLORS } =
+    await import("../experiments/n64/fixture/n64-control-demo.ts");
+  const rom = n64ControlDemo();
+  assert.equal(rom.length, 1024 * 1024);
+  assert.deepEqual(inspectRomHeader(rom.subarray(0, 64), rom.length), {
+    byteOrder: "z64",
+    title: "CARTIVO DEMO",
+    bytes: rom.length,
+  });
+  // Our boot program fills DMEM 0x40–0xFFF; the rest of the cartridge is empty.
+  assert.ok(rom.subarray(0x1000).every((b) => b === 0));
+  assert.equal(
+    createHash("sha256").update(rom).digest("hex"),
+    "c3b9084c6174e1a01684ca4d3314d8633802bde667660f3b75cc3ddf80a43f2d",
+  );
+  // RGBA5551 pairs, as the RDP fill colour expects.
+  for (const color of Object.values(N64_DEMO_COLORS))
+    assert.equal(color >>> 16, color & 0xffff);
+});
