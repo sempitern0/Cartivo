@@ -1,6 +1,6 @@
 # Cartivo — Plan técnico
 
-> **Revisión 8 · 7 de noviembre de 2026.** Ocho consolas jugables (hasta PlayStation, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 9 · 8 de noviembre de 2026.** Ocho consolas jugables (hasta PlayStation, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. PS2 (Play!) como siguiente hito; PSP, GameCube y Dreamcast aplazados. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
@@ -76,8 +76,10 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
      - emsdk 6.0.12 (LLVM 24) se cuelga en el primer fotograma: el núcleo usa emsdk 4.0.10 (LLVM 21).
    - *Empieza por:* `packages/adapters/src/n64.ts`, `cores/mupen64plus-next/src/frontend.c` y el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
    - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio. Los dos puntos anteriores están registrados como límites en [H4-N64](compatibility/H4-N64.md).
-4. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`) y el camino de discos (`.iso`/`.cso`).
-5. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
+4. **PS2** (Play! `1f27232`, BSD-2-Clause, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`), con JIT WASM nativo de CodeGen. Requiere pthreads (SharedArrayBuffer + COOP/COEP). Gate CORE-LEGAL-01: `investigation` — legal muy favorable (todo permisivo), pendiente spike WASM.
+   - *Empieza por:* [expediente PLAY_CORE_GATE](research/PLAY_CORE_GATE.md), spike de compilación con Emscripten y pthreads.
+   - *Terminado cuando:* un homebrew PS2 arranca en Cartivo con WebGL2, save states y entrada.
+5. **PSP, GameCube y Dreamcast** aplazados para iteraciones posteriores. PSP: gate `investigation` ([expediente PPSSPP](research/PPSSPP_CORE_GATE.md)), sin port WASM. Dreamcast: BIOS propietaria requerida (bloqueado por AGENTS.md). GameCube: requiere SharedArrayBuffer, sin audio, rendimiento insuficiente.
 
 ### 3.3 Deuda técnica conocida (cuando toque su área)
 
@@ -132,8 +134,8 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se i
 | Master System / Mega Drive | Genesis Plus GX `a5834b3` (licencias no comerciales) | **accepted (uso privado)** |
 | N64 | Mupen64Plus-Next `15bada8` (GPL-2.0) | **accepted (uso privado)**; en la app como experimental (ADR-017) |
 | PlayStation | PCSX-ReARMed `7b0e8f8` (GPL-2.0-or-later, BIOS HLE) | **accepted (uso privado)** |
-| PSP | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) |
-| PS2 | Play! (BSD-2, HLE) | laboratorio opt-in |
+| PS2 | Play! `1f27232` (BSD-2-Clause, HLE, JIT WASM) | **investigation**; legal favorable, pendiente spike WASM |
+| PSP | PPSSPP `9dc79eb` (GPL-3.0 del conjunto, HLE) | **investigation**; aplazado |
 
 - **Pospuestos:** Game Gear, DS y Dreamcast.
 - **Fuera:** Saturn, 32X, Mega-CD, arcade y accesorios especiales.
