@@ -280,6 +280,11 @@
             : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
       if (r.libraryError) problem = r.libraryError;
+      // A disc is copied while it plays; its outcome comes with a frame.
+      if (r.remembering)
+        notify(
+          `Guardando el disco en «Tus juegos» (${Math.ceil(r.remembering / 2 ** 20)} MB)…`,
+        );
       const exit = saves.find((s) => s.slot === "auto");
       // «Continuar» from the home screen goes straight to the exit snapshot.
       if (source.kind === "library" && source.resume && exit)
@@ -414,6 +419,8 @@
         );
       }
       frames = r.frames ?? frames;
+      if (r.remembered) notify("Disco guardado en «Tus juegos».");
+      if (r.libraryError) problem = r.libraryError;
       if (r.saveError) {
         problem = r.saveError;
         await pause();

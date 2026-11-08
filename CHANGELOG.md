@@ -374,3 +374,10 @@
 - **Guardado:** batería de 296 960 bytes (EEPROM, controller paks, SRAM y FlashRAM). Partidas con el estado del núcleo comprimido con zlib. Las copias de batería admiten hasta 2 MiB.
 - **Partidas:** se cargan bien (antes las pilas de fibra iban alineadas a 8 bytes y el núcleo rechazaba el estado) y tienen miniatura leída de la GPU al guardar.
 - **Límites:** sin Transfer Pak, Rumble Pak ni 64DD; cortes de audio ocasionales.
+
+### Discos de PlayStation en «Tus juegos»
+
+- **Recordar un disco:** al abrirlo desde archivos se copian a `roms/<identidad>/` el `.cue` y sus pistas, o el `.iso`/`.bin`/`.exe`. La copia se hace en trozos mientras se juega y avisa del tamaño («Guardando el disco… (N MB)») y de cuándo termina.
+- **Espacio:** si el navegador no tiene sitio suficiente, no se copia nada y se dice cuánto ocupa el disco y cuánto queda libre.
+- **«Continuar»** abre la copia sin pedir los archivos y recalcula la identidad: una copia dañada se rechaza con un mensaje.
+- **Perfiles:** comparten la copia, y olvidarla en un perfil no la borra para otro. La tarjeta de memoria y las Partidas se conservan. Las carpetas huérfanas se limpian como los cartuchos.

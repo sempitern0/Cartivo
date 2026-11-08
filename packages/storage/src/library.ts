@@ -1,12 +1,13 @@
 // Local library (ADR-012): games the player chose to remember on this device.
 // The index lives in IndexedDB (small metadata, readable from the UI); ROM
-// copies live in OPFS as roms/<sha256> and are written and read only by the
-// emulator Worker. Partidas and battery RAM are keyed by the same hash in
+// copies live in OPFS as roms/<sha256>, and a disc's files in the folder
+// roms/<identity>/ (ADR-015), written and read only by the emulator Worker. Partidas and battery RAM are keyed by the same hash in
 // their own stores, so forgetting a game never touches them.
 // Each profile has its own index (ADR-016); ROM copies are shared by hash.
 import { done, request } from "./idb.ts";
 import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";
+import type { DiscPart } from "./disc-identity.ts";
 
 export type LibraryEntry = {
   /** SHA-256 of the ROM (lowercase hex); also its OPFS file name. */
@@ -20,6 +21,27 @@ export type LibraryEntry = {
   lastPlayedAt: number;
   /** RGBA 128×120 thumbnail of the last «Al salir» snapshot. */
   preview?: Uint8ClampedArray;
+  /**
+   * A disc (ADR-015): its files in roms/<hash>/, the boot file first. Absent
+   * for a cartridge, whose copy is the single file roms/<hash>.
+   */
+  files?: DiscFile[];
+};
+
+export type DiscFile = { name: string; size: number };
+/** As many files as a disc can have (99 tracks and its sheet). */
+const MAX_DISC_FILES = 100;
+
+const isDiscFile = (value: unknown): value is DiscFile => {
+  if (!value || typeof value !== "object") return false;
+  const f = value as Record<string, unknown>;
+  return (
+    typeof f.name === "string" &&
+    /^[^/\\]{1,255}$/.test(f.name) &&
+    f.name !== "." &&
+    f.name !== ".." &&
+    isTime(f.size)
+  );
 };
 
 export const MAX_NAME = 255;
@@ -64,6 +86,16 @@ export function parseEntry(value: unknown): LibraryEntry | undefined {
     e.preview.length === 128 * 120 * 4
   )
     entry.preview = e.preview;
+  if (e.files !== undefined) {
+    if (
+      !Array.isArray(e.files) ||
+      !e.files.length ||
+      e.files.length > MAX_DISC_FILES ||
+      !e.files.every(isDiscFile)
+    )
+      return undefined;
+    entry.files = e.files.map(({ name, size }) => ({ name, size }));
+  }
   return entry;
 }
 
@@ -152,6 +184,20 @@ export function listGames(profile = PRINCIPAL): Promise<LibraryEntry[]> {
   });
 }
 
+/** One remembered game of this profile, or undefined. */
+export function gameEntry(
+  hash: string,
+  profile = PRINCIPAL,
+): Promise<LibraryEntry | undefined> {
+  return withIndex(profile, async (db) =>
+    parseEntry(
+      await request(
+        db.transaction("games", "readonly").objectStore("games").get(hash),
+      ),
+    ),
+  );
+}
+
 /** Merges `patch` into an existing entry; does nothing if it is not there. */
 export function updateGame(
   hash: string,
@@ -181,26 +227,47 @@ type SyncHandle = {
 };
 
 /** The part of an OPFS directory the library uses (tests pass a fake). */
-export type RomDirectory = Pick<
+type FileDirectory = Pick<
   FileSystemDirectoryHandle,
   "getFileHandle" | "removeEntry"
 > & {
   entries?(): AsyncIterableIterator<[string, FileSystemHandle]>;
 };
+export type RomDirectory = FileDirectory & {
+  /** A disc's folder, roms/<hash>/. */
+  getDirectoryHandle(
+    name: string,
+    options?: { create?: boolean },
+  ): Promise<FileDirectory>;
+};
 
-async function writeRom(dir: RomDirectory, hash: string, bytes: Uint8Array) {
-  const file = await dir.getFileHandle(hash, { create: true });
+/** Disc files are copied in pieces, so the game keeps running meanwhile. */
+const COPY_CHUNK_BYTES = 4 * 1024 * 1024;
+
+/** Writes `data` to `name`, replacing it, a piece at a time. */
+async function writeFile(dir: FileDirectory, name: string, data: Blob) {
+  const file = await dir.getFileHandle(name, { create: true });
   const sync = (
     file as unknown as { createSyncAccessHandle?: () => Promise<SyncHandle> }
   ).createSyncAccessHandle;
+  const pieces = async function* () {
+    for (let at = 0; at < data.size; at += COPY_CHUNK_BYTES)
+      yield new Uint8Array(
+        await data.slice(at, at + COPY_CHUNK_BYTES).arrayBuffer(),
+      );
+  };
   // Dedicated Workers (Safari included) offer synchronous handles; other
   // contexts fall back to a writable stream.
   if (typeof sync === "function") {
     const handle = await sync.call(file);
     try {
       handle.truncate(0);
-      if (handle.write(bytes, { at: 0 }) !== bytes.length)
-        throw Error("Escritura incompleta");
+      let at = 0;
+      for await (const piece of pieces()) {
+        if (handle.write(piece, { at }) !== piece.length)
+          throw Error("Escritura incompleta");
+        at += piece.length;
+      }
       handle.flush();
     } finally {
       handle.close();
@@ -209,13 +276,17 @@ async function writeRom(dir: RomDirectory, hash: string, bytes: Uint8Array) {
   }
   const stream = await file.createWritable();
   try {
-    await stream.write(bytes as BufferSource);
+    for await (const piece of pieces())
+      await stream.write(piece as BufferSource);
     await stream.close();
   } catch (error) {
     await stream.abort().catch(() => {});
     throw error;
   }
 }
+
+const writeRom = (dir: RomDirectory, hash: string, bytes: Uint8Array) =>
+  writeFile(dir, hash, new Blob([bytes as BlobPart]));
 
 async function readCopy(dir: RomDirectory, hash: string) {
   try {
@@ -244,9 +315,10 @@ export async function storedRom(hash: string): Promise<File | undefined> {
   }
 }
 
+/** Removes a cartridge copy or a disc's folder. */
 async function removeRom(dir: RomDirectory, name: string) {
   try {
-    await dir.removeEntry(name);
+    await dir.removeEntry(name, { recursive: true });
   } catch {
     // Already gone.
   }
@@ -274,6 +346,94 @@ export async function ensureRomCopy(
   }
 }
 
+/** The files a disc copy must hold, in order (the boot file first). */
+export const discFiles = (parts: readonly DiscPart[]): DiscFile[] =>
+  parts.map((p) => ({ name: p.name, size: p.blob.size }));
+
+/** The copied disc's files in order, or undefined unless all are complete. */
+async function discCopy(dir: RomDirectory, hash: string, files: DiscFile[]) {
+  try {
+    const folder = await dir.getDirectoryHandle(hash);
+    const copies: File[] = [];
+    for (const { name, size } of files) {
+      const copy = await (await folder.getFileHandle(name)).getFile();
+      if (copy.size !== size) return undefined;
+      copies.push(copy);
+    }
+    return copies;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Makes sure roms/<hash>/ holds these disc files. A complete copy is kept;
+ * anything else is rewritten, and removed if it cannot be completed. Sizes
+ * are checked here; the identity is computed again whenever the copy is
+ * played (prepareDisc), so a damaged copy is refused then.
+ */
+export async function ensureDiscCopy(
+  dir: RomDirectory,
+  hash: string,
+  parts: readonly DiscPart[],
+) {
+  const files = discFiles(parts);
+  if (await discCopy(dir, hash, files)) return;
+  await removeRom(dir, hash);
+  try {
+    const folder = await dir.getDirectoryHandle(hash, { create: true });
+    for (const part of parts) await writeFile(folder, part.name, part.blob);
+    if (!(await discCopy(dir, hash, files))) throw Error("Copia incompleta");
+  } catch (error) {
+    await removeRom(dir, hash);
+    throw error;
+  }
+}
+
+/** A remembered disc's files (boot file first), or undefined when missing. */
+export async function storedDisc(
+  hash: string,
+  files: DiscFile[],
+): Promise<File[] | undefined> {
+  if (!isSha256(hash)) return undefined;
+  try {
+    return await discCopy(await romsDir(false), hash, files);
+  } catch {
+    return undefined;
+  }
+}
+
+const MB = 1024 * 1024;
+const megabytes = (bytes: number) => `${Math.ceil(bytes / MB)} MB`;
+
+/**
+ * Why a copy of `bytes` would not fit, from the browser's own estimate
+ * (with a 5 % margin), or undefined when it fits or nothing is known.
+ */
+export async function spaceProblem(
+  bytes: number,
+  estimate: () => Promise<StorageEstimate> = () => navigator.storage.estimate(),
+): Promise<string | undefined> {
+  const { quota, usage } = await estimate().catch(
+    () => ({}) as StorageEstimate,
+  );
+  if (quota === undefined || usage === undefined) return undefined;
+  const free = Math.max(0, quota - usage);
+  if (bytes * 1.05 <= free) return undefined;
+  return `Este disco ocupa ${megabytes(bytes)} y el navegador solo deja ${megabytes(free)} libres para Cartivo, así que no se recordará. Sigue jugando desde tus archivos; tus partidas se guardan igual.`;
+}
+
+/** When a copy last changed: a file's date, or a disc folder's newest file. */
+async function lastModified(handle: FileSystemHandle): Promise<number> {
+  if (handle.kind === "file")
+    return (await (handle as FileSystemFileHandle).getFile()).lastModified;
+  const folder = handle as unknown as Required<Pick<RomDirectory, "entries">>;
+  let newest = 0;
+  for await (const [, inner] of folder.entries())
+    newest = Math.max(newest, await lastModified(inner));
+  return newest;
+}
+
 /** Copies older than this with no index entry are leftovers (ADR-012). */
 export const ORPHAN_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -293,9 +453,8 @@ export async function pruneOrphanRoms(
   if (!roms?.entries) return 0;
   const stale: string[] = [];
   for await (const [name, handle] of roms.entries()) {
-    if (handle.kind !== "file" || known.has(name)) continue;
-    const file = await (handle as FileSystemFileHandle).getFile();
-    if (now - file.lastModified > ORPHAN_AGE_MS) stale.push(name);
+    if (known.has(name)) continue;
+    if (now - (await lastModified(handle)) > ORPHAN_AGE_MS) stale.push(name);
   }
   for (const name of stale) await removeRom(roms, name);
   return stale.length;
@@ -325,22 +484,71 @@ export async function rememberGame(
       { cause: error },
     );
   }
+  await putEntry(profile, game.hash, {
+    system: game.system,
+    name: game.name,
+    size: game.rom.length,
+  });
+}
+
+/** Adds or refreshes an entry once its copy is in place. */
+async function putEntry(
+  profile: string,
+  hash: string,
+  game: Pick<LibraryEntry, "system" | "name" | "size" | "files">,
+) {
   const now = Date.now();
   await withIndex(profile, async (db) => {
     const tx = db.transaction("games", "readwrite");
     const store = tx.objectStore("games");
-    const previous = parseEntry(await request(store.get(game.hash)));
+    const previous = parseEntry(await request(store.get(hash)));
     const entry: LibraryEntry = {
       ...previous,
-      hash: game.hash,
-      system: game.system,
+      ...game,
+      hash,
       name: (game.name || "Juego sin nombre").slice(0, MAX_NAME),
-      size: game.rom.length,
       addedAt: previous?.addedAt ?? now,
       lastPlayedAt: now,
     };
+    if (!game.files) delete entry.files;
     store.put(entry);
     await done(tx);
+  });
+}
+
+/**
+ * Copies a disc's files to OPFS (unless a complete copy is already there)
+ * and only then adds or refreshes its entry. Throws a readable message.
+ */
+export async function rememberDisc(
+  game: {
+    hash: string;
+    system: string;
+    name: string;
+    parts: readonly DiscPart[];
+  },
+  profile = PRINCIPAL,
+) {
+  if (!isSha256(game.hash)) throw Error("Juego no identificado");
+  const files = discFiles(game.parts);
+  const bytes = files.reduce((total, f) => total + f.size, 0);
+  const tooBig = await spaceProblem(bytes);
+  if (tooBig) throw Error(tooBig);
+  try {
+    await ensureDiscCopy(await romsDir(true), game.hash, game.parts);
+  } catch (error) {
+    throw Error(
+      error instanceof DOMException && error.name === "QuotaExceededError"
+        ? "No hay espacio para recordar este disco. Puedes seguir jugando desde tus archivos; tus partidas se guardan igual."
+        : "No se pudo recordar este disco en el dispositivo. Puedes seguir jugando desde tus archivos; tus partidas se guardan igual.",
+      { cause: error },
+    );
+  }
+  await putEntry(profile, game.hash, {
+    system: game.system,
+    name: game.name,
+    size: bytes,
+    files,
   });
 }
 

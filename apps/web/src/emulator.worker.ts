@@ -37,10 +37,14 @@ import {
   serializeState,
 } from "../../../packages/storage/src/state-file.ts";
 import {
+  gameEntry,
+  rememberDisc,
   rememberGame,
+  storedDisc,
   storedRom,
   updateGame,
 } from "../../../packages/storage/src/library.ts";
+import type { DiscPart } from "../../../packages/storage/src/disc-identity.ts";
 import {
   parseRequest,
   type EmuRequest,
@@ -63,6 +67,10 @@ let states: StateStore | undefined;
 let start: (save?: Uint8Array) => Promise<EmulatorCore>;
 /** The cartridge in memory, kept to remember it; discs stay in their files. */
 let rom: Uint8Array | undefined;
+/** The files of an opened disc's identity, for copying it to the library. */
+let discParts: readonly DiscPart[] | undefined;
+/** A disc copy finished (or failed) since the last advance: told once. */
+let copied: Pick<EmuResult, "remembered" | "libraryError"> | undefined;
 let hash = "";
 /** The profile whose saves, Partidas and library this session uses. */
 let profile = PRINCIPAL;
@@ -122,13 +130,32 @@ function snapshots(): StateStore {
   if (!states) throw Error(noStorage ?? "Partidas no disponibles");
   return states;
 }
+const failure = (e: unknown, fallback: string) =>
+  e instanceof Error ? e.message : fallback;
+
+/**
+ * Copies an opened disc to the library while the game runs: hundreds of MB,
+ * written in pieces between frames. Its outcome arrives with the next
+ * advance; the load only says how much is being copied.
+ */
+function rememberDiscLater(parts: readonly DiscPart[]) {
+  void rememberDisc(
+    { hash, system: module.system, name: title, parts },
+    profile,
+  ).then(
+    () => (copied = { remembered: true }),
+    (e) => (copied = { libraryError: failure(e, "No se pudo recordar") }),
+  );
+  return { remembering: parts.reduce((n, p) => n + p.blob.size, 0) };
+}
+
 /** Adds the running game to the library; a failure never stops the game. */
 async function remember(): Promise<
-  Pick<EmuResult, "remembered" | "libraryError">
+  Pick<EmuResult, "remembered" | "libraryError" | "remembering">
 > {
-  // Discs are not copied to the library yet (ADR-015): they keep playing
-  // from the files the player opens.
-  if (!title || !rom) return { remembered: false };
+  if (!title) return { remembered: false };
+  if (discParts) return rememberDiscLater(discParts);
+  if (!rom) return { remembered: false };
   try {
     await rememberGame(
       { hash, system: module.system, name: title, rom },
@@ -138,13 +165,15 @@ async function remember(): Promise<
   } catch (e) {
     return {
       remembered: false,
-      libraryError: e instanceof Error ? e.message : "No se pudo recordar",
+      libraryError: failure(e, "No se pudo recordar"),
     };
   }
 }
 type Loaded = {
   start: (save?: Uint8Array) => Promise<EmulatorCore>;
   rom?: Uint8Array;
+  /** A disc's identity files (prepareDisc), to remember it. */
+  parts?: readonly DiscPart[];
   hash: string;
 };
 
@@ -181,11 +210,36 @@ async function loadSurface(
   return { start: (save) => module.create(rom, canvas, save), rom, hash };
 }
 
-/** Discs stay in the player's files (ADR-015): never in the library yet. */
+/** A disc from the player's files, or its copy in the library (ADR-015). */
 async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
-  if (r.stored) throw Error("Los discos no se guardan en la biblioteca.");
-  const { disc, hash } = await prepareDisc(module, r.file, r.extra);
-  return { start: async (save) => module.create(disc, save), hash };
+  const [file, ...extra] = r.stored
+    ? await storedDiscFiles(r.stored)
+    : [r.file, ...(r.extra ?? [])];
+  const { disc, hash, parts } = await prepareDisc(
+    module,
+    file,
+    extra.filter((f): f is File => !!f),
+  );
+  // The identity is computed again from the copy: a damaged one differs.
+  if (r.stored && hash !== r.stored)
+    throw Error(
+      "La copia de este disco en el dispositivo está dañada. Ábrelo otra vez desde sus archivos; tus partidas siguen guardadas.",
+    );
+  return {
+    start: async (save) => module.create(disc, save),
+    hash,
+    parts,
+  };
+}
+
+async function storedDiscFiles(stored: string) {
+  const files = (await gameEntry(stored, profile))?.files;
+  const copy = files && (await storedDisc(stored, files));
+  if (!copy)
+    throw Error(
+      "La copia de este disco ya no está en el dispositivo. Ábrelo otra vez desde sus archivos; tus partidas siguen guardadas.",
+    );
+  return copy;
 }
 
 async function run(r: EmuRequest): Promise<EmuResult> {
@@ -195,7 +249,12 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     // Protocol v1 without `core` meant JSNES; keep that for old clients.
     module = coreModule(system, r.core ?? (system === "nes" ? "jsnes" : ""));
     profile = r.profile ?? PRINCIPAL;
-    ({ start, rom, hash } = module.disc
+    ({
+      start,
+      rom,
+      hash,
+      parts: discParts,
+    } = module.disc
       ? await loadDisc(module, r)
       : module.surface
         ? await loadSurface(module, r)
@@ -234,7 +293,10 @@ async function run(r: EmuRequest): Promise<EmuResult> {
   if (r.command === "advance") {
     core.input(r.input!);
     core.analog?.(r.analog ?? centered());
+    const library = copied;
+    copied = undefined;
     return {
+      ...library,
       ...core.advance(r.count!),
       width: module.video.width,
       height: module.video.height,

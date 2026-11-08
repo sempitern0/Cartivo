@@ -52,7 +52,7 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
   - La tarjeta de memoria 1 (128 KiB, gestionada por libretro) se guarda con `SramStore`, igual que la batería de un cartucho.
   - El núcleo nunca escribe archivos.
 - **Demo:** un PS-EXE original (`ps1-control-demo.ts`) que la BIOS HLE arranca como un disco de un archivo. Para las pruebas existe además una imagen de CD original (`ps1-disc-demo.ts`: volumen ISO 9660 con SYSTEM.CNF y PSX.EXE en sectores MODE2/2352, con su `.cue`), que recorre el camino de un disco real.
-- **Biblioteca:** los discos todavía **no** se recuerdan (no se copian a OPFS) y se juegan desde los archivos abiertos. Copiar cientos de MB pide su propia decisión de espacio y consentimiento.
+- **Biblioteca:** los discos todavía **no** se recuerdan (no se copian a OPFS) y se juegan desde los archivos abiertos. Copiar cientos de MB pide su propia decisión de espacio y consentimiento. *Revisión 2026-11-08:* ya se recuerdan; ver «Discos en la biblioteca» más abajo.
 
 ## Alternativas descartadas
 
@@ -69,5 +69,13 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
 - **Límites:**
   - CHD, `.pbp`, `.m3u` multidisco, cambio de disco, analógico, multitap y pistola;
   - juegos que dependan de la BIOS real;
-  - discos en la biblioteca.
 - **N64:** aplazado hasta planificar WebGL2 en el Worker (OffscreenCanvas) o hilos con COOP/COEP. El resultado del spike queda registrado arriba. *Revisión 2026-11-07:* resuelto con WebGL2 en el Worker, en [ADR-017](017-n64-gpu-surface.md).
+
+## Revisión 2026-11-08 — Discos en la biblioteca
+
+- **Copia:** recordar un disco copia a OPFS, en la carpeta `roms/<identidad>/`, los archivos que forman su identidad: el `.cue` sin BOM y sus pistas con el nombre que usa la hoja, o el `.iso`/`.bin`/`.exe` solo. El archivo de arranque va primero. La entrada de la biblioteca guarda esa lista (`files`: nombre y tamaño) y el tamaño total. Las copias de cartucho siguen siendo `roms/<sha256>`.
+- **Mientras se juega:** la copia se escribe en trozos de 4 MiB entre fotogramas. La carga no la espera: responde `remembering` con los bytes que se van a copiar, y el resultado (`remembered` o `libraryError`) llega con el siguiente `advance`. La entrada solo se escribe cuando la copia está completa.
+- **Espacio:** antes de copiar se consulta `navigator.storage.estimate()`, con un margen del 5 %. Si no cabe, no se copia nada y se dice cuánto ocupa el disco y cuánto queda libre. Se sigue jugando desde los archivos.
+- **Verificación:** al copiar se comprueban los tamaños. Cada vez que se juega desde la copia se recalcula la identidad (`prepareDisc`), y si no coincide la copia se rechaza por dañada. No se vuelven a leer 700 MB justo al terminar de copiar, mientras la partida sigue en marcha.
+- **Perfiles y olvido:** la copia es por identidad, y la comparten los perfiles como la de los cartuchos (ADR-016). Olvidar un disco borra la carpeta solo si ningún otro perfil lo recuerda; la tarjeta de memoria y las Partidas se conservan. Las carpetas huérfanas se limpian a las 24 h, según su archivo más reciente.
+- **Fuera:** CHD y multidisco (`.m3u`).
