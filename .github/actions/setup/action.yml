@@ -1,14 +1,21 @@
 name: Setup
-description: pnpm, Node (from .node-version) and the locked dependencies, cached.
+description: pnpm, Node (from .node-version) and the dependencies, cached.
 runs:
   using: composite
   steps:
     # The version comes from "packageManager" in package.json: a second pin
     # here would disagree with it on every update (action-setup refuses).
     - uses: pnpm/action-setup@v4
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v5
       with:
         node-version-file: .node-version
         cache: pnpm
-    - run: pnpm install --frozen-lockfile
+    # Locked install. A package.json written without registry access (agents)
+    # leaves the lockfile behind: this run resolves it and the Dependencies
+    # workflow commits it, then runs CI again on the locked install.
+    - run: |
+        pnpm install --frozen-lockfile || {
+          echo "::warning::pnpm-lock.yaml no coincide con package.json: se resuelve en esta ejecución y el workflow Dependencies lo sincroniza."
+          pnpm install --no-frozen-lockfile
+        }
       shell: bash

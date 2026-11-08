@@ -58,7 +58,7 @@ Patrones ya resueltos. Se reutilizan en lugar de reinventarlos:
 
 Problemas reales que han costado iteraciones. Comprobarlos ahorra rondas de CI:
 
-- **Sin `node_modules` (registro npm bloqueado):** `svelte-check`, `vite build` y Playwright solo corren en CI. En local funcionan las unitarias (`node --experimental-strip-types --test tests/*.test.ts`), el Prettier global y el `tsc` global. Los errores de `tsc` por módulos ausentes (`svelte`, `vite`, `$state`) son del entorno, no del cambio.
+- **Sin `node_modules` (registro npm bloqueado):** `svelte-check`, `vite build` y Playwright solo corren en CI. Para añadir una dependencia, escribe la versión en `package.json` y sube el cambio: la CI de ese commit resuelve sin lockfile (aviso) y el workflow `Dependencies` sube `pnpm-lock.yaml` y relanza la CI; después, `git pull`. En local funcionan las unitarias (`node --experimental-strip-types --test tests/*.test.ts`), el Prettier global y el `tsc` global. Los errores de `tsc` por módulos ausentes (`svelte`, `vite`, `$state`) son del entorno, no del cambio.
 - **Prettier:** el repositorio fija 3.6.2. Un Prettier global más nuevo da por buenos archivos que el `lint` de CI rechaza, y al revés con `tests/display-scaler.test.ts` y `tests/input.test.ts` (no reformatearlos con el global).
   - Evita las formas que difieren: `const { x } = await import(…)` largo, operadores mezclados (`a | b % c`, `x + (y % 2)`) y literales largos dentro de llamadas.
   - Escribe líneas que no necesiten partirse.
