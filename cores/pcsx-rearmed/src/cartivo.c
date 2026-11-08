@@ -7,6 +7,10 @@
 // forwarded to the host's cartivo_vfs_* imports, and only the sectors it asks
 // for are read. Nothing is ever written (memory card and states live in
 // memory and are handed to the host).
+// Games on several discs: the host reads the .m3u, boots the first disc and
+// adds the others through the core's disc control interface; swapping opens
+// the lid, changes the image and closes it again (cartivo_disc_*). CHD images
+// are read through the same VFS (libchdr, HAVE_CHD).
 // PCSX-ReARMed keeps its state in globals, so each WebAssembly instance runs
 // one game (BridgeCore creates an instance per game).
 #include <stdbool.h>
@@ -43,6 +47,10 @@ typedef struct {
 } cartivo_t;
 
 static cartivo_t *current;
+/* The core's disc control (RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE),
+ * handed over in retro_init. */
+static struct retro_disk_control_callback discs;
+static bool has_discs;
 
 /* --- libretro VFS over the host's files (read-only) --- */
 
@@ -187,6 +195,10 @@ static bool environment(unsigned cmd, void *data)
         info->iface = &vfs;
         return true;
     }
+    case RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE:
+        discs = *(const struct retro_disk_control_callback *)data;
+        has_discs = true;
+        return true;
     case RETRO_ENVIRONMENT_GET_CAN_DUPE:
         *(bool *)data = true;
         return true;
@@ -197,8 +209,8 @@ static bool environment(unsigned cmd, void *data)
         if (current) set_timing(&((const struct retro_system_av_info *)data)->timing);
         return true;
     default:
-        /* No system or save directory (no BIOS, no files), log, rumble or
-         * disc control: the core's defaults. */
+        /* No system or save directory (no BIOS, no files), log or rumble:
+         * the core's defaults. */
         return false;
     }
 }
@@ -301,6 +313,48 @@ cartivo_t *cartivo_create(const char *path, size_t length)
     return c;
 }
 
+/* Another disc of the same game (from the host's .m3u), by the name the
+ * VFS opens. Returns its index, or -1 if the core refuses it (eight at most). */
+int cartivo_disc_add(cartivo_t *c, const char *path, size_t length)
+{
+    (void)c;
+    if (!has_discs || !discs.add_image_index()) return -1;
+    char *name = malloc(length + 1);
+    if (!name) return -1;
+    memcpy(name, path, length);
+    name[length] = 0;
+    const unsigned index = discs.get_num_images() - 1;
+    const struct retro_game_info info = {name, NULL, 0, NULL};
+    const bool added = discs.replace_image_index(index, &info);
+    free(name);
+    return added ? (int)index : -1;
+}
+
+int cartivo_disc_count(cartivo_t *c)
+{
+    (void)c;
+    return has_discs ? (int)discs.get_num_images() : 1;
+}
+
+int cartivo_disc_index(cartivo_t *c)
+{
+    (void)c;
+    return has_discs ? (int)discs.get_image_index() : 0;
+}
+
+/* Opens the lid, changes the disc and closes the lid again, as a player
+ * would; the core sees the lid shut about two seconds later. 0 on success. */
+int cartivo_disc_insert(cartivo_t *c, unsigned index)
+{
+    (void)c;
+    if (!has_discs || index >= discs.get_num_images()) return 1;
+    if (index == discs.get_image_index()) return 0;
+    discs.set_eject_state(true);
+    const bool changed = discs.set_image_index(index);
+    discs.set_eject_state(false);
+    return changed ? 0 : 2;
+}
+
 /* Frames per second of the loaded game, so the host paces PAL at 50 Hz. */
 double cartivo_frame_rate(cartivo_t *c) { return c->fps; }
 
@@ -384,5 +438,6 @@ void cartivo_free(cartivo_t *c)
     retro_unload_game();
     retro_deinit();
     current = NULL;
+    has_discs = false;
     free(c);
 }

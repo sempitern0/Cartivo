@@ -60,6 +60,9 @@ const flags = [
   `-DGIT_VERSION=" ${commit.slice(0, 7)}"`,
   "-DP_HAVE_MMAP=0", "-DP_HAVE_POSIX_MEMALIGN=1", "-DDISABLE_MEM_LUTS=0",
   "-DDRC_DISABLE", "-DGPU_NEON", "-DUSE_MINIZ", "-DUSE_LIBRETRO_VFS", "-DHAVE_LIBRETRO",
+  // CHD images through libchdr (and its LZMA, Zstandard and FLAC decoders).
+  "-DHAVE_CHD", `-I${join(pcsx, "deps/libchdr/include")}`,
+  `-I${join(pcsx, "deps/libchdr/deps/lzma-26.02/include")}`,
   "-DNO_FRONTEND", "-DNO_DYLIB", "-DNO_SOCKET",
   `-I${join(pcsx, "include")}`, `-I${join(pcsx, "deps/libretro-common/include")}`,
   `-I${join(pcsx, "deps/libchdr/deps/miniz-3.1.2")}`,
@@ -91,6 +94,7 @@ const exports = [
   "cartivo_frames", "cartivo_pixels", "cartivo_audio",
   "cartivo_state_size", "cartivo_save_state", "cartivo_load_state",
   "cartivo_frame_rate", "cartivo_set_analog",
+  "cartivo_disc_add", "cartivo_disc_count", "cartivo_disc_index", "cartivo_disc_insert",
 ];
 const out = verify ? mkdtempSync(join(tmpdir(), "pcsx-")) : join(core, "dist");
 if (!verify) rmSync(out, { recursive: true, force: true });
@@ -134,6 +138,10 @@ const emscripten = "https://github.com/emscripten-core/emscripten";
 const sbom = [
   { name: "PCSX-ReARMed (libpcsxcore with HLE BIOS, libretro frontend, gpulib, gpu_neon, dfsound)", version: commit, license: "GPL-2.0-or-later", repository },
   { name: "miniz 3.1.2 (deps/libchdr/deps)", version: commit, license: "MIT", repository },
+  { name: "libchdr (deps/libchdr)", version: commit, license: "BSD-3-Clause", repository },
+  { name: "LZMA SDK 26.02 decoder (deps/libchdr/deps)", version: commit, license: "LicenseRef-Public-Domain", repository },
+  { name: "Zstandard 1.5.7 decoder (deps/libchdr/deps)", version: commit, license: "BSD-3-Clause OR GPL-2.0-only", repository },
+  { name: "dr_flac (deps/libchdr/include/dr_libs)", version: commit, license: "Unlicense OR MIT-0", repository },
   { name: "libretro API header and libretro-common", version: commit, license: "MIT", repository },
   { name: "Emscripten system libraries", version: pins.emsdk.version, license: "MIT OR NCSA", repository: emscripten },
   { name: "musl libc (Emscripten)", version: pins.emsdk.version, license: "MIT", repository: emscripten },
