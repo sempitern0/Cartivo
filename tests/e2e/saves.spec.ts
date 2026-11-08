@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "./fixtures.ts";
+import { playDemo } from "./play.ts";
 
 // UxROM without battery, like Contra: only «Partidas» can keep progress.
 async function contraLike() {
