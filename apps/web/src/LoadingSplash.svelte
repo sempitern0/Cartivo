@@ -61,9 +61,6 @@
       0 0 0 1px #ffffff14,
       0 18px 50px -12px #40c2ae66;
   }
-  .art :global(.badge) {
-    --badge-size: 100%;
-  }
   .title {
     margin: 0;
     font-size: 17px;
