@@ -33,6 +33,7 @@
         "application/x-sms-rom": [".sms"],
         "application/x-genesis-rom": [".md", ".gen", ".bin"],
         "application/x-cue": [".cue"],
+        "application/x-chd": [".chd"],
         "application/x-n64-rom": [".z64", ".n64", ".v64"]
       }
     }

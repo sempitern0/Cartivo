@@ -89,7 +89,7 @@ test("a disc's .cue is booted with its tracks, whatever the order", () => {
 test("pickers accept every available format and cores have short names", () => {
   assert.equal(
     acceptFor(availableSystems()),
-    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.cue,.iso,.exe,.z64,.n64,.v64",
+    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.m3u,.cue,.chd,.iso,.exe,.z64,.n64,.v64",
   );
   assert.equal(coreLabel("md", "genesis-plus-gx"), "Genesis Plus GX");
   assert.equal(coreLabel("snes", "snes9x"), "Snes9x");
@@ -106,9 +106,9 @@ test("the manifest opens the extensions of available systems", () => {
   const handled = manifest.file_handlers.flatMap((h) =>
     Object.values(h.accept).flat(),
   );
-  // Generic formats (any disc image, any Windows program) are opened from
-  // the app, never claimed in the operating system.
-  const generic = [".iso", ".exe"];
+  // Generic formats (any disc image, any Windows program, music playlists)
+  // are opened from the app, never claimed in the operating system.
+  const generic = [".iso", ".exe", ".m3u"];
   const offered = new Set(availableSystems().flatMap((s) => s.extensions));
   assert.deepEqual(
     handled.sort(),

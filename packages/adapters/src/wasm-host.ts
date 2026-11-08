@@ -310,6 +310,17 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
     }
   }
 
+  /** For a subclass's own exports: the bridge and the live core. */
+  protected call<R>(use: (wasm: T, core: Pointer) => R): R {
+    return use(this.#wasm, this.#live());
+  }
+
+  /** For a subclass: text as UTF-8 in wasm memory for the duration of `use`. */
+  protected withText<R>(text: string, use: (pointer: Pointer, length: number) => R): R {
+    const bytes = new TextEncoder().encode(text);
+    return this.#withBytes(bytes, (pointer) => use(pointer, bytes.length));
+  }
+
   /** The live core pointer; a disposed core refuses every call. */
   #live(): Pointer {
     if (!this.#core) throw Error("El núcleo ya se ha cerrado.");

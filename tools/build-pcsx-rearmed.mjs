@@ -139,7 +139,7 @@ const sbom = [
   { name: "PCSX-ReARMed (libpcsxcore with HLE BIOS, libretro frontend, gpulib, gpu_neon, dfsound)", version: commit, license: "GPL-2.0-or-later", repository },
   { name: "miniz 3.1.2 (deps/libchdr/deps)", version: commit, license: "MIT", repository },
   { name: "libchdr (deps/libchdr)", version: commit, license: "BSD-3-Clause", repository },
-  { name: "LZMA SDK 26.02 decoder (deps/libchdr/deps)", version: commit, license: "LicenseRef-Public-Domain", repository },
+  { name: "LZMA SDK 26.02 decoder (deps/libchdr/deps)", version: commit, license: "LicenseRef-public-domain", repository },
   { name: "Zstandard 1.5.7 decoder (deps/libchdr/deps)", version: commit, license: "BSD-3-Clause OR GPL-2.0-only", repository },
   { name: "dr_flac (deps/libchdr/include/dr_libs)", version: commit, license: "Unlicense OR MIT-0", repository },
   { name: "libretro API header and libretro-common", version: commit, license: "MIT", repository },

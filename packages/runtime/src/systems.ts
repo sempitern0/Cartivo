@@ -237,7 +237,9 @@ export const systems: readonly SystemInfo[] = [
     id: "ps1",
     name: "PlayStation",
     longName: "Sony PlayStation",
-    extensions: [".cue", ".iso", ".exe", ".bin"],
+    // An .m3u (several discs) boots before its .cue files, a .cue before
+    // its tracks.
+    extensions: [".m3u", ".cue", ".chd", ".iso", ".exe", ".bin"],
     disc: true,
     video: PS1_VIDEO,
     // NTSC nominal; the core reports each game's rate (PAL 50 Hz).
@@ -267,7 +269,7 @@ export const systems: readonly SystemInfo[] = [
     ],
     defaultCore: "pcsx-rearmed",
     formatNote:
-      "discos .cue con sus pistas .bin, imágenes .iso o .bin de una pista y ejecutables .exe, con la BIOS HLE del núcleo",
+      "discos .cue con sus pistas .bin, .chd, imágenes .iso o .bin de una pista, juegos de varios discos con su .m3u y ejecutables .exe, con la BIOS HLE del núcleo",
     demo: true,
     available: true,
   },

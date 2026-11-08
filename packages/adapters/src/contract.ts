@@ -52,8 +52,23 @@ export interface EmulatorCore {
   /** Copy of the last presented frame (empty before any frame); a core
    * that draws on its own surface reads it back on demand. */
   lastFrame(): Uint8ClampedArray;
+  /**
+   * A game on several discs (an .m3u): which one is in and changing it, as
+   * opening the lid would. Cores of one disc or cartridge leave it out.
+   */
+  readonly discs?: DiscTray;
   /** Releases resources (wasm memory); the core is unusable afterwards. */
   dispose(): void;
+}
+
+/** The disc tray of a multi-disc game (ADR-015). */
+export interface DiscTray {
+  /** The boot file of each disc, in order. */
+  readonly names: readonly string[];
+  /** Index of the disc in the tray. */
+  current(): number;
+  /** Puts disc `index` in; throws a user-readable error if the core refuses. */
+  insert(index: number): void;
 }
 
 type ModuleInfo = {

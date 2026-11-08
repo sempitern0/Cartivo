@@ -130,6 +130,12 @@ function snapshots(): StateStore {
   if (!states) throw Error(noStorage ?? "Partidas no disponibles");
   return states;
 }
+/** A multi-disc game's discs and the one in the tray, for the page. */
+const tray = (): EmuResult["discs"] =>
+  core?.discs && {
+    names: [...core.discs.names],
+    current: core.discs.current(),
+  };
 const failure = (e: unknown, fallback: string) =>
   e instanceof Error ? e.message : fallback;
 
@@ -226,7 +232,9 @@ async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
       "La copia de este disco en el dispositivo está dañada. Ábrelo otra vez desde sus archivos; tus partidas siguen guardadas.",
     );
   return {
-    start: async (save) => module.create(disc, save),
+    // A new instance (reset, battery load) boots the disc in the tray.
+    start: async (save) =>
+      module.create(disc.withFirst(core?.discs?.current() ?? 0), save),
     hash,
     parts,
   };
@@ -285,6 +293,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       storageError: noStorage,
       battery: core!.battery,
       frameRate: core!.frameRate,
+      discs: tray(),
       recovered: store?.recovered ?? false,
       ...library,
     };
@@ -315,6 +324,11 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     use(await start(previousSave));
     saves.restart();
     return { saved, frames: 0 };
+  }
+  if (r.command === "disc") {
+    if (!core.discs) throw Error("Este juego tiene un solo disco.");
+    core.discs.insert(r.disc!);
+    return { discs: tray() };
   }
   core.input(neutral());
   core.analog?.(centered());

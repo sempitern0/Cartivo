@@ -37,10 +37,7 @@
     initials,
     type Profile,
   } from "../../../packages/storage/src/profiles.ts";
-  import {
-    cueFiles,
-    matchTracks,
-  } from "../../../packages/storage/src/cue.ts";
+  import { resolveDisc } from "../../../packages/storage/src/cue.ts";
   /** Screens without a router: the hash names the page (#ajustes, #juegos). */
   type Page = "inicio" | "ajustes" | "juegos";
   let page = $state<Page>("inicio");
@@ -141,15 +138,15 @@
   /** The game among the files opened together (a disc may be several). */
   const sourceOf = ({ file, extra }: GameFiles<File>): GameSource =>
     extra.length ? { kind: "file", file, extra } : { kind: "file", file };
-  /** A disc's .cue opened without the tracks it names: asked for on its card. */
+  /** A .cue or .m3u opened without the files it names: asked for on its card. */
   let incomplete = $state.raw<{ game: GameFiles<File>; missing: string[] }>();
   /** The next pick adds tracks to `incomplete` instead of replacing it. */
   let addingTracks = false;
-  /** The tracks a .cue names that were not opened with it (a tiny read). */
+  /** The files a .cue or .m3u names that were not opened with it (tiny reads). */
   async function missingTracks({ file, extra }: GameFiles<File>) {
-    if (!file.name.toLowerCase().endsWith(".cue")) return [];
+    if (!/\.(cue|m3u)$/i.test(file.name)) return [];
     try {
-      return matchTracks(cueFiles(await file.text()), extra).missing;
+      return (await resolveDisc(file, extra, (f) => f.text())).missing;
     } catch {
       return []; // unreadable here: the Worker reports it
     }

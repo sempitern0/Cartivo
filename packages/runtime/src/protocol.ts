@@ -23,6 +23,7 @@ export type EmuCommand =
   | "save"
   | "import"
   | "reset"
+  | "disc"
   | "state-list"
   | "state-save"
   | "state-load"
@@ -54,6 +55,8 @@ export type EmuRequest = {
   /** Profile for `load` whose saves, Partidas and library are used
    * (ADR-016); omitted means the first profile. */
   profile?: string;
+  /** `disc`: index of the disc to put in (a multi-disc game). */
+  disc?: number;
   /** Snapshot slot for state-save/state-load/state-delete/state-export. */
   slot?: StateSlot;
   /** Parsed JSON of an exported snapshot for state-import (checked in the Worker). */
@@ -81,6 +84,7 @@ export function parseRequest(value: unknown): EmuRequest {
       "save",
       "import",
       "reset",
+      "disc",
       "state-list",
       "state-save",
       "state-load",
@@ -151,6 +155,11 @@ export function parseRequest(value: unknown): EmuRequest {
       ))
   )
     throw Error("Entrada inválida");
+  if (
+    r.command === "disc" &&
+    (!Number.isInteger(r.disc) || r.disc! < 0 || r.disc! > 7)
+  )
+    throw Error("Disco inválido");
   if (r.analog !== undefined && !isAnalog(r.analog))
     throw Error("Sticks inválidos");
   // Protocol v1 clients from before L/R send eight buttons: L/R are released.
@@ -187,6 +196,8 @@ export type EmuResult = {
    * outcome (`remembered` or `libraryError`) comes with a later advance.
    */
   remembering?: number;
+  /** load and disc: a multi-disc game's discs (file names) and the one in. */
+  discs?: { names: string[]; current: number };
   /** load: this browser cannot save at all; the game runs without saving. */
   storageError?: string;
 };

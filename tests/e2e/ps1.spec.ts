@@ -114,9 +114,9 @@ test("a .cue opened alone asks for its tracks, then the disc boots", async ({
     buffer: Buffer.from(cue),
   });
   const alert = card(page).getByRole("alert");
-  await expect(alert).toContainText("Faltan pistas de «Cartivo Demo.cue»");
+  await expect(alert).toContainText("Faltan archivos de «Cartivo Demo.cue»");
   await expect(alert).toContainText("Cartivo Demo (Track 1).bin");
-  const choose = alert.getByRole("button", { name: "Elegir pistas" });
+  const choose = alert.getByRole("button", { name: "Elegir archivos" });
   await expect(choose).toBeFocused();
   chooser = page.waitForEvent("filechooser");
   await choose.click();

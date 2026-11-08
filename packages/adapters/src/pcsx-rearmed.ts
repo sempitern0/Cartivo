@@ -2,6 +2,7 @@
 // the EmulatorCore contract, with its own HLE BIOS. The disc is read on
 // demand through the host's VFS (disc.ts). cores/pcsx-rearmed/dist is built
 // and committed by CI on explicit request.
+import type { DiscTray } from "./contract.ts";
 import type { DiscImage } from "./disc.ts";
 import {
   BridgeCore,
@@ -12,6 +13,11 @@ import {
 
 type PcsxBridge = Bridge & {
   cartivo_create(path: number, length: number): number;
+  /** Multi-disc games (cartivo.c): the index added, or −1. */
+  cartivo_disc_add(core: number, path: number, length: number): number;
+  cartivo_disc_index(core: number): number;
+  /** 0 when the disc is in. */
+  cartivo_disc_insert(core: number, index: number): number;
 };
 
 const loader = wasmLoader(
@@ -32,6 +38,9 @@ export const preparePcsx = () => loader.prepare();
 export const PS1_FRAME = { width: 640, height: 480 } as const;
 
 export class PcsxRearmedAdapter extends BridgeCore<PcsxBridge> {
+  /** The other discs of an .m3u, added after the first one boots. */
+  readonly discs?: DiscTray;
+
   /** Requires preparePcsx() to have finished. */
   constructor(disc: DiscImage, save?: Uint8Array) {
     super(
@@ -49,5 +58,35 @@ export class PcsxRearmedAdapter extends BridgeCore<PcsxBridge> {
       disc,
       save,
     );
+    if (disc.discs.length < 2) return;
+    // The core numbers its discs in the order they were given: the one it
+    // booted, then the rest. The tray speaks in the game's own order.
+    const order = [
+      disc.discs[disc.first],
+      ...disc.discs.filter((_, i) => i !== disc.first),
+    ];
+    for (const name of order.slice(1)) {
+      const added = this.call((wasm, core) =>
+        this.withText(name, (path, length) =>
+          wasm.cartivo_disc_add(core, path, length),
+        ),
+      );
+      if (added < 0) {
+        this.dispose();
+        throw Error("El núcleo admite ocho discos como máximo por juego.");
+      }
+    }
+    this.discs = {
+      names: disc.discs,
+      current: () =>
+        disc.discs.indexOf(
+          order[this.call((wasm, core) => wasm.cartivo_disc_index(core))],
+        ),
+      insert: (index) => {
+        const slot = order.indexOf(disc.discs[index]);
+        if (slot < 0 || this.call((wasm, core) => wasm.cartivo_disc_insert(core, slot)))
+          throw Error(`No se ha podido poner el disco ${index + 1}.`);
+      },
+    };
   }
 }
