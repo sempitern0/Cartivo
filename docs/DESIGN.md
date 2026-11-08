@@ -2,7 +2,7 @@
 
 ## Identidad
 
-Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valores exactos. Tokens en `apps/web/src/theme.css`.
+Paleta propia evocadora de la época PSX. Tokens en `apps/web/src/theme.css`.
 
 | Token | Color | Uso |
 |---|---|---|
@@ -14,7 +14,7 @@ Paleta propia evocadora de la época PSX, sin su logo, formas de marca ni valore
 | Superficie | `#1B1D26` | Tarjetas y paneles |
 | Texto / Secundario | `#F3F1ED` / `#B3B5C2` | Lectura / explicaciones |
 
-**Sin arte de terceros:** nada de logotipos, tipografías de marca, fotos de consolas, personajes ni capturas de juegos. Cada consola se identifica con su nombre en la tipografía de Cartivo y una insignia propia (`ConsoleIcon.svelte`): el marco de la marca, con borde turquesa a coral, brillo diagonal y sello «C», alrededor de una silueta genérica de hardware dibujada para Cartivo (cartucho, portátil, mando o disco), nunca el logotipo de la consola. Iconos propios en `apps/web/src/icons.ts`, decorativos (`aria-hidden`); el nombre accesible lo lleva el control.
+**Arte de terceros permitido para uso privado** (ADR-005, revisión 2026-11-08): logotipos de consolas, originales o alterados, y otro arte se pueden usar mientras Cartivo no se distribuya, anotando su procedencia en `LICENSES.md`. Hoy cada consola se identifica con su nombre en la tipografía de Cartivo y una insignia propia (`ConsoleIcon.svelte`): el marco de la marca, con borde turquesa a coral, brillo diagonal y sello «C», alrededor de una silueta genérica de hardware dibujada para Cartivo (cartucho, portátil, mando o disco). Iconos propios en `apps/web/src/icons.ts`, decorativos (`aria-hidden`); el nombre accesible lo lleva el control.
 
 ## Principios
 

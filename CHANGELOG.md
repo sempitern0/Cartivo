@@ -374,3 +374,10 @@
 - **Guardado:** batería de 296 960 bytes (EEPROM, controller paks, SRAM y FlashRAM). Partidas con el estado del núcleo comprimido con zlib. Las copias de batería admiten hasta 2 MiB.
 - **Partidas:** se cargan bien (antes las pilas de fibra iban alineadas a 8 bytes y el núcleo rechazaba el estado) y tienen miniatura leída de la GPU al guardar.
 - **Límites:** sin Transfer Pak, Rumble Pak ni 64DD; cortes de audio ocasionales.
+
+### CI más rápida, dependencias y arte de terceros
+
+- **CI:** las E2E corren en seis jobs paralelos (Chromium, Firefox y WebKit × dev y preview; Chromium también la subruta), con la misma cobertura y alrededor de la mitad de tiempo total. Los cambios solo de documentación tampoco lanzan la CI en `main`. `checkout` y `setup-node` pasan a v5 (Node 24).
+- **Dependencias:** nuevo workflow `Dependencies`. Si `package.json` cambia sin el lockfile al día, la CI de ese commit resuelve igualmente (con aviso) y el workflow sube `pnpm-lock.yaml` y vuelve a lanzar la CI con la instalación bloqueada.
+- **Política (ADR-005, revisión 2026-11-08):** se admiten librerías de terceros estables y logotipos o arte de terceros, originales o alterados, para uso privado. ROMs comerciales, BIOS y datos de usuario siguen fuera del repositorio.
+- **ADR-019:** Bits UI para los componentes de interfaz y las animaciones de Svelte.

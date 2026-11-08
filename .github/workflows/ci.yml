@@ -1,14 +1,13 @@
 name: Foundation CI
-# One run per change: pull requests (and main). Docs-only changes skip it and
-# a newer push to the same branch cancels the run still in progress.
+# One run per change: pull requests and main. Docs-only changes skip it and
+# a newer push to the same branch cancels the run still in progress. The
+# Dependencies workflow starts it by dispatch after syncing the lockfile.
 on:
   push:
     branches: [main]
+    paths-ignore: ["docs/**", "**/*.md", "LICENSE"]
   pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "**/*.md"
-      - "LICENSE"
+    paths-ignore: ["docs/**", "**/*.md", "LICENSE"]
   workflow_dispatch:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -21,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       - run: pnpm verify:core
       # Cheap guard (no Rust): a PR that changes a core's sources, Cargo.toml
@@ -46,18 +45,20 @@ jobs:
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test
-  # Each browser reuses one installation for dev and preview. Chromium also
-  # checks the sub-path build; no browser or server coverage is removed.
+  # One job per browser and server, in parallel: the dev server and the
+  # production build (preview; Chromium also the sub-path build). Same
+  # coverage as one job per browser, in about half the wall time.
   e2e:
-    name: e2e (${{ matrix.browser }})
+    name: e2e (${{ matrix.browser }}, ${{ matrix.server }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 12
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
+        server: [dev, preview]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
       # Cache by Playwright version, architecture and the pinned runner OS.
       - id: playwright
@@ -110,7 +111,7 @@ jobs:
       # Keep running the other server after a test failure; preserve outputs
       # separately so a later Playwright invocation cannot erase the evidence.
       - name: E2E dev
-        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        if: ${{ matrix.server == 'dev' && steps.browser.outcome == 'success' }}
         run: >-
           ${{ matrix.browser == 'webkit' && 'xvfb-run --auto-servernum' || '' }}
           pnpm exec playwright test --project=${{ matrix.browser }}
@@ -118,7 +119,7 @@ jobs:
           --output=test-results/dev
       - name: Build preview
         id: build
-        if: ${{ !cancelled() && steps.browser.outcome == 'success' }}
+        if: ${{ matrix.server == 'preview' && steps.browser.outcome == 'success' }}
         run: pnpm build
       - name: E2E preview
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -129,7 +130,7 @@ jobs:
           --config playwright.preview.config.ts --output=test-results/preview
       - name: Build subpath
         id: subpath
-        if: ${{ !cancelled() && matrix.browser == 'chromium' && steps.browser.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.browser == 'chromium' && matrix.server == 'preview' && steps.browser.outcome == 'success' }}
         run: pnpm build --base /cartivo/
       - name: E2E subpath
         if: ${{ !cancelled() && matrix.browser == 'chromium' && steps.subpath.outcome == 'success' }}
@@ -137,7 +138,7 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-${{ matrix.browser }}
+          name: e2e-${{ matrix.browser }}-${{ matrix.server }}
           path: |
             screenshots/
             test-results/

@@ -1,6 +1,6 @@
 # ADR-005 — Modelo de licencia y distribución de núcleos
 
-Estado: **aceptado para el código propio**; revisión «Uso privado» del 2026-11-01 (al final). Fecha: 2026-10-30.
+Estado: **aceptado para el código propio**; revisiones «Uso privado» del 2026-11-01 y «Arte de terceros y dependencias» del 2026-11-08 (al final). Fecha: 2026-10-30.
 
 ## Decisión del titular
 
@@ -48,3 +48,12 @@ Mantener inventario y avisos separados para cada tercero; no añadir textos inco
 
 `LICENSE` (PolyForm Noncommercial 1.0.0) no cambia.
 
+## Revisión: arte de terceros y dependencias (2026-11-08)
+
+**Decisión del titular:** mientras Cartivo sea de uso local o entre conocidos, se levanta la restricción de arte de terceros y la de dependencias.
+
+- **Logotipos y arte:** se admiten logotipos de consolas y otro arte de terceros, originales o alterados. Cada pieza anota su procedencia (fuente y titular) en `LICENSES.md` para poder retirarla antes de publicar. Siguen sin concesión implícita de derechos de marca.
+- **Dependencias:** se admiten librerías de terceros estables y mantenidas, con licencia identificada (ADR-019 elige los componentes de interfaz). El lockfile lo sincroniza la CI cuando el cambio se escribe sin acceso al registro.
+- **Límite:** ROMs comerciales, BIOS propietarias y datos de usuario siguen sin subirse.
+- **Antes de publicar o entregar a terceros** se retira o se licencia el arte de terceros, junto con el análisis de núcleos de la revisión anterior.
+- **Visibilidad:** la revisión anterior da el repositorio por privado; si es público, todo lo que se suba (arte incluido) es visible para cualquiera.

@@ -1,0 +1,45 @@
+name: Dependencies
+# Keeps pnpm-lock.yaml in step with package.json on any branch, main
+# included: a dependency can be added without registry access (agents) and
+# the lockfile is resolved here, committed, and Foundation CI runs on it.
+on:
+  push:
+    paths:
+      - "package.json"
+      - "apps/*/package.json"
+      - "packages/*/package.json"
+      - "pnpm-workspace.yaml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deps-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .node-version
+      - name: Resolve the lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit it and run CI on it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ github.ref_name }}
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then echo "pnpm-lock.yaml ya coincide."; exit 0; fi
+          git config user.name "cartivo-deps-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "chore(deps): sincronizar pnpm-lock.yaml" -- pnpm-lock.yaml
+          git push
+          # A GITHUB_TOKEN push starts no workflow; a dispatch does, and it
+          # replaces the run of the unlocked commit (same concurrency group).
+          gh workflow run ci.yml --ref "$REF"

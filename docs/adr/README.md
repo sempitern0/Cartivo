@@ -8,7 +8,7 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [002](002-core-runtime.md) | Contrato de núcleos, registros y protocolo genérico | Aceptado (implementado) |
 | [003](003-local-data.md) | Archivos locales, saves y offline | Propuesto; SRAM en ADR-007, ROMs en OPFS en ADR-012 |
 | [004](004-game-identity.md) | Identificación regional y proveedores | Propuesto (H3) |
-| [005](005-licensing.md) | PolyForm Noncommercial para código propio; política de uso privado para núcleos | Aceptado (revisión 2026-11-01) |
+| [005](005-licensing.md) | PolyForm Noncommercial para código propio; uso privado para núcleos, arte de terceros y dependencias | Aceptado (revisiones 2026-11-01 y 2026-11-08) |
 | [006](006-input-probe.md) | Entrada P1 y perfiles explícitos | Aceptado |
 | [007](007-nes-experimental-js.md) | NES con JSNES en Worker; SRAM transaccional | Aceptado; JSNES pasa a alternativa |
 | [008](008-nes-tetanes-wasm.md) | NES con TetaNES en WebAssembly, build reproducible en CI | Aceptado; núcleo por defecto |
@@ -21,3 +21,4 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [015](015-ps1-pcsx-rearmed-discs.md) | PlayStation con PCSX-ReARMed, discos bajo demanda y botones L2/R2; N64 aplazado | Aceptado (experimental) |
 | [016](016-player-profiles.md) | Perfiles de jugador locales: partidas, biblioteca y controles por perfil, sin migración | Aceptado |
 | [017](017-n64-gpu-surface.md) | Nintendo 64 con Mupen64Plus-Next: superficie WebGL2 en el Worker (`SurfaceModule`) | Aceptado (experimental) |
+| [019](019-ui-components-bits-ui.md) | Componentes de interfaz con Bits UI; animaciones de Svelte | Aceptado |
