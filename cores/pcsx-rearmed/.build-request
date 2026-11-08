@@ -1,1 +1,2 @@
-2026-11-08 multidisco (cartivo_disc_*) y CHD (libchdr)
+Bump this file only to build PCSX-ReARMed once in CI (core-pcsx-rearmed.yml).
+Reason: disc control for .m3u games (cartivo_disc_*) and CHD images (libchdr, HAVE_CHD).
