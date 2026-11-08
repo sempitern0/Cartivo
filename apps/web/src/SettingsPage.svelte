@@ -26,6 +26,7 @@
   import ControlsPanel from "./ControlsPanel.svelte";
   import InterfacePreference from "./InterfacePreference.svelte";
   import DisplayOptions from "./DisplayOptions.svelte";
+  import { megabytes } from "./format.ts";
   import { DisplaySettings } from "./display.svelte.ts";
   import {
     availableSystems,
@@ -79,8 +80,6 @@
   // Almacenamiento: only what Cartivo uses. The browser's quota is left out:
   // some browsers report a masked figure (Brave says 2 GB) and it read as a
   // limit on the ROMs a player can open from their own disk.
-  const megabytes = (bytes: number) =>
-    `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
   let usage = $state("");
   $effect(() => {
     void navigator.storage

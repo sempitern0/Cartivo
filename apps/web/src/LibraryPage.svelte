@@ -4,6 +4,7 @@
   import { motion } from "./motion.svelte.ts";
   import SnapshotThumb from "./SnapshotThumb.svelte";
   import CartivoProgress from "./CartivoProgress.svelte";
+  import { megabytes } from "./format.ts";
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
   import { tick } from "svelte";
@@ -78,8 +79,6 @@
       systemFilter = "";
   });
   const shown = $derived(viewGames(listed, { query, system: systemFilter, sort }));
-  const megabytes = (bytes: number) =>
-    `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
   // Only the copies' own size: the browser's quota is not shown, because
   // some browsers mask it (Brave reports 2 GB) and it read as a limit on the
   // ROMs a player can open from their disk.
@@ -96,7 +95,6 @@
   }
   /** Runs one option, reports it and reloads the list. */
   async function act(
-    entry: GameCard,
     work: () => Promise<unknown>,
     done: string,
     failed: string,
@@ -119,7 +117,6 @@
   }
   const hide = (entry: GameCard, value: boolean) =>
     act(
-      entry,
       () => setHidden(entry, value, profiles.id),
       value
         ? `${entry.name} ya no aparece para ti. Los demás perfiles lo siguen viendo; lo tienes en «Ocultos».`
@@ -128,18 +125,34 @@
     );
   const erase = (entry: GameCard) =>
     act(
-      entry,
       () => eraseProgress(entry.system, entry.hash, profiles.id),
       `Tus partidas y tu guardado de ${entry.name} se han borrado.`,
       "No se pudo borrar tu progreso. Inténtalo de nuevo.",
     );
   const remove = (entry: GameCard) =>
     act(
-      entry,
       () => deleteTitle(entry.hash),
       `${entry.name} se ha eliminado del dispositivo. Las partidas se conservan.`,
       "No se pudo eliminar el juego. Inténtalo de nuevo.",
     );
+  /** What each irreversible action says and does in its dialog. */
+  const risky: Record<
+    Risky,
+    (entry: GameCard) => { title: string; text: string; confirm: string; run: () => void }
+  > = {
+    erase: (entry) => ({
+      title: `¿Borrar tu progreso en ${entry.name}?`,
+      text: "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer.",
+      confirm: `Borrar mi progreso en ${entry.name}`,
+      run: () => void erase(entry),
+    }),
+    delete: (entry) => ({
+      title: `¿Eliminar ${entry.name} del dispositivo?`,
+      text: "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan.",
+      confirm: `Eliminar ${entry.name}`,
+      run: () => void remove(entry),
+    }),
+  };
 </script>
 
 <section bind:this={libraryElement} class="library" aria-label="Tus juegos" tabindex="-1">
@@ -322,31 +335,23 @@
       {#snippet child({ props, open })}
         {#if open && confirming}
           {@const { entry, action } = confirming}
+          {@const copy = risky[action](entry)}
           <div
             {...props}
             class="dialog"
             data-pad-scope
             transition:scale={{ start: 0.96, duration: motion.ms(200) }}
           >
-            <AlertDialog.Title class="dialog-title"
-              >{action === "delete"
-                ? `¿Eliminar ${entry.name} del dispositivo?`
-                : `¿Borrar tu progreso en ${entry.name}?`}</AlertDialog.Title
-            >
+            <AlertDialog.Title class="dialog-title">{copy.title}</AlertDialog.Title>
             <AlertDialog.Description class="dialog-text"
-              >{action === "delete"
-                ? "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan."
-                : "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer."}</AlertDialog.Description
+              >{copy.text}</AlertDialog.Description
             >
             <div class="dialog-actions">
               <AlertDialog.Cancel>Cancelar</AlertDialog.Cancel>
               <AlertDialog.Action
                 id="confirm-risky"
                 class="danger"
-                onclick={() => (action === "delete" ? remove(entry) : erase(entry))}
-                >{action === "delete"
-                  ? `Eliminar ${entry.name}`
-                  : `Borrar mi progreso en ${entry.name}`}</AlertDialog.Action
+                onclick={() => copy.run()}>{copy.confirm}</AlertDialog.Action
               >
             </div>
           </div>
