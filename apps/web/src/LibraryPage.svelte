@@ -111,9 +111,12 @@
       await work();
       note = done;
     } catch (error) {
-      note = error instanceof Error && error.message.includes("pestaña")
-        ? error.message
-        : failed;
+      // Storage refusals are written for the player (a game open in another
+      // tab); browser errors are not.
+      note =
+        error instanceof Error && !(error instanceof DOMException)
+          ? error.message
+          : failed;
     }
     await onchange();
     await tick();

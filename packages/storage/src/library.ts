@@ -608,6 +608,15 @@ export async function setHidden(
   });
 }
 
+/** Whether a session of this game holds its writer lock (states.ts), in any
+ * profile: `cartivo:game:<hash>` or `cartivo:game:<hash>@<profile>`. */
+export const gameOpen = (hash: string, held: readonly string[]) =>
+  held.some(
+    (name) =>
+      name === `cartivo:game:${hash}` ||
+      name.startsWith(`cartivo:game:${hash}@`),
+  );
+
 /**
  * «Eliminar del dispositivo»: the title leaves every profile's list and its
  * copy is deleted now, under the lock writers and pruning share. Partidas
@@ -616,6 +625,22 @@ export async function setHidden(
 export function deleteTitle(hash: string) {
   if (!isSha256(hash)) return Promise.resolve();
   return locks().request("cartivo:catalogue", async () => {
+    // A disc playing in another tab reads its copy on demand: never delete
+    // it under that session (any profile's game lock counts). A session
+    // closed a moment ago may still be releasing it: retry briefly.
+    let open = true;
+    for (let attempt = 0; attempt < 10 && open; attempt++) {
+      if (attempt) await new Promise((r) => setTimeout(r, 100));
+      const { held = [] } = await locks().query();
+      open = gameOpen(
+        hash,
+        held.map((lock) => lock.name ?? ""),
+      );
+    }
+    if (open)
+      throw Error(
+        "Este juego está abierto en otra pestaña. Ciérralo antes de eliminarlo.",
+      );
     await removeTitle(hash);
     const roms = await romsDir(false).catch(() => undefined);
     if (roms) await removeRom(roms, hash);

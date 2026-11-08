@@ -379,3 +379,13 @@ test("a personal entry keeps only a true «hidden» flag", () => {
   assert.equal(parseEntry({ ...entry, hidden: true })?.hidden, true);
   assert.equal(parseEntry({ ...entry, hidden: "yes" })?.hidden, undefined);
 });
+
+test("a game open in any profile's tab blocks deleting its copy", async () => {
+  const { gameOpen } = await import("../packages/storage/src/library.ts");
+  const hash = "a".repeat(64);
+  assert.equal(gameOpen(hash, []), false);
+  assert.equal(gameOpen(hash, [`cartivo:game:${hash}`]), true);
+  assert.equal(gameOpen(hash, [`cartivo:game:${hash}@ana`]), true);
+  assert.equal(gameOpen(hash, [`cartivo:game:${"b".repeat(64)}`]), false);
+  assert.equal(gameOpen(hash, ["cartivo:catalogue"]), false);
+});
