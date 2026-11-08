@@ -107,9 +107,10 @@ test("a file dropped on a card opens with that console", async ({ page }) => {
 test("clicking anywhere on a card opens its game picker", async ({ page }) => {
   await page.goto("/");
   const chooser = page.waitForEvent("filechooser");
+  // The logo is the card: a click on it, not on «Jugar», still plays.
   await page
     .getByRole("article", { name: "NES", exact: true })
-    .getByRole("heading")
+    .locator("img.cover-art")
     .click();
   expect((await chooser).isMultiple()).toBe(false);
 });

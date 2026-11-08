@@ -107,9 +107,9 @@ test("Ajustes shows Pantalla, Sonido, Controles, Interfaz, Almacenamiento and Av
   // Animations follow the system unless the player chooses.
   await tab("Interfaz").click();
   const motion = page.getByRole("group", { name: "Animaciones" });
-  await motion.getByRole("radio", { name: /^Reducidas/ }).check();
+  await motion.getByText("Reducidas", { exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
-  await motion.getByRole("radio", { name: /^Activadas/ }).check();
+  await motion.getByText("Activadas", { exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-motion", "full");
   // Sound and core choices survive a reload, which keeps the tab.
   await tab("Sonido").click();
