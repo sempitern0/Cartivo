@@ -70,7 +70,7 @@ Problemas reales que han costado iteraciones. Comprobarlos ahorra rondas de CI:
 - **PS1:** el núcleo amplía el color de 15 bits (0x20 → 0x21); los oráculos lo tienen en cuenta.
 - **Lienzo transferido (N64):** tras `transferControlToOffscreen` el `<canvas>` no admite `getContext` ni cambios de `width`/`height`. Las E2E leen los píxeles con una captura de pantalla (`tests/e2e/n64.spec.ts`), no con `getImageData`.
 - **Emscripten con Asyncify (N64):** una exportación que cambia de fibra pierde su valor de retorno. Los resultados se leen con getters (`n64_audio_frames`, `n64_snapshot_size`, `n64_restore_status`).
-- **E2E pesadas:** N64 (WebGL2 por software), el disco de PS1 y los 100 ciclos se turnan entre workers (`heavy` en `tests/e2e/fixtures.ts`). Una prueba nueva igual de pesada lleva `{ tag: "@heavy" }` o, para un archivo entero, `test.use({ heavy: true })`.
+- **E2E pesadas:** N64 (WebGL2 por software), el disco de PS1 y los 100 ciclos corren solas, sin otra prueba a la vez en otro worker (`heavy` en `tests/e2e/fixtures.ts`, candado en `tests/e2e/turns.ts`): si coinciden con otra emulación, el reproductor se pausa por lentitud. Una prueba nueva igual de pesada lleva `{ tag: "@heavy" }` o, para un archivo entero, `test.use({ heavy: true })`.
 - **Pruebas de tiempo real:** `tests/background-commit.test.ts` mide menos de 5 ms y puede fallar en un CI cargado. Se relanza el job; no es una regresión.
 
 ## Evitar búsquedas inútiles
