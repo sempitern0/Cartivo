@@ -52,7 +52,7 @@
     },
     {
       "path": "dist/n64-core.wasm",
-      "sha256": "512ce64d84bf4b5eb4888b68e4db0f055c161ca535f482b1dcc2bb0354c47f6d"
+      "sha256": "ccfe1bce0ad66fd8e5bfdf14c54adc4ae0d8207a44f2b78294057549e2c76223"
     }
   ]
 }
