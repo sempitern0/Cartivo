@@ -12,6 +12,30 @@
     "repository": "https://github.com/libretro/pcsx_rearmed"
   },
   {
+    "name": "libchdr (deps/libchdr)",
+    "version": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
+    "license": "BSD-3-Clause",
+    "repository": "https://github.com/libretro/pcsx_rearmed"
+  },
+  {
+    "name": "LZMA SDK 26.02 decoder (deps/libchdr/deps)",
+    "version": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
+    "license": "LicenseRef-public-domain",
+    "repository": "https://github.com/libretro/pcsx_rearmed"
+  },
+  {
+    "name": "Zstandard 1.5.7 decoder (deps/libchdr/deps)",
+    "version": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
+    "license": "BSD-3-Clause OR GPL-2.0-only",
+    "repository": "https://github.com/libretro/pcsx_rearmed"
+  },
+  {
+    "name": "dr_flac (deps/libchdr/include/dr_libs)",
+    "version": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
+    "license": "Unlicense OR MIT-0",
+    "repository": "https://github.com/libretro/pcsx_rearmed"
+  },
+  {
     "name": "libretro API header and libretro-common",
     "version": "7b0e8f8fadfbce3d170d195b9d9eecaabfa08c8e",
     "license": "MIT",

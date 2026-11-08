@@ -16,7 +16,7 @@
   ],
   "biosRequired": false,
   "bios": "None: the core's own HLE BIOS (libpcsxcore/psxbios.c) is forced; no system directory is offered, so Sony's BIOS is never looked for",
-  "sources": 56,
+  "sources": 72,
   "patchedFiles": [],
   "exports": [
     "malloc",
@@ -35,7 +35,11 @@
     "cartivo_save_state",
     "cartivo_load_state",
     "cartivo_frame_rate",
-    "cartivo_set_analog"
+    "cartivo_set_analog",
+    "cartivo_disc_add",
+    "cartivo_disc_count",
+    "cartivo_disc_index",
+    "cartivo_disc_insert"
   ],
   "imports": [
     "env.cartivo_vfs_open",
@@ -51,11 +55,11 @@
     "wasi_snapshot_preview1.fd_seek",
     "env.__syscall_getdents64"
   ],
-  "dependencies": 7,
+  "dependencies": 11,
   "files": [
     {
       "path": "dist/pcsx-rearmed.wasm",
-      "sha256": "a1dced8399013aca1a18f77758db010ad5b1593310b9e025be0e25f1e5f260c7"
+      "sha256": "db151072ea7742044e1557275eb9697680295540e494f600f54ea5db1a5ed38f"
     }
   ]
 }
