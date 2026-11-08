@@ -1,11 +1,13 @@
 <!--
-  Original Cartivo console badge: the brand frame (teal → coral edge, soft
-  sheen, «C» seal) around a generic hardware silhouette drawn for Cartivo.
-  No third-party logos or trade dress (docs/DESIGN.md). Decorative: the card
-  heading names the console.
+  Console badge: the console's logo in the Cartivo frame when there is one
+  (console-art.ts), otherwise the brand frame (teal → coral edge, soft sheen,
+  «C» seal) around a generic hardware silhouette drawn for Cartivo.
+  Decorative: the card heading names the console.
 -->
 <script lang="ts">
+  import { consoleLogo } from "./console-art.ts";
   let { system }: { system: string } = $props();
+  const logo = $derived(consoleLogo(system));
 
   const handheld =
     '<rect x="13" y="5" width="22" height="38" rx="3.5"/><path d="M19 29.5v6.5M15.75 32.75h6.5"/><circle cx="28.5" cy="34" r="1.7" class="dot"/><circle cx="32" cy="30.5" r="1.7" class="dot"/>';
@@ -25,6 +27,10 @@
   };
 </script>
 
+{#if logo}
+  <!-- The image carries its own frame and seal. -->
+  <img class="badge logo" src={logo} alt="" draggable="false" decoding="async" />
+{:else}
 <span class="badge" aria-hidden="true">
   <svg
     class="glyph"
@@ -43,13 +49,14 @@
     /></svg
   >
 </span>
+{/if}
 
 <style>
   .badge {
     position: relative;
     display: grid;
     place-items: center;
-    width: 76px;
+    width: var(--badge-size, 76px);
     aspect-ratio: 1;
     border-radius: 22px;
     border: 2px solid transparent;
@@ -67,6 +74,18 @@
     transition:
       transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
       box-shadow 0.28s ease;
+  }
+  /* A logo already has the frame: only its size, shape and lift remain. */
+  .badge.logo {
+    display: block;
+    height: auto;
+    border: 0;
+    border-radius: 24%;
+    background: none;
+    box-shadow: none;
+    filter: drop-shadow(0 10px 16px #000a);
+    overflow: visible;
+    user-select: none;
   }
   /* The diagonal sheen of the brand frame. */
   .badge::before {

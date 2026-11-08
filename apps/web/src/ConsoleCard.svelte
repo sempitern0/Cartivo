@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import ConsoleIcon from "./ConsoleIcon.svelte";
+  import { consoleLogo } from "./console-art.ts";
   import { accentOf } from "./accent.ts";
   import { hasFiles } from "./game-source.ts";
   import { icons } from "./icons.ts";
@@ -38,6 +39,8 @@
     ondropfiles: (files: File[]) => void;
   } = $props();
 
+  /** The logo also tints the card's top as a soft, blurred glow. */
+  const art = $derived(consoleLogo(system.id));
   /** A dragged file is over this very card. */
   let over = $state(false);
 
@@ -90,7 +93,9 @@
   class:dragging
   class:over
   class:waiting
-  style={`--accent: ${accentOf(system)}`}
+  class:art={!!art}
+  style:--accent={accentOf(system)}
+  style:--art={art ? `url("${art}")` : undefined}
   aria-labelledby={`console-${system.id}`}
   use:pointerTarget
 >
@@ -171,6 +176,34 @@
   }
   .console-card > :global(.badge) {
     justify-self: start;
+    --badge-size: 104px;
+  }
+  /* The logo, blurred and faint, lights the top of the card. It fades out
+     before the text, which also gets a shadow, so the name and formats keep
+     their contrast over any logo. */
+  .console-card.art {
+    isolation: isolate;
+  }
+  .console-card.art::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--art) 18% 0 / 75% no-repeat;
+    filter: blur(34px) saturate(1.4);
+    opacity: 0.32;
+    clip-path: inset(0 round var(--card-radius));
+    mask-image: linear-gradient(to bottom, #000 10%, transparent 62%);
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+  }
+  .console-card.art:hover::before,
+  .console-card.art:has(.play:focus-visible)::before {
+    opacity: 0.45;
+  }
+  .console-text h2,
+  .console-text > p {
+    text-shadow: 0 1px 2px #0009;
   }
   .console-text {
     min-width: 0;

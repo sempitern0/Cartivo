@@ -85,9 +85,8 @@ test("keyboard drawing lights the pressed key during the test", async ({
 });
 
 test("a file dropped on a card opens with that console", async ({ page }) => {
-  const { controlDemo } = await import(
-    "../../packages/fixtures/src/control-demo.ts"
-  );
+  const { controlDemo } =
+    await import("../../packages/fixtures/src/control-demo.ts");
   await page.goto("/");
   const card = page.getByRole("article", { name: "NES", exact: true });
   const bytes = [...controlDemo()];
@@ -116,9 +115,8 @@ test("clicking anywhere on a card opens its game picker", async ({ page }) => {
 });
 
 test("Cargar ROM replaces the game with a single session", async ({ page }) => {
-  const { controlDemo } = await import(
-    "../../packages/fixtures/src/control-demo.ts"
-  );
+  const { controlDemo } =
+    await import("../../packages/fixtures/src/control-demo.ts");
   await page.goto("/");
   await startDemo(page, "NES");
   await playing(page);
@@ -233,4 +231,30 @@ test("the logo returns to the start and the console cards line up", async ({
   for (const cards of byRow.values())
     expect(new Set(cards.map((c) => c.button)).size).toBe(1);
   await noHorizontalScroll(page);
+});
+
+test("every console card shows its logo, loaded and decorative", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const logos = page
+    .getByRole("list", { name: "Consolas" })
+    .getByRole("article")
+    .locator("img.badge");
+  await expect(logos).toHaveCount(
+    await page
+      .getByRole("list", { name: "Consolas" })
+      .getByRole("article")
+      .count(),
+  );
+  // Each image decoded (no broken asset) and hidden from screen readers.
+  await expect
+    .poll(() =>
+      logos.evaluateAll((images) =>
+        (images as HTMLImageElement[]).every(
+          (img) => img.alt === "" && img.naturalWidth === 256,
+        ),
+      ),
+    )
+    .toBe(true);
 });
