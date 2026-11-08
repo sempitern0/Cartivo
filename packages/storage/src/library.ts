@@ -13,7 +13,9 @@ import {
   migratedProfiles,
   migrateTitles,
   overlayCatalogue,
+  publicEntry,
   publishTitle,
+  removeTitle,
 } from "./catalogue.ts";
 import type { DiscPart } from "./disc-identity.ts";
 
@@ -29,6 +31,8 @@ export type LibraryEntry = {
   lastPlayedAt: number;
   /** RGBA 128×120 thumbnail of the last «Al salir» snapshot. */
   preview?: Uint8ClampedArray;
+  /** «Ocultar para mí»: this profile does not list it (personal index only). */
+  hidden?: true;
   /**
    * A disc (ADR-015): its files in roms/<hash>/, the boot file first. Absent
    * for a cartridge, whose copy is the single file roms/<hash>.
@@ -94,6 +98,7 @@ export function parseEntry(value: unknown): LibraryEntry | undefined {
     e.preview.length === 128 * 120 * 4
   )
     entry.preview = e.preview;
+  if (e.hidden === true) entry.hidden = true;
   if (e.files !== undefined) {
     if (
       !Array.isArray(e.files) ||
@@ -537,6 +542,8 @@ async function putEntry(
       lastPlayedAt: now,
     };
     if (!game.files) delete entry.files;
+    // Opening the game again shows it again for this profile.
+    delete entry.hidden;
     store.put(entry);
     await done(tx);
   });
@@ -579,6 +586,39 @@ export async function rememberDisc(
       size: bytes,
       files,
     });
+  });
+}
+
+/** «Ocultar para mí» / «Mostrar»: only this profile's list changes. */
+export async function setHidden(
+  entry: LibraryEntry,
+  hidden: boolean,
+  profile = PRINCIPAL,
+) {
+  await withIndex(profile, async (db) => {
+    const tx = db.transaction("games", "readwrite");
+    const store = tx.objectStore("games");
+    const own = parseEntry(await request(store.get(entry.hash)));
+    // A title this profile never played gets a history entry to hold it.
+    const next: LibraryEntry = own ?? { ...publicEntry(entry) };
+    if (hidden) next.hidden = true;
+    else delete next.hidden;
+    store.put(next);
+    await done(tx);
+  });
+}
+
+/**
+ * «Eliminar del dispositivo»: the title leaves every profile's list and its
+ * copy is deleted now, under the lock writers and pruning share. Partidas
+ * and battery RAM are separate stores and stay.
+ */
+export function deleteTitle(hash: string) {
+  if (!isSha256(hash)) return Promise.resolve();
+  return locks().request("cartivo:catalogue", async () => {
+    await removeTitle(hash);
+    const roms = await romsDir(false).catch(() => undefined);
+    if (roms) await removeRom(roms, hash);
   });
 }
 

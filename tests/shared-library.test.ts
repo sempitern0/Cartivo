@@ -69,3 +69,16 @@ test("invalid metadata cannot advertise an actionable snapshot", () => {
   ])
     assert.equal(validStateMeta(value), false);
 });
+
+test("hiding is personal; a disc's files are shared, its history is not", () => {
+  const files = [{ name: "Juego.cue", size: 80 }];
+  const disc = { ...title, system: "ps1", files, hidden: true as const };
+  const shared = publicEntry(disc);
+  assert.deepEqual(shared.files, files);
+  assert.equal(shared.hidden, undefined, "hiding never reaches the catalogue");
+  const [mine] = overlayCatalogue([shared], [disc]);
+  assert.equal(mine.hidden, true);
+  const [theirs] = overlayCatalogue([shared], []);
+  assert.equal(theirs.hidden, undefined);
+  assert.deepEqual(theirs.files, files);
+});

@@ -420,7 +420,10 @@
             : "Este navegador no guarda copias de tus juegos (ventana privada o almacenamiento restringido): «Continuar» no estará disponible y tus partidas podrían borrarse al cerrarlo. Exporta las que quieras conservar desde Partidas."}
         </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
-      <RecentGames {games} oncontinue={continueGame} />
+      <RecentGames
+        games={games.filter((g) => !g.hidden)}
+        oncontinue={continueGame}
+      />
       <ul
         class="consoles"
         aria-label="Consolas"

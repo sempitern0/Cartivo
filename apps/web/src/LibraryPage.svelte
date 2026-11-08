@@ -3,10 +3,13 @@
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
   import { tick } from "svelte";
-  import { removeTitle } from "../../../packages/storage/src/catalogue.ts";
   import { playLabel, type GameCard } from "./library-view.ts";
+  import { profiles } from "./profile.svelte.ts";
+  import { eraseProgress } from "../../../packages/storage/src/progress.ts";
   import {
+    deleteTitle,
     rememberGames,
+    setHidden,
     viewGames,
     writeRemember,
     type GameSort,
@@ -16,9 +19,10 @@
     system as findSystem,
     type SystemInfo,
   } from "../../../packages/runtime/src/systems.ts";
-  // «Tus juegos» (#juegos, ADR-012): every remembered game with search,
-  // console filter and order, the remember switch and the space they use.
-  // Removing a game never touches its Partidas or SRAM.
+  // «Tus juegos» (#juegos, ADR-012/018): the device's shared titles with
+  // search, console filter and order, the remember switch and the space they
+  // use. «Opciones» separates three scopes: hide it for me, erase my
+  // progress, delete it from the device (every profile; Partidas stay).
   let {
     games,
     loading = false,
@@ -39,29 +43,34 @@
   } = $props();
   let remember = $state(rememberGames());
   let note = $state("");
-  let confirming = $state<string>();
+  /** The two irreversible actions ask first, in place. */
+  type Risky = "erase" | "delete";
+  let confirming = $state<{ hash: string; action: Risky }>();
   let managing = $state<string>();
   let libraryElement: HTMLElement;
-  async function confirmRemove(hash: string) {
-    confirming = hash;
+  async function ask(hash: string, action: Risky) {
+    confirming = { hash, action };
     await tick();
-    document.getElementById(`remove-${hash}`)?.focus();
+    document.getElementById(`confirm-${hash}`)?.focus();
   }
-  async function cancelRemove(hash: string) {
+  async function cancel(hash: string) {
     confirming = undefined;
     await tick();
     document.getElementById(`manage-${hash}`)?.focus();
   }
+  /** Titles this profile hid; they stay for everyone else. */
+  const listed = $derived(games.filter((g) => !g.hidden));
+  const hidden = $derived(games.filter((g) => g.hidden));
   /** Consoles that have at least one game, in the order of systems.ts. */
   const consoles = $derived.by(() => {
-    const present = new Set(games.map((g) => g.system));
+    const present = new Set(listed.map((g) => g.system));
     return availableSystems().filter((s) => present.has(s.id));
   });
   $effect(() => {
-    if (!loading && systemFilter && !games.some((game) => game.system === systemFilter))
+    if (!loading && systemFilter && !listed.some((game) => game.system === systemFilter))
       systemFilter = "";
   });
-  const shown = $derived(viewGames(games, { query, system: systemFilter, sort }));
+  const shown = $derived(viewGames(listed, { query, system: systemFilter, sort }));
   const megabytes = (bytes: number) =>
     `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
   // The browser's own estimate, refreshed whenever the list changes.
@@ -89,24 +98,55 @@
         : "Los juegos nuevos no se recordarán. Los de la lista siguen aquí."
       : "El navegador no permite guardar esta preferencia.";
   }
-  async function remove(entry: GameCard) {
+  /** Runs one option, reports it and reloads the list. */
+  async function act(
+    entry: GameCard,
+    work: () => Promise<unknown>,
+    done: string,
+    failed: string,
+  ) {
     confirming = undefined;
     managing = undefined;
     try {
-      await removeTitle(entry.hash);
-      note = `${entry.name} ya no está en la lista. Sus partidas se conservan.`;
-    } catch {
-      note = "No se pudo quitar el juego. Inténtalo de nuevo.";
+      await work();
+      note = done;
+    } catch (error) {
+      note = error instanceof Error && error.message.includes("pestaña")
+        ? error.message
+        : failed;
     }
     await onchange();
     await tick();
     (libraryElement.querySelector<HTMLInputElement>('input[type="search"]') ?? libraryElement).focus();
   }
+  const hide = (entry: GameCard, value: boolean) =>
+    act(
+      entry,
+      () => setHidden(entry, value, profiles.id),
+      value
+        ? `${entry.name} ya no aparece para ti. Los demás perfiles lo siguen viendo; lo tienes en «Ocultos».`
+        : `${entry.name} vuelve a tu lista.`,
+      "No se pudo cambiar la lista. Inténtalo de nuevo.",
+    );
+  const erase = (entry: GameCard) =>
+    act(
+      entry,
+      () => eraseProgress(entry.system, entry.hash, profiles.id),
+      `Tus partidas y tu guardado de ${entry.name} se han borrado.`,
+      "No se pudo borrar tu progreso. Inténtalo de nuevo.",
+    );
+  const remove = (entry: GameCard) =>
+    act(
+      entry,
+      () => deleteTitle(entry.hash),
+      `${entry.name} se ha eliminado del dispositivo. Las partidas se conservan.`,
+      "No se pudo eliminar el juego. Inténtalo de nuevo.",
+    );
 </script>
 
 <section bind:this={libraryElement} class="library" aria-label="Tus juegos" tabindex="-1">
   <p class="hint">Biblioteca compartida con todos los perfiles de este dispositivo. Partidas y recientes propios para cada perfil.</p>
-  {#if games.length}
+  {#if listed.length}
     <div class="filters">
       <label class="search"
         >{@html icons.search}<input
@@ -151,13 +191,21 @@
             </div>
             {#if entry.stateUnavailable}<p class="hint">Guardado de otra versión. Revisa Partidas antes de sobrescribirlo.</p>{/if}
             <div class="actions">
-              {#if confirming === entry.hash}
-                <span class="hint">Se quitará de todos los perfiles. Sus partidas se conservan.</span>
-                <button id={`remove-${entry.hash}`} class="danger" onclick={() => remove(entry)}
-                  >Quitar {entry.name}</button
-                ><button onclick={() => cancelRemove(entry.hash)}
-                  >Cancelar</button
+              {#if confirming?.hash === entry.hash}
+                <span class="hint"
+                  >{confirming.action === "delete"
+                    ? "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan."
+                    : "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer."}</span
                 >
+                <button
+                  id={`confirm-${entry.hash}`}
+                  class="danger"
+                  onclick={() =>
+                    confirming?.action === "delete" ? remove(entry) : erase(entry)}
+                  >{confirming.action === "delete"
+                    ? `Eliminar ${entry.name}`
+                    : `Borrar mi progreso en ${entry.name}`}</button
+                ><button onclick={() => cancel(entry.hash)}>Cancelar</button>
               {:else}
                 <button
                   class="primary"
@@ -171,11 +219,23 @@
                   aria-label={`Opciones de ${entry.name}`}
                   aria-expanded={managing === entry.hash}
                   aria-controls={`options-${entry.hash}`}
-                  onclick={() => (managing = managing === entry.hash ? undefined : entry.hash)}>Opciones</button>
-                <div id={`options-${entry.hash}`} hidden={managing !== entry.hash}>
-                <button
-                  aria-label={`Quitar ${entry.name} de la lista`}
-                  onclick={() => confirmRemove(entry.hash)}>Quitar de la biblioteca compartida</button>
+                  onclick={() =>
+                    (managing = managing === entry.hash ? undefined : entry.hash)}
+                  >Opciones</button
+                >
+                <div
+                  id={`options-${entry.hash}`}
+                  class="options"
+                  hidden={managing !== entry.hash}
+                >
+                  <button onclick={() => hide(entry, true)}>Ocultar para mí</button
+                  ><button onclick={() => ask(entry.hash, "erase")}
+                    >Borrar mi progreso</button
+                  ><button
+                    class="danger"
+                    onclick={() => ask(entry.hash, "delete")}
+                    >Eliminar del dispositivo</button
+                  >
                 </div>
               {/if}
             </div>
@@ -188,11 +248,28 @@
     <p class="hint">{usage}</p>
   {:else if loading}
     <p class="hint empty" role="status">Cargando tus juegos…</p>
+  {:else if hidden.length}
+    <p class="hint empty">Has ocultado todos los juegos de este dispositivo.</p>
   {:else}
     <p class="hint empty">
       Aún no hay juegos. Elige una consola y carga una ROM para empezar.
       <a href="#inicio">Elegir consola</a>
     </p>
+  {/if}
+  {#if hidden.length}
+    <details class="hidden-games">
+      <summary>Ocultos para ti ({hidden.length})</summary>
+      <ul class="plain">
+        {#each hidden as entry (entry.hash)}
+          <li>
+            <span>{entry.name}</span><button
+              aria-label={`Mostrar ${entry.name}`}
+              onclick={() => hide(entry, false)}>Mostrar</button
+            >
+          </li>
+        {/each}
+      </ul>
+    </details>
   {/if}
   <label class="toggle"
     ><input type="checkbox" checked={remember} onchange={toggle} />
@@ -315,6 +392,36 @@
     min-height: 44px;
     padding: 8px 14px;
     font-size: 14px;
+  }
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-basis: 100%;
+  }
+  .hidden-games {
+    margin: 20px 0 8px;
+    color: var(--muted);
+  }
+  .hidden-games summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  .plain {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: none;
+  }
+  .plain li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .plain button {
+    min-height: 44px;
   }
   .danger {
     border-color: var(--coral);

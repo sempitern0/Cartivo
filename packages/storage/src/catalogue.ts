@@ -24,11 +24,13 @@ export function overlayCatalogue(
   const own = new Map(personal.map((entry) => [entry.hash, entry]));
   return shared.map((entry) => {
     const history = own.get(entry.hash);
-    return {
+    const card: LibraryEntry = {
       ...publicEntry(entry),
       lastPlayedAt: history?.lastPlayedAt ?? 0,
       preview: history?.preview,
     };
+    if (history?.hidden) card.hidden = true;
+    return card;
   });
 }
 async function open() {

@@ -366,3 +366,16 @@ test("a disc that does not fit is refused before copying, with its size", async 
   // Without an estimate the copy is attempted (and may still fail cleanly).
   assert.equal(await spaceProblem(600 * mb, async () => ({})), undefined);
 });
+
+test("a personal entry keeps only a true «hidden» flag", () => {
+  const entry = {
+    hash: "a".repeat(64),
+    system: "nes",
+    name: "Juego.nes",
+    size: 1,
+    addedAt: 1,
+    lastPlayedAt: 1,
+  };
+  assert.equal(parseEntry({ ...entry, hidden: true })?.hidden, true);
+  assert.equal(parseEntry({ ...entry, hidden: "yes" })?.hidden, undefined);
+});

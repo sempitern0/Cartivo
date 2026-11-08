@@ -1,5 +1,5 @@
 /** IndexedDB transaction + two verified generations. Saves never enter Cache Storage. */
-import { locks, openDatabase } from "./idb.ts";
+import { done, locks, openDatabase } from "./idb.ts";
 import { PRINCIPAL, scoped } from "./profiles.ts";
 type Generation = { bytes: Uint8Array; sha256: string };
 type RecordValue = { current: Generation; previous?: Generation };
@@ -120,6 +120,13 @@ export class SramStore {
       tx.onabort = () => reject(tx.error ?? Error("Guardado cancelado"));
     });
     this.good = current;
+  }
+  /** Deletes this game's battery RAM (both generations): «Borrar mi progreso». */
+  async erase() {
+    const tx = this.db.transaction("sram", "readwrite");
+    tx.objectStore("sram").delete(this.key);
+    await done(tx);
+    this.good = undefined;
   }
   close() {
     this.db.close();

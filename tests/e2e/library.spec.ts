@@ -17,9 +17,8 @@ test.skip(
  * pixel of a tile), so each variant is a different game for the library.
  */
 async function game(name = NAME, variant = 0) {
-  const { controlDemo } = await import(
-    "../../packages/fixtures/src/control-demo.ts"
-  );
+  const { controlDemo } =
+    await import("../../packages/fixtures/src/control-demo.ts");
   const rom = controlDemo();
   rom[rom.length - 1] ^= variant;
   return {
@@ -52,6 +51,22 @@ const library = (page: Page) =>
   page.getByRole("region", { name: "Tus juegos" });
 const games = (page: Page) =>
   page.getByRole("link", { name: "Tus juegos", exact: true }).click();
+
+/** «Opciones» → «Eliminar del dispositivo» → confirm (every profile). */
+async function deleteFromDevice(page: Page, name: string) {
+  await library(page)
+    .getByRole("button", { name: `Opciones de ${name}` })
+    .click();
+  await library(page)
+    .getByRole("button", { name: "Eliminar del dispositivo" })
+    .click();
+  await library(page)
+    .getByRole("button", { name: `Eliminar ${name}`, exact: true })
+    .click();
+  await expect(library(page).getByRole("status")).toContainText(
+    "Las partidas se conservan",
+  );
+}
 
 /** Opens a game and leaves: it is remembered without asking. */
 async function playAndLeave(page: Page, name = NAME, variant = 0) {
@@ -171,22 +186,11 @@ test("turning remembering off keeps new games out of the list", async ({
   ).not.toBeChecked();
 });
 
-test("removing a game from the list keeps its Partidas", async ({ page }) => {
+test("deleting a game from the device keeps its Partidas", async ({ page }) => {
   await page.goto("/");
   await playAndLeave(page);
   await games(page);
-  await library(page)
-    .getByRole("button", { name: `Opciones de ${NAME}` })
-    .click();
-  await library(page)
-    .getByRole("button", { name: `Quitar ${NAME} de la lista` })
-    .click();
-  await library(page)
-    .getByRole("button", { name: `Quitar ${NAME}`, exact: true })
-    .click();
-  await expect(library(page).getByRole("status")).toContainText(
-    "Sus partidas se conservan",
-  );
+  await deleteFromDevice(page, NAME);
   await page.getByRole("link", { name: "Volver al inicio" }).click();
   await expect(continueCard(page)).toHaveCount(0);
   // Reopening the file still finds the exit snapshot.
@@ -194,6 +198,42 @@ test("removing a game from the list keeps its Partidas", async ({ page }) => {
   await expect(
     page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
   ).toBeVisible();
+});
+
+test("«Borrar mi progreso» erases this profile's Partidas; hiding is reversible", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  await games(page);
+  const play = library(page).locator("li.card button.primary");
+  await expect(play).toHaveText("Continuar");
+  await library(page)
+    .getByRole("button", { name: `Opciones de ${NAME}` })
+    .click();
+  await library(page)
+    .getByRole("button", { name: "Borrar mi progreso" })
+    .click();
+  const confirm = library(page).getByRole("button", {
+    name: `Borrar mi progreso en ${NAME}`,
+  });
+  await expect(confirm).toBeFocused();
+  await confirm.click();
+  await expect(library(page).getByRole("status")).toContainText(
+    "se han borrado",
+  );
+  await expect(play).toHaveText("Jugar");
+
+  await library(page)
+    .getByRole("button", { name: `Opciones de ${NAME}` })
+    .click();
+  await library(page).getByRole("button", { name: "Ocultar para mí" }).click();
+  await expect(library(page).locator("li.card")).toHaveCount(0);
+  await library(page).getByText("Ocultos para ti (1)").click();
+  await library(page)
+    .getByRole("button", { name: `Mostrar ${NAME}` })
+    .click();
+  await expect(library(page).locator("li.card")).toHaveCount(1);
 });
 
 test("a damaged copy on the device is refused with a clear message", async ({
@@ -511,16 +551,7 @@ test("legacy libraries and v1 snapshots migrate without copying progress to anot
     digest: "old-digest",
     indexedBytes: undefined,
   });
-  await library(page)
-    .getByRole("button", { name: "Opciones de Legado.nes" })
-    .click();
-  await library(page)
-    .getByRole("button", { name: "Quitar Legado.nes de la lista" })
-    .click();
-  await library(page)
-    .getByRole("button", { name: "Quitar Legado.nes", exact: true })
-    .click();
-  await expect(library(page)).toContainText("Sus partidas se conservan");
+  await deleteFromDevice(page, "Legado.nes");
   await page.reload();
   await expect(library(page).getByRole("listitem")).toHaveCount(0);
 });
@@ -602,21 +633,7 @@ async function openDisc(page: Page) {
 const discCard = (page: Page) =>
   page.getByRole("article", { name: DISC, exact: true });
 
-async function forgetDisc(page: Page) {
-  await games(page);
-  await library(page)
-    .getByRole("button", { name: `Quitar ${DISC} de la lista` })
-    .click();
-  await library(page)
-    .getByRole("button", { name: `Quitar ${DISC}`, exact: true })
-    .click();
-  await expect(library(page).getByRole("status")).toContainText(
-    "Sus partidas se conservan",
-  );
-  await page.getByRole("link", { name: "Volver al inicio" }).click();
-}
-
-test("a PS1 disc is remembered while it plays and its copy, shared by profiles, continues it", async ({
+test("a PS1 disc is copied while it plays and every profile opens that copy", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -630,8 +647,9 @@ test("a PS1 disc is remembered while it plays and its copy, shared by profiles, 
   await exit(page);
   await expect(discCard(page)).toContainText("PlayStation");
 
-  // A second profile opening the same files reuses that copy; forgetting
-  // the disc there keeps it for the first profile.
+  // Another profile sees the shared disc and plays it without its files.
+  let chooser = false;
+  page.on("filechooser", () => (chooser = true));
   await page
     .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
     .click();
@@ -643,14 +661,21 @@ test("a PS1 disc is remembered while it plays and its copy, shared by profiles, 
     .getByRole("list", { name: "Perfiles" })
     .getByRole("button", { name: "Ana", exact: true })
     .click();
-  await openDisc(page);
+  await games(page);
+  await library(page)
+    .getByRole("button", { name: `Jugar ${DISC}` })
+    .click();
   await running(page);
-  await expect(page.getByTestId("toast")).toContainText(
-    "Disco guardado en «Tus juegos»",
-  );
+  await expect(page.getByRole("heading", { name: DISC })).toBeVisible();
   await exit(page);
-  await forgetDisc(page);
-  await expect(discCard(page)).toHaveCount(0);
+  // Hidden for Ana only.
+  await games(page);
+  await library(page)
+    .getByRole("button", { name: `Opciones de ${DISC}` })
+    .click();
+  await library(page).getByRole("button", { name: "Ocultar para mí" }).click();
+  await expect(library(page).locator("li.card")).toHaveCount(0);
+  await page.getByRole("link", { name: "Volver al inicio" }).click();
   await page
     .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
     .click();
@@ -659,21 +684,20 @@ test("a PS1 disc is remembered while it plays and its copy, shared by profiles, 
     .getByRole("button", { name: "Jugador 1", exact: true })
     .click();
 
-  // Without the files: «Continuar» opens the copy on the device.
+  // Jugador 1 still has it: «Continuar» opens the copy after a reload.
   await page.reload();
-  let chooser = false;
-  page.on("filechooser", () => (chooser = true));
   await discCard(page).getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByTestId("toast")).toContainText(
     "Partida cargada: al salir",
   );
   await running(page);
-  await expect(page.getByRole("heading", { name: DISC })).toBeVisible();
   expect(chooser).toBe(false);
   await exit(page);
 
-  // Forgotten here too, its Partidas (and memory card) stay.
-  await forgetDisc(page);
+  // Deleted from the device, its Partidas (and memory card) stay.
+  await games(page);
+  await deleteFromDevice(page, DISC);
+  await page.getByRole("link", { name: "Volver al inicio" }).click();
   await openDisc(page);
   await expect(
     page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
