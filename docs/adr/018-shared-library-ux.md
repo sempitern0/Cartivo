@@ -11,9 +11,13 @@ Elegir consola → cargar ROM → jugar. Los perfiles del dispositivo comparten 
 - `cartivo-catalogue` contiene solo hash, sistema, nombre, tamaño y fecha de incorporación. No guarda capturas ni fechas de juego personales.
 - Los índices `cartivo-library[@perfil]` conservan el historial personal. Al leer la biblioteca se migran los títulos de los perfiles conocidos al catálogo común, sin borrar sus índices antiguos. Un marcador por perfil hace la importación repetible; las bajas explícitas se registran para que otra migración no resucite títulos eliminados.
 - Antes de borrar un perfil se migra su catálogo. La biblioteca compartida permanece, mientras las bases personales se eliminan como antes.
-- Quitar un título requiere una confirmación que indica que afecta a todos los perfiles. No elimina SRAM ni Partidas. Las copias OPFS sin título se limpian en una visita posterior, respetando la antigüedad mínima de 24 horas del archivo. El espacio no se libera necesariamente al instante.
+- **Tres alcances, revisión 2026-11-08:**
+  - **Ocultar para mí:** marca `hidden` en el índice personal. No llega nunca al catálogo, y abrir el archivo otra vez la quita.
+  - **Borrar mi progreso** (`progress.ts`): borra las Partidas y la batería de ese perfil para ese juego. Toma los mismos candados que una sesión, así que un juego abierto en otra pestaña se rechaza.
+  - **Eliminar del dispositivo** (`deleteTitle`): quita el título del catálogo y borra su copia en el momento, bajo `cartivo:catalogue`. Requiere confirmación y no elimina SRAM ni Partidas.
+  - Las copias huérfanas, como las de una carga interrumpida, se siguen limpiando a las 24 horas.
 - La escritura de una ROM y la poda comparten el Web Lock `cartivo:catalogue`, evitando que una limpieza borre una copia mientras se publica.
-- Los juegos en CD siguen abriéndose desde sus archivos; esta PR no añade persistencia de discos, cores ni N64.
+- Los discos de PlayStation se publican en el catálogo con su lista de archivos, que viaja en la entrada pública. Cualquier perfil abre la copia desde `roms/<identidad>/` (ADR-015, revisión 2026-11-08). La copia de discos comparte el candado `cartivo:catalogue` con la de cartuchos y con la poda.
 
 ## Reanudación
 
@@ -37,11 +41,12 @@ Si la actualización está bloqueada por otra pestaña antigua, se informa al us
 - Inicio con instrucción visible; recientes exclusivos del perfil actual y etiquetas de acción acordes al snapshot.
 - Búsqueda y orden de biblioteca conservados al volver de jugar; restauración del foco en el botón de lanzamiento.
 - Gestión de títulos bajo «Opciones» y confirmación explícita de la baja compartida.
-- Ajustes con accesos a interfaz, controles y biblioteca; distribución de consolas estable al cambiar de mando a ratón.
+- Ajustes en seis categorías (revisión 2026-11-08): Pantalla (las opciones de cada consola, las mismas que «Ajustes del juego», en `DisplayOptions.svelte`), Sonido (volumen y silencio del dispositivo, `sound-preferences.ts`), Controles, Interfaz, Almacenamiento y Avanzado (núcleo por consola). Distribución de consolas estable al cambiar de mando a ratón.
+- Pausa unificada (revisión 2026-11-08): Reanudar juego · Guardar ahora (ranura 1) · Partidas · Ajustes del juego · Guardar y salir, en el mismo orden en el menú del mando y en la pausa de teclado y ratón. «Gráficos» pasa a llamarse «Ajustes del juego».
 - Controles táctiles de al menos 44 px en filtros y acciones modificadas; se conserva la regla global de movimiento reducido. Sin dependencias CSS nuevas.
 
 ## Validación y alcance
 
 Pruebas unitarias para aislamiento del catálogo y selección compatible. E2E para compartir un juego entre perfiles, conservar las partidas al borrar un perfil, reanudar una ranura manual, restaurar filtros/foco y migrar índices antiguos sin alterar bytes ni resucitar bajas.
 
-La revisión visual en móvil real y mando físico sigue siendo necesaria. El menú de pausa unificado y una reorganización completa de los paneles del reproductor quedan fuera de esta iteración; se mantiene su comportamiento actual.
+La revisión visual en móvil real y mando físico sigue siendo necesaria. El título del inicio se mantiene visualmente oculto, como pidió el titular.

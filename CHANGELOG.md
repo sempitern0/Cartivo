@@ -381,3 +381,11 @@
 - **Espacio:** si el navegador no tiene sitio suficiente, no se copia nada y se dice cuánto ocupa el disco y cuánto queda libre.
 - **«Continuar»** abre la copia sin pedir los archivos y recalcula la identidad: una copia dañada se rechaza con un mensaje.
 - **Perfiles:** comparten la copia, y olvidarla en un perfil no la borra para otro. La tarjeta de memoria y las Partidas se conservan. Las carpetas huérfanas se limpian como los cartuchos.
+
+### Biblioteca común, pausa unificada y Ajustes por categorías (PR #38)
+
+- **Biblioteca común:** los títulos se comparten entre los perfiles del dispositivo, y cada perfil conserva sus partidas, recientes y capturas ([ADR-018](docs/adr/018-shared-library-ux.md)). La tarjeta dice «Jugar», «Continuar» o «Cargar partida» según los guardados compatibles. Los discos de PlayStation también entran en el catálogo común.
+- **Opciones de cada juego:** «Ocultar para mí» (reversible desde «Ocultos para ti»), «Borrar mi progreso» (Partidas y batería de este perfil) y «Eliminar del dispositivo» (para todos, liberando la copia). Las dos últimas piden confirmación.
+- **Pausa unificada:** Reanudar juego · Guardar ahora · Partidas · Ajustes del juego · Guardar y salir, con teclado, ratón o mando. «Gráficos» pasa a «Ajustes del juego».
+- **Ajustes:** Pantalla, Sonido (volumen y silencio recordados), Controles, Interfaz, Almacenamiento y Avanzado.
+- El inicio vuelve a no mostrar el título «Elige una consola», como se pidió antes.
