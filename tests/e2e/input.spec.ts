@@ -29,6 +29,7 @@ test.beforeEach(async ({ page }) => {
   });
   await page.goto("/");
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
+  await page.getByRole("tab", { name: "Controles" }).click();
 });
 test("keyboard scope, release and Tab escape", async ({ page }) => {
   const a = page.locator("[data-action=a]");

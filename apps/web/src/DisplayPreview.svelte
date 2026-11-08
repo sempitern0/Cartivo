@@ -63,16 +63,18 @@
   const centre = $derived(spriteCentre(video.sourceWidth, video.sourceHeight));
   const percent = (part: number, whole: number) => `${(part / whole) * 100}%`;
 
-  /** Draws the sample at the console's source resolution. */
-  function paint(canvas: HTMLCanvasElement, source: VideoDescriptor) {
-    const draw = ({ sourceWidth: w, sourceHeight: h }: VideoDescriptor) => {
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext("2d")?.putImageData(new ImageData(samplePixels(w, h), w, h), 0, 0);
-    };
-    draw(source);
-    return { update: draw };
-  }
+  /**
+   * The sample at the console's source resolution, as an image: the page
+   * keeps a single <canvas>, the game's.
+   */
+  const sample = $derived.by(() => {
+    const { sourceWidth: w, sourceHeight: h } = video;
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d")?.putImageData(new ImageData(samplePixels(w, h), w, h), 0, 0);
+    return canvas.toDataURL();
+  });
 </script>
 
 <svelte:window bind:innerWidth={windowWidth} bind:innerHeight={windowHeight} />
@@ -85,26 +87,27 @@
         <span class="hint">{pane.detail}</span>
       </figcaption>
       <div class="screen" style:aspect-ratio={`${windowWidth} / ${windowHeight}`}>
-        <canvas
-          use:paint={video}
+        <img
+          src={sample}
+          alt=""
           class:smooth={pane.smooth}
-          aria-hidden="true"
           style:left={percent(pane.layout.offsetX, windowWidth)}
           style:top={percent(pane.layout.offsetY, windowHeight)}
           style:width={percent(pane.layout.width, windowWidth)}
           style:height={percent(pane.layout.height, windowHeight)}
-        ></canvas>
+        />
       </div>
       <!-- At the real size on screen: what one source pixel becomes. -->
       <div class="zoom" aria-hidden="true">
-        <canvas
-          use:paint={video}
+        <img
+          src={sample}
+          alt=""
           class:smooth={pane.smooth}
           style:width={`${pane.layout.width}px`}
           style:height={`${pane.layout.height}px`}
           style:left={`calc(50% - ${(centre.x + 0.5) * pane.factorX}px)`}
           style:top={`calc(50% - ${(centre.y + 0.5) * pane.factorY}px)`}
-        ></canvas>
+        />
       </div>
     </figure>
   {/each}
@@ -157,12 +160,13 @@
   .zoom {
     height: 120px;
   }
-  canvas {
+  img {
     position: absolute;
     display: block;
+    max-width: none;
     image-rendering: pixelated;
   }
-  canvas.smooth {
+  img.smooth {
     image-rendering: auto;
   }
 </style>

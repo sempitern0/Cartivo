@@ -377,10 +377,10 @@ test("page controls outside the player work while a game runs", async ({
   // A click on empty space keeps the game captured…
   await page.mouse.click(2, 300);
   await expect(page.locator("canvas")).toBeFocused();
-  // …but the header link is a control: it opens Controles and pauses.
+  // …but the header link is a control: it opens Ajustes and pauses.
   await page.getByRole("link", { name: "Ajustes", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Configurar controles" }),
+    page.getByRole("heading", { name: "Ajustes", exact: true }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Volver al juego" }).click();
   await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
