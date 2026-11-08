@@ -3,9 +3,19 @@ import { done, request } from "./idb.ts";
 import { parseEntry, type LibraryEntry } from "./library.ts";
 
 export const CATALOGUE_DB = "cartivo-catalogue";
+/** What every profile shares: the title and, for a disc, its files. */
 export function publicEntry(entry: LibraryEntry): LibraryEntry {
-  const { hash, system, name, size, addedAt } = entry;
-  return { hash, system, name, size, addedAt, lastPlayedAt: 0 };
+  const { hash, system, name, size, addedAt, files } = entry;
+  const shared: LibraryEntry = {
+    hash,
+    system,
+    name,
+    size,
+    addedAt,
+    lastPlayedAt: 0,
+  };
+  if (files) shared.files = files;
+  return shared;
 }
 export function overlayCatalogue(
   shared: readonly LibraryEntry[],

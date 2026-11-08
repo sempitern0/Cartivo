@@ -13,6 +13,7 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 | Lectura | VFS de libretro de solo lectura hacia `cartivo_vfs_*` (`FileReaderSync` sobre `Blob.slice()`); el disco nunca se copia entero |
 | Entrada | DualShock: empieza digital (Cruz/Círculo en K/L, Cuadrado/Triángulo en J/U, L1/R1 en I/O, L2/R2 en Y/P; en el mando estándar, por posición y gatillos 6/7) y pasa a analógico cuando lo pide el juego o con L1+R1+Select. Sticks del mando estándar, sin equivalente en teclado |
 | Guardado | Tarjeta de memoria 1 (128 KiB, `cartivo-ps1-sram-v1`) como batería; Partidas con `retro_serialize` (≈ 4,4 MB) |
+| Biblioteca | Los archivos del disco se copian a `roms/<identidad>/` mientras se juega, en trozos entre fotogramas y solo si caben según `navigator.storage.estimate()`. «Continuar» abre la copia y recalcula la identidad; la copia se comparte entre perfiles (revisión de ADR-015, 2026-11-08). E2E `library.spec.ts` con `ps1-disc-demo` en Chromium y Firefox, dev y preview (CI run 42469477108). WebKit se salta, porque Playwright no le da OPFS. Pendiente: QA del titular con un disco real de cientos de MB |
 
 ## QA del titular
 

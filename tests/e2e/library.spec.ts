@@ -568,3 +568,115 @@ test("leaving after a failed resume does not replace the saved snapshot", async 
   await exit(page);
   expect(await snapshot(false)).toEqual(before);
 });
+
+// A PlayStation disc (ADR-015): its files are copied to the device while it
+// plays, and the copy, shared by profiles, is what «Continuar» opens.
+const DISC = "Cartivo Demo.cue";
+
+/** Picks the .cue and its track together from the PlayStation card. */
+async function openDisc(page: Page) {
+  const { ps1DiscDemo } =
+    await import("../../packages/fixtures/src/ps1-disc-demo.ts");
+  const { cue, bin } = ps1DiscDemo();
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("article", { name: "PlayStation", exact: true })
+    .getByRole("button", { name: "Jugar", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles([
+    {
+      name: DISC,
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(cue),
+    },
+    {
+      name: "Cartivo Demo (Track 1).bin",
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(bin),
+    },
+  ]);
+}
+
+const discCard = (page: Page) =>
+  page.getByRole("article", { name: DISC, exact: true });
+
+async function forgetDisc(page: Page) {
+  await games(page);
+  await library(page)
+    .getByRole("button", { name: `Quitar ${DISC} de la lista` })
+    .click();
+  await library(page)
+    .getByRole("button", { name: `Quitar ${DISC}`, exact: true })
+    .click();
+  await expect(library(page).getByRole("status")).toContainText(
+    "Sus partidas se conservan",
+  );
+  await page.getByRole("link", { name: "Volver al inicio" }).click();
+}
+
+test("a PS1 disc is remembered while it plays and its copy, shared by profiles, continues it", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/");
+  await openDisc(page);
+  await running(page);
+  await expect(page.getByTestId("toast")).toContainText(
+    "Disco guardado en «Tus juegos»",
+  );
+  await exit(page);
+  await expect(discCard(page)).toContainText("PlayStation");
+
+  // A second profile opening the same files reuses that copy; forgetting
+  // the disc there keeps it for the first profile.
+  await page
+    .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
+    .click();
+  await page.getByRole("button", { name: "Añadir perfil" }).click();
+  const create = page.getByRole("form", { name: "Nuevo perfil" });
+  await create.getByLabel("Nombre").fill("Ana");
+  await create.getByRole("button", { name: "Crear perfil" }).click();
+  await page
+    .getByRole("list", { name: "Perfiles" })
+    .getByRole("button", { name: "Ana", exact: true })
+    .click();
+  await openDisc(page);
+  await running(page);
+  await expect(page.getByTestId("toast")).toContainText(
+    "Disco guardado en «Tus juegos»",
+  );
+  await exit(page);
+  await forgetDisc(page);
+  await expect(discCard(page)).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
+    .click();
+  await page
+    .getByRole("list", { name: "Perfiles" })
+    .getByRole("button", { name: "Jugador 1", exact: true })
+    .click();
+
+  // Without the files: «Continuar» opens the copy on the device.
+  await page.reload();
+  let chooser = false;
+  page.on("filechooser", () => (chooser = true));
+  await discCard(page).getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByTestId("toast")).toContainText(
+    "Partida cargada: al salir",
+  );
+  await running(page);
+  await expect(page.getByRole("heading", { name: DISC })).toBeVisible();
+  expect(chooser).toBe(false);
+  await exit(page);
+
+  // Forgotten here too, its Partidas (and memory card) stay.
+  await forgetDisc(page);
+  await openDisc(page);
+  await expect(
+    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});

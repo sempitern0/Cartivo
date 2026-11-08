@@ -200,7 +200,7 @@
   >
   <p class="hint">
     Se guarda una copia del archivo solo en este navegador; nunca se envía a
-    ningún sitio. Los juegos de CD se abren desde sus archivos y no se copian a la biblioteca. El navegador puede borrarla si se queda sin espacio.
+    ningún sitio. Los discos se copian mientras juegas, si caben. El navegador puede borrarla si se queda sin espacio.
   </p>
   {#if note}<p class="note" role="status">{note}</p>{/if}
 </section>
