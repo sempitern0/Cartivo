@@ -71,11 +71,11 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
 1. ~~**PS1 · multidisco.**~~ ✔ Hecho: `.m3u` con cambio de disco desde la barra y la pausa (`DiscMenu`), fixture de dos discos, tests unitarios y E2E. ADR-015 revisado.
 2. ~~**PS1 · CHD.**~~ ✔ Hecho: compilado con `HAVE_CHD` (libchdr, LZMA SDK, Zstandard, dr_flac), licencias en el SBOM y LICENSES.md, fixture CHD v5, tests unitarios y E2E.
 3. **N64 · pulido tras la QA en la app.** N64 ya está en la app como experimental ([ADR-017](adr/017-n64-gpu-surface.md), [H4-N64](compatibility/H4-N64.md)).
-   - *Pendiente:*
-     - cortes de audio por tirones del Worker;
-     - el cuelgue con emsdk 6.0.12.
+   - *Registrado como límite:*
+     - underruns de audio inherentes al modelo sin hilos (el Worker se retrasa → el AudioWorklet se vacía → silencio);
+     - emsdk 6.0.12 (LLVM 24) se cuelga en el primer fotograma: el núcleo usa emsdk 4.0.10 (LLVM 21).
    - *Empieza por:* `packages/adapters/src/n64.ts`, `cores/mupen64plus-next/src/frontend.c` y el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
-   - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio, y cada punto pendiente tiene prueba o queda registrado como límite.
+   - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio. Los dos puntos anteriores están registrados como límites en [H4-N64](compatibility/H4-N64.md).
 4. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`) y el camino de discos (`.iso`/`.cso`).
 5. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
 
