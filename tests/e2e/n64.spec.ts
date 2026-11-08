@@ -127,3 +127,33 @@ test("N64 quick-saves with F5 and loads with F9", async ({ page }) => {
   // The preview is read back from the GPU surface when saving.
   await expect(slot.locator("canvas.thumb")).not.toHaveClass(/empty/);
 });
+
+// TEMP diagnosis of the stalls in CI (to be removed).
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  const probe = await page
+    .evaluate(
+      () =>
+        new Promise((resolve) => {
+          const started = performance.now();
+          let ticks = 0;
+          const tick = () => {
+            ticks++;
+            if (performance.now() - started < 1000) requestAnimationFrame(tick);
+            else
+              resolve({
+                rafPerSecond: ticks,
+                animations: document.getAnimations().map((a) => (a.effect as KeyframeEffect)?.target?.className + ":" + a.playState),
+                phase: document.querySelector('[data-testid="player-phase"]')?.textContent,
+                alerts: [...document.querySelectorAll('[role="alert"]')].map((e) => e.textContent),
+                frames: document.querySelector("canvas")?.getAttribute("data-frames"),
+                splash: !!document.querySelector(".splash"),
+                hidden: document.hidden,
+              });
+          };
+          requestAnimationFrame(tick);
+        }),
+    )
+    .catch((e) => String(e));
+  console.log("N64 PROBE", JSON.stringify(probe));
+});
