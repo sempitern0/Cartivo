@@ -79,7 +79,10 @@ test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and A
   await expect(page.locator("#sonido")).toBeFocused();
 
   // Screen defaults per console, the same options as in the game.
-  await page.getByLabel("Consola").selectOption({ label: "SNES" });
+  await page
+    .locator("#pantalla")
+    .getByLabel("Consola")
+    .selectOption({ label: "SNES" });
   await page.getByText("Píxel entero", { exact: true }).click();
   await expect(page.locator("#pantalla")).toContainText(
     "Se recordará para SNES",
@@ -92,6 +95,9 @@ test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and A
   await page.reload();
   await expect(page.getByLabel("Silenciar los juegos")).toBeChecked();
   await expect(page.getByLabel("Núcleo de NES")).toHaveValue("jsnes");
-  await page.getByLabel("Consola").selectOption({ label: "SNES" });
+  await page
+    .locator("#pantalla")
+    .getByLabel("Consola")
+    .selectOption({ label: "SNES" });
   await expect(page.getByRole("radio", { name: /Píxel entero/ })).toBeChecked();
 });
