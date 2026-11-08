@@ -90,7 +90,7 @@ test("SNES demo runs Snes9x: X/Y/L/R recolour, battery save survives", async ({
   expect(backup.bytes).toHaveLength(2048);
   expect(backup.bytes[0]).toBe(1);
 
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await startDemo(page, "SNES");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 255, 0])).toBe(true);

@@ -1,5 +1,6 @@
 <script lang="ts">
-  // Player header: title and the four game actions. Presentation only: it
+  // Player header: title and the four game actions, in the pause's order
+  // (Partidas · Ajustes del juego · … · Guardar y salir). Presentation only: it
   // never starts workers or writes saves; the player decides what happens.
   import { icons } from "./icons.ts";
   type Phase = "ready" | "loading" | "running" | "paused" | "error";
@@ -11,6 +12,7 @@
     graphicsOpen,
     savesOpen,
     savesAvailable = true,
+    exitLabel = "Guardar y salir",
     graphicsButton = $bindable(),
     savesButton = $bindable(),
     ongraphics,
@@ -26,6 +28,8 @@
     savesOpen: boolean;
     /** False when this browser cannot save (Partidas would only fail). */
     savesAvailable?: boolean;
+    /** «Guardar y salir», or «Salir» when nothing can be saved. */
+    exitLabel?: string;
     graphicsButton?: HTMLButtonElement;
     savesButton?: HTMLButtonElement;
     ongraphics: () => void;
@@ -43,20 +47,20 @@
   <div class="toolbar" role="toolbar" aria-label="Partida">
     <button
       class="tool icon-button"
-      bind:this={graphicsButton}
-      onclick={ongraphics}
-      aria-expanded={graphicsOpen}
-      aria-controls="graphics-panel"
-      >{@html icons.monitor}<span>Gráficos</span></button
-    >
-    <button
-      class="tool icon-button"
       bind:this={savesButton}
       onclick={onsaves}
       aria-expanded={savesOpen}
       aria-controls="saves-panel"
       disabled={phase === "loading" || phase === "error" || !savesAvailable}
       >{@html icons.save}<span>Partidas</span></button
+    >
+    <button
+      class="tool icon-button"
+      bind:this={graphicsButton}
+      onclick={ongraphics}
+      aria-expanded={graphicsOpen}
+      aria-controls="graphics-panel"
+      >{@html icons.monitor}<span>Ajustes del juego</span></button
     >
     <button
       class="tool icon-button"
@@ -69,7 +73,7 @@
       onclick={onexit}
       disabled={busy}
       >{@html icons.close}<span
-        >{phase === "loading" ? "Cancelar carga" : "Salir"}</span
+        >{phase === "loading" ? "Cancelar carga" : exitLabel}</span
       ></button
     >
   </div>

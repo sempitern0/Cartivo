@@ -43,7 +43,7 @@ test("the app works under /cartivo/, also offline", async ({
   );
 
   // The logo goes back to the sub-path's start, not the domain root.
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await page.goto("./#controles");
   await page.getByRole("link", { name: "Cartivo, inicio" }).click();
   expect(new URL(page.url()).pathname).toBe("/cartivo/");
@@ -75,7 +75,7 @@ test("under /cartivo/ a remembered game shows «Continuar» after leaving", asyn
   await page.goto("./");
   await openNesFile(page, "mi-juego.nes");
   await playing(page);
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   const card = page.getByRole("article", { name: "mi-juego.nes", exact: true });
   await expect(card).toBeVisible();
   // It survives a reload, as an installed app reopening would.

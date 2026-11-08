@@ -31,8 +31,9 @@ export class GameAudio {
   push(audio: Float32Array) {
     this.worklet?.port.postMessage(audio, [audio.buffer as ArrayBuffer]);
   }
-  mute(value: boolean) {
-    if (this.gain) this.gain.gain.value = value ? 0 : 0.3;
+  /** Output gain (sound-preferences.ts `gainOf`). */
+  level(value: number) {
+    if (this.gain) this.gain.gain.value = value;
   }
   async resume() {
     await this.context?.resume();

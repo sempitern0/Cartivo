@@ -7,7 +7,7 @@ import {
   system,
   acceptFor,
   coreLabel,
-  buttonNotes,
+  buttonGuide,
   controlButtons,
 } from "../packages/runtime/src/systems.ts";
 import * as inputModule from "../packages/input/src/nes-input.ts";
@@ -156,17 +156,27 @@ test("each system declares the buttons of its controller", () => {
     );
   }
   assert.deepEqual(controlButtons(["l", "a", "r"]), ["l", "a", "r"]);
+  const guide = buttonGuide((a) => a.toUpperCase());
+  assert.deepEqual(guide.minority, [
+    "X e Y solo los usan SNES, Mega Drive, PlayStation y N64.",
+    "L2 y R2 solo los usan PlayStation y N64.",
+  ]);
+  const where = (name: string) =>
+    guide.consoles
+      .find((c) => c.name === name)
+      ?.pairs.map(({ own, key }) => `${own}=${key}`)
+      .join(" ");
   assert.deepEqual(
-    buttonNotes((a) => a.toUpperCase()),
-    [
-      "X e Y solo los usan SNES, Mega Drive, PlayStation y N64.",
-      "L2 y R2 solo los usan PlayStation y N64.",
-      "En Master System, 1, 2 y Pause están en B, A y START.",
-      "En Mega Drive, A, B, C, X, Y, Z y Mode están en Y, B, A, L, X, R y SELECT.",
-      "En PlayStation, Cruz, Círculo, Cuadrado, Triángulo, L1 y R1 están en B, A, Y, X, L y R.",
-      "En N64, A, B, Z, L, R, C↑, C↓, C← y C→ están en B, Y, L2, SELECT, R2, X, A, L y R.",
-    ],
+    guide.consoles.map((c) => c.name),
+    ["Master System", "Mega Drive", "PlayStation", "N64"],
   );
+  assert.equal(where("Master System"), "1=B 2=A Pause=START");
+  assert.equal(where("Mega Drive"), "A=Y B=B C=A X=L Y=X Z=R Mode=SELECT");
+  assert.equal(
+    where("PlayStation"),
+    "Cruz=B Círculo=A Cuadrado=Y Triángulo=X L1=L R1=R",
+  );
+  assert.equal(where("N64"), "A=B B=Y Z=L2 L=SELECT R=R2 C↑=X C↓=A C←=L C→=R");
 });
 
 test("license links are relative to the app's base and exist", () => {

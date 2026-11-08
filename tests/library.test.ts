@@ -2,7 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   byRecent,
+  discFiles,
+  ensureDiscCopy,
   ensureRomCopy,
+  spaceProblem,
   isSha256,
   ORPHAN_AGE_MS,
   pruneOrphanRoms,
@@ -158,8 +161,18 @@ test("only games opened from a file can be remembered", () => {
 // A minimal in-memory OPFS directory with fault injection (ADR-012).
 class FakeDir {
   files = new Map<string, { bytes: Uint8Array; lastModified: number }>();
+  dirs = new Map<string, FakeDir>();
   failWrites = false;
   writes = 0;
+  async getDirectoryHandle(name: string, options?: { create?: boolean }) {
+    if (!this.dirs.has(name)) {
+      if (!options?.create) throw new DOMException("missing", "NotFoundError");
+      const child = new FakeDir();
+      child.failWrites = this.failWrites;
+      this.dirs.set(name, child);
+    }
+    return this.dirs.get(name)!;
+  }
   async getFileHandle(name: string, options?: { create?: boolean }) {
     if (!this.files.has(name)) {
       if (!options?.create) throw new DOMException("missing", "NotFoundError");
@@ -178,11 +191,17 @@ class FakeDir {
         dir.writes++;
         // Like a real truncate-and-write, a failure leaves a broken file.
         dir.files.set(name, { bytes: new Uint8Array(1), lastModified: 0 });
+        let written = new Uint8Array();
         return {
-          write: async (bytes: Uint8Array) => {
+          // Pieces are appended, as a stream does.
+          write: async (piece: Uint8Array) => {
             if (dir.failWrites)
               throw new DOMException("full", "QuotaExceededError");
-            dir.files.set(name, { bytes, lastModified: 0 });
+            const next = new Uint8Array(written.length + piece.length);
+            next.set(written);
+            next.set(piece, written.length);
+            written = next;
+            dir.files.set(name, { bytes: written, lastModified: 0 });
           },
           close: async () => {},
           abort: async () => {},
@@ -192,10 +211,13 @@ class FakeDir {
   }
   async removeEntry(name: string) {
     this.files.delete(name);
+    this.dirs.delete(name);
   }
   async *entries(): AsyncIterableIterator<[string, FileSystemHandle]> {
     for (const name of [...this.files.keys()])
       yield [name, (await this.getFileHandle(name)) as FileSystemHandle];
+    for (const [name, dir] of this.dirs)
+      yield [name, Object.assign(dir, { kind: "directory" }) as never];
   }
 }
 
@@ -253,4 +275,117 @@ test("only old files without an index entry are pruned", async () => {
     "a".repeat(64),
     "c".repeat(64),
   ]);
+});
+
+const disc = () => [
+  { name: "Juego.cue", blob: new Blob(['FILE "Juego (Track 1).bin" BINARY']) },
+  { name: "Juego (Track 1).bin", blob: new Blob([new Uint8Array(5000)]) },
+];
+const DISC = "d".repeat(64);
+
+test("a disc is copied file by file into its own folder, and kept once complete", async () => {
+  const dir = new FakeDir();
+  await ensureDiscCopy(dir, DISC, disc());
+  const folder = dir.dirs.get(DISC)!;
+  assert.deepEqual(
+    [...folder.files.keys()],
+    ["Juego.cue", "Juego (Track 1).bin"],
+  );
+  assert.equal(folder.files.get("Juego (Track 1).bin")!.bytes.length, 5000);
+  assert.equal(folder.writes, 2);
+  folder.failWrites = true;
+  await ensureDiscCopy(dir, DISC, disc()); // remembering it again
+  assert.equal(folder.writes, 2, "a complete copy is not rewritten");
+});
+
+test("an incomplete disc copy is rewritten; a failed copy leaves no folder", async () => {
+  const dir = new FakeDir();
+  await ensureDiscCopy(dir, DISC, disc());
+  dir.dirs.get(DISC)!.files.delete("Juego (Track 1).bin");
+  await ensureDiscCopy(dir, DISC, disc());
+  assert.equal(dir.dirs.get(DISC)!.files.size, 2);
+
+  const broken = new FakeDir();
+  broken.failWrites = true;
+  await assert.rejects(ensureDiscCopy(broken, DISC, disc()), {
+    name: "QuotaExceededError",
+  });
+  assert.equal(broken.dirs.has(DISC), false);
+});
+
+test("disc entries keep their files; malformed lists are ignored", () => {
+  const entry = {
+    hash: DISC,
+    system: "ps1",
+    name: "Juego.cue",
+    size: 5033,
+    addedAt: 1,
+    lastPlayedAt: 2,
+  };
+  const files = discFiles(disc());
+  assert.deepEqual(parseEntry({ ...entry, files })?.files, files);
+  assert.equal(parseEntry(entry)?.files, undefined);
+  for (const bad of [
+    [],
+    [{ name: "../x.bin", size: 1 }],
+    [{ name: "a/b.bin", size: 1 }],
+    [{ name: "x.bin", size: -1 }],
+    "x.bin",
+  ])
+    assert.equal(parseEntry({ ...entry, files: bad }), undefined);
+});
+
+test("disc folders without an entry are pruned by their newest file", async () => {
+  const dir = new FakeDir();
+  const now = 10 * ORPHAN_AGE_MS;
+  for (const [name, at] of [
+    ["e".repeat(64), now - ORPHAN_AGE_MS - 1],
+    ["f".repeat(64), now],
+  ] as const) {
+    const folder = await dir.getDirectoryHandle(name, { create: true });
+    folder.files.set("Juego.iso", {
+      bytes: new Uint8Array(1),
+      lastModified: at,
+    });
+  }
+  assert.equal(await pruneOrphanRoms(new Set(), now, dir), 1);
+  assert.deepEqual([...dir.dirs.keys()], ["f".repeat(64)]);
+});
+
+test("a disc that does not fit is refused before copying, with its size", async () => {
+  const mb = 1024 * 1024;
+  const estimate = (free: number) => async () => ({
+    quota: free + mb,
+    usage: mb,
+  });
+  assert.equal(await spaceProblem(600 * mb, estimate(700 * mb)), undefined);
+  assert.match(
+    (await spaceProblem(600 * mb, estimate(300 * mb)))!,
+    /ocupa 600 MB.*solo deja 300 MB/,
+  );
+  // Without an estimate the copy is attempted (and may still fail cleanly).
+  assert.equal(await spaceProblem(600 * mb, async () => ({})), undefined);
+});
+
+test("a personal entry keeps only a true «hidden» flag", () => {
+  const entry = {
+    hash: "a".repeat(64),
+    system: "nes",
+    name: "Juego.nes",
+    size: 1,
+    addedAt: 1,
+    lastPlayedAt: 1,
+  };
+  assert.equal(parseEntry({ ...entry, hidden: true })?.hidden, true);
+  assert.equal(parseEntry({ ...entry, hidden: "yes" })?.hidden, undefined);
+});
+
+test("a game open in any profile's tab blocks deleting its copy", async () => {
+  const { gameOpen } = await import("../packages/storage/src/library.ts");
+  const hash = "a".repeat(64);
+  assert.equal(gameOpen(hash, []), false);
+  assert.equal(gameOpen(hash, [`cartivo:game:${hash}`]), true);
+  assert.equal(gameOpen(hash, [`cartivo:game:${hash}@ana`]), true);
+  assert.equal(gameOpen(hash, [`cartivo:game:${"b".repeat(64)}`]), false);
+  assert.equal(gameOpen(hash, ["cartivo:catalogue"]), false);
 });

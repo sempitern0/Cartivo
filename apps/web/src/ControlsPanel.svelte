@@ -33,7 +33,7 @@
   import { claimPadWhile } from "./pad-navigation.svelte.ts";
   import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import {
-    buttonNotes,
+    buttonGuide,
     controlButtons,
   } from "../../../packages/runtime/src/systems.ts";
   const labels: Record<Action, string> = {
@@ -95,7 +95,7 @@
     "l2",
     "r2",
   ]);
-  const notes = buttonNotes((action) => labels[action]);
+  const guide = $derived(buttonGuide((action) => labels[action]));
   const padConnected = $derived(selected !== -1 && !!last);
   function saveKeyboard() {
     try {
@@ -601,7 +601,27 @@
         ></button
       >{/each}
   </div>
-  {#each notes as note}<p class="hint">{note}</p>{/each}
+  <!-- Visible next to the chips, never inside them: reassigning stays the
+       first thing in this row. -->
+  <section class="guide card" aria-labelledby="guide-title">
+    <h3 id="guide-title">
+      <span class="device-icon" aria-hidden="true">{@html icons.gamepad}</span
+      >Botones de cada consola
+    </h3>
+    <ul class="guide-consoles">
+      {#each guide.consoles as item (item.name)}<li>
+          <span class="guide-name">{item.name}</span>
+          <ul class="pairs" aria-label={`Botones de ${item.name}`}>
+            {#each item.pairs as pair (pair.own)}<li>
+                <span class="own">{pair.own}</span><span class="visually-hidden"
+                  >{" en "}</span
+                ><kbd>{pair.key}</kbd>
+              </li>{/each}
+          </ul>
+        </li>{/each}
+    </ul>
+    {#each guide.minority as note}<p class="hint">{note}</p>{/each}
+  </section>
   <div class="row-end">
     <button class="link" onclick={resetKeyboard}>Restablecer teclado</button>
   </div>
@@ -802,12 +822,6 @@
     display: block;
     width: 100%;
     margin: 6px 0 4px;
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 11px;
-    border-radius: 10px;
-    font: inherit;
   }
   select:focus-visible,
   input:focus-visible,
@@ -905,6 +919,76 @@
   }
   .mini-dpad i:nth-child(4) {
     grid-area: 3 / 2;
+  }
+  .guide {
+    margin-top: 20px;
+    padding: 18px 20px;
+  }
+  .guide h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 12px;
+    font-size: 16px;
+  }
+  .guide-consoles {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .guide-consoles > li {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    align-items: start;
+    gap: 12px;
+  }
+  .guide-name {
+    font-weight: 650;
+    padding-top: 5px;
+  }
+  .pairs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pairs li {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    font-size: 14px;
+  }
+  .pairs kbd::before {
+    content: "→ ";
+    color: var(--muted);
+  }
+  .pairs kbd {
+    font: inherit;
+    font-weight: 650;
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: var(--teal);
+  }
+  .guide .device-icon {
+    padding: 6px 8px;
+  }
+  .guide .hint {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  @media (max-width: 640px) {
+    .guide-consoles > li {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
   }
   .row-end {
     display: flex;

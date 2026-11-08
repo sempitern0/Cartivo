@@ -84,7 +84,7 @@ test("GBA demo runs mGBA: L/R recolour, battery save survives", async ({
   expect(backup.bytes).toHaveLength(131072);
   expect(backup.bytes[0]).toBe(0); // 0xFF + one press
 
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await startDemo(page, "Game Boy Advance");
   await playing(page, 30);
   await page.getByRole("button", { name: "Pausar juego" }).click();

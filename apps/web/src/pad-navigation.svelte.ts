@@ -13,8 +13,9 @@ import {
 import type { Pad } from "../../../packages/input/src/nes-input.ts";
 import { ui } from "./input-mode.svelte.ts";
 
+// Menu items (Bits UI menus, ADR-019) use a roving tabindex of -1.
 const FOCUSABLE =
-  'button, a[href], summary, select, input:not([type="file"]):not([type="hidden"]), [tabindex="0"]';
+  'button, a[href], summary, select, input:not([type="file"]):not([type="hidden"]), [tabindex="0"], [role="menuitem"]';
 
 /** Who reads the pad now, and whether using it may switch the interface. */
 const owners = new Map<string, { switchesInterface: boolean }>();

@@ -31,7 +31,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | **GBA:** mGBA 0.10.5 con BIOS HLE; SRAM, Flash y EEPROM | `packages/adapters/src/mgba.ts`, `gba-header.ts` | ADR-011 | `tests/gba-saves.test.ts`, `tests/e2e/gba.spec.ts`, [H2-GBA](compatibility/H2-GBA.md) |
 | **SNES:** Snes9x 1.63 (C++ sobre su frontend libretro); NTSC y PAL (50 Hz) LoROM/HiROM/ExHiROM, chips emulados; botones X/Y | `packages/adapters/src/snes9x.ts`, `snes-header.ts`; `cores/snes9x` | ADR-013 | `tests/snes.test.ts`, `tests/e2e/snes.spec.ts`, [H2-SNES](compatibility/H2-SNES.md) |
 | **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` suelto de hasta 10 MiB | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
-| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos aún no se recuerdan en la biblioteca | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
+| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos se recuerdan: sus archivos se copian a `roms/<identidad>/` mientras se juega, con aviso de espacio, y «Continuar» abre la copia | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed`; `packages/storage/src/library.ts` (`rememberDisc`, `storedDisc`) | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
 | **Nintendo 64:** Mupen64Plus-Next `15bada8` con GLideN64 sobre WebGL2 en el Worker (`SurfaceModule`: la página transfiere el lienzo); `.z64`/`.n64`/`.v64`; stick analógico (teclado: dirección completa) y botones C; batería de 296 960 bytes; Partidas comprimidas con zlib, con miniatura leída de la GPU | `packages/adapters/src/n64.ts`, `n64-header.ts`; `cores/mupen64plus-next`; `apps/web/src/surface.ts` | ADR-017 | `tests/n64.test.ts`, `tests/e2e/n64.spec.ts`, [H4-N64](compatibility/H4-N64.md) |
 | Discos bajo demanda: `DiscModule` en el contrato, `prepareDisc` (identidad por bloques WebCrypto, sin leer el disco entero), VFS de libretro sobre `FileReaderSync` (`cartivo_vfs_*`), varios archivos por `load` (`extra`) y `gameForFiles` para elegir el juego | `packages/adapters/src/disc.ts`, `contract.ts`; `packages/storage/src/disc-identity.ts`; `packages/runtime/src/prepare-rom.ts`, `systems.ts` | ADR-015 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts` |
 | Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive, PlayStation) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
@@ -46,9 +46,10 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
 | Fiabilidad y portabilidad (auditoría del titular): escrituras recuperables de la biblioteca, captura acotada, guardado SRAM separado y en segundo plano, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado, E2E en Firefox y WebKit (Worker de un solo archivo, `FramePacer`), subruta (`--base`), avisos cuando el navegador guarda menos y fallos inyectados en navegador real | `packages/storage/src/{library,background-commit,persistence,idb}.ts`, `wasm-host.ts`, `client.ts`, `offline-cache.ts`, `frame-pacer.ts` | ADR-003/007/012 | `tests/e2e/{faults,storage,subpath}.spec.ts`, [H1-QA](compatibility/H1-QA.md) |
 | **Perfiles de jugador:** «¿Quién juega?» en cada visita (la elección dura la pestaña); cada perfil con sus Partidas, batería/tarjeta, biblioteca y controles; copias de ROM compartidas por hash; el primer perfil conserva los datos anteriores sin migrar; crear, renombrar y borrar (con sus datos), sin contraseña | `packages/storage/src/profiles.ts` (`scoped`), `apps/web/src/profile.svelte.ts`, `ProfilePicker.svelte`; protocolo `load.profile` | ADR-016 | `tests/profiles.test.ts`, `tests/e2e/profiles.spec.ts` |
+| **Biblioteca común y experiencia (PR #38):** catálogo de títulos compartido por los perfiles (cartuchos y discos), progreso, recientes y capturas por perfil; reanudación según el guardado real («Jugar»/«Continuar»/«Cargar partida»); «Ocultar para mí», «Borrar mi progreso» y «Eliminar del dispositivo»; pausa unificada con teclado, ratón y mando; Ajustes en pestañas (Pantalla, Sonido, Controles, Interfaz, Almacenamiento, Avanzado; `#ajustes/<pestaña>`); vista previa de antes y después de la pantalla; componentes de Bits UI (pestañas, menú «⋯», diálogo de confirmación) con transiciones de Svelte | `packages/storage/src/{catalogue,state-index,progress}.ts`, `library.ts`; `apps/web/src/{LibraryPage,SettingsPage,DisplayOptions,DisplayPreview,PauseMenu}.svelte`, `display-sample.ts`; `packages/media/src/sound-preferences.ts` | ADR-018, ADR-019 | `tests/{shared-library,library,sound-preferences,display-sample}.test.ts`, `tests/e2e/{library,controls-page,pad-navigation,saves}.spec.ts`, [QA-PR38](compatibility/QA-PR38-VISUAL.md) |
 | Interfaz con mando: la cruceta o el stick mueven el foco al control más cercano, A pulsa, B equivale a Escape (cierra paneles) o vuelve atrás, Select+Start pausa la partida y sale de la prueba de Controles; el juego y la prueba se apropian del mando mientras lo leen | `packages/input/src/ui-navigation.ts`, `apps/web/src/pad-navigation.svelte.ts` | ADR-006 | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
 | Modo consola: interfaz automática según el último dispositivo, o fijada en Ajustes («Teclado y ratón» o «Mando»); leyenda de botones, carrusel de consolas y menú de pausa modal con Salir del juego. Solo presentación | `apps/web/src/input-mode.svelte.ts`, `PauseMenu.svelte`, `PadHints.svelte`, `InterfacePreference.svelte`; `parseUiPreference`/`resolveUiMode` en `ui-navigation.ts` | ADR-006 | `tests/ui-navigation.test.ts`, `tests/e2e/pad-navigation.spec.ts` |
-| CI: job `verify` (`verify:core`, Prettier, svelte-check, unitarias) y matriz `e2e` en paralelo (Chromium, Firefox y WebKit × dev y preview, más Chromium con la build bajo `/cartivo/`, build solo en preview, audio virtual en Firefox, pantalla virtual en WebKit, un reintento con traza), con preparación común en `.github/actions/setup`; unos 5 min en total; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
+| CI: job `verify` (`verify:core`, Prettier, svelte-check, unitarias) y seis jobs `e2e` en paralelo (Chromium, Firefox y WebKit × dev y preview, más Chromium con la build bajo `/cartivo/`, build solo en preview, audio virtual en Firefox, pantalla virtual en WebKit, un reintento con traza), con preparación común en `.github/actions/setup`; unos 4 min en total; workflow `Dependencies` que sincroniza `pnpm-lock.yaml` y relanza la CI; omite cambios solo de documentación | `.github/workflows/ci.yml` | — | Foundation CI |
 
 ## 3. Pendiente (lista de trabajo, en orden)
 
@@ -67,35 +68,29 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa su cr
 
 Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está terminada y qué queda fuera. Si una entrada necesita una decisión de producto que no está aquí, se pregunta antes de programar.
 
-1. **PS1 · discos en la biblioteca.**
-   - *Objetivo:* recordar un disco y continuarlo desde «Tus juegos».
-   - *Cómo:* copiar sus archivos a OPFS como grupo y avisar del espacio que ocupa antes de copiarlo.
-   - *Empieza por:* área `load`/`storage`: `library.ts` (`rememberGame`, `storedRom`), `emulator.worker.ts` (`loadDisc` rechaza hoy `stored`) y ADR-012/015.
-   - *Terminado cuando:* la E2E con `ps1-disc-demo` recuerda, continúa y olvida el disco; la tarjeta de memoria se conserva; la copia se comparte entre perfiles.
-   - *Fuera:* CHD y multidisco.
-2. **PS1 · multidisco.** El DualShock con sticks ya está hecho (ADR-006, revisión de 2026-11-07); falta la QA con un juego analógico propio.
+1. **PS1 · multidisco.** El DualShock con sticks ya está hecho (ADR-006, revisión de 2026-11-07); falta la QA con un juego analógico propio.
    - *Objetivo:* `.m3u` con cambio de disco desde el menú de pausa.
    - *Empieza por:* área `load` y `cores`: `pcsx-rearmed.ts`, `cores/pcsx-rearmed/src/cartivo.c` (interfaz de disco de libretro) y ADR-015.
    - *Ojo:* cambiar el puente obliga a reconstruir el núcleo (`cores/AGENTS.md`).
    - *Terminado cuando:* fixture original de dos discos, cambio desde la pausa y conformidad.
    - *Fuera:* pistola, multitap.
-3. **PS1 · CHD.**
+2. **PS1 · CHD.**
    - *Cómo:* reconstruir con `HAVE_CHD` (libchdr, lzma y zstd).
    - *Requisitos previos:* gate de licencias de esas dependencias y lectura por la VFS.
    - *Terminado cuando:* fixture CHD propia arranca en Node y en E2E.
-4. **N64 · pulido tras la QA en la app.** N64 ya está en la app como experimental ([ADR-017](adr/017-n64-gpu-surface.md), [H4-N64](compatibility/H4-N64.md)).
+3. **N64 · pulido tras la QA en la app.** N64 ya está en la app como experimental ([ADR-017](adr/017-n64-gpu-surface.md), [H4-N64](compatibility/H4-N64.md)).
    - *Pendiente:*
      - cortes de audio por tirones del Worker;
      - el cuelgue con emsdk 6.0.12.
    - *Empieza por:* `packages/adapters/src/n64.ts`, `cores/mupen64plus-next/src/frontend.c` y el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
    - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio, y cada punto pendiente tiene prueba o queda registrado como límite.
-5. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`) y el camino de discos (`.iso`/`.cso`).
-6. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
+4. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`) y el camino de discos (`.iso`/`.cso`).
+5. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
 
 ### 3.3 Deuda técnica conocida (cuando toque su área)
 
 - **App.svelte (≈830 líneas):** extraer el flujo de pistas de `.cue` (`missingTracks`, `incomplete`, `pickTracks`) a su propio módulo antes de añadir más casos de disco.
-- **Prettier:** el repositorio usa 3.6.2, y una instalación global más nueva formatea distinto (ver `docs/ai/CONTEXT.md`, «Trampas conocidas»). Subir la versión del repositorio exige regenerar el lockfile con acceso al registro.
+- **Prettier:** el repositorio usa 3.6.2, y una instalación global más nueva formatea distinto (ver `docs/ai/CONTEXT.md`, «Trampas conocidas»). Para subirla basta cambiar `package.json`: el workflow `Dependencies` regenera el lockfile.
 - Sincronía A/V fina; ajustes de núcleo declarados por schema; P2–P4 (varios mandos en una partida); GBA RTC y sensores; paletas DMG opcionales; presupuestos de rendimiento medidos por núcleo (§7).
 - **H3 · biblioteca y experiencia:** identidad por cabecera y hash (ADR-004), carátulas con licencia y alternativa local, ajustes por juego e inglés.
 
@@ -111,7 +106,7 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
 - desbloquear logros;
 - aparecer en rankings por juego.
 
-Sin cuenta, Cartivo sigue funcionando igual: local y offline. Una cuenta se vincula a un perfil local (ADR-016), que ya separa partidas, biblioteca y controles; los logros serán de cada perfil.
+Sin cuenta, Cartivo sigue funcionando igual: local y offline. Una cuenta se vincula a un perfil local (ADR-016), que ya separa partidas y controles (la biblioteca es común, ADR-018); los logros serán de cada perfil.
 
 **Requisitos previos:**
 - **Regla de AGENTS.md.** El titular revisa «Archivos, partidas y rutas del usuario permanecen locales» para que diga «locales por defecto; nube solo con cuenta y consentimiento explícito».

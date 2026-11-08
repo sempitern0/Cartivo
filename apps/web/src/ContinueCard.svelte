@@ -3,7 +3,7 @@
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
   import { accentOf } from "./accent.ts";
-  import type { LibraryEntry } from "../../../packages/storage/src/library.ts";
+  import { playLabel, type GameCard } from "./library-view.ts";
   import type { SystemInfo } from "../../../packages/runtime/src/systems.ts";
   // The most recently played remembered game: one click resumes it from its
   // «Al salir» snapshot (ADR-012). Compact, but the strongest contrast on the
@@ -13,7 +13,7 @@
     system,
     oncontinue,
   }: {
-    entry: LibraryEntry;
+    entry: GameCard;
     system: SystemInfo;
     oncontinue: () => void;
   } = $props();
@@ -28,13 +28,14 @@
   <div class="text">
     <h2 id="continue-title">{entry.name}</h2>
     <p class="meta">{system.name} · {when(entry.lastPlayedAt)}</p>
+    {#if entry.stateUnavailable}<p class="meta">Guardado de otra versión</p>{/if}
   </div>
   <button
     class="icon-button resume"
     data-launch={`continue-${entry.hash}`}
     onclick={oncontinue}
     aria-describedby="continue-title"
-    >{@html icons.play}<span>Continuar</span></button
+    >{@html icons.play}<span>{playLabel(entry)}</span></button
   >
 </article>
 

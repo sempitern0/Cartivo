@@ -42,7 +42,7 @@ test("no space to remember a game: it keeps playing and says why", async ({
   const before = await frames(page);
   await expect.poll(() => frames(page)).toBeGreaterThan(before + 30);
   // Nothing half-written reaches the library.
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Elige una consola" }),
   ).toBeVisible();
@@ -78,4 +78,37 @@ test("closing the tab mid-game leaves a save that reopens cleanly", async ({
   await expect(second.getByRole("alert")).toHaveCount(0);
   expect(errors).toEqual([]);
   await context.close();
+});
+
+test("a failed exit snapshot keeps the session open and can be retried", async ({
+  page,
+}) => {
+  await patchWorker(
+    page,
+    `
+    const originalPut = IDBObjectStore.prototype.put;
+    let failAuto = true;
+    IDBObjectStore.prototype.put = function(value, ...args) {
+      if (this.name === "states" && value.slot === "auto" && failAuto) {
+        failAuto = false;
+        throw new DOMException("full", "QuotaExceededError");
+      }
+      return originalPut.call(this, value, ...args);
+    };
+  `,
+  );
+  await page.goto("/");
+  await playDemo(page, "NES");
+  const exit = page.getByRole("button", { name: "Guardar y salir", exact: true });
+  await exit.click();
+  await expect(page.getByRole("alert")).toContainText(
+    "No se pudo guardar la partida al salir",
+  );
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await expect.poll(() => page.workers().length).toBe(1);
+  await exit.click();
+  await expect(
+    page.getByRole("heading", { name: "Elige una consola" }),
+  ).toBeVisible();
+  await expect.poll(() => page.workers().length).toBe(0);
 });

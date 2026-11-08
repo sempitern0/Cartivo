@@ -20,7 +20,7 @@ async function slotOne(page: Page) {
 }
 
 async function leave(page: Page) {
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Elige una consola" }),
   ).toBeVisible();
@@ -57,6 +57,7 @@ test("¿Quién juega? on every visit; profiles keep their Partidas and controls 
   await expect(slot).toContainText("Vacía");
   await leave(page);
   await page.getByRole("link", { name: "Ajustes" }).click();
+  await page.getByRole("tab", { name: "Controles" }).click();
   const keyA = page.getByRole("button", {
     name: "Asignar tecla A",
     exact: true,
@@ -75,6 +76,7 @@ test("¿Quién juega? on every visit; profiles keep their Partidas and controls 
     .click();
   await pick(page, "Jugador 1");
   await page.getByRole("link", { name: "Ajustes" }).click();
+  await page.getByRole("tab", { name: "Controles" }).click();
   await expect(keyA).toHaveText("A = L");
   await page.goto("/");
   slot = await slotOne(page);

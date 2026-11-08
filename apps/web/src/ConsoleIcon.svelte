@@ -1,8 +1,8 @@
 <!--
-  Original Cartivo console badge: the brand frame (teal → coral edge, soft
-  sheen, «C» seal) around a generic hardware silhouette drawn for Cartivo.
-  No third-party logos or trade dress (docs/DESIGN.md). Decorative: the card
-  heading names the console.
+  Drawn console badge, for a console without a logo (console-art.ts): the
+  brand frame (teal → coral edge, soft sheen, «C» seal) around a generic
+  hardware silhouette drawn for Cartivo. Decorative: the card heading names
+  the console.
 -->
 <script lang="ts">
   let { system }: { system: string } = $props();

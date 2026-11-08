@@ -153,7 +153,7 @@
     <p class="kicker">Cartivo</p>
     <h1 id="profiles-title">¿Quién juega?</h1>
     <p class="lede">
-      Cada perfil guarda sus partidas, sus juegos y sus controles en este
+      Los juegos son compartidos. Cada perfil guarda sus partidas y sus controles en este
       dispositivo.
     </p>
   </div>
@@ -173,7 +173,7 @@
             {@render avatar(profile.name, profile.color)}
             <p>
               <strong>¿Borrar a {profile.name}?</strong>
-              Se borran sus partidas, sus juegos y sus controles. No se puede deshacer.
+              Se borran sus partidas y sus controles. Los juegos compartidos se conservan. No se puede deshacer.
             </p>
             <div class="form-actions">
               <button class="danger" onclick={() => remove(profile)}
@@ -290,7 +290,9 @@
     align-content: start;
   }
   .profile {
+    display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 14px;
     width: 100%;
     padding: 20px 12px 18px;
@@ -518,14 +520,9 @@
       transform: translateY(18px) scale(0.96);
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .profile,
-    .avatar {
-      transition: none;
-    }
-    .profile:not(:disabled):hover,
-    .profile:focus-visible {
-      transform: none;
-    }
+  /* Reduced motion (motion.svelte.ts): no lift either. */
+  :global(:root[data-motion="reduce"]) .profile:not(:disabled):hover,
+  :global(:root[data-motion="reduce"]) .profile:focus-visible {
+    transform: none;
   }
 </style>

@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
   import ConsoleIcon from "./ConsoleIcon.svelte";
+  import { consoleLogo } from "./console-art.ts";
   import { accentOf } from "./accent.ts";
   import { hasFiles } from "./game-source.ts";
   import { icons } from "./icons.ts";
@@ -38,6 +39,8 @@
     ondropfiles: (files: File[]) => void;
   } = $props();
 
+  /** With a logo, the logo is the card; the name stays for screen readers. */
+  const logo = $derived(consoleLogo(system.id));
   /** A dragged file is over this very card. */
   let over = $state(false);
 
@@ -59,44 +62,71 @@
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) ondropfiles(files);
   }
+  function click(e: MouseEvent) {
+    if (!(e.target as Element).closest("button, a")) onplay();
+  }
+  /**
+   * The whole card takes a click and a dropped file for pointer users; the
+   * keyboard and the pad use its «Jugar» button, so the card itself stays a
+   * plain article (no interactive role to announce twice).
+   */
+  function pointerTarget(card: HTMLElement) {
+    const events = [
+      ["dragover", dragOver],
+      ["dragleave", dragLeave],
+      ["drop", drop],
+      ["click", click],
+    ] as const;
+    for (const [type, listener] of events)
+      card.addEventListener(type, listener as EventListener);
+    return {
+      destroy() {
+        for (const [type, listener] of events)
+          card.removeEventListener(type, listener as EventListener);
+      },
+    };
+  }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
 <article
-  class="console-card card"
+  class="console-card"
+  class:card={!logo}
+  class:cover={!!logo}
   class:dragging
   class:over
   class:waiting
-  style={`--accent: ${accentOf(system)}`}
+  style:--accent={accentOf(system)}
   aria-labelledby={`console-${system.id}`}
-  ondragover={dragOver}
-  ondragleave={dragLeave}
-  ondrop={drop}
-  onclick={(e) => {
-    if (!(e.target as Element).closest("button, a")) onplay();
-  }}
+  use:pointerTarget
 >
-  <ConsoleIcon system={system.id} />
-  <div class="console-text">
+  {#if logo}
+    <img class="cover-art" src={logo} alt="" draggable="false" decoding="async" />
+    {#if system.experimental}<span class="corner-tag" aria-hidden="true"
+        >Experimental</span
+      >{/if}
+  {:else}
+    <ConsoleIcon system={system.id} />
+  {/if}
+  <div class="console-text" class:visually-hidden={!!logo}>
     <h2 id={`console-${system.id}`}>{system.name}</h2>
     <p>
       {system.longName}{#if system.experimental}<span class="tag"
           >Experimental</span
         >{/if}
     </p>
-    {#if missing}
-      <div class="tracks" role="alert">
-        <p>
-          <strong>Faltan pistas de «{missing.file}»</strong>
-          {missing.tracks.join(", ")}. Elígelas para jugar.
-        </p>
-        <div class="tracks-actions">
-          <button class="primary" onclick={onpicktracks}>Elegir pistas</button
-          ><button class="link" onclick={oncanceltracks}>Cancelar</button>
-        </div>
-      </div>
-    {/if}
   </div>
+  {#if missing}
+    <div class="tracks" role="alert">
+      <p>
+        <strong>Faltan pistas de «{missing.file}»</strong>
+        {missing.tracks.join(", ")}. Elígelas para jugar.
+      </p>
+      <div class="tracks-actions">
+        <button class="primary" onclick={onpicktracks}>Elegir pistas</button
+        ><button class="link" onclick={oncanceltracks}>Cancelar</button>
+      </div>
+    </div>
+  {/if}
   <div class="console-foot">
     <span class="formats"
       ><span class="visually-hidden">Formatos:</span
@@ -153,6 +183,96 @@
   }
   .console-card > :global(.badge) {
     justify-self: start;
+  }
+  /* The logo is the card (docs/DESIGN.md): a square that fills with its
+     image, which zooms in slightly on hover. The formats and the play
+     button sit on a dark band at the foot, so they read over any logo. */
+  .console-card.cover {
+    aspect-ratio: 1;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 9%;
+    border-radius: 21%;
+    overflow: hidden;
+    isolation: isolate;
+    background: #0b0c12;
+    box-shadow: 0 14px 30px -14px #000c;
+  }
+  .cover-art {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    user-select: none;
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .console-card.cover::after {
+    content: "";
+    position: absolute;
+    inset: 55% 0 0;
+    z-index: -1;
+    background: linear-gradient(to bottom, transparent, #07080ccc 70%);
+    pointer-events: none;
+  }
+  .console-card.cover:hover .cover-art,
+  .console-card.cover:has(.play:focus-visible) .cover-art {
+    transform: scale(1.05);
+  }
+  .console-card.cover:hover,
+  .console-card.cover:has(.play:focus-visible),
+  :global(:root[data-input="pad"]) .console-card.cover:has(.play:focus) {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent),
+      0 22px 44px -18px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .console-card.cover.dragging {
+    outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 4px;
+  }
+  /* Solid at rest: it sits over the logo's «C» seal. */
+  .cover .play-icon {
+    background: #0b0d14f0;
+    border-color: #ffffff2e;
+  }
+  .cover .format {
+    background: #0b0d14b3;
+    border-color: #ffffff26;
+    color: var(--text);
+  }
+  .corner-tag {
+    position: absolute;
+    top: 9%;
+    right: 9%;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #0b0d14cc;
+    border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .cover .tracks {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    align-content: center;
+    padding: 9%;
+    border: 0;
+    border-radius: 0;
+    background: #12141cf2;
+    overflow: auto;
+  }
+  .cover .other {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #0b0d14cc;
+  }
+  .cover.waiting .play-label {
+    text-shadow: 0 1px 3px #000;
   }
   .console-text {
     min-width: 0;
@@ -307,7 +427,7 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border-radius: var(--card-radius);
+    border-radius: inherit;
     background: #12141cdb;
     backdrop-filter: blur(3px);
     color: var(--accent);

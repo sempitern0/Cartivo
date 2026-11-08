@@ -17,9 +17,8 @@ test.skip(
  * pixel of a tile), so each variant is a different game for the library.
  */
 async function game(name = NAME, variant = 0) {
-  const { controlDemo } = await import(
-    "../../packages/fixtures/src/control-demo.ts"
-  );
+  const { controlDemo } =
+    await import("../../packages/fixtures/src/control-demo.ts");
   const rom = controlDemo();
   rom[rom.length - 1] ^= variant;
   return {
@@ -45,13 +44,30 @@ async function running(page: Page) {
 }
 
 const exit = (page: Page) =>
-  page.getByRole("button", { name: "Salir", exact: true }).click();
+  page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
 const continueCard = (page: Page) =>
   page.getByRole("article", { name: NAME, exact: true });
 const library = (page: Page) =>
   page.getByRole("region", { name: "Tus juegos" });
 const games = (page: Page) =>
   page.getByRole("link", { name: "Tus juegos", exact: true }).click();
+
+/** «⋯» → «Eliminar del dispositivo» → confirm in the dialog (every profile). */
+async function deleteFromDevice(page: Page, name: string) {
+  await library(page)
+    .getByRole("button", { name: `Opciones de ${name}` })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Eliminar del dispositivo" })
+    .click();
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: `Eliminar ${name}`, exact: true })
+    .click();
+  await expect(library(page).getByRole("status")).toContainText(
+    "Las partidas se conservan",
+  );
+}
 
 /** Opens a game and leaves: it is remembered without asking. */
 async function playAndLeave(page: Page, name = NAME, variant = 0) {
@@ -171,19 +187,11 @@ test("turning remembering off keeps new games out of the list", async ({
   ).not.toBeChecked();
 });
 
-test("removing a game from the list keeps its Partidas", async ({ page }) => {
+test("deleting a game from the device keeps its Partidas", async ({ page }) => {
   await page.goto("/");
   await playAndLeave(page);
   await games(page);
-  await library(page)
-    .getByRole("button", { name: `Quitar ${NAME} de la lista` })
-    .click();
-  await library(page)
-    .getByRole("button", { name: `Quitar ${NAME}`, exact: true })
-    .click();
-  await expect(library(page).getByRole("status")).toContainText(
-    "Sus partidas se conservan",
-  );
+  await deleteFromDevice(page, NAME);
   await page.getByRole("link", { name: "Volver al inicio" }).click();
   await expect(continueCard(page)).toHaveCount(0);
   // Reopening the file still finds the exit snapshot.
@@ -191,6 +199,48 @@ test("removing a game from the list keeps its Partidas", async ({ page }) => {
   await expect(
     page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
   ).toBeVisible();
+});
+
+test("«Borrar mi progreso» erases this profile's Partidas; hiding is reversible", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  await games(page);
+  const play = library(page).locator("li.card button.primary");
+  await expect(play).toHaveText("Continuar");
+  const more = library(page).getByRole("button", {
+    name: `Opciones de ${NAME}`,
+  });
+  // Escape closes the menu and stays on «Tus juegos», focus back on «⋯».
+  await more.click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(more).toBeFocused();
+  await expect(page).toHaveURL(/#juegos$/);
+  await more.click();
+  await page.getByRole("menuitem", { name: "Borrar mi progreso" }).click();
+  const confirm = page.getByRole("alertdialog").getByRole("button", {
+    name: `Borrar mi progreso en ${NAME}`,
+  });
+  await expect(confirm).toBeFocused();
+  await confirm.click();
+  await expect(library(page).getByRole("status")).toContainText(
+    "se han borrado",
+  );
+  await expect(play).toHaveText("Jugar");
+
+  await library(page)
+    .getByRole("button", { name: `Opciones de ${NAME}` })
+    .click();
+  await page.getByRole("menuitem", { name: "Ocultar para mí" }).click();
+  await expect(library(page).locator("li.card")).toHaveCount(0);
+  await library(page).getByText("Ocultos para ti (1)").click();
+  await library(page)
+    .getByRole("button", { name: `Mostrar ${NAME}` })
+    .click();
+  await expect(library(page).locator("li.card")).toHaveCount(1);
 });
 
 test("a damaged copy on the device is refused with a clear message", async ({
@@ -293,3 +343,373 @@ test.describe("load diagnostics", () => {
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
 });
+
+test("profiles share cartridges but keep their resume state and recent games", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  await page
+    .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
+    .click();
+  await page.getByRole("button", { name: "Añadir perfil" }).click();
+  await page
+    .getByRole("form", { name: "Nuevo perfil" })
+    .getByLabel("Nombre")
+    .fill("Ana");
+  await page.getByRole("button", { name: "Crear perfil" }).click();
+  await page
+    .getByRole("list", { name: "Perfiles" })
+    .getByRole("button", { name: "Ana", exact: true })
+    .click();
+  await expect(continueCard(page)).toHaveCount(0);
+  await games(page);
+  await expect(library(page).getByRole("listitem")).toHaveCount(1);
+  await expect(library(page)).toContainText("Aún no has jugado");
+  await library(page)
+    .getByRole("button", { name: `Jugar ${NAME}`, exact: true })
+    .click();
+  await running(page);
+  await expect(
+    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+  ).toHaveCount(0);
+  await exit(page);
+  await expect(
+    library(page).getByRole("button", { name: `Continuar ${NAME}` }),
+  ).toBeVisible();
+  // Deleting this profile removes its progress, never the shared cartridge.
+  await page
+    .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
+    .click();
+  await page.getByRole("button", { name: "Gestionar perfiles" }).click();
+  await page.getByRole("button", { name: "Borrar Ana", exact: true }).click();
+  await page.getByRole("button", { name: "Borrar Ana", exact: true }).click();
+  await expect(
+    page.getByText("Ana y sus partidas se han borrado", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Listo", exact: true }).click();
+  await page
+    .getByRole("list", { name: "Perfiles" })
+    .getByRole("button", { name: "Jugador 1", exact: true })
+    .click();
+  await games(page);
+  await library(page)
+    .getByRole("button", { name: `Continuar ${NAME}` })
+    .click();
+  await expect(page.getByTestId("toast")).toContainText(
+    "Partida cargada: al salir",
+  );
+  await running(page);
+});
+
+test("a manual snapshot is offered as Cargar partida and filters survive playing", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  // Move the committed automatic snapshot to slot 2, as an existing manual save.
+  await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const r = indexedDB.open("cartivo-states");
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+    const tx = db.transaction(["states", "meta"], "readwrite");
+    for (const name of ["states", "meta"]) {
+      const store = tx.objectStore(name);
+      const r = store.openCursor();
+      r.onsuccess = () => {
+        const row = r.result;
+        if (!row) return;
+        if (String(row.key).endsWith(":auto")) {
+          store.put(
+            { ...row.value, slot: "2" },
+            String(row.key).replace(/:auto$/, ":2"),
+          );
+          row.delete();
+        }
+        row.continue();
+      };
+    }
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+  await page.reload();
+  await games(page);
+  await library(page).getByRole("searchbox").fill("mi-juego");
+  await library(page).getByRole("combobox").selectOption("name");
+  await library(page)
+    .getByRole("button", { name: `Cargar partida ${NAME}` })
+    .click();
+  await expect(page.getByTestId("toast")).toContainText(
+    "Partida cargada: ranura 2",
+  );
+  await running(page);
+  await exit(page);
+  await expect(library(page).getByRole("searchbox")).toHaveValue("mi-juego");
+  await expect(library(page).getByRole("combobox")).toHaveValue("name");
+  await expect(
+    library(page).getByRole("button", { name: `Continuar ${NAME}` }),
+  ).toBeFocused();
+});
+
+test("legacy libraries and v1 snapshots migrate without copying progress to another profile", async ({
+  page,
+}) => {
+  await page.goto("/");
+  // Let the initial reader finish, then seed the previous release's databases.
+  await games(page);
+  await expect(library(page)).toContainText("Aún no hay juegos");
+  await page.evaluate(async () => {
+    const remove = (name: string) =>
+      new Promise<void>((resolve, reject) => {
+        const r = indexedDB.deleteDatabase(name);
+        r.onsuccess = () => resolve();
+        r.onerror = () => reject(r.error);
+      });
+    await remove("cartivo-catalogue");
+    await remove("cartivo-states");
+    const seed = async (
+      name: string,
+      storeName: string,
+      value: object,
+      key?: string,
+    ) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const r = indexedDB.open(name, 1);
+        r.onupgradeneeded = () =>
+          r.result.createObjectStore(
+            storeName,
+            key ? undefined : { keyPath: "hash" },
+          );
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      const tx = db.transaction(storeName, "readwrite");
+      if (key) tx.objectStore(storeName).put(value, key);
+      else tx.objectStore(storeName).put(value);
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    };
+    const hash = "a".repeat(64);
+    await seed("cartivo-library", "games", {
+      hash,
+      name: "Legado.nes",
+      system: "nes",
+      size: 1024,
+      addedAt: 1,
+      lastPlayedAt: 2,
+    });
+    await seed(
+      "cartivo-states",
+      "states",
+      {
+        slot: "auto",
+        core: "tetanes",
+        coreVersion: "0.17.0",
+        createdAt: 3,
+        frames: 4,
+        size: 2,
+        bytes: new Uint8Array([7, 8]),
+        sha256: "old-digest",
+      },
+      `${hash}:auto`,
+    );
+  });
+  await page.reload();
+  await expect(
+    library(page).getByRole("button", { name: "Continuar Legado.nes" }),
+  ).toBeVisible();
+  const migrated = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const r = indexedDB.open("cartivo-states");
+      r.onsuccess = () => resolve(r.result);
+    });
+    const read = (store: string) =>
+      new Promise<any>((resolve) => {
+        const r = db
+          .transaction(store)
+          .objectStore(store)
+          .get("a".repeat(64) + ":auto");
+        r.onsuccess = () => resolve(r.result);
+      });
+    const [record, metadata] = await Promise.all([
+      read("states"),
+      read("meta"),
+    ]);
+    const result = {
+      version: db.version,
+      bytes: Array.from(record.bytes),
+      digest: record.sha256,
+      indexedBytes: metadata.bytes,
+    };
+    db.close();
+    return result;
+  });
+  expect(migrated).toEqual({
+    version: 2,
+    bytes: [7, 8],
+    digest: "old-digest",
+    indexedBytes: undefined,
+  });
+  await deleteFromDevice(page, "Legado.nes");
+  await page.reload();
+  await expect(library(page).getByRole("listitem")).toHaveCount(0);
+});
+
+test("leaving after a failed resume does not replace the saved snapshot", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  const snapshot = async (damage: boolean) =>
+    page.evaluate(async (damage) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const r = indexedDB.open("cartivo-states");
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      const tx = db.transaction("states", damage ? "readwrite" : "readonly");
+      const store = tx.objectStore("states");
+      const record = await new Promise<any>((resolve) => {
+        const r = store.openCursor();
+        r.onsuccess = () => {
+          const row = r.result!;
+          if (damage) {
+            row.value.bytes[0] ^= 255;
+            row.update(row.value);
+          }
+          resolve(row.value);
+        };
+      });
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+      return {
+        createdAt: record.createdAt,
+        sha256: record.sha256,
+        bytes: Array.from(record.bytes),
+      };
+    }, damage);
+  const before = await snapshot(true);
+  await continueCard(page).getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await exit(page);
+  expect(await snapshot(false)).toEqual(before);
+});
+
+// A PlayStation disc (ADR-015): its files are copied to the device while it
+// plays, and the copy, shared by profiles, is what «Continuar» opens.
+const DISC = "Cartivo Demo.cue";
+
+/** Picks the .cue and its track together from the PlayStation card. */
+async function openDisc(page: Page) {
+  const { ps1DiscDemo } =
+    await import("../../packages/fixtures/src/ps1-disc-demo.ts");
+  const { cue, bin } = ps1DiscDemo();
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("article", { name: "PlayStation", exact: true })
+    .getByRole("button", { name: "Jugar", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles([
+    {
+      name: DISC,
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(cue),
+    },
+    {
+      name: "Cartivo Demo (Track 1).bin",
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(bin),
+    },
+  ]);
+}
+
+const discCard = (page: Page) =>
+  page.getByRole("article", { name: DISC, exact: true });
+
+test(
+  "a PS1 disc is copied while it plays and every profile opens that copy",
+  { tag: "@heavy" },
+  async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("/");
+    await openDisc(page);
+    await running(page);
+    await expect(page.getByTestId("toast")).toContainText(
+      "Disco guardado en «Tus juegos»",
+    );
+    await exit(page);
+    await expect(discCard(page)).toContainText("PlayStation");
+
+    // Another profile sees the shared disc and plays it without its files.
+    let chooser = false;
+    page.on("filechooser", () => (chooser = true));
+    await page
+      .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
+      .click();
+    await page.getByRole("button", { name: "Añadir perfil" }).click();
+    const create = page.getByRole("form", { name: "Nuevo perfil" });
+    await create.getByLabel("Nombre").fill("Ana");
+    await create.getByRole("button", { name: "Crear perfil" }).click();
+    await page
+      .getByRole("list", { name: "Perfiles" })
+      .getByRole("button", { name: "Ana", exact: true })
+      .click();
+    await games(page);
+    await library(page)
+      .getByRole("button", { name: `Jugar ${DISC}` })
+      .click();
+    await running(page);
+    await expect(page.getByRole("heading", { name: DISC })).toBeVisible();
+    await exit(page);
+    // Hidden for Ana only.
+    await games(page);
+    await library(page)
+      .getByRole("button", { name: `Opciones de ${DISC}` })
+      .click();
+    await page.getByRole("menuitem", { name: "Ocultar para mí" }).click();
+    await expect(library(page).locator("li.card")).toHaveCount(0);
+    await page.getByRole("link", { name: "Volver al inicio" }).click();
+    await page
+      .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
+      .click();
+    await page
+      .getByRole("list", { name: "Perfiles" })
+      .getByRole("button", { name: "Jugador 1", exact: true })
+      .click();
+
+    // Jugador 1 still has it: «Continuar» opens the copy after a reload.
+    await page.reload();
+    await discCard(page).getByRole("button", { name: "Continuar" }).click();
+    await expect(page.getByTestId("toast")).toContainText(
+      "Partida cargada: al salir",
+    );
+    await running(page);
+    expect(chooser).toBe(false);
+    await exit(page);
+
+    // Deleted from the device, its Partidas (and memory card) stay.
+    await games(page);
+    await deleteFromDevice(page, DISC);
+    await page.getByRole("link", { name: "Volver al inicio" }).click();
+    await openDisc(page);
+    await expect(
+      page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  },
+);

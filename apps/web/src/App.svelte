@@ -1,16 +1,16 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import Player from "./Player.svelte";
-  import ControlsPanel from "./ControlsPanel.svelte";
+  import SettingsPage, {
+    tabFromHash,
+    type SettingsTab,
+  } from "./SettingsPage.svelte";
   import RecentGames from "./RecentGames.svelte";
   import LibraryPage from "./LibraryPage.svelte";
   import { demo, hasFiles, type GameSource } from "./game-source.ts";
-  import {
-    listGames,
-    pruneOrphanRoms,
-    rememberedBy,
-    type LibraryEntry,
-  } from "../../../packages/storage/src/library.ts";
+  import { sharedGames, pruneSharedRoms, type GameSort } from "../../../packages/storage/src/library.ts";
+  import { resumeIndex } from "../../../packages/storage/src/state-index.ts";
+  import { chooseResume, type GameCard } from "./library-view.ts";
   import { applyUpdate, install, pwa, startPwa } from "./pwa.svelte.ts";
   import {
     storageHealth,
@@ -19,7 +19,7 @@
   import { icons } from "./icons.ts";
   import { startPadNavigation } from "./pad-navigation.svelte.ts";
   import { ui } from "./input-mode.svelte.ts";
-  import InterfacePreference from "./InterfacePreference.svelte";
+  import { motion } from "./motion.svelte.ts";
   import PadHints from "./PadHints.svelte";
   import {
     acceptFor,
@@ -41,11 +41,17 @@
     cueFiles,
     matchTracks,
   } from "../../../packages/storage/src/cue.ts";
-  /** Screens without a router: the hash names the page (#controles, #juegos). */
-  type Page = "inicio" | "controles" | "juegos";
+  /** Screens without a router: the hash names the page (#ajustes, #juegos). */
+  type Page = "inicio" | "ajustes" | "juegos";
   let page = $state<Page>("inicio");
+  /** The Ajustes tab the address asks for (#ajustes/sonido, #controles). */
+  let settingsTab = $state<SettingsTab>();
   const pageFromHash = (hash: string): Page =>
-    hash === "#controles" ? "controles" : hash === "#juegos" ? "juegos" : "inicio";
+    hash === "#ajustes" || tabFromHash(hash)
+      ? "ajustes"
+      : hash === "#juegos"
+        ? "juegos"
+        : "inicio";
   const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
   let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
@@ -74,29 +80,49 @@
     control?.scrollIntoView({ block: "nearest" });
   }
   // Local library: remembered games, most recent first.
-  let games = $state.raw<LibraryEntry[]>([]);
-  /** What this browser lets Cartivo keep (notice on the home screen). */
+  let games = $state.raw<GameCard[]>([]);
+  let libraryQuery = $state("");
+  let libraryFilter = $state("");
+  let librarySort = $state<GameSort>("recent");
+  let libraryProblem = $state("");
+  let libraryLoading = $state(true);
   let storage = $state<StorageHealth>("ok");
   let pruned = false;
+  let libraryRequest = 0;
   async function refreshLibrary() {
+    const id = profiles.id;
+    const request = ++libraryRequest;
+    libraryLoading = true;
     try {
-      games = await listGames(profiles.id);
-      // Once per visit, in the background: copies left by an interrupted
-      // remember/forget or a deleted profile, unless any profile still
-      // remembers them. Never blocks nor fails the home screen.
+      const entries = await sharedGames(id, profiles.all.map((p) => p.id));
+      let warning = "";
+      const states = await resumeIndex(id).catch((error: unknown) => {
+        warning = error instanceof Error
+          ? error.message
+          : "No se pudieron consultar las partidas. Puedes revisarlas desde Partidas.";
+        return undefined;
+      });
+      if (request !== libraryRequest || profiles.active?.id !== id) return;
+      games = entries.map((entry) => {
+        const system = findSystem(entry.system);
+        const saved = states?.get(entry.hash) ?? [];
+        const resume = system ? chooseResume(saved, system) : undefined;
+        return { ...entry, resume, stateUnavailable: saved.length > 0 && !resume };
+      });
+      libraryProblem = warning;
       if (!pruned) {
         pruned = true;
-        void rememberedBy(profiles.all.map((p) => p.id))
-          .then((known) => pruneOrphanRoms(known))
-          .catch(() => 0);
+        void pruneSharedRoms().catch(() => 0);
       }
     } catch {
-      games = [];
+      if (request === libraryRequest && profiles.active?.id === id)
+        libraryProblem = "No se pudo leer la biblioteca. Tus archivos no se han borrado.";
+    } finally {
+      if (request === libraryRequest) libraryLoading = false;
     }
   }
-  /** «Continuar» from the home screen or the games page: from «Al salir». */
-  const continueGame = (entry: LibraryEntry, system: SystemInfo) =>
-    startGame(system, { kind: "library", entry, resume: true });
+  const continueGame = (entry: GameCard, system: SystemInfo) =>
+    startGame(system, { kind: "library", entry, resume: !!entry.resume, resumeState: entry.resume });
   let fileInput = $state.raw<HTMLInputElement>();
   /** System whose card opened the file picker. */
   let pickerSystem = $state.raw<SystemInfo>(consoles[0]);
@@ -212,6 +238,7 @@
       return;
     }
     page = pageFromHash(location.hash);
+    settingsTab = tabFromHash(location.hash);
     await tick();
     pageHeading?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -223,12 +250,17 @@
   function chooseProfile(profile: Profile) {
     profiles.choose(profile);
     games = [];
+    libraryQuery = "";
+    libraryFilter = "";
+    libraryProblem = "";
     void refreshLibrary();
     void showPage();
   }
   function switchProfile() {
+    ++libraryRequest;
     profiles.choose(undefined);
     games = [];
+    libraryProblem = "";
   }
   function goHome(event: MouseEvent) {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0)
@@ -244,6 +276,7 @@
     const root = document.documentElement;
     root.dataset.ui = ui.current;
     root.dataset.input = ui.lastDevice;
+    root.dataset.motion = motion.reduced ? "reduce" : "full";
   });
   type LaunchParams = { files: readonly FileSystemFileHandle[] };
   type LaunchQueue = {
@@ -309,7 +342,7 @@
           >Instalar app</button
         >
       {/if}
-      {#if games.length && !game && profiles.active}<a
+      {#if !game && profiles.active}<a
           class="icon-button settings-link"
           href="#juegos"
           aria-current={page === "juegos" ? "page" : undefined}
@@ -317,15 +350,16 @@
         >{/if}
       {#if profiles.active || game}<a
           class="icon-button settings-link"
-          href="#controles"
-          aria-current={page === "controles" ? "page" : undefined}
+          href="#ajustes"
+          aria-current={page === "ajustes" ? "page" : undefined}
           >{@html icons.gear}<span>Ajustes</span></a
         >{/if}
     </nav>
   </header>
+  {#if libraryProblem && profiles.active && !game}<p class="storage-note" role="status">{libraryProblem} <button onclick={refreshLibrary}>Reintentar</button></p>{/if}
   {#if !game && !profiles.active}
     <ProfilePicker onchoose={chooseProfile} />
-  {:else if page === "controles"}
+  {:else if page === "ajustes"}
     <section class="controls-page">
       <div class="page-head">
         <a
@@ -337,12 +371,11 @@
           >{@html icons.back}</a
         >
         <div class="titles">
-          <p class="kicker">Mando y teclado</p>
-          <h1 bind:this={pageHeading} tabindex="-1">Configurar controles</h1>
+          <p class="kicker">A tu manera</p>
+          <h1 bind:this={pageHeading} tabindex="-1">Ajustes</h1>
         </div>
       </div>
-      <InterfacePreference />
-      <ControlsPanel />
+      <SettingsPage inGame={!!game} tab={settingsTab} />
     </section>
   {:else if page === "juegos" && !game}
     <section class="games-page">
@@ -360,6 +393,10 @@
         </div>
       </div>
       <LibraryPage
+        loading={libraryLoading}
+        bind:query={libraryQuery}
+        bind:systemFilter={libraryFilter}
+        bind:sort={librarySort}
         {games}
         oncontinue={continueGame}
         onchange={refreshLibrary}
@@ -367,8 +404,9 @@
     </section>
   {:else if !game}
     <section class="welcome">
-      <!-- The cards speak for themselves: the heading is for assistive
-           technology and the focus target of the start. -->
+      <!-- The cards speak for themselves (the owner asked for no visible
+           title): the heading is for assistive technology and the focus
+           target of the start. -->
       <h1 id="inicio" class="visually-hidden" bind:this={pageHeading} tabindex="-1">
         Elige una consola
       </h1>
@@ -387,7 +425,10 @@
             : "Este navegador no guarda copias de tus juegos (ventana privada o almacenamiento restringido): «Continuar» no estará disponible y tus partidas podrían borrarse al cerrarlo. Exporta las que quieras conservar desde Partidas."}
         </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
-      <RecentGames {games} oncontinue={continueGame} />
+      <RecentGames
+        games={games.filter((g) => !g.hidden)}
+        oncontinue={continueGame}
+      />
       <ul
         class="consoles"
         aria-label="Consolas"
@@ -426,12 +467,12 @@
       />
     </section>
   {/if}
-  {#if game}<div hidden={page === "controles"}>
+  {#if game}<div hidden={page === "ajustes"}>
       {#key game.id}
         <Player
           system={game.system}
           source={game.source}
-          visible={page !== "controles"}
+          visible={page !== "ajustes"}
           canRemember={storage === "ok"}
           autostart
           onclose={() => {
@@ -723,22 +764,5 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
-  /* Modo consola: the consoles become a horizontal carousel the D-pad
-     scrolls through, and the page keeps room for the button legend. */
-  :global(:root[data-ui="pad"]) main {
-    padding-bottom: 96px;
-  }
-  :global(:root[data-ui="pad"]) .consoles {
-    grid-auto-flow: column;
-    grid-template-columns: none;
-    grid-template-rows: repeat(3, auto);
-    grid-auto-columns: minmax(260px, 30%);
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding: 8px 8px 16px;
-  }
-  :global(:root[data-ui="pad"]) .consoles > li {
-    grid-row: 1 / span 3;
-    scroll-snap-align: start;
-  }
+  :global(:root[data-ui="pad"]) main { padding-bottom: 96px; }
 </style>

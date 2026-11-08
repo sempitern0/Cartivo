@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingSplash from "./LoadingSplash.svelte";
   import { onMount, tick } from "svelte";
   import GameStage from "./GameStage.svelte";
   import PlayerToolbar from "./PlayerToolbar.svelte";
@@ -84,13 +85,15 @@
   // The player is remounted for each game ({#key} in App), so the system
   // is fixed for its lifetime and reading its initial value is intended.
   // svelte-ignore state_referenced_locally
-  let coreChoice = $state<string>(readCore(system));
+  let coreChoice = $state<string>(source.kind === "library" && source.resumeState ? source.resumeState.core : readCore(system));
   // «Partidas»: full-console snapshots (ADR-009).
   let saves = $state.raw<StateMeta[]>([]);
   let savesOpen = $state(false);
   let savesButton = $state.raw<HTMLButtonElement>();
   let resumeOffer = $state.raw<StateMeta>();
   let toast = $state("");
+  let hasPlayed = false;
+  let exitSaveFailed = $state(false);
   let toastTimer = 0;
   function notify(message: string) {
     toast = message;
@@ -225,11 +228,13 @@
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
   let loadMs = $state<number>();
+  // svelte-ignore state_referenced_locally
+  const ownStick = !!system.analogStick;
   const controls = new InputCapture(
     readKeyboard(profiles.key(KEYBOARD_KEY)),
     () => navigator.getGamepads?.() ?? [],
     getPadPreference,
-    !!system.analogStick,
+    ownStick,
   );
   function fail(e: unknown) {
     phase = "error";
@@ -280,10 +285,15 @@
             : "Este cartucho no tiene batería; usa Partidas para guardar.";
       phase = "paused";
       if (r.libraryError) problem = r.libraryError;
-      const exit = saves.find((s) => s.slot === "auto");
+      // A disc is copied while it plays; its outcome comes with a frame.
+      if (r.remembering)
+        notify(
+          `Guardando el disco en «Tus juegos» (${Math.ceil(r.remembering / 2 ** 20)} MB)…`,
+        );
+      const exit = saves.find((s) => s.slot === "auto" && system.cores.some((core) => core.id === coreChoice && s.core === core.id && s.coreVersion === core.version));
       // «Continuar» from the home screen goes straight to the exit snapshot.
-      if (source.kind === "library" && source.resume && exit)
-        await loadSlot("auto");
+      if (source.kind === "library" && source.resume && (source.resumeState || exit))
+        await loadSlot(source.resumeState?.slot ?? "auto");
       else {
         // Offer to continue from the exit snapshot instead of starting over.
         resumeOffer = exit;
@@ -304,6 +314,7 @@
     pacer.start(performance.now());
     metrics.reset(performance.now());
     phase = "running";
+    hasPlayed = true;
     await tick();
     (actionsElement ?? screen)?.scrollIntoView({ block: "nearest" });
     screen?.focus({ preventScroll: true });
@@ -414,6 +425,8 @@
         );
       }
       frames = r.frames ?? frames;
+      if (r.remembered) notify("Disco guardado en «Tus juegos».");
+      if (r.libraryError) problem = r.libraryError;
       if (r.saveError) {
         problem = r.saveError;
         await pause();
@@ -510,7 +523,13 @@
     if (phase === "running") await pause();
     // Exit snapshot so the next opening can continue from here. Skipped
     // while the continue offer is pending: nothing has been played yet.
-    if (phase === "paused" && !resumeOffer) await saveSlot("auto", true);
+    if (phase === "paused" && hasPlayed && !resumeOffer && !noStorage) {
+      exitSaveFailed = !(await saveSlot("auto", true));
+      if (exitSaveFailed) {
+        problem = "No se pudo guardar la partida al salir. Reintenta Salir o exporta una ranura desde Partidas antes de cerrar.";
+        return;
+      }
+    }
     if (saveStatus === "Guardado sin confirmar.") {
       problem =
         "Exporta una copia antes de cerrar: el guardado local no se ha confirmado.";
@@ -603,6 +622,7 @@
     {graphicsOpen}
     {savesOpen}
     savesAvailable={!noStorage}
+    exitLabel={noStorage ? "Salir" : "Guardar y salir"}
     bind:graphicsButton
     bind:savesButton
     ongraphics={toggleGraphics}
@@ -630,7 +650,6 @@
       {system.formatNote}.
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
-  {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
   {#if graphicsOpen && phase !== "running"}
     <GraphicsPanel
       video={system.video}
@@ -679,7 +698,10 @@
       {problem}
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
-  <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer}>
+  <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer || phase === "loading"}>
+    {#if phase === "loading"}
+      <LoadingSplash {system} title={sourceTitle(source)} />
+    {/if}
     {#if resumeOffer && phase === "paused"}
       <ResumeOffer
         offer={resumeOffer}
@@ -694,6 +716,7 @@
         {busy}
         savesAvailable={!noStorage}
         onresume={resume}
+        onsave={() => saveSlot("1")}
         onsaves={toggleSaves}
         ongraphics={toggleGraphics}
         oncontrols={() => (location.hash = "#controles")}
@@ -728,6 +751,7 @@
     {fullscreenAvailable}
     onpause={() => pause()}
     onresume={resume}
+    onsave={noStorage ? undefined : () => saveSlot("1")}
     onreset={resetConsole}
     ontap={tapControl}
     onsound={enableSound}
@@ -753,7 +777,7 @@
     />
   {/if}
 
-  {#if saveStatus === "Guardado sin confirmar."}<button
+  {#if saveStatus === "Guardado sin confirmar." || exitSaveFailed}<button
       onclick={() => {
         client?.dispose();
         sound.close();
@@ -791,17 +815,15 @@
   .player.focus-mode:fullscreen { height: 100%; padding: 0; overflow: hidden; }
   .focus-exit { position: absolute; z-index: 3; top: 16px; right: 16px; opacity: .65; min-height: 44px; background: #181b25f0; border: 1px solid #656b7b; }
   .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
-  @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
+  .focus-exit { transition: opacity 120ms ease-out; }
   /* Chrome may live in child components (toolbar, panels): match globally. */
   .player.focus-mode :global([data-player-chrome]) { display: none; }
   .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
   .frame.presenting { opacity: 1; }
   /* Leaves room for the title, toolbar and actions so the whole player fits. */
   .game-stage-wrapper { width: 100%; height: clamp(200px, calc(100dvh - 320px), 560px); border-radius: 14px; overflow: hidden; }
-  @media (prefers-reduced-motion: no-preference) {
-    .frame { transition: opacity 180ms ease-out; }
-    .player:not(.focus-mode) { animation: player-enter 180ms ease-out both; }
-  }
+  .frame { transition: opacity 180ms ease-out; }
+  .player:not(.focus-mode) { animation: player-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   @keyframes player-enter {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }

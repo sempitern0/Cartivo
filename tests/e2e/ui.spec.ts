@@ -53,10 +53,12 @@ test("the start shows the consoles and Ajustes opens controls", async ({
     path: `${shots}/${variant(baseURL)}-home-desktop.png`,
   });
   // Controls are global: the header's «Ajustes», not each card.
-  await expect(page.getByRole("link", { name: /^Controles de/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /^Controles de/ })).toHaveCount(
+    0,
+  );
   await page.getByRole("link", { name: "Ajustes" }).click();
   await expect(
-    page.getByRole("heading", { name: "Configurar controles" }),
+    page.getByRole("heading", { name: "Ajustes", exact: true }),
   ).toBeFocused();
   await page.screenshot({
     path: `${shots}/${variant(baseURL)}-controls-desktop.png`,
@@ -97,17 +99,18 @@ test("a file dropped on a card opens with that console", async ({ page }) => {
   await expect(card).toHaveClass(/\bover\b/);
   await card.dispatchEvent("drop", { dataTransfer: transfer });
   await playing(page);
-  await expect(page.getByRole("heading", { name: "soltado.nes" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "soltado.nes" }),
+  ).toBeVisible();
 });
 
-test("clicking anywhere on a card opens its game picker", async ({
-  page,
-}) => {
+test("clicking anywhere on a card opens its game picker", async ({ page }) => {
   await page.goto("/");
   const chooser = page.waitForEvent("filechooser");
+  // The logo is the card: a click on it, not on «Jugar», still plays.
   await page
     .getByRole("article", { name: "NES", exact: true })
-    .getByRole("heading")
+    .locator("img.cover-art")
     .click();
   expect((await chooser).isMultiple()).toBe(false);
 });
@@ -220,9 +223,7 @@ test("the logo returns to the start and the console cards line up", async ({
       cards.map((card) => ({
         row: Math.round(card.getBoundingClientRect().top),
         button: Math.round(
-          card
-            .querySelector("button.play")!
-            .getBoundingClientRect().top,
+          card.querySelector("button.play")!.getBoundingClientRect().top,
         ),
       })),
     );
@@ -231,4 +232,34 @@ test("the logo returns to the start and the console cards line up", async ({
   for (const cards of byRow.values())
     expect(new Set(cards.map((c) => c.button)).size).toBe(1);
   await noHorizontalScroll(page);
+});
+
+test("every console card is its logo, loaded, with the name for screen readers", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const logos = page
+    .getByRole("list", { name: "Consolas" })
+    .getByRole("article")
+    .locator("img.cover-art");
+  await expect(logos).toHaveCount(
+    await page
+      .getByRole("list", { name: "Consolas" })
+      .getByRole("article")
+      .count(),
+  );
+  // Each image decoded (no broken asset) and hidden from screen readers.
+  await expect
+    .poll(() =>
+      logos.evaluateAll((images) =>
+        (images as HTMLImageElement[]).every(
+          (img) => img.alt === "" && img.naturalWidth === 640,
+        ),
+      ),
+    )
+    .toBe(true);
+  // The name is not drawn over the logo but still names the card.
+  await expect(
+    page.getByRole("article", { name: "Mega Drive", exact: true }),
+  ).toBeVisible();
 });

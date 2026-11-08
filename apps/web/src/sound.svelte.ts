@@ -2,10 +2,17 @@
 // even when the browser blocks audio until a user gesture.
 import audioWorkletUrl from "./audio.worklet.ts?worker&url";
 import { GameAudio } from "../../../packages/media/src/audio.ts";
+import {
+  gainOf,
+  readSound,
+  writeSound,
+} from "../../../packages/media/src/sound-preferences.ts";
 
 export class GameSound {
   ready = $state(false);
-  muted = $state(false);
+  /** Remembered on this device (Ajustes › Sonido). */
+  muted = $state(readSound().muted);
+  #volume = readSound().volume;
   #audio: GameAudio | undefined;
   #closed = false;
 
@@ -20,7 +27,7 @@ export class GameSound {
         next.close();
         return false;
       }
-      next.mute(this.muted);
+      next.level(gainOf({ volume: this.#volume, muted: this.muted }));
       this.ready = true;
       return true;
     } catch {
@@ -63,7 +70,8 @@ export class GameSound {
 
   toggleMute() {
     this.muted = !this.muted;
-    this.#audio?.mute(this.muted);
+    writeSound({ volume: this.#volume, muted: this.muted });
+    this.#audio?.level(gainOf({ volume: this.#volume, muted: this.muted }));
   }
 
   close() {

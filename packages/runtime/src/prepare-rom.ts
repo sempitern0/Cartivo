@@ -106,5 +106,6 @@ export async function prepareDisc(
     discIdentity(identified),
     module.prepare(),
   ]);
-  return { disc, hash };
+  // `parts`: the files of its identity, as the library copies them.
+  return { disc, hash, parts: identified };
 }

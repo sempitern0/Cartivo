@@ -375,6 +375,36 @@
 - **Partidas:** se cargan bien (antes las pilas de fibra iban alineadas a 8 bytes y el núcleo rechazaba el estado) y tienen miniatura leída de la GPU al guardar.
 - **Límites:** sin Transfer Pak, Rumble Pak ni 64DD; cortes de audio ocasionales.
 
+### Discos de PlayStation en «Tus juegos»
+
+- **Recordar un disco:** al abrirlo desde archivos se copian a `roms/<identidad>/` el `.cue` y sus pistas, o el `.iso`/`.bin`/`.exe`. La copia se hace en trozos mientras se juega y avisa del tamaño («Guardando el disco… (N MB)») y de cuándo termina.
+- **Espacio:** si el navegador no tiene sitio suficiente, no se copia nada y se dice cuánto ocupa el disco y cuánto queda libre.
+- **«Continuar»** abre la copia sin pedir los archivos y recalcula la identidad: una copia dañada se rechaza con un mensaje.
+- **Perfiles:** comparten la copia, y olvidarla en un perfil no la borra para otro. La tarjeta de memoria y las Partidas se conservan. Las carpetas huérfanas se limpian como los cartuchos.
+
+### Biblioteca común, pausa unificada y Ajustes por categorías (PR #38)
+
+- **Biblioteca común:** los títulos se comparten entre los perfiles del dispositivo, y cada perfil conserva sus partidas, recientes y capturas ([ADR-018](docs/adr/018-shared-library-ux.md)). La tarjeta dice «Jugar», «Continuar» o «Cargar partida» según los guardados compatibles. Los discos de PlayStation también entran en el catálogo común.
+- **Opciones de cada juego:** «Ocultar para mí» (reversible desde «Ocultos para ti»), «Borrar mi progreso» (Partidas y batería de este perfil) y «Eliminar del dispositivo» (para todos, liberando la copia). Las dos últimas piden confirmación.
+- **Pausa unificada:** Reanudar juego · Guardar ahora · Partidas · Ajustes del juego · Guardar y salir, con teclado, ratón o mando. «Gráficos» pasa a «Ajustes del juego».
+- **Ajustes:** Pantalla, Sonido (volumen y silencio recordados), Controles, Interfaz, Almacenamiento y Avanzado.
+- El inicio vuelve a no mostrar el título «Elige una consola», como se pidió antes.
+- Segunda ronda tras la QA visual del titular:
+  - **Ajustes en pestañas** (`#ajustes/<pestaña>`, que recargar conserva; `#controles` sigue abriendo Controles).
+  - **Antes y después** en Pantalla y «Ajustes del juego»: lo predeterminado junto a tu elección, para esta ventana y con zum a tamaño real.
+  - **Tarjeta de juego compacta:** botón principal con icono y «⋯»; las opciones y sus confirmaciones cubren la tarjeta.
+  - El avatar del selector de perfil queda centrado al pasar el ratón.
+  - Sin avisos de `svelte-check` (tarjeta de consola y stick propio del reproductor).
+- Tercera ronda:
+  - **Botones de cada consola:** tarjeta visible bajo las asignaciones, con una píldora por botón («Cruz → B»), en lugar de notas en letra pequeña.
+  - **Almacenamiento:** ya no se muestra la cuota del navegador (Brave dice 2 GB), que se leía como un límite de ROMs; se explica que solo cuenta las copias recordadas.
+  - **Avanzado:** cada núcleo como tarjeta con «Recomendado», a favor, en contra y cuándo cambiar (NES: TetaNES o JSNES).
+- **Bits UI** ([ADR-019](docs/adr/019-ui-components-bits-ui.md)): las pestañas de Ajustes, el menú «⋯» de cada juego y el diálogo que confirma borrar progreso o eliminar un juego. Animaciones con las transiciones de Svelte (menú, diálogo y paneles), sin movimiento si el sistema pide reducirlo.
+- **El logotipo es la tarjeta del inicio** (aportados por el titular, uso privado): cuadrada, con la imagen de fondo; el nombre queda para lectores de pantalla, y los formatos y el botón de reproducción van sobre una franja oscura. Al pasar el ratón, el logotipo se acerca y la tarjeta se ilumina con su acento.
+- **Animaciones:** nueva preferencia en Ajustes → Interfaz (Automáticas, Activadas, Reducidas). Antes se apagaban siempre que el sistema pedía reducir movimiento, como Windows con «Efectos de animación» desactivado.
+- **Carga con el toque de Cartivo:** el logotipo de la consola y la barra de progreso propia mientras se prepara un juego; la misma barra en «Cargando tus juegos». Los juegos de «Tus juegos» se elevan al pasar el ratón.
+- **Selectores** con el estilo de la página (antes, grises del sistema).
+
 ### CI más rápida, dependencias y arte de terceros
 
 - **CI:** las E2E corren en seis jobs paralelos (Chromium, Firefox y WebKit × dev y preview; Chromium también la subruta), con la misma cobertura y alrededor de la mitad de tiempo total. Los cambios solo de documentación tampoco lanzan la CI en `main`. `checkout` y `setup-node` pasan a v5 (Node 24).

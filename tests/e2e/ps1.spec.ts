@@ -136,12 +136,20 @@ test("a .cue opened alone asks for its tracks, then the disc boots", async ({
 
 test("Controles names the PlayStation buttons", async ({ page }) => {
   await page.goto("/#controles");
+  const guide = page.getByRole("region", { name: "Botones de cada consola" });
   await expect(
-    page.getByText(
-      "En PlayStation, Cruz, Círculo, Cuadrado, Triángulo, L1 y R1 están en B, A, Y, X, L y R.",
-    ),
-  ).toBeVisible();
+    guide
+      .getByRole("list", { name: "Botones de PlayStation" })
+      .getByRole("listitem"),
+  ).toHaveText([
+    "Cruz en B",
+    "Círculo en A",
+    "Cuadrado en Y",
+    "Triángulo en X",
+    "L1 en L",
+    "R1 en R",
+  ]);
   await expect(
-    page.getByText("L2 y R2 solo los usan PlayStation y N64."),
+    guide.getByText("L2 y R2 solo los usan PlayStation y N64."),
   ).toBeVisible();
 });
