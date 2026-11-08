@@ -83,7 +83,10 @@ test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and A
     .locator("#pantalla")
     .getByLabel("Consola")
     .selectOption({ label: "SNES" });
-  await page.getByText("Píxel entero", { exact: true }).click();
+  await page
+    .locator("#pantalla")
+    .getByRole("radio", { name: /^Píxel entero/ })
+    .check();
   await expect(page.locator("#pantalla")).toContainText(
     "Se recordará para SNES",
   );
@@ -99,5 +102,7 @@ test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and A
     .locator("#pantalla")
     .getByLabel("Consola")
     .selectOption({ label: "SNES" });
-  await expect(page.getByRole("radio", { name: /Píxel entero/ })).toBeChecked();
+  await expect(
+    page.locator("#pantalla").getByRole("radio", { name: /^Píxel entero/ }),
+  ).toBeChecked();
 });
