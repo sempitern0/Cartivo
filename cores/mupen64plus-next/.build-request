@@ -1,2 +1,2 @@
 Bump this file only to build Mupen64Plus-Next once in CI (core-mupen64plus-next.yml).
-Reason: app integration: battery memory, compressed snapshots and alt-map exports in the frontend.
+Reason: 16-byte aligned fiber stacks (savestates did not load).
