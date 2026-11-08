@@ -233,6 +233,11 @@
     outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
     outline-offset: 4px;
   }
+  /* Solid at rest: it sits over the logo's «C» seal. */
+  .cover .play-icon {
+    background: #0b0d14f0;
+    border-color: #ffffff2e;
+  }
   .cover .format {
     background: #0b0d14b3;
     border-color: #ffffff26;
