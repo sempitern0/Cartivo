@@ -11,7 +11,8 @@ export const backupFormat = (system: string) =>
 
 /**
  * Upper bound for an exported copy file before parsing it. Copies are JSON
- * byte arrays (≤4 characters per byte): 1 MiB covers 128 KiB battery RAM,
- * the largest V1 cartridge save. The worker then checks the exact size.
+ * byte arrays (≤4 characters per byte): 2 MiB covers N64's 290 KiB battery
+ * block (EEPROM, four controller paks, SRAM and FlashRAM), the largest save.
+ * The worker then checks the exact size.
  */
-export const MAX_BACKUP_FILE = 1 << 20;
+export const MAX_BACKUP_FILE = 2 << 20;

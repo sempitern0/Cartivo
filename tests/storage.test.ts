@@ -35,8 +35,8 @@ test("NES keeps its shipped storage names; other systems get their own", () => {
   assert.equal(backupFormat("nes"), "cartivo-nrom-sram-v1");
   assert.equal(sramKey("gb", "abc"), "gb-sram-v1:abc");
   assert.equal(backupFormat("gb"), "cartivo-gb-sram-v1");
-  // 128 KiB of battery RAM as a JSON byte array still fits the file cap.
-  const copy = JSON.stringify({ bytes: Array(128 * 1024).fill(255) });
+  // N64's battery block as a JSON byte array still fits the file cap.
+  const copy = JSON.stringify({ bytes: Array(296960).fill(255) });
   assert.ok(copy.length < MAX_BACKUP_FILE);
 });
 

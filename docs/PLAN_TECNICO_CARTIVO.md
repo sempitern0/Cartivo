@@ -32,6 +32,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | **SNES:** Snes9x 1.63 (C++ sobre su frontend libretro); NTSC y PAL (50 Hz) LoROM/HiROM/ExHiROM, chips emulados; botones X/Y | `packages/adapters/src/snes9x.ts`, `snes-header.ts`; `cores/snes9x` | ADR-013 | `tests/snes.test.ts`, `tests/e2e/snes.spec.ts`, [H2-SNES](compatibility/H2-SNES.md) |
 | **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` suelto de hasta 10 MiB | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
 | **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos aún no se recuerdan en la biblioteca | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
+| **Nintendo 64:** Mupen64Plus-Next `15bada8` con GLideN64 sobre WebGL2 en el Worker (`SurfaceModule`: la página transfiere el lienzo); `.z64`/`.n64`/`.v64`; stick analógico (teclado: dirección completa) y botones C; batería de 296 960 bytes; Partidas comprimidas con zlib, con miniatura leída de la GPU | `packages/adapters/src/n64.ts`, `n64-header.ts`; `cores/mupen64plus-next`; `apps/web/src/surface.ts` | ADR-017 | `tests/n64.test.ts`, `tests/e2e/n64.spec.ts`, [H4-N64](compatibility/H4-N64.md) |
 | Discos bajo demanda: `DiscModule` en el contrato, `prepareDisc` (identidad por bloques WebCrypto, sin leer el disco entero), VFS de libretro sobre `FileReaderSync` (`cartivo_vfs_*`), varios archivos por `load` (`extra`) y `gameForFiles` para elegir el juego | `packages/adapters/src/disc.ts`, `contract.ts`; `packages/storage/src/disc-identity.ts`; `packages/runtime/src/prepare-rom.ts`, `systems.ts` | ADR-015 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts` |
 | Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive, PlayStation) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | Cadencia por juego: el núcleo libretro informa de la frecuencia del juego cargado (`cartivo_frame_rate`, 50 Hz en PAL) y el host la usa; sin ese dato, la nominal del sistema | `EmulatorCore.frameRate`, `wasm-host.ts`, `Player.svelte`; puentes de `cores/snes9x` y `cores/genesis-plus-gx` | ADR-002 | `tests/wasm-host.test.ts`, `tests/e2e/pal.spec.ts` |
@@ -82,22 +83,14 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
    - *Cómo:* reconstruir con `HAVE_CHD` (libchdr, lzma y zstd).
    - *Requisitos previos:* gate de licencias de esas dependencias y lectura por la VFS.
    - *Terminado cuando:* fixture CHD propia arranca en Node y en E2E.
-4. **Vídeo WebGL2 en el Worker (spike + ADR).**
-   - *Objetivo:* `OffscreenCanvas` con WebGL2 para núcleos que dibujan con GPU. Es el requisito común de N64, PSP y PS2.
-   - *Terminado cuando:* un núcleo de prueba dibuja por GL en el Worker en Chromium y Firefox, con alternativa si falta WebGL2, y un ADR describe el contrato (sin romper el RGBA actual).
-5. **N64 (en curso, rama `feat/n64-analogico-y-build`, PR #39).** Se sigue [N64_PLAN_INTEGRACION](research/N64_PLAN_INTEGRACION.md).
-   - *Hecho en el laboratorio:* Mupen64Plus-Next + GLideN64 dibuja por WebGL2 en un Worker, sin hilos (libco sobre fibers/Asyncify). Arranca una demo original con mando y audio. Una pérdida de contexto detiene la sesión. Con la demo en SwiftShader cuesta unos 6 ms por fotograma y ocupa 256 MiB.
-   - *Hecho fuera del laboratorio:*
-     - núcleo compilado en CI (`cores/mupen64plus-next`) con emsdk 4.0.10: el de 6.0.12 se cuelga en el primer fotograma y la causa sigue en investigación;
-     - CORE-LEGAL-01 accepted (uso privado);
-     - ritmo por cola de audio en la sesión;
-     - el frontend usa los valores por defecto que declara el núcleo (`SET_CORE_OPTIONS_V2`), salvo las copias a RDRAM y el almacén de shaders, que WebGL2 no admite.
-   - *QA del titular (GPU real, Brave en Windows):* *Super Mario 64* se juega con mando y con teclado, a 0,99× y 4,7 ms por fotograma.
-   - *Pendiente:* underruns ocasionales de audio por tirones del Worker, más juegos propios y la decisión go o no-go antes de registrarlo en la app.
-   - *Empieza por:* el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
-   - El punto 4 (contrato de vídeo GPU en producción) se diseña con N64 como primer consumidor, en su fase 4.
-6. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre el punto 4 y el camino de discos (`.iso`/`.cso`).
-7. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
+4. **N64 · pulido tras la QA en la app.** N64 ya está en la app como experimental ([ADR-017](adr/017-n64-gpu-surface.md), [H4-N64](compatibility/H4-N64.md)).
+   - *Pendiente:*
+     - cortes de audio por tirones del Worker;
+     - el cuelgue con emsdk 6.0.12.
+   - *Empieza por:* `packages/adapters/src/n64.ts`, `cores/mupen64plus-next/src/frontend.c` y el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
+   - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio, y cada punto pendiente tiene prueba o queda registrado como límite.
+5. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`) y el camino de discos (`.iso`/`.cso`).
+6. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
 
 ### 3.3 Deuda técnica conocida (cuando toque su área)
 
@@ -150,7 +143,7 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se i
 | Game Boy Advance | mGBA 0.10.5 (MPL-2.0, BIOS HLE) | **accepted (uso privado)** |
 | SNES | Snes9x 1.63 (licencia no comercial propia) | **accepted (uso privado)** |
 | Master System / Mega Drive | Genesis Plus GX `a5834b3` (licencias no comerciales) | **accepted (uso privado)** |
-| N64 | Mupen64Plus-Next `15bada8` (GPL-2.0) | **accepted (uso privado)**; solo laboratorio hasta el go o no-go (ADR-015) |
+| N64 | Mupen64Plus-Next `15bada8` (GPL-2.0) | **accepted (uso privado)**; en la app como experimental (ADR-017) |
 | PlayStation | PCSX-ReARMed `7b0e8f8` (GPL-2.0-or-later, BIOS HLE) | **accepted (uso privado)** |
 | PSP | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) |
 | PS2 | Play! (BSD-2, HLE) | laboratorio opt-in |

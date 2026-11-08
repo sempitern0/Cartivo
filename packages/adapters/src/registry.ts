@@ -21,6 +21,8 @@ import {
 import { smsControlDemo } from "../../fixtures/src/sms-control-demo.ts";
 import { mdControlDemo } from "../../fixtures/src/md-control-demo.ts";
 import { ps1ControlDemo } from "../../fixtures/src/ps1-control-demo.ts";
+import { n64ControlDemo } from "../../fixtures/src/n64-control-demo.ts";
+import { MAX_N64_ROM_BYTES, validateN64Rom } from "./n64-header.ts";
 
 /**
  * Loads an adapter module the first time its system starts: players of other
@@ -76,6 +78,11 @@ const pcsx = onDemand(
   () => import("./pcsx-rearmed.ts"),
   (lib) => lib.preparePcsx(),
 );
+const mupen = onDemand(
+  "Mupen64Plus-Next",
+  () => import("./n64.ts"),
+  (lib) => lib.prepareN64(),
+);
 
 /** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
 const sameboyModule = (system: string, color: boolean): CoreModule => ({
@@ -94,8 +101,9 @@ let tetanesReady: Promise<void> | undefined;
 
 /** Genesis Plus GX has no releases: the snapshot version is the commit. */
 const GENESIS_VERSION = "a5834b3";
-/** Neither do PCSX-ReARMed's libretro builds. */
+/** Neither do PCSX-ReARMed's libretro builds, nor Mupen64Plus-Next's. */
 const PCSX_VERSION = "7b0e8f8";
+const MUPEN_VERSION = "15bada8";
 
 const nesVideo = { width: 256, height: 240 };
 
@@ -190,6 +198,18 @@ export const coreModules: readonly CoreModule[] = [
     demo: () => ({ name: "cartivo-demo.exe", bytes: ps1ControlDemo() }),
     prepare: pcsx.prepare,
     create: (disc, save) => new (pcsx.get().PcsxRearmedAdapter)(disc, save),
+  },
+  {
+    system: "n64",
+    id: "mupen64plus-next",
+    version: MUPEN_VERSION,
+    surface: "webgl2",
+    video: { width: 640, height: 480 },
+    maxRomBytes: MAX_N64_ROM_BYTES,
+    validate: validateN64Rom,
+    demo: n64ControlDemo,
+    prepare: mupen.prepare,
+    create: (rom, canvas, save) => mupen.get().createN64(rom, canvas, save),
   },
 ];
 

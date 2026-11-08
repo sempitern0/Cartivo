@@ -75,9 +75,11 @@ export class EmulatorClient {
     }
     p.resolve(result);
   };
+  /** `transfer` moves objects to the Worker (a game canvas at load). */
   request(
     command: EmuCommand,
     payload: Partial<EmuRequest> = {},
+    transfer: Transferable[] = [],
   ): Promise<EmuResult> {
     const next = this.tail
       .catch(() => {})
@@ -96,13 +98,10 @@ export class EmulatorClient {
             );
             this.pending = { id, resolve, reject, timer };
             try {
-              this.worker.postMessage({
-                ...payload,
-                v: 1,
-                session: this.session,
-                id,
-                command,
-              });
+              this.worker.postMessage(
+                { ...payload, v: 1, session: this.session, id, command },
+                transfer,
+              );
             } catch {
               this.dispose("No se pudo enviar el archivo al núcleo");
             }

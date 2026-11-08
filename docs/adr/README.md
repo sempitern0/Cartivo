@@ -20,3 +20,4 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [014](014-sms-md-genesis-plus-gx.md) | Master System y Mega Drive con Genesis Plus GX en WebAssembly | Aceptado (experimental) |
 | [015](015-ps1-pcsx-rearmed-discs.md) | PlayStation con PCSX-ReARMed, discos bajo demanda y botones L2/R2; N64 aplazado | Aceptado (experimental) |
 | [016](016-player-profiles.md) | Perfiles de jugador locales: partidas, biblioteca y controles por perfil, sin migración | Aceptado |
+| [017](017-n64-gpu-surface.md) | Nintendo 64 con Mupen64Plus-Next: superficie WebGL2 en el Worker (`SurfaceModule`) | Aceptado (experimental) |

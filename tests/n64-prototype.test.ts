@@ -11,7 +11,7 @@ import {
   N64_DEMO_COLORS,
   N64_DEMO_TONE,
   n64ControlDemo,
-} from "../experiments/n64/fixture/n64-control-demo.ts";
+} from "../packages/fixtures/src/n64-control-demo.ts";
 
 function header(order: "z64" | "v64" | "n64") {
   const normal = new Uint8Array(64);

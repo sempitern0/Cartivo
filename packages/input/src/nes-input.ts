@@ -89,6 +89,9 @@ export function sample(
   held: ReadonlySet<string>,
   deadzone = 0.25,
   keyboard: KeyboardProfile = defaultKeyboard,
+  /** False for a controller whose stick is its own (analog.ts), not a
+   * stand-in for the D-pad. */
+  stickAsDpad = true,
 ): InputState {
   const state = neutral();
   for (const code of held) {
@@ -98,7 +101,7 @@ export function sample(
   if (pad?.connected && profile) {
     for (const action of actions)
       state[action] ||= bindingPressed(pad, profile[action], deadzone);
-    if (pad.mapping === "standard" && profile === standard) {
+    if (stickAsDpad && pad.mapping === "standard" && profile === standard) {
       state.left ||= (pad.axes[0] ?? 0) < -deadzone;
       state.right ||= (pad.axes[0] ?? 0) > deadzone;
       state.up ||= (pad.axes[1] ?? 0) < -deadzone;

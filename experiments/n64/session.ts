@@ -2,7 +2,7 @@
 // (cores/mupen64plus-next/dist, served as the lab's Vite publicDir). One session at a time, in its own Worker; stopping or a
 // failure terminates it, so nothing outlives the session. Everything the
 // Worker reports goes to the visible log, to diagnose a machine from a copy.
-import { n64ControlDemo } from "./fixture/n64-control-demo.ts";
+import { n64ControlDemo } from "../../packages/fixtures/src/n64-control-demo.ts";
 import {
   analogOf,
   digitalStick,
@@ -104,15 +104,15 @@ function play(samples: Int16Array) {
   send({ type: "audio-queue", ms: Math.round(queued() * 1000) });
 }
 
-/** libretro bits as the core maps them: B→N64 A, Y→N64 B, L2→Z; the
- * D-pad is libretro's up/down/left/right (4–7). */
+/** libretro bits as the core maps them (alt-map, frontend.c): B→N64 A,
+ * Y→N64 B, L2→Z, Select→L, R2→R; the D-pad is libretro's 4–7. */
 const KEYBOARD: Record<string, number> = {
   KeyK: 0, // A
   KeyJ: 1, // B
   Enter: 3, // Start
   KeyQ: 12, // Z
-  KeyI: 10, // L
-  KeyO: 11, // R
+  KeyI: 2, // L
+  KeyO: 13, // R
 };
 /** Keys read as sticks: arrows are the control stick; WASD the right stick,
  * which the core reads as the C buttons. */
@@ -125,8 +125,8 @@ const PAD: [number, number][] = [
   [2, 1], // west → B
   [9, 3], // start
   [6, 12], // left trigger → Z
-  [4, 10], // L
-  [5, 11], // R
+  [4, 2], // L
+  [5, 13], // R
   [12, 4], // D-pad
   [13, 5],
   [14, 6],
