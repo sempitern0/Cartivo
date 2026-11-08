@@ -72,11 +72,14 @@
   }}
 >
   <header>
-    <h2 id="graphics-title">Gráficos</h2>
-    <p>Los cambios se ven al momento sobre la imagen en pausa.</p>
+    <h2 id="graphics-title">Ajustes del juego</h2>
+    <p>
+      Pantalla de esta consola; los cambios se ven al momento sobre la imagen
+      en pausa. <a href="#controles">Controles</a>
+    </p>
     <button
       class="close icon-button"
-      aria-label="Cerrar gráficos"
+      aria-label="Cerrar ajustes del juego"
       onclick={onclose}>{@html icons.close}</button
     >
   </header>

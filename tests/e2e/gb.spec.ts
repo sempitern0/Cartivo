@@ -77,7 +77,7 @@ for (const { name, color, format } of [
     const counter = backup.bytes[0];
 
     // Reopening the same game keeps the counter (battery RAM in IndexedDB).
-    await page.getByRole("button", { name: "Salir", exact: true }).click();
+    await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
     await startDemo(page, name);
     await playing(page, 320);
     await page.getByRole("button", { name: "Pausar juego" }).click();
@@ -149,7 +149,7 @@ test("a damaged Game Boy file is refused with a clear message", async ({
     buffer: Buffer.alloc(0x8000, 0xff),
   });
   await expect(page.getByRole("alert")).toContainText("cabecera");
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(card(page, "Game Boy")).toBeVisible();
 });
 
@@ -159,7 +159,7 @@ test("square-pixel systems hide the redundant aspect options", async ({
   await page.goto("/");
   await startDemo(page, "Game Boy");
   await playing(page);
-  await page.getByRole("button", { name: "Gráficos" }).click();
+  await page.getByRole("button", { name: "Ajustes del juego" }).click();
   const panel = page.locator("#graphics-panel");
   await expect(panel.getByText("Píxel entero")).toBeVisible();
   await expect(panel.getByText("Proporción")).toHaveCount(0);

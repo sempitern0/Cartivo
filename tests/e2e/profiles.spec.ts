@@ -20,7 +20,7 @@ async function slotOne(page: Page) {
 }
 
 async function leave(page: Page) {
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Elige una consola" }),
   ).toBeVisible();

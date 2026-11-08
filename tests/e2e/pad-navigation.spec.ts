@@ -71,9 +71,9 @@ test("the D-pad moves between cards; leaving a game refocuses its card", async (
   // the game; the pad stays inside the player meanwhile.
   await press(page, SELECT, START);
   const menu = page.getByRole("dialog", { name: "En pausa" });
-  for (let i = 0; i < 5; i++) await press(page, DOWN);
+  for (let i = 0; i < 6; i++) await press(page, DOWN);
   await expect(
-    menu.getByRole("button", { name: "Salir del juego" }),
+    menu.getByRole("button", { name: "Guardar y salir" }),
   ).toBeFocused();
   await press(page, A);
   await expect(nes).toBeFocused();
@@ -93,6 +93,10 @@ test("modo consola: Select+Start opens the pause menu; Partidas and B", async ({
   await expect(resume).toBeFocused();
 
   await press(page, DOWN);
+  await expect(
+    menu.getByRole("button", { name: "Guardar ahora" }),
+  ).toBeFocused();
+  await press(page, DOWN);
   await expect(menu.getByRole("button", { name: "Partidas" })).toBeFocused();
   await press(page, A);
   await expect(page.getByRole("heading", { name: "Partidas" })).toBeVisible();
@@ -106,7 +110,7 @@ test("modo consola: Select+Start opens the pause menu; Partidas and B", async ({
   await playing(page);
 });
 
-test("modo consola: «Salir del juego» from the pause menu", async ({
+test("modo consola: «Guardar y salir» from the pause menu", async ({
   page,
 }) => {
   await page.goto("/");
@@ -116,10 +120,11 @@ test("modo consola: «Salir del juego» from the pause menu", async ({
   await expect(
     menu.getByRole("button", { name: "Reanudar juego" }),
   ).toBeFocused();
-  // Reanudar → Partidas → Gráficos → Controles → Reiniciar → Salir.
-  for (let i = 0; i < 5; i++) await press(page, DOWN);
+  // Reanudar → Guardar ahora → Partidas → Ajustes del juego → Controles →
+  // Reiniciar → Guardar y salir: the keyboard pause's order.
+  for (let i = 0; i < 6; i++) await press(page, DOWN);
   await expect(
-    menu.getByRole("button", { name: "Salir del juego" }),
+    menu.getByRole("button", { name: "Guardar y salir" }),
   ).toBeFocused();
   await press(page, A);
   await expect(

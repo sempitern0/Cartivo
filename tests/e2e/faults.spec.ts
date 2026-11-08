@@ -42,7 +42,7 @@ test("no space to remember a game: it keeps playing and says why", async ({
   const before = await frames(page);
   await expect.poll(() => frames(page)).toBeGreaterThan(before + 30);
   // Nothing half-written reaches the library.
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Elige una consola" }),
   ).toBeVisible();
@@ -99,7 +99,7 @@ test("a failed exit snapshot keeps the session open and can be retried", async (
   );
   await page.goto("/");
   await playDemo(page, "NES");
-  const exit = page.getByRole("button", { name: "Salir", exact: true });
+  const exit = page.getByRole("button", { name: "Guardar y salir", exact: true });
   await exit.click();
   await expect(page.getByRole("alert")).toContainText(
     "No se pudo guardar la partida al salir",

@@ -44,7 +44,7 @@ async function running(page: Page) {
 }
 
 const exit = (page: Page) =>
-  page.getByRole("button", { name: "Salir", exact: true }).click();
+  page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
 const continueCard = (page: Page) =>
   page.getByRole("article", { name: NAME, exact: true });
 const library = (page: Page) =>

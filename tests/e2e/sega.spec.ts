@@ -92,7 +92,7 @@ test("Mega Drive demo: six-button pad recolours, SRAM survives", async ({
   expect(backup.bytes).toHaveLength(65536);
   expect(backup.bytes[1]).toBe(0);
 
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await startDemo(page, "Mega Drive");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 0, 239])).toBe(true);
@@ -117,7 +117,7 @@ test("Master System demo: button 1 recolours, cartridge RAM survives", async ({
   const backup = await exportBackup(page);
   expect(backup.format).toBe("cartivo-sms-sram-v1");
   expect(backup.bytes[0]).toBe(0);
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await startDemo(page, "Master System");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 0, 255])).toBe(true);
@@ -158,7 +158,7 @@ test("a dropped .gen file opens Mega Drive; a damaged one is refused", async ({
   await expect(
     page.getByRole("heading", { name: "original-demo.gen" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
 
   const chooser = page.waitForEvent("filechooser");
   await card(page, "Mega Drive")

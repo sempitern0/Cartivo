@@ -14,6 +14,7 @@
     resumeButton = $bindable(),
     onpause,
     onresume,
+    onsave,
     onreset,
     ontap,
     onsound,
@@ -32,6 +33,8 @@
     resumeButton?: HTMLButtonElement;
     onpause: () => void;
     onresume: () => void;
+    /** «Guardar ahora»: a Partida in ranura 1 (as F5). */
+    onsave?: () => void;
     onreset: () => void;
     ontap: (action: "start" | "select") => void;
     onsound: () => void;
@@ -54,7 +57,9 @@
       class="primary"
       onclick={onresume}
       disabled={busy}>Reanudar juego</button
-    ><button onclick={onreset} disabled={busy}
+    >{#if onsave}<button onclick={onsave} disabled={busy}
+        >Guardar ahora</button
+      >{/if}<button onclick={onreset} disabled={busy}
       >Reiniciar consola</button
     >{/if}
   {#if !audioReady && phase === "running"}<button

@@ -62,7 +62,7 @@ test("real NES in Worker, pause on controls, SRAM backup and reload", async ({
     .getByRole("link", { name: "Volver al juego", exact: false })
     .click();
   await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await start(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await expect(page.getByTestId("save-status")).toContainText(
@@ -89,7 +89,7 @@ test("unsupported local ROM produces a recoverable error", async ({ page }) => {
   const errorBox = await page.getByRole("alert").boundingBox();
   const canvasBox = await page.locator("canvas").boundingBox();
   expect(errorBox!.y).toBeLessThan(canvasBox!.y);
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
@@ -107,7 +107,7 @@ test("single writer prevents simultaneous sessions for the same game", async ({
   await expect(second.getByRole("alert")).toContainText("otra pestaña");
   await second.close();
   await page.bringToFront();
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await start(page);
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
 });
@@ -145,7 +145,7 @@ test("SRAM import validates identity and survives reopening", async ({
   await expect(page.getByTestId("save-status")).toContainText(
     "Copia importada",
   );
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await start(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await expect(page.getByTestId("save-status")).toContainText(
@@ -184,7 +184,7 @@ test("corrupt current SRAM recovers previous verified generation", async ({
   await expect(page.getByTestId("save-status")).toContainText(
     "Partida guardada",
   );
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await page.evaluate(
     () =>
       new Promise<void>((resolve, reject) => {
@@ -463,7 +463,7 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   await start(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   const canvas = page.locator("canvas");
-  await page.getByRole("button", { name: "Gráficos" }).click();
+  await page.getByRole("button", { name: "Ajustes del juego" }).click();
   await expect(page.getByRole("radio", { name: /^Ajustar/ })).toBeFocused();
   await page.getByRole("radio", { name: /^Píxel entero/ }).check();
   await page.getByRole("radio", { name: /^Píxeles cuadrados/ }).check();
@@ -477,7 +477,7 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   await startDemo(page, "NES");
   await startOver(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
-  await page.getByRole("button", { name: "Gráficos" }).click();
+  await page.getByRole("button", { name: "Ajustes del juego" }).click();
   await expect(page.getByRole("radio", { name: /^Píxel entero/ })).toBeChecked();
   await expect(page.locator("canvas")).toHaveClass(/smooth/);
   await page.getByRole("button", { name: "Restablecer", exact: true }).click();
@@ -488,9 +488,9 @@ test("video aspect and integer scaling switch without resetting the canvas", asy
   await page.getByRole("radio", { name: /^Ajustar/ }).focus();
   await page.keyboard.press("Escape");
   await expect(
-    page.getByRole("region", { name: "Gráficos", exact: true }),
+    page.getByRole("region", { name: "Ajustes del juego", exact: true }),
   ).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Gráficos" })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Ajustes del juego" })).toBeFocused();
 });
 
 test("Focus is accessible using mouse controls without depending on Vimium shortcuts", async ({ page }) => {
@@ -557,7 +557,7 @@ test("TetaNES runs by default and JSNES can be chosen for the next game", async 
   );
   await jsnes.check();
   await expect(page.getByTestId("core-pending")).toBeVisible();
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await start(page);
   await page.getByRole("button", { name: "Pausar juego" }).click();
   await page.getByText("Acerca de esta prueba").click();

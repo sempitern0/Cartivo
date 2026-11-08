@@ -22,7 +22,7 @@ test("without OPFS (private window) the home warns and nothing is remembered", a
   await page.getByRole("button", { name: "Guardar en Ranura 1" }).click();
   await expect(page.getByTestId("toast")).toContainText("ranura 1");
   await page.getByRole("button", { name: "Cerrar partidas" }).click();
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Elige una consola" }),
   ).toBeVisible();

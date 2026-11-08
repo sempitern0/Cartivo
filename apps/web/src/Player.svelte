@@ -619,6 +619,7 @@
     {graphicsOpen}
     {savesOpen}
     savesAvailable={!noStorage}
+    exitLabel={noStorage ? "Salir" : "Guardar y salir"}
     bind:graphicsButton
     bind:savesButton
     ongraphics={toggleGraphics}
@@ -710,6 +711,7 @@
         {busy}
         savesAvailable={!noStorage}
         onresume={resume}
+        onsave={() => saveSlot("1")}
         onsaves={toggleSaves}
         ongraphics={toggleGraphics}
         oncontrols={() => (location.hash = "#controles")}
@@ -744,6 +746,7 @@
     {fullscreenAvailable}
     onpause={() => pause()}
     onresume={resume}
+    onsave={noStorage ? undefined : () => saveSlot("1")}
     onreset={resetConsole}
     ontap={tapControl}
     onsound={enableSound}

@@ -10,6 +10,7 @@
     busy,
     savesAvailable,
     onresume,
+    onsave,
     onsaves,
     ongraphics,
     oncontrols,
@@ -21,6 +22,7 @@
     busy: boolean;
     savesAvailable: boolean;
     onresume: () => void;
+    onsave: () => void;
     onsaves: () => void;
     ongraphics: () => void;
     oncontrols: () => void;
@@ -65,11 +67,17 @@
     onclick={onresume}
     >Reanudar juego</button
   >
+  <!-- Same actions, same order as the keyboard and mouse pause. -->
+  <button disabled={busy || !savesAvailable} onclick={onsave}
+    >Guardar ahora</button
+  >
   <button disabled={!savesAvailable} onclick={onsaves}>Partidas</button>
-  <button onclick={ongraphics}>Gráficos</button>
+  <button onclick={ongraphics}>Ajustes del juego</button>
   <button onclick={oncontrols}>Controles</button>
   <button disabled={busy} onclick={onreset}>Reiniciar consola</button>
-  <button class="exit" onclick={onexit}>Salir del juego</button>
+  <button class="exit" onclick={onexit}
+    >{savesAvailable ? "Guardar y salir" : "Salir"}</button
+  >
   <PerformanceDetails {diagnostics} {loadMs} />
 </dialog>
 

@@ -124,7 +124,7 @@ test("leaving saves automatically and reopening offers to continue", async ({
   await page.goto("/");
   await open(page);
   await running(page);
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
@@ -138,7 +138,7 @@ test("leaving saves automatically and reopening offers to continue", async ({
   await expect(page.getByTestId("toast")).toContainText("al salir");
   await running(page);
   // Starting over is also possible.
-  await page.getByRole("button", { name: "Salir", exact: true }).click();
+  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
   await expect(
     page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
   ).toBeVisible();
@@ -225,7 +225,7 @@ test("leaving right after a quick save loses nothing and leaks no workers", asyn
     if (await offer.count()) await offer.click();
     await running(page);
     await page.keyboard.press("F5");
-    await page.getByRole("button", { name: "Salir", exact: true }).click();
+    await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
     await expect(
       page.getByRole("article", { name: "NES", exact: true }).getByRole("button", { name: "Jugar", exact: true }),
     ).toBeVisible();
@@ -239,4 +239,16 @@ test("leaving right after a quick save loses nothing and leaks no workers", asyn
   await expect(
     page.getByRole("region", { name: "Partidas" }).locator('[data-slot="1"]'),
   ).toContainText("TetaNES");
+});
+
+test("the pause offers Guardar ahora, which saves to ranura 1", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playDemo(page, "NES");
+  await page.getByRole("button", { name: "Pausar juego" }).click();
+  await page.getByRole("button", { name: "Guardar ahora" }).click();
+  await expect(page.getByTestId("toast")).toContainText("ranura 1");
+  await page.getByRole("button", { name: "Partidas" }).click();
+  await expect(page.locator('[data-slot="1"]')).toContainText("TetaNES");
 });
