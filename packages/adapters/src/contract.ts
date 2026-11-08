@@ -66,15 +66,19 @@ type ModuleInfo = {
   prepare(): Promise<void>;
 };
 
-/** Cartridge systems: the whole ROM is read into memory. */
-export interface CartridgeModule extends ModuleInfo {
+/** A cartridge: the whole ROM is read into memory and checked first. */
+type CartridgeInfo = ModuleInfo & {
   disc?: undefined;
-  surface?: undefined;
   maxRomBytes: number;
   /** Throws a user-readable error for unsupported files. */
   validate(rom: Uint8Array): { battery: boolean };
   /** Optional original test ROM, opened with `#demo/<id>` (never third-party). */
   demo?(): Uint8Array;
+};
+
+/** Cartridge systems whose core returns RGBA frames. */
+export interface CartridgeModule extends CartridgeInfo {
+  surface?: undefined;
   create(rom: Uint8Array, save?: Uint8Array): EmulatorCore;
 }
 
@@ -97,14 +101,8 @@ export interface DiscModule extends ModuleInfo {
  * browser presents each frame; no RGBA crosses to the page. Creating a core
  * is asynchronous (an Emscripten instance per game).
  */
-export interface SurfaceModule extends ModuleInfo {
-  disc?: undefined;
+export interface SurfaceModule extends CartridgeInfo {
   surface: "webgl2";
-  maxRomBytes: number;
-  /** Throws a user-readable error for unsupported files. */
-  validate(rom: Uint8Array): { battery: boolean };
-  /** Optional original test ROM, opened with `#demo/<id>` (never third-party). */
-  demo?(): Uint8Array;
   create(
     rom: Uint8Array,
     canvas: OffscreenCanvas,
