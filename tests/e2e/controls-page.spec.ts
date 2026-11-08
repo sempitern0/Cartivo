@@ -108,12 +108,13 @@ test("Ajustes shows Pantalla, Sonido, Controles, Interfaz, Almacenamiento and Av
   await tab("Sonido").click();
   await page.getByLabel("Silenciar los juegos").check();
   await tab("Avanzado").click();
-  await page
-    .getByLabel("Núcleo de NES")
-    .selectOption({ label: "JSNES · JavaScript" });
+  const nesCores = page.getByRole("group", { name: "Núcleo de NES" });
+  await expect(nesCores).toContainText("Recomendado");
+  await expect(nesCores).toContainText("A favor");
+  await nesCores.getByRole("radio", { name: /^JSNES/ }).check();
   await page.reload();
   await expect(tab("Avanzado")).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByLabel("Núcleo de NES")).toHaveValue("jsnes");
+  await expect(nesCores.getByRole("radio", { name: /^JSNES/ })).toBeChecked();
   await tab("Sonido").click();
   await expect(page.getByLabel("Silenciar los juegos")).toBeChecked();
   await tab("Pantalla").click();

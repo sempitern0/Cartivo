@@ -92,7 +92,9 @@ test("Mega Drive demo: six-button pad recolours, SRAM survives", async ({
   expect(backup.bytes).toHaveLength(65536);
   expect(backup.bytes[1]).toBe(0);
 
-  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Guardar y salir", exact: true })
+    .click();
   await startDemo(page, "Mega Drive");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 0, 239])).toBe(true);
@@ -117,7 +119,9 @@ test("Master System demo: button 1 recolours, cartridge RAM survives", async ({
   const backup = await exportBackup(page);
   expect(backup.format).toBe("cartivo-sms-sram-v1");
   expect(backup.bytes[0]).toBe(0);
-  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Guardar y salir", exact: true })
+    .click();
   await startDemo(page, "Master System");
   await playing(page, 30);
   await expect.poll(() => shows(page, [0, 0, 255])).toBe(true);
@@ -158,7 +162,9 @@ test("a dropped .gen file opens Mega Drive; a damaged one is refused", async ({
   await expect(
     page.getByRole("heading", { name: "original-demo.gen" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Guardar y salir", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Guardar y salir", exact: true })
+    .click();
 
   const chooser = page.waitForEvent("filechooser");
   await card(page, "Mega Drive")
@@ -178,12 +184,23 @@ test("Controles explains where each console finds its buttons", async ({
   page,
 }) => {
   await page.goto("/#controles");
-  await expect(
-    page.getByText(
-      "En Mega Drive, A, B, C, X, Y, Z y Mode están en Y, B, A, L, X, R y Select.",
-    ),
-  ).toBeVisible();
-  await expect(
-    page.getByText("En Master System, 1, 2 y Pause están en B, A y Start."),
-  ).toBeVisible();
+  const guide = page.getByRole("region", { name: "Botones de cada consola" });
+  const pairs = (name: string) =>
+    guide
+      .getByRole("list", { name: `Botones de ${name}` })
+      .getByRole("listitem");
+  await expect(pairs("Mega Drive")).toHaveText([
+    "A en Y",
+    "B en B",
+    "C en A",
+    "X en L",
+    "Y en X",
+    "Z en R",
+    "Mode en Select",
+  ]);
+  await expect(pairs("Master System")).toHaveText([
+    "1 en B",
+    "2 en A",
+    "Pause en Start",
+  ]);
 });

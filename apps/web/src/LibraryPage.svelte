@@ -95,22 +95,11 @@
   const shown = $derived(viewGames(listed, { query, system: systemFilter, sort }));
   const megabytes = (bytes: number) =>
     `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
-  // The browser's own estimate, refreshed whenever the list changes.
-  let estimate = $state.raw<{ used: number; quota: number }>();
-  $effect(() => {
-    void games;
-    void navigator.storage
-      ?.estimate?.()
-      .then(({ usage: used, quota }) => {
-        estimate = used !== undefined && quota ? { used, quota } : undefined;
-      })
-      .catch(() => {});
-  });
+  // Only the copies' own size: the browser's quota is not shown, because
+  // some browsers mask it (Brave reports 2 GB) and it read as a limit on the
+  // ROMs a player can open from their disk.
   const usage = $derived(
-    `Ocupan ${megabytes(games.reduce((sum, g) => sum + g.size, 0))}.` +
-      (estimate
-        ? ` Cartivo usa ${megabytes(estimate.used)} de ${megabytes(estimate.quota)} disponibles en este navegador.`
-        : ""),
+    `Las copias recordadas ocupan ${megabytes(games.reduce((sum, g) => sum + g.size, 0))} en este navegador.`,
   );
   function toggle(event: Event) {
     remember = (event.target as HTMLInputElement).checked;
@@ -317,8 +306,11 @@
     Recordar juegos nuevos en este dispositivo</label
   >
   <p class="hint">
-    Se guarda una copia del archivo solo en este navegador; nunca se envía a
-    ningún sitio. Los discos se copian mientras juegas, si caben. El navegador puede borrarla si se queda sin espacio.
+    Recordar guarda una copia del archivo solo en este navegador, para
+    «Continuar» sin buscarlo; nunca se envía a ningún sitio. Los discos se
+    copian mientras juegas, si caben. Cualquier ROM de tu disco se puede abrir
+    siempre, se recuerde o no; si el navegador borra una copia por falta de
+    espacio, basta con volver a abrir el archivo.
   </p>
   {#if note}<p class="note" role="status">{note}</p>{/if}
 </section>

@@ -87,16 +87,18 @@
       : "El navegador no permite guardar esta preferencia.";
   }
 
-  // Almacenamiento: what this browser reports.
+  // Almacenamiento: only what Cartivo uses. The browser's quota is left out:
+  // some browsers report a masked figure (Brave says 2 GB) and it read as a
+  // limit on the ROMs a player can open from their own disk.
   const megabytes = (bytes: number) =>
     `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
   let usage = $state("");
   $effect(() => {
     void navigator.storage
       ?.estimate?.()
-      .then(({ usage: used, quota }) => {
-        if (used !== undefined && quota)
-          usage = `Cartivo usa ${megabytes(used)} de ${megabytes(quota)} disponibles en este navegador.`;
+      .then(({ usage: used }) => {
+        if (used !== undefined)
+          usage = `Ahora ocupan ${megabytes(used)} en este navegador.`;
       })
       .catch(() => {});
   });
@@ -232,7 +234,13 @@
 >
   <h2>Almacenamiento</h2>
   <p class="hint">
-    Juegos, partidas y ajustes se quedan en este navegador. {usage}
+    Partidas, ajustes y las copias de los juegos que se recuerdan para
+    «Continuar» se quedan en este navegador. {usage}
+  </p>
+  <p class="hint">
+    Puedes abrir cualquier ROM de tu disco aunque no se recuerde: el espacio
+    del navegador solo cuenta esas copias. Si un día no cabe una, Cartivo lo
+    dice al guardarla y el juego se abre igual.
   </p>
   {#if !inGame}<a class="button-link" href="#juegos"
       >Gestionar juegos en «Tus juegos»</a
@@ -249,17 +257,46 @@
 >
   <h2>Avanzado</h2>
   {#each choosable as system (system.id)}
-    <label class="field"
-      >Núcleo de {system.name}
-      <select
-        value={readCore(system)}
-        onchange={(e) => chooseCore(system, e.currentTarget.value)}
-      >
-        {#each system.cores as core (core.id)}<option value={core.id}
-            >{core.label}</option
-          >{/each}
-      </select></label
-    >
+    {@const current = readCore(system)}
+    <fieldset class="cores">
+      <legend>Núcleo de {system.name}</legend>
+      {#if system.coreAdvice}<p class="hint">{system.coreAdvice}</p>{/if}
+      <div class="core-options">
+        {#each system.cores as core (core.id)}<div class="core">
+            <!-- The radio covers the card; the trade-offs are read after it. -->
+            <label
+              ><input
+                type="radio"
+                name={`core-${system.id}`}
+                value={core.id}
+                checked={current === core.id}
+                onchange={() => chooseCore(system, core.id)}
+              /><span class="core-name"
+                >{core.label}{#if core.id === system.defaultCore}<span
+                    class="badge">Recomendado</span
+                  >{/if}</span
+              >{#if core.advice}<span class="hint">{core.advice.summary}</span
+                >{/if}</label
+            >
+            {#if core.advice}
+              <div class="trade">
+                <div class="pros">
+                  <strong>A favor</strong>
+                  <ul>
+                    {#each core.advice.pros as item}<li>{item}</li>{/each}
+                  </ul>
+                </div>
+                <div class="cons">
+                  <strong>En contra</strong>
+                  <ul>
+                    {#each core.advice.cons as item}<li>{item}</li>{/each}
+                  </ul>
+                </div>
+              </div>
+            {/if}
+          </div>{/each}
+      </div>
+    </fieldset>
   {/each}
   <p class="hint" aria-live="polite">{coreNote}</p>
   <p class="hint">
@@ -338,6 +375,90 @@
     align-items: center;
     gap: 10px;
     min-height: 44px;
+  }
+  .cores {
+    border: 0;
+    margin: 12px 0 0;
+    padding: 0;
+  }
+  .cores legend {
+    font-weight: 650;
+    padding: 0;
+  }
+  .core-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .core {
+    position: relative;
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+  }
+  .core:has(input:checked) {
+    border-color: var(--blue);
+    box-shadow: var(--glow);
+  }
+  .core:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+  }
+  .core input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .core label {
+    display: grid;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .core-name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-weight: 650;
+  }
+  .badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--teal);
+    border: 1px solid currentColor;
+  }
+  .core .hint {
+    margin: 0;
+  }
+  .trade {
+    display: grid;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .trade ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+  }
+  .trade strong {
+    font-size: 13px;
+  }
+  .pros strong {
+    color: var(--teal);
+  }
+  .cons strong {
+    color: var(--gold);
   }
   .row {
     display: flex;

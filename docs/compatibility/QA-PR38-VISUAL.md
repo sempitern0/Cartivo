@@ -31,6 +31,7 @@ Estado: pendiente de ejecución manual. No marcar como aprobado por tener el CI 
 | [ ] | 15. Abrir un disco de PlayStation propio (`.cue` y pistas a la vez) y jugar mientras se copia. | Aviso «Guardando el disco… (N MB)» y después «Disco guardado». Sin tirones apreciables; si no hay sitio, el mensaje dice cuánto ocupa y cuánto queda. Otro perfil lo abre desde «Tus juegos» sin pedir archivos. |
 | [ ] | 16. Pausar con teclado y con mando; recorrer las pestañas de Ajustes. | Las mismas acciones en el mismo orden: Reanudar juego, Guardar ahora, Partidas, Ajustes del juego, Guardar y salir. Pantalla, Sonido y Avanzado guardan sus cambios tras recargar. |
 | [ ] | 17. En Pantalla (y en «Ajustes del juego»), probar Píxel entero, la proporción y Suavizado; cambiar el tamaño de la ventana. | «Predeterminado» y «Tu elección» muestran la diferencia: bordes, proporción y, en el zum, píxeles nítidos, desiguales o suavizados. El texto indica el factor (×3, ×2,5) y la caída a Ajustar cuando no cabe. Pasar el ratón por un perfil mantiene el avatar centrado. |
+| [ ] | 18. En Ajustes: Controles, Almacenamiento y Avanzado. | «Botones de cada consola» se lee sin esfuerzo junto a las asignaciones y no las tapa. Almacenamiento no muestra la cuota del navegador. En Avanzado, TetaNES aparece como recomendado, con a favor, en contra y cuándo elegir JSNES. |
 
 ## Actualización y errores
 

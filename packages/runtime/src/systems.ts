@@ -22,6 +22,12 @@ export type CoreInfo = {
   version: string;
   /** Paths relative to the app's base (public/licenses/…). */
   licenses: { name: string; href: string }[];
+  /**
+   * For consoles with a choice (Ajustes › Avanzado): what the core is for
+   * and its trade-offs, from Cartivo's own records (ADR and compatibility
+   * notes), never from claims this project has not checked.
+   */
+  advice?: { summary: string; pros: string[]; cons: string[] };
 };
 
 export type SystemInfo = {
@@ -57,6 +63,8 @@ export type SystemInfo = {
   labels?: Partial<Record<Action, string>>;
   cores: CoreInfo[];
   defaultCore: string;
+  /** When to change core, shown above the choices in Ajustes › Avanzado. */
+  coreAdvice?: string;
   /** Formats the current build accepts, in user terms. */
   formatNote: string;
   /** The registered cores ship an original demo ROM (hidden `#demo/<id>`). */
@@ -89,6 +97,18 @@ export const systems: readonly SystemInfo[] = [
             href: "licenses/tetanes-LICENSE-MIT.txt",
           },
         ],
+        // ADR-008, H0-WASM-NES.
+        advice: {
+          summary: "El núcleo por defecto y el más probado en Cartivo.",
+          pros: [
+            "Es el que recorren las pruebas automáticas en cada cambio.",
+            "Respeta la memoria de los cartuchos originales UxROM y CNROM, que no tenían RAM extra.",
+          ],
+          cons: [
+            "Necesita WebAssembly: si el navegador no lo carga, Cartivo lo dice y puedes elegir JSNES.",
+            "En la única medición registrada (CI, sin navegador) gasta más CPU por fotograma que JSNES.",
+          ],
+        },
       },
       {
         id: "jsnes",
@@ -97,9 +117,24 @@ export const systems: readonly SystemInfo[] = [
         licenses: [
           { name: "Licencia JSNES", href: "licenses/jsnes-Apache-2.0.txt" },
         ],
+        // ADR-007, H1-B-NES, H0-WASM-NES.
+        advice: {
+          summary:
+            "Alternativa en JavaScript, para comparar o cuando TetaNES falla.",
+          pros: [
+            "Funciona aunque WebAssembly no esté disponible o no cargue.",
+            "En esa misma medición gasta menos CPU por fotograma.",
+          ],
+          cons: [
+            "Se prueba menos: la integración se comprueba sobre todo con TetaNES.",
+            "En UxROM y CNROM ofrece RAM extra que el cartucho original no tenía.",
+          ],
+        },
       },
     ],
     defaultCore: "tetanes",
+    coreAdvice:
+      "Deja TetaNES salvo que un juego no arranque, se vea mal o vaya a tirones en tu equipo; entonces prueba JSNES. El guardado del cartucho (batería) sirve para los dos; las Partidas de las ranuras son de cada núcleo y no se cargan con el otro.",
     formatNote: "cartuchos iNES NTSC (mappers 0–4)",
     demo: true,
     available: true,
@@ -434,13 +469,22 @@ const listJoin = (items: string[]) =>
     ? items.join("")
     : `${items.slice(0, -1).join(", ")} ${/^(y$|h?i)/i.test(items.at(-1)!) ? "e" : "y"} ${items.at(-1)}`;
 
+/** Where a console with its own button names finds each one. */
+export type ConsoleButtons = {
+  name: string;
+  pairs: { own: string; key: string }[];
+};
+
 /**
- * Notes for Controles: buttons that only a minority of consoles use, grouped
- * by those consoles («X e Y solo los usan SNES y Mega Drive.»), then where
- * consoles with their own button names find them («En Master System, 1, 2 y
- * Pause están en B, A y Start.»).
+ * The button guide in Controles: consoles with their own button names and
+ * where each one is (Cruz on B), then buttons that only a minority of
+ * consoles use, grouped by those consoles («X e Y solo los usan SNES y Mega
+ * Drive.»).
  */
-export function buttonNotes(label: (action: Action) => string): string[] {
+export function buttonGuide(label: (action: Action) => string): {
+  consoles: ConsoleButtons[];
+  minority: string[];
+} {
   const consoles = availableSystems();
   const groups = new Map<string, { users: number; buttons: Action[] }>();
   for (const action of new Set(consoles.flatMap((s) => s.buttons))) {
@@ -450,14 +494,21 @@ export function buttonNotes(label: (action: Action) => string): string[] {
     const group = groups.get(names) ?? { users: users.length, buttons: [] };
     groups.set(names, { ...group, buttons: [...group.buttons, action] });
   }
-  const minority = [...groups].map(
-    ([names, { users, buttons }]) =>
-      `${listJoin(buttons.map(label))} solo ${buttons.length > 1 ? "los" : "lo"} ${users > 1 ? "usan" : "usa"} ${names}.`,
-  );
-  const named = consoles.flatMap((s) => {
-    const own = s.buttons.filter((a) => s.labels?.[a]);
-    if (!own.length) return [];
-    return `En ${s.name}, ${listJoin(own.map((a) => s.labels![a]!))} ${own.length > 1 ? "están" : "está"} en ${listJoin(own.map(label))}.`;
-  });
-  return [...minority, ...named];
+  return {
+    consoles: consoles.flatMap((s) => {
+      const own = s.buttons.filter((a) => s.labels?.[a]);
+      return own.length
+        ? [
+            {
+              name: s.name,
+              pairs: own.map((a) => ({ own: s.labels![a]!, key: label(a) })),
+            },
+          ]
+        : [];
+    }),
+    minority: [...groups].map(
+      ([names, { users, buttons }]) =>
+        `${listJoin(buttons.map(label))} solo ${buttons.length > 1 ? "los" : "lo"} ${users > 1 ? "usan" : "usa"} ${names}.`,
+    ),
+  };
 }

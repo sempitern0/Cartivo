@@ -395,3 +395,7 @@
   - **Tarjeta de juego compacta:** botón principal con icono y «⋯»; las opciones y sus confirmaciones cubren la tarjeta.
   - El avatar del selector de perfil queda centrado al pasar el ratón.
   - Sin avisos de `svelte-check` (tarjeta de consola y stick propio del reproductor).
+- Tercera ronda:
+  - **Botones de cada consola:** tarjeta visible bajo las asignaciones, con una píldora por botón («Cruz → B»), en lugar de notas en letra pequeña.
+  - **Almacenamiento:** ya no se muestra la cuota del navegador (Brave dice 2 GB), que se leía como un límite de ROMs; se explica que solo cuenta las copias recordadas.
+  - **Avanzado:** cada núcleo como tarjeta con «Recomendado», a favor, en contra y cuándo cambiar (NES: TetaNES o JSNES).
