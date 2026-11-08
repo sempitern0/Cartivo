@@ -640,74 +640,76 @@ async function openDisc(page: Page) {
 const discCard = (page: Page) =>
   page.getByRole("article", { name: DISC, exact: true });
 
-test("a PS1 disc is copied while it plays and every profile opens that copy", async ({
-  page,
-}) => {
-  const errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
-  await openDisc(page);
-  await running(page);
-  await expect(page.getByTestId("toast")).toContainText(
-    "Disco guardado en «Tus juegos»",
-  );
-  await exit(page);
-  await expect(discCard(page)).toContainText("PlayStation");
+test(
+  "a PS1 disc is copied while it plays and every profile opens that copy",
+  { tag: "@heavy" },
+  async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    await page.goto("/");
+    await openDisc(page);
+    await running(page);
+    await expect(page.getByTestId("toast")).toContainText(
+      "Disco guardado en «Tus juegos»",
+    );
+    await exit(page);
+    await expect(discCard(page)).toContainText("PlayStation");
 
-  // Another profile sees the shared disc and plays it without its files.
-  let chooser = false;
-  page.on("filechooser", () => (chooser = true));
-  await page
-    .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
-    .click();
-  await page.getByRole("button", { name: "Añadir perfil" }).click();
-  const create = page.getByRole("form", { name: "Nuevo perfil" });
-  await create.getByLabel("Nombre").fill("Ana");
-  await create.getByRole("button", { name: "Crear perfil" }).click();
-  await page
-    .getByRole("list", { name: "Perfiles" })
-    .getByRole("button", { name: "Ana", exact: true })
-    .click();
-  await games(page);
-  await library(page)
-    .getByRole("button", { name: `Jugar ${DISC}` })
-    .click();
-  await running(page);
-  await expect(page.getByRole("heading", { name: DISC })).toBeVisible();
-  await exit(page);
-  // Hidden for Ana only.
-  await games(page);
-  await library(page)
-    .getByRole("button", { name: `Opciones de ${DISC}` })
-    .click();
-  await page.getByRole("menuitem", { name: "Ocultar para mí" }).click();
-  await expect(library(page).locator("li.card")).toHaveCount(0);
-  await page.getByRole("link", { name: "Volver al inicio" }).click();
-  await page
-    .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
-    .click();
-  await page
-    .getByRole("list", { name: "Perfiles" })
-    .getByRole("button", { name: "Jugador 1", exact: true })
-    .click();
+    // Another profile sees the shared disc and plays it without its files.
+    let chooser = false;
+    page.on("filechooser", () => (chooser = true));
+    await page
+      .getByRole("button", { name: "Perfil: Jugador 1. Cambiar de perfil" })
+      .click();
+    await page.getByRole("button", { name: "Añadir perfil" }).click();
+    const create = page.getByRole("form", { name: "Nuevo perfil" });
+    await create.getByLabel("Nombre").fill("Ana");
+    await create.getByRole("button", { name: "Crear perfil" }).click();
+    await page
+      .getByRole("list", { name: "Perfiles" })
+      .getByRole("button", { name: "Ana", exact: true })
+      .click();
+    await games(page);
+    await library(page)
+      .getByRole("button", { name: `Jugar ${DISC}` })
+      .click();
+    await running(page);
+    await expect(page.getByRole("heading", { name: DISC })).toBeVisible();
+    await exit(page);
+    // Hidden for Ana only.
+    await games(page);
+    await library(page)
+      .getByRole("button", { name: `Opciones de ${DISC}` })
+      .click();
+    await page.getByRole("menuitem", { name: "Ocultar para mí" }).click();
+    await expect(library(page).locator("li.card")).toHaveCount(0);
+    await page.getByRole("link", { name: "Volver al inicio" }).click();
+    await page
+      .getByRole("button", { name: "Perfil: Ana. Cambiar de perfil" })
+      .click();
+    await page
+      .getByRole("list", { name: "Perfiles" })
+      .getByRole("button", { name: "Jugador 1", exact: true })
+      .click();
 
-  // Jugador 1 still has it: «Continuar» opens the copy after a reload.
-  await page.reload();
-  await discCard(page).getByRole("button", { name: "Continuar" }).click();
-  await expect(page.getByTestId("toast")).toContainText(
-    "Partida cargada: al salir",
-  );
-  await running(page);
-  expect(chooser).toBe(false);
-  await exit(page);
+    // Jugador 1 still has it: «Continuar» opens the copy after a reload.
+    await page.reload();
+    await discCard(page).getByRole("button", { name: "Continuar" }).click();
+    await expect(page.getByTestId("toast")).toContainText(
+      "Partida cargada: al salir",
+    );
+    await running(page);
+    expect(chooser).toBe(false);
+    await exit(page);
 
-  // Deleted from the device, its Partidas (and memory card) stay.
-  await games(page);
-  await deleteFromDevice(page, DISC);
-  await page.getByRole("link", { name: "Volver al inicio" }).click();
-  await openDisc(page);
-  await expect(
-    page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
-  ).toBeVisible();
-  expect(errors).toEqual([]);
-});
+    // Deleted from the device, its Partidas (and memory card) stay.
+    await games(page);
+    await deleteFromDevice(page, DISC);
+    await page.getByRole("link", { name: "Volver al inicio" }).click();
+    await openDisc(page);
+    await expect(
+      page.getByRole("dialog", { name: "Continuar donde lo dejaste" }),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  },
+);

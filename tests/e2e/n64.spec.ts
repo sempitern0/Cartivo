@@ -2,6 +2,9 @@ import { inflateSync } from "node:zlib";
 import { test, expect, type Page } from "./fixtures.ts";
 import { playDemo } from "./play.ts";
 
+// WebGL2 in software on CI runners: one heavy test at a time (fixtures.ts).
+test.use({ heavy: true });
+
 // Nintendo 64 runs Mupen64Plus-Next, whose GLideN64 draws with WebGL2 on
 // the game canvas handed to the Worker (ADR-017), with Cartivo's own
 // cartridge. Oracle: dark blue, A red, Start yellow (a white square on top).
