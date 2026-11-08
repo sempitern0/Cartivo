@@ -399,8 +399,10 @@
     </section>
   {:else if !game}
     <section class="welcome">
-      <!-- Visible orientation and focus target when returning home. -->
-      <h1 id="inicio" class="home-title" bind:this={pageHeading} tabindex="-1">
+      <!-- The cards speak for themselves (the owner asked for no visible
+           title): the heading is for assistive technology and the focus
+           target of the start. -->
+      <h1 id="inicio" class="visually-hidden" bind:this={pageHeading} tabindex="-1">
         Elige una consola
       </h1>
       {#if pwa.updateReady}
@@ -418,7 +420,6 @@
             : "Este navegador no guarda copias de tus juegos (ventana privada o almacenamiento restringido): «Continuar» no estará disponible y tus partidas podrían borrarse al cerrarlo. Exporta las que quieras conservar desde Partidas."}
         </p>{/if}
       {#if openError}<p class="open-error" role="alert">{openError}</p>{/if}
-      <p class="home-hint">Carga tu ROM y juega. Tus partidas se quedan en este dispositivo.</p>
       <RecentGames {games} oncontinue={continueGame} />
       <ul
         class="consoles"
@@ -755,8 +756,6 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
-  .home-title { font-size: clamp(24px, 4vw, 34px); margin: 20px 0 8px; }
-  .home-hint { color: var(--muted); margin: 0; }
   .settings-sections { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
   .settings-sections a { min-height: 44px; display: inline-flex; align-items: center; }
   :global(:root[data-ui="pad"]) main { padding-bottom: 96px; }
