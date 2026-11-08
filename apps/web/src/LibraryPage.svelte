@@ -1,7 +1,9 @@
 <script lang="ts">
   import { AlertDialog, DropdownMenu } from "bits-ui";
   import { fade, fly, scale } from "svelte/transition";
+  import { motion } from "./motion.svelte.ts";
   import SnapshotThumb from "./SnapshotThumb.svelte";
+  import CartivoProgress from "./CartivoProgress.svelte";
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
   import { tick } from "svelte";
@@ -217,7 +219,7 @@
                             {...props}
                             class="game-menu"
                             data-pad-scope
-                            transition:fly={{ y: -6, duration: 140 }}
+                            transition:fly={{ y: -6, duration: motion.ms(160) }}
                           >
                             <DropdownMenu.Item
                               class="game-menu-item"
@@ -251,7 +253,10 @@
     {/if}
     <p class="hint">{usage}</p>
   {:else if loading}
-    <p class="hint empty" role="status">Cargando tus juegos…</p>
+    <div class="loading" role="status">
+      <p class="hint empty">Cargando tus juegos…</p>
+      <CartivoProgress label="Cargando tus juegos" />
+    </div>
   {:else if hidden.length}
     <p class="hint empty">Has ocultado todos los juegos de este dispositivo.</p>
   {:else}
@@ -301,7 +306,7 @@
         {#if open}<div
             {...props}
             class="dialog-overlay"
-            transition:fade={{ duration: 140 }}
+            transition:fade={{ duration: motion.ms(160) }}
           ></div>{/if}
       {/snippet}
     </AlertDialog.Overlay>
@@ -321,7 +326,7 @@
             {...props}
             class="dialog"
             data-pad-scope
-            transition:scale={{ start: 0.96, duration: 160 }}
+            transition:scale={{ start: 0.96, duration: motion.ms(200) }}
           >
             <AlertDialog.Title class="dialog-title"
               >{action === "delete"
@@ -394,15 +399,6 @@
     gap: 8px;
     color: var(--muted);
   }
-  select {
-    min-height: 44px;
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
-  }
   .chips {
     flex-basis: 100%;
     display: flex;
@@ -433,6 +429,19 @@
     gap: 12px;
     padding: 14px;
   }
+  /* Each game lifts a little under the pointer, like the console cards. */
+  li.card {
+    transition:
+      transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+  li.card:hover,
+  li.card:focus-within {
+    transform: translateY(-3px);
+    border-color: #ffffff26;
+    box-shadow: 0 18px 36px -20px #000;
+  }
   .info {
     min-width: 0;
     display: grid;
@@ -450,6 +459,11 @@
   }
   .empty {
     font-size: 15px;
+  }
+  .loading {
+    display: grid;
+    gap: 12px;
+    max-width: 280px;
   }
   .actions {
     display: flex;

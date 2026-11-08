@@ -104,6 +104,13 @@ test("Ajustes shows Pantalla, Sonido, Controles, Interfaz, Almacenamiento and Av
   await expect(preview.getByRole("figure")).toHaveCount(2);
   await expect(preview).toContainText("Predeterminado");
   await expect(preview).toContainText(/Tu elección\s*Píxel entero ×\d/);
+  // Animations follow the system unless the player chooses.
+  await tab("Interfaz").click();
+  const motion = page.getByRole("group", { name: "Animaciones" });
+  await motion.getByRole("radio", { name: /^Reducidas/ }).check();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "reduce");
+  await motion.getByRole("radio", { name: /^Activadas/ }).check();
+  await expect(page.locator("html")).toHaveAttribute("data-motion", "full");
   // Sound and core choices survive a reload, which keeps the tab.
   await tab("Sonido").click();
   await page.getByLabel("Silenciar los juegos").check();

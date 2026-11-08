@@ -520,14 +520,9 @@
       transform: translateY(18px) scale(0.96);
     }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .profile,
-    .avatar {
-      transition: none;
-    }
-    .profile:not(:disabled):hover,
-    .profile:focus-visible {
-      transform: none;
-    }
+  /* Reduced motion (motion.svelte.ts): no lift either. */
+  :global(:root[data-motion="reduce"]) .profile:not(:disabled):hover,
+  :global(:root[data-motion="reduce"]) .profile:focus-visible {
+    transform: none;
   }
 </style>

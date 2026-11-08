@@ -1,5 +1,7 @@
 <script lang="ts">
   import { ui } from "./input-mode.svelte.ts";
+  import { motion } from "./motion.svelte.ts";
+  import type { MotionPreference } from "./motion.ts";
   import type { UiPreference } from "../../../packages/input/src/ui-navigation.ts";
   // Ajustes: which interface Cartivo presents (ADR-006). Automatic by default.
   const options: { value: UiPreference; label: string; hint: string }[] = [
@@ -20,6 +22,25 @@
     },
   ];
   let note = $state("");
+  // Animaciones: automatic follows the system (motion.ts).
+  const motionOptions: { value: MotionPreference; label: string; hint: string }[] = [
+    {
+      value: "auto",
+      label: "Automáticas",
+      hint: "Como pida el sistema operativo.",
+    },
+    {
+      value: "full",
+      label: "Activadas",
+      hint: "Transiciones suaves en páginas, tarjetas y menús.",
+    },
+    {
+      value: "reduce",
+      label: "Reducidas",
+      hint: "Cambios al instante, sin movimiento.",
+    },
+  ];
+  let motionNote = $state("");
 </script>
 
 <fieldset class="interface card">
@@ -44,6 +65,35 @@
       >{/each}
   </div>
   {#if note}<p class="note" role="status">{note}</p>{/if}
+</fieldset>
+
+<fieldset class="interface card">
+  <legend>Animaciones</legend>
+  <div class="options">
+    {#each motionOptions as option (option.value)}<label
+        class="option"
+        class:checked={motion.preference === option.value}
+        ><input
+          type="radio"
+          name="motion"
+          value={option.value}
+          checked={motion.preference === option.value}
+          onchange={() => {
+            motionNote = motion.choose(option.value)
+              ? ""
+              : "El navegador no permite guardar esta preferencia: solo durará esta sesión.";
+          }}
+        /><span class="name">{option.label}</span><span class="hint"
+          >{option.hint}</span
+        ></label
+      >{/each}
+  </div>
+  {#if motion.systemReduces && motion.preference === "auto"}<p class="note">
+      Tu sistema pide reducir el movimiento (en Windows, «Efectos de
+      animación» desactivado), así que Cartivo no anima. Elige «Activadas»
+      para verlas igualmente.
+    </p>{/if}
+  {#if motionNote}<p class="note" role="status">{motionNote}</p>{/if}
 </fieldset>
 
 <style>

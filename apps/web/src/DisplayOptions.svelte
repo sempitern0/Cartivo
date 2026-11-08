@@ -130,7 +130,7 @@
   .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); }
   .switch:has(input:checked) .track { background: var(--blue); border-color: var(--blue); }
   .switch:has(input:checked) .track::after { left: 21px; background: #111218; }
-  @media (prefers-reduced-motion: no-preference) { .track::after { transition: left 120ms ease-out; } }
+  .track::after { transition: left 120ms ease-out; }
   @media (max-width: 640px) {
     .options, .options.two { grid-template-columns: minmax(0, 1fr); max-width: none; }
     .option { grid-template-columns: 72px 1fr; column-gap: 12px; align-items: center; }

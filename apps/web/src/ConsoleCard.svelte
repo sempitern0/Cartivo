@@ -39,8 +39,8 @@
     ondropfiles: (files: File[]) => void;
   } = $props();
 
-  /** A card with a logo gets a soft accent glow behind it. */
-  const art = $derived(!!consoleLogo(system.id));
+  /** With a logo, the logo is the card; the name stays for screen readers. */
+  const logo = $derived(consoleLogo(system.id));
   /** A dragged file is over this very card. */
   let over = $state(false);
 
@@ -89,36 +89,44 @@
 </script>
 
 <article
-  class="console-card card"
+  class="console-card"
+  class:card={!logo}
+  class:cover={!!logo}
   class:dragging
   class:over
   class:waiting
-  class:art
   style:--accent={accentOf(system)}
   aria-labelledby={`console-${system.id}`}
   use:pointerTarget
 >
-  <ConsoleIcon system={system.id} />
-  <div class="console-text">
+  {#if logo}
+    <img class="cover-art" src={logo} alt="" draggable="false" decoding="async" />
+    {#if system.experimental}<span class="corner-tag" aria-hidden="true"
+        >Experimental</span
+      >{/if}
+  {:else}
+    <ConsoleIcon system={system.id} />
+  {/if}
+  <div class="console-text" class:visually-hidden={!!logo}>
     <h2 id={`console-${system.id}`}>{system.name}</h2>
     <p>
       {system.longName}{#if system.experimental}<span class="tag"
           >Experimental</span
         >{/if}
     </p>
-    {#if missing}
-      <div class="tracks" role="alert">
-        <p>
-          <strong>Faltan pistas de «{missing.file}»</strong>
-          {missing.tracks.join(", ")}. Elígelas para jugar.
-        </p>
-        <div class="tracks-actions">
-          <button class="primary" onclick={onpicktracks}>Elegir pistas</button
-          ><button class="link" onclick={oncanceltracks}>Cancelar</button>
-        </div>
-      </div>
-    {/if}
   </div>
+  {#if missing}
+    <div class="tracks" role="alert">
+      <p>
+        <strong>Faltan pistas de «{missing.file}»</strong>
+        {missing.tracks.join(", ")}. Elígelas para jugar.
+      </p>
+      <div class="tracks-actions">
+        <button class="primary" onclick={onpicktracks}>Elegir pistas</button
+        ><button class="link" onclick={oncanceltracks}>Cancelar</button>
+      </div>
+    </div>
+  {/if}
   <div class="console-foot">
     <span class="formats"
       ><span class="visually-hidden">Formatos:</span
@@ -175,37 +183,91 @@
   }
   .console-card > :global(.badge) {
     justify-self: start;
-    --badge-size: 104px;
   }
-  /* Behind the logo, a soft glow in the card's accent: gradients only (no
-     filter or image to repaint on hover or entrance). It fades out before
-     the text, which also gets a shadow, so the name and formats keep their
-     contrast. */
-  .console-card.art {
+  /* The logo is the card (docs/DESIGN.md): a square that fills with its
+     image, which zooms in slightly on hover. The formats and the play
+     button sit on a dark band at the foot, so they read over any logo. */
+  .console-card.cover {
+    aspect-ratio: 1;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 9%;
+    border-radius: 21%;
+    overflow: hidden;
     isolation: isolate;
+    background: #0b0c12;
+    box-shadow: 0 14px 30px -14px #000c;
   }
-  .console-card.art::before {
-    content: "";
+  .cover-art {
     position: absolute;
     inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    user-select: none;
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .console-card.cover::after {
+    content: "";
+    position: absolute;
+    inset: 55% 0 0;
     z-index: -1;
-    border-radius: inherit;
-    background: radial-gradient(
-      70% 50% at 20% 14%,
-      color-mix(in srgb, var(--accent) 20%, transparent),
-      transparent 72%
-    );
-    opacity: 0.8;
+    background: linear-gradient(to bottom, transparent, #07080ccc 70%);
     pointer-events: none;
-    transition: opacity 0.28s ease;
   }
-  .console-card.art:hover::before,
-  .console-card.art:has(.play:focus-visible)::before {
-    opacity: 1;
+  .console-card.cover:hover .cover-art,
+  .console-card.cover:has(.play:focus-visible) .cover-art {
+    transform: scale(1.05);
   }
-  .console-text h2,
-  .console-text > p {
-    text-shadow: 0 1px 2px #0009;
+  .console-card.cover:hover,
+  .console-card.cover:has(.play:focus-visible),
+  :global(:root[data-input="pad"]) .console-card.cover:has(.play:focus) {
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--accent) 70%, transparent),
+      0 22px 44px -18px color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  .console-card.cover.dragging {
+    outline: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 4px;
+  }
+  .cover .format {
+    background: #0b0d14b3;
+    border-color: #ffffff26;
+    color: var(--text);
+  }
+  .corner-tag {
+    position: absolute;
+    top: 9%;
+    right: 9%;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #0b0d14cc;
+    border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .cover .tracks {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    align-content: center;
+    padding: 9%;
+    border: 0;
+    border-radius: 0;
+    background: #12141cf2;
+    overflow: auto;
+  }
+  .cover .other {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #0b0d14cc;
+  }
+  .cover.waiting .play-label {
+    text-shadow: 0 1px 3px #000;
   }
   .console-text {
     min-width: 0;
@@ -360,7 +422,7 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border-radius: var(--card-radius);
+    border-radius: inherit;
     background: #12141cdb;
     backdrop-filter: blur(3px);
     color: var(--accent);

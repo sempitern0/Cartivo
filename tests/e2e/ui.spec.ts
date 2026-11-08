@@ -233,14 +233,14 @@ test("the logo returns to the start and the console cards line up", async ({
   await noHorizontalScroll(page);
 });
 
-test("every console card shows its logo, loaded and decorative", async ({
+test("every console card is its logo, loaded, with the name for screen readers", async ({
   page,
 }) => {
   await page.goto("/");
   const logos = page
     .getByRole("list", { name: "Consolas" })
     .getByRole("article")
-    .locator("img.badge");
+    .locator("img.cover-art");
   await expect(logos).toHaveCount(
     await page
       .getByRole("list", { name: "Consolas" })
@@ -252,9 +252,13 @@ test("every console card shows its logo, loaded and decorative", async ({
     .poll(() =>
       logos.evaluateAll((images) =>
         (images as HTMLImageElement[]).every(
-          (img) => img.alt === "" && img.naturalWidth === 256,
+          (img) => img.alt === "" && img.naturalWidth === 640,
         ),
       ),
     )
     .toBe(true);
+  // The name is not drawn over the logo but still names the card.
+  await expect(
+    page.getByRole("article", { name: "Mega Drive", exact: true }),
+  ).toBeVisible();
 });

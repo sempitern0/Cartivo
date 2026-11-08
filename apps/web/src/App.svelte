@@ -19,6 +19,7 @@
   import { icons } from "./icons.ts";
   import { startPadNavigation } from "./pad-navigation.svelte.ts";
   import { ui } from "./input-mode.svelte.ts";
+  import { motion } from "./motion.svelte.ts";
   import PadHints from "./PadHints.svelte";
   import {
     acceptFor,
@@ -275,6 +276,7 @@
     const root = document.documentElement;
     root.dataset.ui = ui.current;
     root.dataset.input = ui.lastDevice;
+    root.dataset.motion = motion.reduced ? "reduce" : "full";
   });
   type LaunchParams = { files: readonly FileSystemFileHandle[] };
   type LaunchQueue = {

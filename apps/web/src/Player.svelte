@@ -1,4 +1,5 @@
 <script lang="ts">
+  import LoadingSplash from "./LoadingSplash.svelte";
   import { onMount, tick } from "svelte";
   import GameStage from "./GameStage.svelte";
   import PlayerToolbar from "./PlayerToolbar.svelte";
@@ -649,7 +650,6 @@
       {system.formatNote}.
     </p>
     <button class="primary" onclick={start}>Jugar</button>{/if}
-  {#if phase === "loading"}<p role="status">Preparando juego…</p>{/if}
   {#if graphicsOpen && phase !== "running"}
     <GraphicsPanel
       video={system.video}
@@ -698,7 +698,10 @@
       {problem}
     </div>{/if}
   <!-- Canvas is a focused keyboard-controlled game surface; Escape releases input capture. -->
-  <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer}>
+  <div bind:this={frameElement} class="frame" class:presenting={frames > 0 || !!resumeOffer || phase === "loading"}>
+    {#if phase === "loading"}
+      <LoadingSplash {system} title={sourceTitle(source)} />
+    {/if}
     {#if resumeOffer && phase === "paused"}
       <ResumeOffer
         offer={resumeOffer}
@@ -812,17 +815,15 @@
   .player.focus-mode:fullscreen { height: 100%; padding: 0; overflow: hidden; }
   .focus-exit { position: absolute; z-index: 3; top: 16px; right: 16px; opacity: .65; min-height: 44px; background: #181b25f0; border: 1px solid #656b7b; }
   .focus-exit:hover, .focus-exit:focus-visible { opacity: 1; }
-  @media (prefers-reduced-motion: no-preference) { .focus-exit { transition: opacity 120ms ease-out; } }
+  .focus-exit { transition: opacity 120ms ease-out; }
   /* Chrome may live in child components (toolbar, panels): match globally. */
   .player.focus-mode :global([data-player-chrome]) { display: none; }
   .frame { margin: 20px auto 16px; padding: 14px; border-radius: 26px; border: 2px solid #619de5aa; box-shadow: 0 0 34px #619de533, inset 0 0 22px #619de514; background: #0a0c12; opacity: .45; }
   .frame.presenting { opacity: 1; }
   /* Leaves room for the title, toolbar and actions so the whole player fits. */
   .game-stage-wrapper { width: 100%; height: clamp(200px, calc(100dvh - 320px), 560px); border-radius: 14px; overflow: hidden; }
-  @media (prefers-reduced-motion: no-preference) {
-    .frame { transition: opacity 180ms ease-out; }
-    .player:not(.focus-mode) { animation: player-enter 180ms ease-out both; }
-  }
+  .frame { transition: opacity 180ms ease-out; }
+  .player:not(.focus-mode) { animation: player-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
   @keyframes player-enter {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }

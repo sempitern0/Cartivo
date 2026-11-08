@@ -822,12 +822,6 @@
     display: block;
     width: 100%;
     margin: 6px 0 4px;
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    padding: 11px;
-    border-radius: 10px;
-    font: inherit;
   }
   select:focus-visible,
   input:focus-visible,
