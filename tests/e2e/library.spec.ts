@@ -297,11 +297,19 @@ test.describe("load diagnostics", () => {
 // plays, and the copy, shared by profiles, is what «Continuar» opens.
 const DISC = "Cartivo Demo.cue";
 
+/** Picks the .cue and its track together from the PlayStation card. */
 async function openDisc(page: Page) {
   const { ps1DiscDemo } =
     await import("../../packages/fixtures/src/ps1-disc-demo.ts");
   const { cue, bin } = ps1DiscDemo();
-  await page.locator("input[type=file]").setInputFiles([
+  const chooser = page.waitForEvent("filechooser");
+  await page
+    .getByRole("article", { name: "PlayStation", exact: true })
+    .getByRole("button", { name: "Jugar", exact: true })
+    .click();
+  await (
+    await chooser
+  ).setFiles([
     {
       name: DISC,
       mimeType: "application/octet-stream",
