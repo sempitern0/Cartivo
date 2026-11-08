@@ -128,7 +128,7 @@
     >{/each}
 </div>
 
-<section
+<div
   class="category"
   id="pantalla"
   role="tabpanel"
@@ -170,9 +170,9 @@
         display.smooth === defaultDisplay.smooth}>Restablecer</button
     >
   </div>
-</section>
+</div>
 
-<section
+<div
   class="category"
   id="sonido"
   role="tabpanel"
@@ -197,9 +197,9 @@
     los juegos</label
   >
   <p class="hint" aria-live="polite">{soundNote}</p>
-</section>
+</div>
 
-<section
+<div
   class="category"
   id="controles"
   role="tabpanel"
@@ -209,9 +209,9 @@
 >
   <h2>Configurar controles</h2>
   <ControlsPanel />
-</section>
+</div>
 
-<section
+<div
   class="category"
   id="interfaz"
   role="tabpanel"
@@ -220,9 +220,9 @@
   hidden={selected !== "interfaz"}
 >
   <InterfacePreference />
-</section>
+</div>
 
-<section
+<div
   class="category"
   id="almacenamiento"
   role="tabpanel"
@@ -237,9 +237,9 @@
   {#if !inGame}<a class="button-link" href="#juegos"
       >Gestionar juegos en «Tus juegos»</a
     >{/if}
-</section>
+</div>
 
-<section
+<div
   class="category"
   id="avanzado"
   role="tabpanel"
@@ -266,7 +266,7 @@
     El rendimiento de cada sesión y los detalles del núcleo están en la pausa
     del juego.
   </p>
-</section>
+</div>
 
 <style>
   .settings-tabs {

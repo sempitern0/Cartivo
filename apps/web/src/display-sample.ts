@@ -47,7 +47,10 @@ export function spriteCentre(width: number, height: number) {
  * RGBA pixels: banded sky, a diagonal (shows uneven scaling), a 1-pixel
  * checker strip (shows smoothing), tiled ground and the sprite.
  */
-export function samplePixels(width: number, height: number): Uint8ClampedArray {
+export function samplePixels(
+  width: number,
+  height: number,
+): Uint8ClampedArray<ArrayBuffer> {
   const pixels = new Uint8ClampedArray(width * height * 4);
   const ground = Math.floor(height * 0.75);
   const put = (x: number, y: number, [r, g, b]: readonly number[]) => {
