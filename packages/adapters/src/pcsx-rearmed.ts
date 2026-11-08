@@ -84,7 +84,10 @@ export class PcsxRearmedAdapter extends BridgeCore<PcsxBridge> {
         ),
       insert: (index) => {
         const slot = order.indexOf(disc.discs[index]);
-        if (slot < 0 || this.call((wasm, core) => wasm.cartivo_disc_insert(core, slot)))
+        if (
+          slot < 0 ||
+          this.call((wasm, core) => wasm.cartivo_disc_insert(core, slot))
+        )
           throw Error(`No se ha podido poner el disco ${index + 1}.`);
       },
     };

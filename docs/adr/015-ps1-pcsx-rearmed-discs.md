@@ -79,3 +79,13 @@ El titular prioriza un MVP jugable hasta PS2. Tras Mega Drive tocaba N64 o PS1, 
 - **Verificación:** al copiar se comprueban los tamaños. Cada vez que se juega desde la copia se recalcula la identidad (`prepareDisc`), y si no coincide la copia se rechaza por dañada. No se vuelven a leer 700 MB justo al terminar de copiar, mientras la partida sigue en marcha.
 - **Perfiles y olvido:** la copia es por identidad, y la comparten los perfiles como la de los cartuchos (ADR-016). Olvidar un disco borra la carpeta solo si ningún otro perfil lo recuerda; la tarjeta de memoria y las Partidas se conservan. Las carpetas huérfanas se limpian a las 24 h, según su archivo más reciente.
 - **Fuera:** CHD y multidisco (`.m3u`).
+
+## Revisión: varios discos y CHD (2026-11-08)
+
+- **Varios discos (`.m3u`):** la página y el Worker leen la lista (`resolveDisc` en `packages/storage/src/cue.ts`): cada disco puede ser un `.cue` con sus pistas, un `.chd` o un `.iso`, y se piden los que falten antes de empezar. El núcleo nunca lee el `.m3u` (lo haría con `fopen`, fuera de la VFS): arranca el primer disco y el puente añade los demás con la interfaz de control de discos de libretro (`cartivo_disc_add`).
+  - **Cambiar de disco:** «Disco N» en la barra del reproductor (menú de Bits UI) y «Poner el disco N» en el menú de pausa. El puente abre la tapa, cambia la imagen y la cierra (`cartivo_disc_insert`); el núcleo ve la tapa cerrada unos dos segundos después, como en la consola.
+  - **Reinicio y batería:** crean un núcleo nuevo que arranca con el disco de la bandeja (`DiscImage.withFirst`). El adaptador traduce entre el orden del juego y el del núcleo (el disco con el que arrancó va primero).
+  - **Identidad:** el `.m3u` con todos sus discos. Los discos de siempre conservan la suya; la tarjeta de memoria es una por juego, compartida por sus discos.
+  - **Límite:** una Partida guarda el estado de la consola, no qué disco hay en la bandeja: antes de cargar una de otro disco hay que poner ese disco.
+- **CHD:** compilado con `HAVE_CHD` (libchdr y sus decodificadores LZMA, Zstandard y FLAC), leído por la misma VFS. Licencias: libchdr BSD-3-Clause, LZMA SDK dominio público, Zstandard BSD-3-Clause o GPL-2.0, dr_flac Unlicense o MIT-0; todas en el SBOM y admitidas por la política de uso privado y, a diferencia del núcleo, también publicables.
+- **Pruebas:** fixtures propios de dos discos (`ps1TwoDiscDemo`, el segundo en verde) y CHD v5 sin comprimir (`ps1DiscChd`), en Node (`tests/ps1.test.ts`) y E2E (`tests/e2e/ps1.spec.ts`).

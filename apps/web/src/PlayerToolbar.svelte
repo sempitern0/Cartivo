@@ -3,6 +3,7 @@
   // (Partidas · Ajustes del juego · … · Guardar y salir). Presentation only: it
   // never starts workers or writes saves; the player decides what happens.
   import { icons } from "./icons.ts";
+  import DiscMenu from "./DiscMenu.svelte";
   type Phase = "ready" | "loading" | "running" | "paused" | "error";
   let {
     systemName,
@@ -19,6 +20,8 @@
     onsaves,
     onrom,
     onexit,
+    discs,
+    ondisc,
   }: {
     systemName: string;
     title: string;
@@ -36,6 +39,9 @@
     onsaves: () => void;
     onrom: () => void;
     onexit: () => void;
+    /** A game on several discs: its tray (ADR-015). */
+    discs?: { names: string[]; current: number };
+    ondisc?: (index: number) => void;
   } = $props();
 </script>
 
@@ -62,6 +68,11 @@
       aria-controls="graphics-panel"
       >{@html icons.monitor}<span>Ajustes del juego</span></button
     >
+    {#if discs && ondisc}<DiscMenu
+        {discs}
+        disabled={busy || phase === "loading"}
+        onchange={ondisc}
+      />{/if}
     <button
       class="tool icon-button"
       onclick={onrom}
@@ -113,13 +124,14 @@
     gap: 4px;
     flex-wrap: wrap;
   }
-  .tool {
+  /* Global inside the toolbar: DiscMenu's trigger is a .tool too. */
+  .toolbar :global(.tool) {
     background: transparent;
     border-color: transparent;
     color: var(--text);
     padding: 10px 14px;
   }
-  .tool:hover:not(:disabled) {
+  .toolbar :global(.tool:hover:not(:disabled)) {
     background: #ffffff0d;
   }
   .divider {
@@ -130,7 +142,7 @@
   }
   @media (max-width: 640px) {
     /* Icon-only on phones; the text stays as the accessible name. */
-    .tool span {
+    .toolbar :global(.tool span) {
       position: absolute;
       width: 1px;
       height: 1px;

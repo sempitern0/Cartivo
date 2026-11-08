@@ -47,7 +47,12 @@ export class DiscImage {
   /** The same game booting disc `index` (a reset keeps the disc in the tray). */
   withFirst(index: number): DiscImage {
     if (!this.discs[index]) throw Error(`No hay disco ${index + 1}`);
-    const copy = new DiscImage(this.parts, this.primary, this.#read, this.discs.slice(1));
+    const copy = new DiscImage(
+      this.parts,
+      this.primary,
+      this.#read,
+      this.discs.slice(1),
+    );
     copy.primary = this.find(this.discs[index])!;
     copy.first = index;
     return copy;

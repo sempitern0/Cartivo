@@ -86,7 +86,9 @@ export async function resolveDisc<F extends { name: string }>(
   if (isM3u(first.name)) {
     parts.push({ name: first.name, file: first });
     for (const entry of m3uFiles(await text(first))) {
-      const file = unclaimed().find((f) => trackName(f.name) === trackName(entry));
+      const file = unclaimed().find(
+        (f) => trackName(f.name) === trackName(entry),
+      );
       if (!file) {
         missing.push(entry);
         continue;

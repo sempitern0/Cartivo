@@ -86,7 +86,8 @@ export async function prepareDisc(
   // and does not expect a UTF-8 BOM (Blob.text() drops it silently).
   const identified: DiscPart[] = await Promise.all(
     layout.parts.map(async ({ name, file }) => {
-      if (!name.toLowerCase().endsWith(".cue")) return { name, blob: file.blob };
+      if (!name.toLowerCase().endsWith(".cue"))
+        return { name, blob: file.blob };
       const head = new Uint8Array(await file.blob.slice(0, 3).arrayBuffer());
       const bom = head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf;
       return { name, blob: bom ? file.blob.slice(3) : file.blob };

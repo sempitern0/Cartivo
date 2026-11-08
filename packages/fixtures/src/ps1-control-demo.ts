@@ -4,14 +4,16 @@
  * loads it, and its pad service (InitPad/StartPad) fills a buffer each frame.
  * Oracle: the 320×240 screen is one colour, with a white 32×32 square at
  * (16, 16), redrawn about twice per frame (a delay loop keeps the GPU idle):
- * - no button: dark blue (0x21, 0x21, 0x63 once widened from 15 bits);
+ * - no button: dark blue (0x21, 0x21, 0x63 once widened from 15 bits), or
+ *   the `idle` colour given (the second disc of the multi-disc fixture);
  * - Cross: red; Circle: green; Start: yellow (checked in that order).
  */
 
 const BASE = 0x80010000;
 const PAD = 0x80008000; // InitPad buffer: status, id, buttons (active low)
 
-export function ps1ControlDemo(): Uint8Array {
+/** `idle`: GP0 fill colour with no button pressed (BGR, 0x00BBGGRR). */
+export function ps1ControlDemo(idle = 0x602020): Uint8Array {
   const code: number[] = [];
   const labels = new Map<string, number>();
   const fixups: { at: number; label: string; kind: "branch" | "jump" }[] = [];
@@ -97,7 +99,7 @@ export function ps1ControlDemo(): Uint8Array {
   li(12, PAD); // t4
   lbu(13, 12, 2); // t5: Select L3 R3 Start Up Right Down Left
   lbu(14, 12, 3); // t6: L2 R2 L1 R1 Triangle Circle Cross Square
-  li(11, 0x02602020); // fill rectangle, dark blue (GP0 colour is BGR)
+  li(11, (0x02000000 | idle) >>> 0); // fill rectangle (GP0 colour is BGR)
   andi(15, 14, 0x40); // Cross (active low)
   beq(15, 0, "red");
   andi(15, 14, 0x20); // Circle

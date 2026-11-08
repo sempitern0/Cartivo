@@ -153,3 +153,55 @@ test("Controles names the PlayStation buttons", async ({ page }) => {
     guide.getByText("L2 y R2 solo los usan PlayStation y N64."),
   ).toBeVisible();
 });
+
+test("an .m3u game: disc 1 boots, the tray swaps to disc 2 and a reset boots it", async ({
+  page,
+}) => {
+  const { ps1TwoDiscDemo } =
+    await import("../../packages/fixtures/src/ps1-disc-demo.ts");
+  await page.goto("/");
+  const chooser = page.waitForEvent("filechooser");
+  await card(page).getByRole("button", { name: "Jugar", exact: true }).click();
+  await (
+    await chooser
+  ).setFiles(
+    ps1TwoDiscDemo().map(({ name, bytes }) => ({
+      name,
+      mimeType: "application/octet-stream",
+      buffer: Buffer.from(bytes),
+    })),
+  );
+  await playing(page, 30);
+  await expect(
+    page.getByRole("heading", { name: "Cartivo Demo.m3u" }),
+  ).toBeVisible();
+  await expect.poll(() => shows(page, [33, 33, 99])).toBe(true); // disc 1
+  await page.getByRole("button", { name: /^Disco 1 de 2/ }).click();
+  await page.getByRole("menuitem", { name: /^Disco 2/ }).click();
+  await expect(page.getByTestId("toast")).toContainText("Disco 2 puesto");
+  await expect(
+    page.getByRole("button", { name: /^Disco 2 de 2/ }),
+  ).toBeVisible();
+  // A reset keeps the disc in the tray: disc 2 boots, dark green.
+  const pause = page.getByRole("button", { name: "Pausar juego" });
+  if (await pause.isVisible()) await pause.click();
+  await page.getByRole("button", { name: "Reiniciar consola" }).click();
+  await expect.poll(() => shows(page, [33, 99, 33])).toBe(true);
+});
+
+test("a .chd disc image boots", async ({ page }) => {
+  const { ps1DiscChd } =
+    await import("../../packages/fixtures/src/ps1-disc-demo.ts");
+  await page.goto("/");
+  const chooser = page.waitForEvent("filechooser");
+  await card(page).getByRole("button", { name: "Jugar", exact: true }).click();
+  await (
+    await chooser
+  ).setFiles({
+    name: "Cartivo Demo.chd",
+    mimeType: "application/octet-stream",
+    buffer: Buffer.from(ps1DiscChd()),
+  });
+  await playing(page, 30);
+  await expect.poll(() => shows(page, [33, 33, 99])).toBe(true);
+});

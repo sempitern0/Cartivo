@@ -13,7 +13,11 @@ import {
 } from "../packages/adapters/src/pcsx-rearmed.ts";
 import { DiscImage } from "../packages/adapters/src/disc.ts";
 import { ps1ControlDemo } from "../packages/fixtures/src/ps1-control-demo.ts";
-import { ps1DiscDemo } from "../packages/fixtures/src/ps1-disc-demo.ts";
+import {
+  ps1DiscChd,
+  ps1DiscDemo,
+  ps1TwoDiscDemo,
+} from "../packages/fixtures/src/ps1-disc-demo.ts";
 import { prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
 import { neutral, type InputState } from "../packages/input/src/nes-input.ts";
 
@@ -108,4 +112,56 @@ test("a CD image boots from its .cue with the track, or from the .bin alone", as
     assert.equal(pixel(frame.pixels, 160, 120), 0xff0000, file.name);
     core.dispose();
   }
+});
+
+const files = (list: { name: string; bytes: Uint8Array }[]) =>
+  list.map(({ name, bytes }) => new File([bytes as BlobPart], name));
+
+/** Runs a second of the program and returns the colour at the centre. */
+function idleColour(core: PcsxRearmedAdapter) {
+  core.input(neutral());
+  let frame = core.advance(3);
+  for (let i = 0; i < 19; i++) frame = core.advance(3);
+  return pixel(frame.pixels, 160, 120);
+}
+
+test("an .m3u game boots disc 1, swaps to disc 2 and a new core boots it", async () => {
+  await preparePcsx();
+  const [m3u, ...rest] = files(ps1TwoDiscDemo());
+  // Node has no FileReaderSync: the fixture's bytes are read from memory.
+  const bytes = new Map(ps1TwoDiscDemo().map((f) => [f.name, f.bytes]));
+  const read = (blob: Blob, start: number, end: number) =>
+    (bytes.get((blob as File).name) ?? new Uint8Array(0)).slice(start, end);
+  const { disc } = await prepareDisc(
+    { prepare: async () => {} },
+    m3u,
+    rest,
+    read,
+  );
+  const core = new PcsxRearmedAdapter(disc);
+  assert.deepEqual(core.discs!.names, [
+    "Cartivo Demo (Disc 1).cue",
+    "Cartivo Demo (Disc 2).cue",
+  ]);
+  assert.equal(idleColour(core), 0x212163); // disc 1: dark blue
+  core.discs!.insert(1);
+  assert.equal(core.discs!.current(), 1);
+  assert.throws(() => core.discs!.insert(5), /disco 6/);
+  core.dispose();
+  // A reset makes a new core with the disc in the tray: disc 2, dark green.
+  const again = new PcsxRearmedAdapter(disc.withFirst(1));
+  assert.equal(again.discs!.current(), 1);
+  assert.equal(idleColour(again), 0x216321);
+  again.dispose();
+});
+
+test("a CHD image boots like its .cue", async () => {
+  await preparePcsx();
+  const chd = ps1DiscChd();
+  const part = { name: "Cartivo Demo.chd", blob: new Blob([chd as BlobPart]) };
+  const core = new PcsxRearmedAdapter(
+    new DiscImage([part], part, (_, start, end) => chd.slice(start, end)),
+  );
+  assert.equal(idleColour(core), 0x212163);
+  core.dispose();
 });

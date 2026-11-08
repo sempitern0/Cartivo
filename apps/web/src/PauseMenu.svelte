@@ -16,6 +16,8 @@
     oncontrols,
     onreset,
     onexit,
+    discs,
+    ondisc,
   }: {
     diagnostics: ReturnType<FrameMetrics["snapshot"]>;
     loadMs?: number;
@@ -28,6 +30,9 @@
     oncontrols: () => void;
     onreset: () => void;
     onexit: () => void;
+    /** A game on several discs: one button per disc not in the tray. */
+    discs?: { names: string[]; current: number };
+    ondisc?: (index: number) => void;
   } = $props();
   let dialog: HTMLDialogElement;
   let resumeButton: HTMLButtonElement;
@@ -74,6 +79,10 @@
   <button disabled={!savesAvailable} onclick={onsaves}>Partidas</button>
   <button onclick={ongraphics}>Ajustes del juego</button>
   <button onclick={oncontrols}>Controles</button>
+  {#if discs && ondisc}{#each discs.names as _, index (index)}{#if index !== discs.current}<button
+          disabled={busy}
+          onclick={() => ondisc(index)}>Poner el disco {index + 1}</button
+        >{/if}{/each}{/if}
   <button disabled={busy} onclick={onreset}>Reiniciar consola</button>
   <button class="exit" onclick={onexit}
     >{savesAvailable ? "Guardar y salir" : "Salir"}</button

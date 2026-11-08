@@ -69,6 +69,8 @@
     /** Files opened from the player to start instead (a disc may be several). */
     onreplace?: (files: File[]) => void;
   } = $props();
+  /** A game on several discs (ADR-015): its tray, from the Worker. */
+  let discs = $state.raw<{ names: string[]; current: number }>();
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
   );
@@ -274,6 +276,7 @@
       if (!active) return;
       frameRate = r.frameRate ?? system.frameRate;
       battery = !!r.battery;
+      discs = r.discs;
       saves = r.states ?? [];
       noStorage = r.storageError ?? "";
       saveStatus = noStorage
@@ -463,6 +466,19 @@
     if (phase !== "running") return;
     controls.tap(action);
   }
+  /** Swaps the disc as a player would: the lid opens and closes again. */
+  async function changeDisc(index: number) {
+    if (!client || busy || !discs || index === discs.current) return;
+    busy = true;
+    try {
+      discs = (await client.request("disc", { disc: index })).discs ?? discs;
+      notify(`Disco ${index + 1} puesto. La tapa se cierra en unos segundos.`);
+    } catch (error) {
+      problem = error instanceof Error ? error.message : "No se pudo cambiar de disco";
+    } finally {
+      busy = false;
+    }
+  }
   async function resetConsole() {
     if (phase === "running") await pause();
     if (phase !== "paused" || busy || saveStatus === "Guardado sin confirmar.")
@@ -629,6 +645,8 @@
     onsaves={toggleSaves}
     onrom={chooseRom}
     onexit={() => close()}
+    {discs}
+    ondisc={changeDisc}
   />
   <input
     bind:this={romInput}
@@ -722,6 +740,8 @@
         oncontrols={() => (location.hash = "#controles")}
         onreset={resetConsole}
         onexit={() => close()}
+        {discs}
+        ondisc={changeDisc}
       />
     {:else if fullscreen && phase === "paused" && !resumeOffer}
       <FullscreenPause {busy} onresume={resume} onexit={toggleFullscreen} />

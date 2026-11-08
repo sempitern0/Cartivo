@@ -316,7 +316,10 @@ export class BridgeCore<T extends Bridge> implements EmulatorCore {
   }
 
   /** For a subclass: text as UTF-8 in wasm memory for the duration of `use`. */
-  protected withText<R>(text: string, use: (pointer: Pointer, length: number) => R): R {
+  protected withText<R>(
+    text: string,
+    use: (pointer: Pointer, length: number) => R,
+  ): R {
     const bytes = new TextEncoder().encode(text);
     return this.#withBytes(bytes, (pointer) => use(pointer, bytes.length));
   }

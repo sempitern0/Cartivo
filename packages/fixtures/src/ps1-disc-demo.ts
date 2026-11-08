@@ -55,8 +55,9 @@ function record(name: Uint8Array, lba: number, size: number, dir: boolean) {
 }
 
 /** The volume as 2048-byte sectors (logical image, like an .iso). */
-export function ps1DiscIso(): Uint8Array {
-  const exe = ps1ControlDemo();
+/** `idle`: the program's colour with no button (ps1ControlDemo). */
+export function ps1DiscIso(idle?: number): Uint8Array {
+  const exe = ps1ControlDemo(idle);
   const cnf = new TextEncoder().encode(SYSTEM_CNF);
   const ROOT = 20;
   const CNF = 21;
@@ -116,8 +117,8 @@ const bcd = (n: number) => parseInt(String(n), 16);
 
 /** The same volume as a raw MODE2/2352 track: sync, header, subheader and
  * user data per sector (EDC/ECC left zero: the core does not check them). */
-export function ps1DiscDemo(): { cue: string; bin: Uint8Array } {
-  const iso = ps1DiscIso();
+export function ps1DiscDemo(idle?: number): { cue: string; bin: Uint8Array } {
+  const iso = ps1DiscIso(idle);
   const count = iso.length / SECTOR;
   const bin = new Uint8Array(count * RAW);
   for (let lba = 0; lba < count; lba++) {
@@ -134,4 +135,84 @@ export function ps1DiscDemo(): { cue: string; bin: Uint8Array } {
     cue: CUE,
     bin,
   };
+}
+
+/** Dark green (BGR): the second disc's colour with no button pressed. */
+export const SECOND_DISC_IDLE = 0x206020;
+
+/**
+ * A game on two discs, as dumps come: an .m3u naming two .cue sheets, each
+ * with its track. Disc 1 is the demo disc (dark blue); disc 2 runs the same
+ * program in dark green, so booting it is visible.
+ */
+export function ps1TwoDiscDemo(): { name: string; bytes: Uint8Array }[] {
+  const text = new TextEncoder();
+  const files = [
+    {
+      name: "Cartivo Demo.m3u",
+      bytes: text.encode(
+        "Cartivo Demo (Disc 1).cue\nCartivo Demo (Disc 2).cue\n",
+      ),
+    },
+  ];
+  for (const [n, idle] of [
+    [1, undefined],
+    [2, SECOND_DISC_IDLE],
+  ] as const) {
+    const { bin } = ps1DiscDemo(idle);
+    const track = `Cartivo Demo (Disc ${n}).bin`;
+    files.push(
+      {
+        name: `Cartivo Demo (Disc ${n}).cue`,
+        bytes: text.encode(CUE.replace("Cartivo Demo (Track 1).bin", track)),
+      },
+      { name: track, bytes: bin },
+    );
+  }
+  return files;
+}
+
+const CD_FRAME = 2352 + 96; // a raw sector and its (empty) subchannel
+const FRAMES_PER_HUNK = 8;
+
+/**
+ * The demo disc as an uncompressed CHD v5 (MAME's format, read by libchdr):
+ * header, a map of hunk offsets, one CD track metadata entry (CHT2) and
+ * hunks of eight 2448-byte frames. No compression is needed to test the
+ * path; real dumps are compressed with the same container.
+ */
+export function ps1DiscChd(): Uint8Array {
+  const { bin } = ps1DiscDemo();
+  const frames = bin.length / 2352;
+  const hunkBytes = CD_FRAME * FRAMES_PER_HUNK;
+  const hunks = Math.ceil(frames / FRAMES_PER_HUNK);
+  const meta = new TextEncoder().encode(
+    `TRACK:1 TYPE:MODE2_RAW SUBTYPE:NONE FRAMES:${frames} PREGAP:0 PGTYPE:MODE1 PGSUB:RW POSTGAP:0\0`,
+  );
+  const HEADER = 124;
+  const mapOffset = HEADER;
+  const metaOffset = mapOffset + hunks * 4;
+  // Hunks start on a hunk boundary: the map stores offset / hunk size.
+  const firstHunk = Math.ceil((metaOffset + 16 + meta.length) / hunkBytes);
+  const out = new Uint8Array((firstHunk + hunks) * hunkBytes);
+  const view = new DataView(out.buffer);
+  out.set(new TextEncoder().encode("MComprHD"), 0);
+  view.setUint32(8, HEADER);
+  view.setUint32(12, 5); // version; compressors 16–31 stay 0 (none)
+  view.setBigUint64(32, BigInt(hunks * hunkBytes)); // logical bytes
+  view.setBigUint64(40, BigInt(mapOffset));
+  view.setBigUint64(48, BigInt(metaOffset));
+  view.setUint32(56, hunkBytes);
+  view.setUint32(60, CD_FRAME); // unit bytes; SHA-1 fields stay 0 (no parent)
+  for (let h = 0; h < hunks; h++)
+    view.setUint32(mapOffset + h * 4, firstHunk + h);
+  out.set(new TextEncoder().encode("CHT2"), metaOffset);
+  view.setUint32(metaOffset + 4, meta.length); // flags 0, length; next 0
+  out.set(meta, metaOffset + 16);
+  for (let f = 0; f < frames; f++)
+    out.set(
+      bin.subarray(f * 2352, (f + 1) * 2352),
+      firstHunk * hunkBytes + f * CD_FRAME,
+    );
+  return out;
 }
