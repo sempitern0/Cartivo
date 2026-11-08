@@ -10,7 +10,7 @@ export const areas = [
     id: "ui",
     title: "Pantalla inicial, navegación y estilo",
     start: [
-      "apps/web/src/{App,Player,ConsoleCard,ConsoleIcon}.svelte",
+      "apps/web/src/{App,Player,ConsoleCard,ConsoleIcon,SettingsPage,PauseMenu}.svelte",
       "apps/web/src/{theme.css,accent.ts}",
     ],
     context: ["tests/e2e/{ui,pad-navigation}.spec.ts", "docs/DESIGN.md"],
@@ -78,12 +78,12 @@ export const areas = [
     start: [
       "packages/storage/src/",
       "apps/web/src/{SavePanel,LibraryPage,RecentGames,ContinueCard,ProfilePicker}.svelte",
-      "apps/web/src/profile.svelte.ts",
+      "apps/web/src/{profile.svelte,library-view}.ts",
     ],
     context: [
-      "tests/{storage,snapshots,library,state-file,background-commit,persistence,profiles}.test.ts",
+      "tests/{storage,snapshots,library,shared-library,state-file,background-commit,persistence,profiles}.test.ts",
       "tests/e2e/{saves,storage,library,integrity,faults,profiles}.spec.ts",
-      "docs/adr/{003,009,012,016}-*.md",
+      "docs/adr/{003,009,012,016,018}-*.md",
     ],
   },
   {
@@ -91,11 +91,11 @@ export const areas = [
     title: "Gráficos, audio y ritmo",
     start: [
       "packages/media/src/",
-      "apps/web/src/{GraphicsPanel,GameStage,PerformanceDetails}.svelte",
+      "apps/web/src/{GraphicsPanel,DisplayOptions,GameStage,PerformanceDetails}.svelte",
       "apps/web/src/{audio.worklet,sound.svelte}.ts",
     ],
     context: [
-      "tests/{display-scaler,frame-pacer,frame-metrics}.test.ts",
+      "tests/{display-scaler,frame-pacer,frame-metrics,sound-preferences}.test.ts",
       "tests/e2e/nes.spec.ts",
       "docs/DESIGN.md",
     ],

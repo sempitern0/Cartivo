@@ -60,3 +60,38 @@ test("the test bar sits right above the drawings that light up", async ({
   expect(bar!.y).toBeLessThan(keyboard!.y);
   expect(keyboard!.y - (bar!.y + bar!.height)).toBeLessThan(160);
 });
+
+test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and Avanzado", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Ajustes" }).click();
+  const nav = page.getByRole("navigation", { name: "Secciones de ajustes" });
+  await expect(nav.getByRole("button")).toHaveText([
+    "Pantalla",
+    "Sonido",
+    "Controles",
+    "Interfaz",
+    "Almacenamiento",
+    "Avanzado",
+  ]);
+  await nav.getByRole("button", { name: "Sonido" }).click();
+  await expect(page.locator("#sonido")).toBeFocused();
+
+  // Screen defaults per console, the same options as in the game.
+  await page.getByLabel("Consola").selectOption({ label: "SNES" });
+  await page.getByText("Píxel entero", { exact: true }).click();
+  await expect(page.locator("#pantalla")).toContainText(
+    "Se recordará para SNES",
+  );
+  // Sound and core choices survive a reload.
+  await page.getByLabel("Silenciar los juegos").check();
+  await page
+    .getByLabel("Núcleo de NES")
+    .selectOption({ label: "JSNES · JavaScript" });
+  await page.reload();
+  await expect(page.getByLabel("Silenciar los juegos")).toBeChecked();
+  await expect(page.getByLabel("Núcleo de NES")).toHaveValue("jsnes");
+  await page.getByLabel("Consola").selectOption({ label: "SNES" });
+  await expect(page.getByRole("radio", { name: /Píxel entero/ })).toBeChecked();
+});

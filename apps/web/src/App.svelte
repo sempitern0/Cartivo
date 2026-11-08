@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import Player from "./Player.svelte";
-  import ControlsPanel from "./ControlsPanel.svelte";
+  import SettingsPage from "./SettingsPage.svelte";
   import RecentGames from "./RecentGames.svelte";
   import LibraryPage from "./LibraryPage.svelte";
   import { demo, hasFiles, type GameSource } from "./game-source.ts";
@@ -16,7 +16,6 @@
   import { icons } from "./icons.ts";
   import { startPadNavigation } from "./pad-navigation.svelte.ts";
   import { ui } from "./input-mode.svelte.ts";
-  import InterfacePreference from "./InterfacePreference.svelte";
   import PadHints from "./PadHints.svelte";
   import {
     acceptFor,
@@ -364,13 +363,7 @@
           <h1 bind:this={pageHeading} tabindex="-1">Ajustes</h1>
         </div>
       </div>
-      <nav class="settings-sections" aria-label="Secciones de ajustes">
-        <button onclick={() => document.getElementById("interfaz")?.focus()}>Interfaz</button><button onclick={() => document.getElementById("configurar-controles")?.focus()}>Controles</button>
-        {#if !game}<a href="#juegos">Biblioteca y almacenamiento</a>{/if}
-      </nav>
-      <div id="interfaz" tabindex="-1"><InterfacePreference /></div>
-      <h2 id="configurar-controles" tabindex="-1">Configurar controles</h2>
-      <ControlsPanel />
+      <SettingsPage inGame={!!game} />
     </section>
   {:else if page === "juegos" && !game}
     <section class="games-page">
@@ -759,7 +752,5 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
-  .settings-sections { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
-  .settings-sections a { min-height: 44px; display: inline-flex; align-items: center; }
   :global(:root[data-ui="pad"]) main { padding-bottom: 96px; }
 </style>
