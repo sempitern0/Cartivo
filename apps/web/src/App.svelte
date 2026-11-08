@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import Player from "./Player.svelte";
-  import SettingsPage from "./SettingsPage.svelte";
+  import SettingsPage, {
+    tabFromHash,
+    type SettingsTab,
+  } from "./SettingsPage.svelte";
   import RecentGames from "./RecentGames.svelte";
   import LibraryPage from "./LibraryPage.svelte";
   import { demo, hasFiles, type GameSource } from "./game-source.ts";
@@ -37,11 +40,17 @@
     cueFiles,
     matchTracks,
   } from "../../../packages/storage/src/cue.ts";
-  /** Screens without a router: the hash names the page (#controles, #juegos). */
-  type Page = "inicio" | "controles" | "juegos";
+  /** Screens without a router: the hash names the page (#ajustes, #juegos). */
+  type Page = "inicio" | "ajustes" | "juegos";
   let page = $state<Page>("inicio");
+  /** The Ajustes tab the address asks for (#ajustes/sonido, #controles). */
+  let settingsTab = $state<SettingsTab>();
   const pageFromHash = (hash: string): Page =>
-    hash === "#controles" ? "controles" : hash === "#juegos" ? "juegos" : "inicio";
+    hash === "#ajustes" || tabFromHash(hash)
+      ? "ajustes"
+      : hash === "#juegos"
+        ? "juegos"
+        : "inicio";
   const consoles = availableSystems();
   // `id` remounts the player when a ROM replaces the current one.
   let game = $state.raw<{ source: GameSource; system: SystemInfo; id: number }>();
@@ -228,6 +237,7 @@
       return;
     }
     page = pageFromHash(location.hash);
+    settingsTab = tabFromHash(location.hash);
     await tick();
     pageHeading?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -338,8 +348,8 @@
         >{/if}
       {#if profiles.active || game}<a
           class="icon-button settings-link"
-          href="#controles"
-          aria-current={page === "controles" ? "page" : undefined}
+          href="#ajustes"
+          aria-current={page === "ajustes" ? "page" : undefined}
           >{@html icons.gear}<span>Ajustes</span></a
         >{/if}
     </nav>
@@ -347,7 +357,7 @@
   {#if libraryProblem && profiles.active && !game}<p class="storage-note" role="status">{libraryProblem} <button onclick={refreshLibrary}>Reintentar</button></p>{/if}
   {#if !game && !profiles.active}
     <ProfilePicker onchoose={chooseProfile} />
-  {:else if page === "controles"}
+  {:else if page === "ajustes"}
     <section class="controls-page">
       <div class="page-head">
         <a
@@ -363,7 +373,7 @@
           <h1 bind:this={pageHeading} tabindex="-1">Ajustes</h1>
         </div>
       </div>
-      <SettingsPage inGame={!!game} />
+      <SettingsPage inGame={!!game} tab={settingsTab} />
     </section>
   {:else if page === "juegos" && !game}
     <section class="games-page">
@@ -455,12 +465,12 @@
       />
     </section>
   {/if}
-  {#if game}<div hidden={page === "controles"}>
+  {#if game}<div hidden={page === "ajustes"}>
       {#key game.id}
         <Player
           system={game.system}
           source={game.source}
-          visible={page !== "controles"}
+          visible={page !== "ajustes"}
           canRemember={storage === "ok"}
           autostart
           onclose={() => {

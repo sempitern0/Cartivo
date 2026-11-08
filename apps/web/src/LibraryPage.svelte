@@ -48,15 +48,37 @@
   let confirming = $state<{ hash: string; action: Risky }>();
   let managing = $state<string>();
   let libraryElement: HTMLElement;
-  async function ask(hash: string, action: Risky) {
-    confirming = { hash, action };
+  const focus = async (id: string) => {
     await tick();
-    document.getElementById(`confirm-${hash}`)?.focus();
-  }
-  async function cancel(hash: string) {
+    document.getElementById(id)?.focus();
+  };
+  function open(hash: string) {
     confirming = undefined;
-    await tick();
-    document.getElementById(`manage-${hash}`)?.focus();
+    managing = hash;
+    void focus(`options-${hash}`);
+  }
+  function close(hash: string) {
+    confirming = undefined;
+    managing = undefined;
+    void focus(`manage-${hash}`);
+  }
+  /** Escape (or the pad's back button) closes the options it reaches. */
+  function closesOnEscape(sheet: HTMLElement, hash: string) {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      close(hash);
+    };
+    sheet.addEventListener("keydown", onKey);
+    return { destroy: () => sheet.removeEventListener("keydown", onKey) };
+  }
+  function ask(hash: string, action: Risky) {
+    confirming = { hash, action };
+    void focus(`confirm-${hash}`);
+  }
+  function cancel(hash: string) {
+    confirming = undefined;
+    void focus(`options-${hash}`);
   }
   /** Titles this profile hid; they stay for everyone else. */
   const listed = $derived(games.filter((g) => !g.hidden));
@@ -194,12 +216,47 @@
             </div>
             {#if entry.stateUnavailable}<p class="hint">Guardado de otra versión. Revisa Partidas antes de sobrescribirlo.</p>{/if}
             <div class="actions">
-              {#if confirming?.hash === entry.hash}
-                <span class="hint"
-                  >{confirming.action === "delete"
-                    ? "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan."
-                    : "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer."}</span
+              <button
+                class="primary icon-button play"
+                disabled={!system}
+                aria-label={`${playLabel(entry)} ${entry.name}`}
+                data-launch={`continue-${entry.hash}`}
+                onclick={() => system && oncontinue(entry, system)}
+                >{@html icons.play}{playLabel(entry)}</button
+              ><button
+                id={`manage-${entry.hash}`}
+                class="icon-button more"
+                aria-label={`Opciones de ${entry.name}`}
+                aria-expanded={managing === entry.hash}
+                aria-controls={`options-${entry.hash}`}
+                onclick={() => (managing === entry.hash ? close(entry.hash) : open(entry.hash))}
+                >{@html icons.more}</button
+              >
+            </div>
+            <!-- Options cover the card instead of growing it: one list, then
+                 the confirmation of a risky action in the same place. -->
+            <div
+              id={`options-${entry.hash}`}
+              class="sheet"
+              role="group"
+              aria-label={`Opciones de ${entry.name}`}
+              tabindex="-1"
+              hidden={managing !== entry.hash}
+              use:closesOnEscape={entry.hash}
+            >
+              <div class="sheet-head">
+                <span class="name">{entry.name}</span><button
+                  class="icon-button"
+                  aria-label="Cerrar opciones"
+                  onclick={() => close(entry.hash)}>{@html icons.close}</button
                 >
+              </div>
+              {#if confirming?.hash === entry.hash}
+                <p class="hint">
+                  {confirming.action === "delete"
+                    ? "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan."
+                    : "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer."}
+                </p>
                 <button
                   id={`confirm-${entry.hash}`}
                   class="danger"
@@ -210,36 +267,17 @@
                     : `Borrar mi progreso en ${entry.name}`}</button
                 ><button onclick={() => cancel(entry.hash)}>Cancelar</button>
               {:else}
-                <button
-                  class="primary"
-                  disabled={!system}
-                  aria-label={`${playLabel(entry)} ${entry.name}`}
-                  data-launch={`continue-${entry.hash}`}
-                  onclick={() => system && oncontinue(entry, system)}
-                  >{playLabel(entry)}</button
+                <button class="icon-button row" onclick={() => hide(entry, true)}
+                  >{@html icons.hide}Ocultar para mí</button
                 ><button
-                  id={`manage-${entry.hash}`}
-                  aria-label={`Opciones de ${entry.name}`}
-                  aria-expanded={managing === entry.hash}
-                  aria-controls={`options-${entry.hash}`}
-                  onclick={() =>
-                    (managing = managing === entry.hash ? undefined : entry.hash)}
-                  >Opciones</button
+                  class="icon-button row"
+                  onclick={() => ask(entry.hash, "erase")}
+                  >{@html icons.erase}Borrar mi progreso</button
+                ><button
+                  class="icon-button row danger"
+                  onclick={() => ask(entry.hash, "delete")}
+                  >{@html icons.trash}Eliminar del dispositivo</button
                 >
-                <div
-                  id={`options-${entry.hash}`}
-                  class="options"
-                  hidden={managing !== entry.hash}
-                >
-                  <button onclick={() => hide(entry, true)}>Ocultar para mí</button
-                  ><button onclick={() => ask(entry.hash, "erase")}
-                    >Borrar mi progreso</button
-                  ><button
-                    class="danger"
-                    onclick={() => ask(entry.hash, "delete")}
-                    >Eliminar del dispositivo</button
-                  >
-                </div>
               {/if}
             </div>
           </li>
@@ -396,11 +434,62 @@
     padding: 8px 14px;
     font-size: 14px;
   }
-  .options {
+  .actions .play {
+    flex: 1;
+  }
+  .actions .more {
+    width: 44px;
+    padding: 0;
+  }
+  .card {
+    position: relative;
+  }
+  .sheet {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
-    flex-basis: 100%;
+    padding: 14px;
+    overflow: auto;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--surface) 96%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  .sheet[hidden] {
+    display: none;
+  }
+  .sheet:focus {
+    outline: none;
+  }
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .sheet-head button {
+    width: 44px;
+    padding: 0;
+    flex: none;
+    background: transparent;
+    border-color: transparent;
+  }
+  .sheet button {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .sheet .row {
+    justify-content: flex-start;
+    background: transparent;
+    border-color: transparent;
+    text-align: left;
+  }
+  .sheet .row:hover,
+  .sheet .row:focus-visible {
+    background: var(--surface-2);
   }
   .hidden-games {
     margin: 20px 0 8px;

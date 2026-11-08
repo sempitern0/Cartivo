@@ -1,7 +1,27 @@
+<script lang="ts" module>
+  // Ajustes (#ajustes, ADR-018): one stable page with six tabs, the same
+  // everywhere. During a game, «Ajustes del juego» shows only that console's
+  // screen; this page holds the defaults and the rest.
+  export const settingsTabs = [
+    ["pantalla", "Pantalla"],
+    ["sonido", "Sonido"],
+    ["controles", "Controles"],
+    ["interfaz", "Interfaz"],
+    ["almacenamiento", "Almacenamiento"],
+    ["avanzado", "Avanzado"],
+  ] as const;
+  export type SettingsTab = (typeof settingsTabs)[number][0];
+  /** `#ajustes/<tab>`; `#controles` stays as the direct link to controls. */
+  export function tabFromHash(hash: string): SettingsTab | undefined {
+    if (hash === "#controles") return "controles";
+    const id = /^#ajustes\/([a-z]+)$/.exec(hash)?.[1];
+    return settingsTabs.find(([tab]) => tab === id)?.[0];
+  }
+  /** Coming back to Ajustes opens the tab used last this visit. */
+  let lastTab: SettingsTab = "pantalla";
+</script>
+
 <script lang="ts">
-  // Ajustes (#controles, ADR-018): one stable page with six categories, the
-  // same everywhere. During a game, «Ajustes del juego» shows only that
-  // console's screen; this page holds the defaults and the rest.
   import ControlsPanel from "./ControlsPanel.svelte";
   import InterfacePreference from "./InterfacePreference.svelte";
   import DisplayOptions from "./DisplayOptions.svelte";
@@ -20,20 +40,35 @@
   } from "../../../packages/media/src/sound-preferences.ts";
   import { defaultDisplay } from "../../../packages/media/src/display-preferences.ts";
 
-  let { inGame = false }: { inGame?: boolean } = $props();
+  let {
+    inGame = false,
+    tab,
+  }: { inGame?: boolean; /** The tab the address asks for. */ tab?: SettingsTab } =
+    $props();
 
-  const sections = [
-    ["pantalla", "Pantalla"],
-    ["sonido", "Sonido"],
-    ["configurar-controles", "Controles"],
-    ["interfaz", "Interfaz"],
-    ["almacenamiento", "Almacenamiento"],
-    ["avanzado", "Avanzado"],
-  ] as const;
-  function go(id: string) {
-    const target = document.getElementById(id);
-    target?.focus({ preventScroll: true });
-    target?.scrollIntoView({ block: "start" });
+  let selected = $state<SettingsTab>(lastTab);
+  $effect.pre(() => {
+    if (tab) selected = lastTab = tab;
+  });
+  function select(id: SettingsTab, focus = false) {
+    selected = lastTab = id;
+    // The address names the tab without adding a history step.
+    history.replaceState(history.state, "", `#ajustes/${id}`);
+    if (focus) document.getElementById(`tab-${id}`)?.focus();
+  }
+  /** Arrows, Home and End move along the tabs (WAI-ARIA tabs pattern). */
+  function onTabKey(event: KeyboardEvent) {
+    const ids = settingsTabs.map(([id]) => id);
+    const at = ids.indexOf(selected);
+    const to = {
+      ArrowRight: at + 1,
+      ArrowLeft: at - 1,
+      Home: 0,
+      End: ids.length - 1,
+    }[event.key];
+    if (to === undefined) return;
+    event.preventDefault();
+    select(ids[(to + ids.length) % ids.length], true);
   }
 
   // Pantalla: one console at a time, the same options as in the game.
@@ -76,14 +111,32 @@
   }
 </script>
 
-<nav class="settings-sections" aria-label="Secciones de ajustes">
-  {#each sections as [id, label] (id)}<button onclick={() => go(id)}
-      >{label}</button
+<div
+  class="settings-tabs"
+  role="tablist"
+  aria-label="Secciones de ajustes"
+  tabindex="-1"
+  onkeydown={onTabKey}
+>
+  {#each settingsTabs as [id, label] (id)}<button
+      id={`tab-${id}`}
+      role="tab"
+      aria-selected={selected === id}
+      aria-controls={id}
+      tabindex={selected === id ? 0 : -1}
+      onclick={() => select(id)}>{label}</button
     >{/each}
-</nav>
+</div>
 
-<section class="category" id="pantalla" tabindex="-1" aria-labelledby="pantalla-title">
-  <h2 id="pantalla-title">Pantalla</h2>
+<section
+  class="category"
+  id="pantalla"
+  role="tabpanel"
+  aria-labelledby="tab-pantalla"
+  tabindex="0"
+  hidden={selected !== "pantalla"}
+>
+  <h2>Pantalla</h2>
   <p class="hint">
     Cada consola recuerda su escalado, proporción y suavizado. Durante la
     partida, también desde «Ajustes del juego».
@@ -119,8 +172,15 @@
   </div>
 </section>
 
-<section class="category" id="sonido" tabindex="-1" aria-labelledby="sonido-title">
-  <h2 id="sonido-title">Sonido</h2>
+<section
+  class="category"
+  id="sonido"
+  role="tabpanel"
+  aria-labelledby="tab-sonido"
+  tabindex="0"
+  hidden={selected !== "sonido"}
+>
+  <h2>Sonido</h2>
   <label class="field volume"
     >Volumen <input
       type="range"
@@ -139,22 +199,38 @@
   <p class="hint" aria-live="polite">{soundNote}</p>
 </section>
 
-<section class="category" aria-labelledby="configurar-controles">
-  <h2 id="configurar-controles" tabindex="-1">Configurar controles</h2>
+<section
+  class="category"
+  id="controles"
+  role="tabpanel"
+  aria-labelledby="tab-controles"
+  tabindex="0"
+  hidden={selected !== "controles"}
+>
+  <h2>Configurar controles</h2>
   <ControlsPanel />
 </section>
 
-<section class="category" id="interfaz" tabindex="-1" aria-label="Interfaz">
+<section
+  class="category"
+  id="interfaz"
+  role="tabpanel"
+  aria-labelledby="tab-interfaz"
+  tabindex="0"
+  hidden={selected !== "interfaz"}
+>
   <InterfacePreference />
 </section>
 
 <section
   class="category"
   id="almacenamiento"
-  tabindex="-1"
-  aria-labelledby="almacenamiento-title"
+  role="tabpanel"
+  aria-labelledby="tab-almacenamiento"
+  tabindex="0"
+  hidden={selected !== "almacenamiento"}
 >
-  <h2 id="almacenamiento-title">Almacenamiento</h2>
+  <h2>Almacenamiento</h2>
   <p class="hint">
     Juegos, partidas y ajustes se quedan en este navegador. {usage}
   </p>
@@ -163,8 +239,15 @@
     >{/if}
 </section>
 
-<section class="category" id="avanzado" tabindex="-1" aria-labelledby="avanzado-title">
-  <h2 id="avanzado-title">Avanzado</h2>
+<section
+  class="category"
+  id="avanzado"
+  role="tabpanel"
+  aria-labelledby="tab-avanzado"
+  tabindex="0"
+  hidden={selected !== "avanzado"}
+>
+  <h2>Avanzado</h2>
   {#each choosable as system (system.id)}
     <label class="field"
       >Núcleo de {system.name}
@@ -186,18 +269,40 @@
 </section>
 
 <style>
-  .settings-sections {
+  .settings-tabs {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 4px;
     margin-bottom: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
   }
-  .settings-sections button {
+  .settings-tabs:focus {
+    outline: none;
+  }
+  .settings-tabs button {
+    flex: none;
     min-height: 44px;
+    padding: 10px 16px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 10px 10px 0 0;
+    background: transparent;
+    color: var(--muted);
+  }
+  .settings-tabs button:hover {
+    color: var(--text);
+  }
+  .settings-tabs button[aria-selected="true"] {
+    color: var(--text);
+    border-bottom-color: var(--teal);
+    font-weight: 650;
+  }
+  .settings-tabs button:focus-visible {
+    outline-offset: -2px;
   }
   .category {
     margin: 0 0 32px;
-    scroll-margin-top: 16px;
   }
   .category:focus {
     outline: none;

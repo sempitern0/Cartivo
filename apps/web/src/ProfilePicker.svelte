@@ -290,7 +290,9 @@
     align-content: start;
   }
   .profile {
+    display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 14px;
     width: 100%;
     padding: 20px 12px 18px;

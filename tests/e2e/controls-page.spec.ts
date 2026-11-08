@@ -61,13 +61,13 @@ test("the test bar sits right above the drawings that light up", async ({
   expect(keyboard!.y - (bar!.y + bar!.height)).toBeLessThan(160);
 });
 
-test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and Avanzado", async ({
+test("Ajustes shows Pantalla, Sonido, Controles, Interfaz, Almacenamiento and Avanzado as tabs", async ({
   page,
 }) => {
   await page.goto("/");
   await page.getByRole("link", { name: "Ajustes" }).click();
-  const nav = page.getByRole("navigation", { name: "Secciones de ajustes" });
-  await expect(nav.getByRole("button")).toHaveText([
+  const tabs = page.getByRole("tablist", { name: "Secciones de ajustes" });
+  await expect(tabs.getByRole("tab")).toHaveText([
     "Pantalla",
     "Sonido",
     "Controles",
@@ -75,10 +75,19 @@ test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and A
     "Almacenamiento",
     "Avanzado",
   ]);
-  await nav.getByRole("button", { name: "Sonido" }).click();
-  await expect(page.locator("#sonido")).toBeFocused();
+  const tab = (name: string) => tabs.getByRole("tab", { name });
+  await expect(tab("Pantalla")).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#sonido")).toBeHidden();
+  // Arrows move along the tabs and show each panel.
+  await tab("Pantalla").focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tab("Sonido")).toBeFocused();
+  await expect(page.locator("#sonido")).toBeVisible();
+  await expect(page.locator("#pantalla")).toBeHidden();
+  await expect(page).toHaveURL(/#ajustes\/sonido$/);
 
   // Screen defaults per console, the same options as in the game.
+  await tab("Pantalla").click();
   await page
     .locator("#pantalla")
     .getByLabel("Consola")
@@ -90,14 +99,24 @@ test("Ajustes groups Pantalla, Sonido, Controles, Interfaz, Almacenamiento and A
   await expect(page.locator("#pantalla")).toContainText(
     "Se recordará para SNES",
   );
-  // Sound and core choices survive a reload.
+  // Before and after: the default next to the choice, laid out for this window.
+  const preview = page.locator("#pantalla").getByTestId("display-preview");
+  await expect(preview.getByRole("figure")).toHaveCount(2);
+  await expect(preview).toContainText("Predeterminado");
+  await expect(preview).toContainText(/Tu elección\s*Píxel entero ×\d/);
+  // Sound and core choices survive a reload, which keeps the tab.
+  await tab("Sonido").click();
   await page.getByLabel("Silenciar los juegos").check();
+  await tab("Avanzado").click();
   await page
     .getByLabel("Núcleo de NES")
     .selectOption({ label: "JSNES · JavaScript" });
   await page.reload();
-  await expect(page.getByLabel("Silenciar los juegos")).toBeChecked();
+  await expect(tab("Avanzado")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByLabel("Núcleo de NES")).toHaveValue("jsnes");
+  await tab("Sonido").click();
+  await expect(page.getByLabel("Silenciar los juegos")).toBeChecked();
+  await tab("Pantalla").click();
   await page
     .locator("#pantalla")
     .getByLabel("Consola")

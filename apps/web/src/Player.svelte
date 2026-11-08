@@ -227,11 +227,13 @@
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
   let loadMs = $state<number>();
+  // svelte-ignore state_referenced_locally
+  const ownStick = !!system.analogStick;
   const controls = new InputCapture(
     readKeyboard(profiles.key(KEYBOARD_KEY)),
     () => navigator.getGamepads?.() ?? [],
     getPadPreference,
-    !!system.analogStick,
+    ownStick,
   );
   function fail(e: unknown) {
     phase = "error";

@@ -9,6 +9,7 @@
     VideoDescriptor,
   } from "../../../packages/media/src/display-scaler.ts";
   import { aspectLabel } from "../../../packages/media/src/display-scaler.ts";
+  import DisplayPreview from "./DisplayPreview.svelte";
   let {
     video,
     scaleMode,
@@ -43,6 +44,7 @@
   ]);
 </script>
 
+  <DisplayPreview {video} {scaleMode} {aspectMode} {smooth} />
   <fieldset>
     <legend>Escalado</legend>
     <div class="options" class:two={scaleOptions.length === 2}>

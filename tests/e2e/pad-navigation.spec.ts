@@ -150,7 +150,7 @@ test("automatic interface follows the device; Ajustes can fix «Mando»", async 
   await expect(html).toHaveAttribute("data-ui", "pointer");
   await expect(page.locator(".pad-hints")).toHaveCount(0);
 
-  await page.goto("/#controles");
+  await page.goto("/#ajustes/interfaz");
   const choice = page.getByRole("group", { name: "Interfaz" });
   await choice.getByText("Mando", { exact: true }).click();
   await expect(html).toHaveAttribute("data-ui", "pad");

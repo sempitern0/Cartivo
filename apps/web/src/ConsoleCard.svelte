@@ -59,9 +59,32 @@
     const files = Array.from(e.dataTransfer?.files ?? []);
     if (files.length) ondropfiles(files);
   }
+  function click(e: MouseEvent) {
+    if (!(e.target as Element).closest("button, a")) onplay();
+  }
+  /**
+   * The whole card takes a click and a dropped file for pointer users; the
+   * keyboard and the pad use its «Jugar» button, so the card itself stays a
+   * plain article (no interactive role to announce twice).
+   */
+  function pointerTarget(card: HTMLElement) {
+    const events = [
+      ["dragover", dragOver],
+      ["dragleave", dragLeave],
+      ["drop", drop],
+      ["click", click],
+    ] as const;
+    for (const [type, listener] of events)
+      card.addEventListener(type, listener as EventListener);
+    return {
+      destroy() {
+        for (const [type, listener] of events)
+          card.removeEventListener(type, listener as EventListener);
+      },
+    };
+  }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
 <article
   class="console-card card"
   class:dragging
@@ -69,12 +92,7 @@
   class:waiting
   style={`--accent: ${accentOf(system)}`}
   aria-labelledby={`console-${system.id}`}
-  ondragover={dragOver}
-  ondragleave={dragLeave}
-  ondrop={drop}
-  onclick={(e) => {
-    if (!(e.target as Element).closest("button, a")) onplay();
-  }}
+  use:pointerTarget
 >
   <ConsoleIcon system={system.id} />
   <div class="console-text">

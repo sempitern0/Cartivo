@@ -389,3 +389,9 @@
 - **Pausa unificada:** Reanudar juego · Guardar ahora · Partidas · Ajustes del juego · Guardar y salir, con teclado, ratón o mando. «Gráficos» pasa a «Ajustes del juego».
 - **Ajustes:** Pantalla, Sonido (volumen y silencio recordados), Controles, Interfaz, Almacenamiento y Avanzado.
 - El inicio vuelve a no mostrar el título «Elige una consola», como se pidió antes.
+- Segunda ronda tras la QA visual del titular:
+  - **Ajustes en pestañas** (`#ajustes/<pestaña>`, que recargar conserva; `#controles` sigue abriendo Controles).
+  - **Antes y después** en Pantalla y «Ajustes del juego»: lo predeterminado junto a tu elección, para esta ventana y con zum a tamaño real.
+  - **Tarjeta de juego compacta:** botón principal con icono y «⋯»; las opciones y sus confirmaciones cubren la tarjeta.
+  - El avatar del selector de perfil queda centrado al pasar el ratón.
+  - Sin avisos de `svelte-check` (tarjeta de consola y stick propio del reproductor).

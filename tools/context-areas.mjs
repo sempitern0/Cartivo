@@ -91,11 +91,12 @@ export const areas = [
     title: "Gráficos, audio y ritmo",
     start: [
       "packages/media/src/",
-      "apps/web/src/{GraphicsPanel,DisplayOptions,GameStage,PerformanceDetails}.svelte",
+      "apps/web/src/{GraphicsPanel,DisplayOptions,DisplayPreview,GameStage,PerformanceDetails}.svelte",
+      "apps/web/src/display-sample.ts",
       "apps/web/src/{audio.worklet,sound.svelte}.ts",
     ],
     context: [
-      "tests/{display-scaler,frame-pacer,frame-metrics,sound-preferences}.test.ts",
+      "tests/{display-scaler,display-sample,frame-pacer,frame-metrics,sound-preferences}.test.ts",
       "tests/e2e/nes.spec.ts",
       "docs/DESIGN.md",
     ],

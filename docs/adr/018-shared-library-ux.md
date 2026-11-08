@@ -41,7 +41,7 @@ Si la actualización está bloqueada por otra pestaña antigua, se informa al us
 - Inicio con instrucción visible; recientes exclusivos del perfil actual y etiquetas de acción acordes al snapshot.
 - Búsqueda y orden de biblioteca conservados al volver de jugar; restauración del foco en el botón de lanzamiento.
 - Gestión de títulos bajo «Opciones» y confirmación explícita de la baja compartida.
-- Ajustes en seis categorías (revisión 2026-11-08): Pantalla (las opciones de cada consola, las mismas que «Ajustes del juego», en `DisplayOptions.svelte`), Sonido (volumen y silencio del dispositivo, `sound-preferences.ts`), Controles, Interfaz, Almacenamiento y Avanzado (núcleo por consola). Distribución de consolas estable al cambiar de mando a ratón.
+- Ajustes en seis pestañas (revisión 2026-11-08; pestañas y `#ajustes/<pestaña>` tras la QA visual): Pantalla (las opciones de cada consola, las mismas que «Ajustes del juego», en `DisplayOptions.svelte`), Sonido (volumen y silencio del dispositivo, `sound-preferences.ts`), Controles, Interfaz, Almacenamiento y Avanzado (núcleo por consola). Distribución de consolas estable al cambiar de mando a ratón.
 - Pausa unificada (revisión 2026-11-08): Reanudar juego · Guardar ahora (ranura 1) · Partidas · Ajustes del juego · Guardar y salir, en el mismo orden en el menú del mando y en la pausa de teclado y ratón. «Gráficos» pasa a llamarse «Ajustes del juego».
 - Controles táctiles de al menos 44 px en filtros y acciones modificadas; se conserva la regla global de movimiento reducido. Sin dependencias CSS nuevas.
 
