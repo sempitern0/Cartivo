@@ -80,10 +80,9 @@
     display: block;
     height: auto;
     border: 0;
-    border-radius: 24%;
+    border-radius: 22%;
     background: none;
-    box-shadow: none;
-    filter: drop-shadow(0 10px 16px #000a);
+    box-shadow: 0 10px 22px -6px #000c;
     overflow: visible;
     user-select: none;
   }

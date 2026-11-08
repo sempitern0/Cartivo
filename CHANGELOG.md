@@ -400,7 +400,7 @@
   - **Almacenamiento:** ya no se muestra la cuota del navegador (Brave dice 2 GB), que se leía como un límite de ROMs; se explica que solo cuenta las copias recordadas.
   - **Avanzado:** cada núcleo como tarjeta con «Recomendado», a favor, en contra y cuándo cambiar (NES: TetaNES o JSNES).
 - **Bits UI** ([ADR-019](docs/adr/019-ui-components-bits-ui.md)): las pestañas de Ajustes, el menú «⋯» de cada juego y el diálogo que confirma borrar progreso o eliminar un juego. Animaciones con las transiciones de Svelte (menú, diálogo y paneles), sin movimiento si el sistema pide reducirlo.
-- **Logotipos de consola** en las tarjetas del inicio, dentro del marco de Cartivo (aportados por el titular, uso privado). Más grandes (104 px), con un brillo desenfocado del logotipo que se apaga antes del texto; nombre y descripción llevan sombra para leerse sobre cualquier fondo. Las consolas sin logotipo conservan la insignia dibujada.
+- **Logotipos de consola** en las tarjetas del inicio, dentro del marco de Cartivo (aportados por el titular, uso privado). Más grandes (104 px), con un brillo del acento de la tarjeta que se apaga antes del texto; nombre y descripción llevan sombra para leerse sobre cualquier fondo. Las consolas sin logotipo conservan la insignia dibujada.
 
 ### CI más rápida, dependencias y arte de terceros
 

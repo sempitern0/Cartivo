@@ -11,3 +11,4 @@ const files = import.meta.glob<string>("./assets/consoles/*.webp", {
 export function consoleLogo(system: string): string | undefined {
   return files[`./assets/consoles/${system}.webp`];
 }
+

@@ -39,8 +39,8 @@
     ondropfiles: (files: File[]) => void;
   } = $props();
 
-  /** The logo also tints the card's top as a soft, blurred glow. */
-  const art = $derived(consoleLogo(system.id));
+  /** A card with a logo gets a soft accent glow behind it. */
+  const art = $derived(!!consoleLogo(system.id));
   /** A dragged file is over this very card. */
   let over = $state(false);
 
@@ -93,9 +93,8 @@
   class:dragging
   class:over
   class:waiting
-  class:art={!!art}
+  class:art
   style:--accent={accentOf(system)}
-  style:--art={art ? `url("${art}")` : undefined}
   aria-labelledby={`console-${system.id}`}
   use:pointerTarget
 >
@@ -178,9 +177,10 @@
     justify-self: start;
     --badge-size: 104px;
   }
-  /* The logo, blurred and faint, lights the top of the card. It fades out
-     before the text, which also gets a shadow, so the name and formats keep
-     their contrast over any logo. */
+  /* Behind the logo, a soft glow in the card's accent: gradients only (no
+     filter or image to repaint on hover or entrance). It fades out before
+     the text, which also gets a shadow, so the name and formats keep their
+     contrast. */
   .console-card.art {
     isolation: isolate;
   }
@@ -189,17 +189,19 @@
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: var(--art) 18% 0 / 75% no-repeat;
-    filter: blur(34px) saturate(1.4);
-    opacity: 0.32;
-    clip-path: inset(0 round var(--card-radius));
-    mask-image: linear-gradient(to bottom, #000 10%, transparent 62%);
+    border-radius: inherit;
+    background: radial-gradient(
+      70% 50% at 20% 14%,
+      color-mix(in srgb, var(--accent) 20%, transparent),
+      transparent 72%
+    );
+    opacity: 0.8;
     pointer-events: none;
     transition: opacity 0.28s ease;
   }
   .console-card.art:hover::before,
   .console-card.art:has(.play:focus-visible)::before {
-    opacity: 0.45;
+    opacity: 1;
   }
   .console-text h2,
   .console-text > p {
