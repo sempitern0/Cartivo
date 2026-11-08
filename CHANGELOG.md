@@ -309,7 +309,7 @@
 - Imagen fija de 640×480 a 4:3 para todos los modos; cadencia del juego (PAL 50 Hz); tarjeta de memoria 1 guardada como la batería de un cartucho; Partidas de unos 4,4 MB.
 - Nuevas acciones L2/R2 (gatillos del mando estándar, Y y P en el teclado), con migración de perfiles guardados. Cruz/Círculo/Cuadrado/Triángulo y L1/R1 se nombran en Controles.
 - Demo: un PS-EXE original que la BIOS HLE arranca como un disco de un archivo.
-- Límites: los discos aún no se recuerdan en la biblioteca; sin CHD, `.pbp`, multidisco ni mando analógico. N64 queda aplazado: necesita WebGL2 o hilos.
+- Límites: sin `.pbp` ni mando analógico. N64 queda aplazado: necesita WebGL2 o hilos.
 
 ### Perfiles de jugador
 
@@ -411,3 +411,13 @@
 - **Dependencias:** nuevo workflow `Dependencies`. Si `package.json` cambia sin el lockfile al día, la CI de ese commit resuelve igualmente (con aviso) y el workflow sube `pnpm-lock.yaml` y vuelve a lanzar la CI con la instalación bloqueada.
 - **Política (ADR-005, revisión 2026-11-08):** se admiten librerías de terceros estables y logotipos o arte de terceros, originales o alterados, para uso privado. ROMs comerciales, BIOS y datos de usuario siguen fuera del repositorio.
 - **ADR-019:** Bits UI para los componentes de interfaz y las animaciones de Svelte.
+
+### PS1: multidisco y CHD
+
+- **Multidisco (`.m3u`):** la tarjeta pide todos los archivos del juego antes de arrancar; el núcleo arranca el primero y el puente añade los demás con su interfaz de control de discos.
+  - **Cambiar de disco:** menú «Disco N de M» en la barra del reproductor y «Poner el disco N» en el menú de pausa. La tapa se cierra sola en unos dos segundos.
+  - **Reinicio y batería:** un núcleo nuevo arranca con el disco que estaba en la bandeja.
+  - **Identidad:** la del `.m3u` con todos sus discos; la tarjeta de memoria es una por juego.
+  - **Límite:** una Partida no recuerda qué disco hay en la bandeja.
+- **CHD (v5):** compilado con `HAVE_CHD` (libchdr BSD-3-Clause, LZMA SDK dominio público, Zstandard BSD-3-Clause o GPL-2.0, dr_flac Unlicense o MIT-0). Los 14 archivos y decodificadores están en el SBOM.
+- **Fixtures:** `ps1TwoDiscDemo` (dos cue/bin propios, el segundo disco pinta en verde) y `ps1DiscChd` (CHD v5 sin comprimir). Tests unitarios y E2E de cambio de disco y arranque CHD.

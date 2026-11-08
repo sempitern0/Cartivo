@@ -9,7 +9,7 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 | Núcleo | PCSX-ReARMed `7b0e8f8`, GPL-2.0-or-later; expediente [PCSX_REARMED_CORE_GATE](../research/PCSX_REARMED_CORE_GATE.md) |
 | Build | `core-pcsx-rearmed.yml` (run 42255955518) sobre `69e30e5`, emsdk 6.0.12; commit del bot `bf5b11d`; `dist/pcsx-rearmed.wasm` SHA-256 `07e7d3904235…` (759 305 bytes); primer intento, sin reintentos |
 | Firmware | BIOS HLE del núcleo forzada; sin directorio de sistema, nunca se busca la BIOS de Sony |
-| Formatos | `.cue` con sus pistas, `.iso`, `.bin` de una pista y `.exe` (PS-EXE). Fuera: CHD, `.pbp`, `.m3u` multidisco |
+| Formatos | `.m3u` multidisco, `.cue` con sus pistas, `.chd` (CHD v5, libchdr BSD-3-Clause), `.iso`, `.bin` de una pista y `.exe` (PS-EXE). Fuera: `.pbp` |
 | Lectura | VFS de libretro de solo lectura hacia `cartivo_vfs_*` (`FileReaderSync` sobre `Blob.slice()`); el disco nunca se copia entero |
 | Entrada | DualShock: empieza digital (Cruz/Círculo en K/L, Cuadrado/Triángulo en J/U, L1/R1 en I/O, L2/R2 en Y/P; en el mando estándar, por posición y gatillos 6/7) y pasa a analógico cuando lo pide el juego o con L1+R1+Select. Sticks del mando estándar, sin equivalente en teclado |
 | Guardado | Tarjeta de memoria 1 (128 KiB, `cartivo-ps1-sram-v1`) como batería; Partidas con `retro_serialize` (≈ 4,4 MB) |
@@ -27,6 +27,8 @@ Estado: **experimental.** PlayStation funciona de extremo a extremo con PCSX-ReA
 **`ps1-control-demo.ts`** (emisor MIPS R3000 propio; PS-EXE de 4 KiB sin texto de licencia de Sony). SHA-256 `2ec37a8d0e7b68d644b5efc4e131bd7f3c413cdb1ca85640893be1aa89a617b3`.
 - Inicializa la GPU (320×240, 15 bits) y el mando con `InitPad`/`StartPad` de la BIOS HLE.
 - **`ps1-disc-demo.ts`:** el mismo programa dentro de una imagen de CD propia: ISO 9660 con SYSTEM.CNF y PSX.EXE, 24 sectores MODE2/2352 y su `.cue`. SHA-256 del `.bin`: `70b0fe39…13ebc`. El núcleo la arranca desde el `.cue` con su pista, desde el `.bin` solo y como `.iso`.
+- **`ps1TwoDiscDemo`:** un `.m3u` con dos discos (Disc 1 azul, Disc 2 verde), para probar el cambio de disco.
+- **`ps1DiscChd`:** un CHD v5 sin comprimir del mismo programa, para probar el soporte de CHD.
 - Pinta la pantalla de un color y un cuadrado blanco de 32×32 en (16, 16); un bucle de espera deja la GPU libre medio fotograma.
 - Sin botones, azul oscuro; Cruz, rojo; Círculo, verde; Start, amarillo (el núcleo amplía el color de 15 bits: 0x20 → 0x21).
 

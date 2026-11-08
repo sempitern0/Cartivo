@@ -23,12 +23,11 @@ PCSX-ReARMed es GPL-2.0-or-later. La política de uso privado (ADR-005) lo admit
   - **Opciones base:** intérprete MIPS (`DRC_DISABLE`), GPU por software `gpu_neon` en su camino SIMD portable (SSE traducido a SIMD de WebAssembly con `-msimd128`), `NO_MMAP`, `NO_DYLIB` y `NO_SOCKET`.
   - **Cambio 1: VFS de libretro activada** (`USE_LIBRETRO_VFS`). Upstream la desactiva en Emscripten, pero Cartivo la necesita para leer los discos desde el host.
   - **Cambio 2: miniz del propio árbol** en lugar del port zlib de Emscripten. El port se descarga durante el build, y Cartivo no quiere descargas en el build.
-  - **Cambio 3: sin CHD** (libchdr, lzma y zstd no se compilan).
+  - **Cambio 3: CHD habilitado** (`HAVE_CHD`). Se compilan libchdr, LZMA SDK (decodificador), Zstandard (decodificador) y dr_flac.
 - **No se compilan:**
   - lightrec ni new_dynarec (recompiladores: no hay JIT en WebAssembly);
   - libpicofe ni los frontends SDL y Pandora;
-  - los plugins de GPU `peops` y `unai`;
-  - libchdr.
+  - los plugins de GPU `peops` y `unai`.
 - **Toolchain:** emsdk 6.0.12 (`35ff8a6`).
 - **Salida:** un único `dist/pcsx-rearmed.wasm` autónomo, cuyas importaciones lista `manifest.json`.
   - La receta falla si el módulo importa algo que `wasm-host.ts` no ofrece.
@@ -37,6 +36,10 @@ PCSX-ReARMed es GPL-2.0-or-later. La política de uso privado (ADR-005) lo admit
 | Componente | Licencia |
 |---|---|
 | PCSX-ReARMed: libpcsxcore con la BIOS HLE, frontend libretro, gpulib, gpu_neon (Exophase y notaz) y dfsound (P.E.Op.S.) | GPL-2.0-or-later |
+| libchdr (lectura de CHD v5) | BSD-3-Clause |
+| LZMA SDK 26.02 (decodificador) | LicenseRef-public-domain |
+| Zstandard (zstddeclib.c, decodificador) | BSD-3-Clause OR GPL-2.0 |
+| dr_flac (decodificador FLAC) | Unlicense OR MIT-0 |
 | miniz 3.1.2 (`deps/libchdr/deps`) | MIT |
 | Cabecera libretro y libretro-common | MIT |
 | Bibliotecas de Emscripten 6.0.12 | MIT OR NCSA; musl MIT; compiler-rt Apache-2.0 WITH LLVM-exception; dlmalloc CC0-1.0 |
