@@ -1,6 +1,7 @@
-/* Experimental libretro frontend for the N64 laboratory (not Cartivo's
- * production host). Original Cartivo code. Linked with Mupen64Plus-Next built
- * as a static archive; the libco it expects comes from cooperative.c (fibers/Asyncify).
+/* Cartivo's libretro frontend for Mupen64Plus-Next (the app's N64 adapter,
+ * packages/adapters/src/n64.ts, and the laboratory in experiments/n64).
+ * Original Cartivo code. Linked with Mupen64Plus-Next built as a static
+ * archive; the libco it expects comes from cooperative.c (fibers/Asyncify).
  *
  * The page's Worker owns an OffscreenCanvas and makes a WebGL2 context
  * current (Emscripten's GL library) before n64_load(); the core then draws
@@ -17,6 +18,8 @@
 
 #include <errno.h>
 #include <semaphore.h>
+
+#include <zlib.h>
 
 #include "libretro.h"
 
@@ -63,6 +66,10 @@ static const char *option(const char *key) {
       {"mupen64plus-EnableCopyColorToRDRAM", "Off"},
       {"mupen64plus-EnableCopyDepthToRDRAM", "Off"},
       {"mupen64plus-EnableShadersStorage", "False"},
+      /* Every N64 button on its own RetroPad bit, C buttons included, so a
+       * keyboard plays without a right stick: B→A, Y→B, L2→Z, Select→L,
+       * R2→R, X/A/L/R→C up/down/left/right (the right stick adds C too). */
+      {"mupen64plus-alt-map", "True"},
   };
   for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++)
     if (!strcmp(key, options[i][0])) return options[i][1];
@@ -243,9 +250,65 @@ EMSCRIPTEN_KEEPALIVE void n64_input(unsigned bits, int lx, int ly, int rx,
   axes[2] = (int16_t)rx, axes[3] = (int16_t)ry;
 }
 
+/* Battery memory as the core keeps it (EEPROM, four controller paks, SRAM,
+ * FlashRAM): fixed size, written after n64_load(), which formats it. */
+EMSCRIPTEN_KEEPALIVE void *n64_save_data(void) {
+  return retro_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+}
+EMSCRIPTEN_KEEPALIVE unsigned n64_save_size(void) {
+  return (unsigned)retro_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+}
+
+/* Snapshots: the core's own state (~16 MiB, mostly RDRAM) deflated, read
+ * with n64_snapshot_data()/n64_snapshot_size() afterwards. Like n64_run(),
+ * serialising switches fibers, so results come back through getters. */
+static uint8_t *raw_state, *packed_state;
+static size_t packed_size;
+static int restore_status;
+
+static uint8_t *state_buffer(void) {
+  if (!raw_state) raw_state = malloc(retro_serialize_size());
+  return raw_state;
+}
+
+EMSCRIPTEN_KEEPALIVE void n64_snapshot(void) {
+  const size_t size = retro_serialize_size();
+  packed_size = 0;
+  uint8_t *raw = state_buffer();
+  if (!raw || !retro_serialize(raw, size)) return;
+  uLongf bound = compressBound((uLong)size);
+  free(packed_state);
+  packed_state = malloc(bound);
+  if (packed_state && compress2(packed_state, &bound, raw, (uLong)size, 1) == Z_OK)
+    packed_size = bound;
+}
+EMSCRIPTEN_KEEPALIVE uint8_t *n64_snapshot_data(void) { return packed_state; }
+EMSCRIPTEN_KEEPALIVE unsigned n64_snapshot_size(void) {
+  return (unsigned)packed_size;
+}
+
+/* 0 restored; -1 not a state of this core (it does not inflate to the
+ * core's exact size); -2 out of memory. Read with n64_restore_status(). */
+EMSCRIPTEN_KEEPALIVE void n64_restore(const uint8_t *data, unsigned size) {
+  const size_t expected = retro_serialize_size();
+  uint8_t *raw = state_buffer();
+  uLongf length = (uLongf)expected;
+  restore_status = -2;
+  if (!raw) return;
+  restore_status = -1;
+  if (uncompress(raw, &length, data, size) != Z_OK || length != expected)
+    return;
+  retro_unserialize(raw, expected);
+  restore_status = 0;
+}
+EMSCRIPTEN_KEEPALIVE int n64_restore_status(void) { return restore_status; }
+
 EMSCRIPTEN_KEEPALIVE void n64_unload(void) {
   if (hw_ready && hw.context_destroy) hw.context_destroy();
   hw_ready = false;
   retro_unload_game();
   retro_deinit();
+  free(raw_state), free(packed_state);
+  raw_state = packed_state = NULL;
+  packed_size = 0;
 }

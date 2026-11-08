@@ -75,6 +75,16 @@ export const PS1_VIDEO: VideoDescriptor = {
   dynamicResolution: false,
 };
 
+/** Nintendo 64: the core renders every game at 640 × 480 (4:3) with WebGL2;
+ * polygons, not pixel art, so it is scaled smoothly. */
+export const N64_VIDEO: VideoDescriptor = {
+  sourceWidth: 640,
+  sourceHeight: 480,
+  displayAspect: 4 / 3,
+  pixelArt: false,
+  dynamicResolution: false,
+};
+
 export const GBA_VIDEO: VideoDescriptor = {
   sourceWidth: 240,
   sourceHeight: 160,

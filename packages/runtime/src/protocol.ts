@@ -58,6 +58,9 @@ export type EmuRequest = {
   slot?: StateSlot;
   /** Parsed JSON of an exported snapshot for state-import (checked in the Worker). */
   stateFile?: unknown;
+  /** `load` of a system the core draws itself (systems.ts `surface`): the
+   * page's game canvas, transferred (ADR-017). */
+  canvas?: OffscreenCanvas;
 };
 /** More files than any multi-track disc needs (99 tracks and its .cue). */
 const MAX_EXTRA_FILES = 100;
@@ -115,7 +118,14 @@ export function parseRequest(value: unknown): EmuRequest {
       throw Error(`Núcleo desconocido para ${target.name}`);
     if (r.profile !== undefined && !isProfileId(r.profile))
       throw Error("Perfil inválido");
-  }
+    const canvas =
+      typeof OffscreenCanvas !== "undefined" &&
+      r.canvas instanceof OffscreenCanvas;
+    if (target.surface ? !canvas : r.canvas !== undefined)
+      throw Error(
+        target.surface ? "Falta el lienzo del juego" : "Lienzo inesperado",
+      );
+  } else if (r.canvas !== undefined) throw Error("Lienzo inesperado");
   if (
     ["state-save", "state-load", "state-delete", "state-export"].includes(
       r.command,

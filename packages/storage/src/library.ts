@@ -3,7 +3,7 @@
 // copies live in OPFS as roms/<sha256> and are written and read only by the
 // emulator Worker. Partidas and battery RAM are keyed by the same hash in
 // their own stores, so forgetting a game never touches them.
-// The catalogue is shared; personal indices retain history only (ADR-017).
+// The catalogue is shared; personal indices retain history only (ADR-018).
 import { done, request, locks } from "./idb.ts";
 import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";

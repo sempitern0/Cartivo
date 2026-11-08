@@ -1,4 +1,4 @@
-# ADR-017 — Biblioteca común y reanudación por perfil
+# ADR-018 — Biblioteca común y reanudación por perfil
 
 Estado: aceptado. Fecha: 2026-11-07.
 

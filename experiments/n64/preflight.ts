@@ -1,32 +1,16 @@
 import { stick } from "../../packages/input/src/analog.ts";
-export const MAX_N64_ROM_BYTES = 64 * 1024 * 1024;
-export type ByteOrder = "z64" | "v64" | "n64";
-export type RomHeader = { byteOrder: ByteOrder; title: string; bytes: number };
+export { MAX_N64_ROM_BYTES } from "../../packages/adapters/src/n64-header.ts";
+import {
+  inspectN64Header,
+  type N64Header,
+} from "../../packages/adapters/src/n64-header.ts";
+export type RomHeader = N64Header & { bytes: number };
 
-/** Inspect only the header. Recognition does not prove bootability or integrity. */
-export function inspectRomHeader(header: Uint8Array, bytes: number): RomHeader {
-  if (!Number.isSafeInteger(bytes) || bytes < 4096 || bytes > MAX_N64_ROM_BYTES)
-    throw new Error("El prototipo admite cartuchos entre 4 KiB y 64 MiB.");
-  if (bytes % 4 !== 0 || header.length < 64)
-    throw new Error(
-      "El cartucho está truncado o no tiene una cabecera completa.",
-    );
-  const magic = Array.from(header.subarray(0, 4)).join(",");
-  const byteOrder: ByteOrder | undefined = {
-    "128,55,18,64": "z64",
-    "55,128,64,18": "v64",
-    "64,18,55,128": "n64",
-  }[magic] as ByteOrder | undefined;
-  if (!byteOrder)
-    throw new Error("No se reconoce una cabecera de cartucho N64.");
-  const xor = byteOrder === "v64" ? 1 : byteOrder === "n64" ? 3 : 0;
-  let title = "";
-  for (let i = 0x20; i < 0x34; i++) {
-    const value = header[i ^ xor];
-    title += value >= 32 && value <= 126 ? String.fromCharCode(value) : " ";
-  }
-  return { byteOrder, title: title.trim() || "Sin título", bytes };
-}
+/** The lab's probe reads the header with production's validation. */
+export const inspectRomHeader = (header: Uint8Array, bytes: number) => ({
+  ...inspectN64Header(header, bytes),
+  bytes,
+});
 
 export type N64Pad = {
   x: number;

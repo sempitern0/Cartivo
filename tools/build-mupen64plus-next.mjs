@@ -139,6 +139,13 @@ const exports = [
   "n64_presented",
   "n64_duped",
   "n64_input",
+  "n64_save_data",
+  "n64_save_size",
+  "n64_snapshot",
+  "n64_snapshot_data",
+  "n64_snapshot_size",
+  "n64_restore",
+  "n64_restore_status",
   "n64_unload",
   "malloc",
   "free",
@@ -168,6 +175,8 @@ run(
         ]
       : []),
     `-I${join(source, "libretro-common/include")}`,
+    // zlib for snapshots: the copy upstream builds into the archive.
+    `-I${join(source, "custom/dependencies/libzlib")}`,
     `-ffile-prefix-map=${root}=/cartivo`,
     join(core, "src/frontend.c"),
     join(core, "src/cooperative.c"),
@@ -366,7 +375,7 @@ const manifest = {
   biosRequired: false,
   bios: "None: PIF and CIC are the core's HLE and each cartridge carries its own IPL3",
   status:
-    "laboratory: not registered in the app until the viability gate (N64_PLAN_INTEGRACION)",
+    "experimental: registered in the app (packages/adapters/src/n64.ts) and used by the laboratory",
   patchedFiles: ["libretro/libretro.c (patches/emu-thread-entry.patch)"],
   exports,
   imports: imports.length,

@@ -12,6 +12,7 @@ import type {
   CoreModule,
   DiscModule,
   EmulatorCore,
+  SurfaceModule,
 } from "../../../packages/adapters/src/contract.ts";
 import { neutral } from "../../../packages/input/src/nes-input.ts";
 import { centered } from "../../../packages/input/src/analog.ts";
@@ -59,7 +60,7 @@ function use(next: EmulatorCore) {
 let store: SramStore | undefined;
 let states: StateStore | undefined;
 /** A new core for the loaded game (load, reset, imported saves). */
-let start: (save?: Uint8Array) => EmulatorCore;
+let start: (save?: Uint8Array) => Promise<EmulatorCore>;
 /** The cartridge in memory, kept to remember it; discs stay in their files. */
 let rom: Uint8Array | undefined;
 let hash = "";
@@ -142,29 +143,49 @@ async function remember(): Promise<
   }
 }
 type Loaded = {
-  start: (save?: Uint8Array) => EmulatorCore;
+  start: (save?: Uint8Array) => Promise<EmulatorCore>;
   rom?: Uint8Array;
   hash: string;
 };
 
-async function loadCartridge(
-  module: CartridgeModule,
+/** A cartridge read into memory, identified and checked (also the
+ * stored copy of a remembered game). */
+async function readCartridge(
+  module: CartridgeModule | SurfaceModule,
   r: EmuRequest,
-): Promise<Loaded> {
+) {
   const source = r.file ?? (r.stored ? await storedRom(r.stored) : undefined);
   if (r.stored && !source)
     throw Error(
       "La copia de este juego ya no está en el dispositivo. Ábrelo otra vez desde su archivo; tus partidas siguen guardadas.",
     );
-  const { rom, hash } = await prepareRom(module, source, r.stored);
-  return { start: (save) => module.create(rom, save), rom, hash };
+  return prepareRom(module, source, r.stored);
+}
+
+async function loadCartridge(
+  module: CartridgeModule,
+  r: EmuRequest,
+): Promise<Loaded> {
+  const { rom, hash } = await readCartridge(module, r);
+  return { start: async (save) => module.create(rom, save), rom, hash };
+}
+
+/** The page's canvas, transferred at load: the core draws on it (ADR-017). */
+async function loadSurface(
+  module: SurfaceModule,
+  r: EmuRequest,
+): Promise<Loaded> {
+  const canvas = r.canvas;
+  if (!canvas) throw Error("Falta el lienzo del juego.");
+  const { rom, hash } = await readCartridge(module, r);
+  return { start: (save) => module.create(rom, canvas, save), rom, hash };
 }
 
 /** Discs stay in the player's files (ADR-015): never in the library yet. */
 async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
   if (r.stored) throw Error("Los discos no se guardan en la biblioteca.");
   const { disc, hash } = await prepareDisc(module, r.file, r.extra);
-  return { start: (save) => module.create(disc, save), hash };
+  return { start: async (save) => module.create(disc, save), hash };
 }
 
 async function run(r: EmuRequest): Promise<EmuResult> {
@@ -176,13 +197,15 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     profile = r.profile ?? PRINCIPAL;
     ({ start, rom, hash } = module.disc
       ? await loadDisc(module, r)
-      : await loadCartridge(module, r));
+      : module.surface
+        ? await loadSurface(module, r)
+        : await loadCartridge(module, r));
     title = r.file?.name ?? "";
-    use(start());
+    use(await start());
     await openStorage(system);
     if (store) {
       const saved = await store.load();
-      if (saved) use(start(saved));
+      if (saved) use(await start(saved));
     }
     // Remembered games move to the top of the library when played; for any
     // other game (demos included) updateGame finds no entry and does nothing.
@@ -226,7 +249,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     // A reset must not erase battery-backed SRAM or its previous generation.
     const saved = await flush();
     const previousSave = core.battery ? core.save() : undefined;
-    use(start(previousSave));
+    use(await start(previousSave));
     saves.restart();
     return { saved, frames: 0 };
   }
@@ -310,7 +333,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     const save = Uint8Array.from(b.bytes);
     if ((await digest(save)) !== b.sha256)
       throw Error("La copia de partida está dañada");
-    const replacement = start(save);
+    const replacement = await start(save);
     await store.commit(save);
     use(replacement);
     saves.restart();

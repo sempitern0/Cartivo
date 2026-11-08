@@ -6,15 +6,15 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive · PlayStation (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive; discos de PlayStation leídos bajo demanda) |
-| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive) · PCSX-ReARMed (PlayStation, BIOS HLE). Todos en WebAssembly y sin BIOS propietarias |
+| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive · PlayStation · Nintendo 64 (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive; discos de PlayStation leídos bajo demanda; Nintendo 64 dibuja con WebGL2) |
+| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive) · PCSX-ReARMed (PlayStation, BIOS HLE) · Mupen64Plus-Next con GLideN64 (Nintendo 64, WebGL2). Todos en WebAssembly y sin BIOS propietarias |
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
-| **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive; L2/R2 en PlayStation) |
+| **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive; L2/R2 y sticks en PlayStation; stick analógico y botones C en Nintendo 64) |
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho (o la tarjeta de memoria de PlayStation) se guarda sola sin frenar la imagen |
 | **Perfiles** | «¿Quién juega?» al abrir: cada perfil tiene sus partidas, sus juegos y sus controles en el mismo dispositivo, sin contraseña ([ADR-016](docs/adr/016-player-profiles.md)) |
 | **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola (los discos de PlayStation aún no: se abren desde sus archivos) |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
-| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) QA de PlayStation con discos reales, PSP y N64 (aplazado, [ADR-015](docs/adr/015-ps1-pcsx-rearmed-discs.md)); Safari/iOS con prioridad baja |
+| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) QA de PlayStation con discos reales y de Nintendo 64 con más juegos, PSP; Safari/iOS con prioridad baja |
 
 Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
@@ -64,8 +64,8 @@ Los WASM de TetaNES, SameBoy, mGBA, Snes9x, Genesis Plus GX y PCSX-ReARMed está
 ## Jugar
 
 - Al abrir, elige tu perfil en «¿Quién juega?» (o crea uno); el chip de la cabecera cambia de perfil.
-- **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`, y en PlayStation `.cue` con sus pistas `.bin`, `.iso` o `.exe`: elige o arrastra todos los archivos del disco a la vez); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo».
-- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Y** = L2 · **P** = R2 · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L; en PlayStation, Cruz/Círculo en K/L y Cuadrado/Triángulo en J/U. La ayuda de cada demo y la pantalla de Controles lo indican.
+- **Jugar** en la tarjeta de una consola abre sus juegos (`.nes`, `.gb`, `.gbc`, `.gba`, `.sfc`/`.smc`, `.sms`, `.md`/`.gen`/`.bin`, en PlayStation `.cue` con sus pistas `.bin`, `.iso` o `.exe`: elige o arrastra todos los archivos del disco a la vez; y en Nintendo 64 `.z64`, `.n64` o `.v64`); también puedes arrastrarlo a la ventana o, con la app instalada, usar «Abrir con → Cartivo».
+- Teclado: **WASD/flechas** cruceta · **L** = A · **K** = B · **U** = X · **J** = Y · **I** = L · **O** = R · **Y** = L2 · **P** = R2 · **Q** = Select · **Enter** = Start · **Escape** pausa · **F** modo Focus. En Mega Drive, A/B/C están en J/K/L y X/Y/Z en I/U/O; en Master System, 1/2 en K/L; en PlayStation, Cruz/Círculo en K/L y Cuadrado/Triángulo en J/U; en Nintendo 64, WASD/flechas mueven el stick, A/B en K/J, Z en Y, R en P, L en Q y C↑/C↓/C←/C→ en U/L/I/O. La ayuda de cada demo y la pantalla de Controles lo indican.
 - Mando: se detecta solo; ajustes en **Ajustes → Configurar controles**. También maneja la interfaz: cruceta o stick mueven el foco, A pulsa, B cierra o vuelve y **Select+Start** pausa la partida. Al usarlo, Cartivo pasa al **modo consola** (leyenda de botones, consolas en carrusel y menú de pausa con Salir del juego); en **Ajustes → Interfaz** puedes fijar «Teclado y ratón» o «Mando».
 - En partida: **Gráficos** (escalado, proporción, suavizado), **Partidas** (guardar, cargar, exportar e importar ranuras), **Cargar ROM** (guarda y cambia de juego) y **Salir**.
 - **F5** guarda rápido y **F9** carga rápido. Al salir se guarda solo, y al volver a abrir el juego puedes **Continuar donde lo dejaste**.

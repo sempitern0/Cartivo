@@ -1,6 +1,6 @@
 # ADR-012 — Biblioteca local y «Continuar»
 
-> Revisión: [ADR-017](017-shared-library-ux.md) sustituye el ámbito del catálogo y documenta la migración. Las partidas y los recientes siguen separados por perfil.
+> Revisión: [ADR-018](018-shared-library-ux.md) sustituye el ámbito del catálogo y documenta la migración. Las partidas y los recientes siguen separados por perfil.
 Estado: aceptado (experimental). Fecha: 2026-11-01. Acepta parcialmente [ADR-003](003-local-data.md) para la copia de ROMs en OPFS.
 
 ## Contexto

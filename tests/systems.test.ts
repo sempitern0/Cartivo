@@ -89,13 +89,14 @@ test("a disc's .cue is booted with its tracks, whatever the order", () => {
 test("pickers accept every available format and cores have short names", () => {
   assert.equal(
     acceptFor(availableSystems()),
-    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.cue,.iso,.exe",
+    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.cue,.iso,.exe,.z64,.n64,.v64",
   );
   assert.equal(coreLabel("md", "genesis-plus-gx"), "Genesis Plus GX");
   assert.equal(coreLabel("snes", "snes9x"), "Snes9x");
   assert.equal(coreLabel("gba", "mgba"), "mGBA");
   assert.equal(coreLabel("nes", "tetanes"), "TetaNES");
   assert.equal(coreLabel("gbc", "sameboy"), "SameBoy");
+  assert.equal(coreLabel("n64", "mupen64plus-next"), "Mupen64Plus-Next");
 });
 
 test("the manifest opens the extensions of available systems", () => {
@@ -158,12 +159,12 @@ test("each system declares the buttons of its controller", () => {
   assert.deepEqual(
     buttonNotes((a) => a.toUpperCase()),
     [
-      "L y R solo los usan Game Boy Advance, SNES, Mega Drive y PlayStation.",
-      "X e Y solo los usan SNES, Mega Drive y PlayStation.",
-      "L2 y R2 solo los usa PlayStation.",
+      "X e Y solo los usan SNES, Mega Drive, PlayStation y N64.",
+      "L2 y R2 solo los usan PlayStation y N64.",
       "En Master System, 1, 2 y Pause están en B, A y START.",
       "En Mega Drive, A, B, C, X, Y, Z y Mode están en Y, B, A, L, X, R y SELECT.",
       "En PlayStation, Cruz, Círculo, Cuadrado, Triángulo, L1 y R1 están en B, A, Y, X, L y R.",
+      "En N64, A, B, Z, L, R, C↑, C↓, C← y C→ están en B, Y, L2, SELECT, R2, X, A, L y R.",
     ],
   );
 });

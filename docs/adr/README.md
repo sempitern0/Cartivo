@@ -19,5 +19,6 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [013](013-snes-snes9x.md) | SNES con Snes9x en WebAssembly; botones X/Y | Aceptado (experimental) |
 | [014](014-sms-md-genesis-plus-gx.md) | Master System y Mega Drive con Genesis Plus GX en WebAssembly | Aceptado (experimental) |
 | [015](015-ps1-pcsx-rearmed-discs.md) | PlayStation con PCSX-ReARMed, discos bajo demanda y botones L2/R2; N64 aplazado | Aceptado (experimental) |
-| [016](016-player-profiles.md) | Perfiles de jugador locales: partidas, biblioteca y controles por perfil, sin migración | Revisado por ADR-017 |
-| [017](017-shared-library-ux.md) | Biblioteca común y reanudación por perfil | Aceptado |
+| [016](016-player-profiles.md) | Perfiles de jugador locales: partidas, biblioteca y controles por perfil, sin migración | Revisado por ADR-018 |
+| [017](017-n64-gpu-surface.md) | Nintendo 64 con Mupen64Plus-Next: superficie WebGL2 en el Worker (`SurfaceModule`) | Aceptado (experimental) |
+| [018](018-shared-library-ux.md) | Biblioteca común y reanudación por perfil | Aceptado |

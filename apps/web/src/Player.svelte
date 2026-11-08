@@ -33,6 +33,7 @@
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
   import { GameSound } from "./sound.svelte.ts";
+  import { surfaceFor } from "./surface.ts";
   import { claimPadWhile } from "./pad-navigation.svelte.ts";
   import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import { captureGameInput } from "./game-capture.ts";
@@ -230,6 +231,7 @@
     readKeyboard(profiles.key(KEYBOARD_KEY)),
     () => navigator.getGamepads?.() ?? [],
     getPadPreference,
+    !!system.analogStick,
   );
   function fail(e: unknown) {
     phase = "error";
@@ -250,12 +252,20 @@
       }),
     );
     try {
-      const r = await client.request("load", {
-        ...loadFields(source, canRemember && rememberGames()),
-        system: system.id,
-        profile: profiles.id,
-        core: coreChoice,
-      });
+      // A core that draws itself gets the game canvas (ADR-017); after the
+      // transfer the page never touches its pixels again.
+      const canvas = system.surface ? surfaceFor(screen) : undefined;
+      const r = await client.request(
+        "load",
+        {
+          ...loadFields(source, canRemember && rememberGames()),
+          system: system.id,
+          profile: profiles.id,
+          core: coreChoice,
+          canvas,
+        },
+        canvas ? [canvas] : [],
+      );
       loadMs = performance.now() - loadStarted;
       runningCore = r.core;
       if (!active) return;
@@ -452,8 +462,10 @@
       const result = await client!.request("reset");
       frames = result.frames ?? 0;
       controls.clear();
-      // Never leave the previous game's last frame on screen.
-      screen?.getContext("2d")?.clearRect(0, 0, screen.width, screen.height);
+      // Never leave the previous game's last frame on screen (a surface
+      // core repaints its own canvas).
+      if (!system.surface)
+        screen?.getContext("2d")?.clearRect(0, 0, screen.width, screen.height);
       saveStatus = result.saved ? "Partida guardada antes de reiniciar." : saveStatus;
       problem = "";
       resumeOffer = undefined;

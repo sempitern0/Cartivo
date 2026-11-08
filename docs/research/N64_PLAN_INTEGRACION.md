@@ -1,6 +1,6 @@
 # Cartivo — Plan de integración de Nintendo 64
 
-Fecha: 2026-11-07. Estado: **fase 2 completa en el laboratorio** (falta la QA del titular con GPU real) y **fase 3 iniciada**, en `feat/n64-gpu-prototype`. El relevo vivo está en [experiments/n64/README.md](../../experiments/n64/README.md#estado-de-relevo) y la evidencia en [N64_CORE_GATE.md](N64_CORE_GATE.md).
+Fecha: 2026-11-07. Estado: **go limitado e integrado como experimental.** El titular jugó *Super Mario 64* en el laboratorio con GPU real y decidió llevarlo a la app. Las fases 4 y 5 se resolvieron en [ADR-017](../adr/017-n64-gpu-surface.md) y [H4-N64](../compatibility/H4-N64.md): superficie WebGL2, entrada analógica, batería, Partidas y demo. Lo pendiente está en el plan técnico, §3.2. El relevo vivo está en [experiments/n64/README.md](../../experiments/n64/README.md#estado-de-relevo) y la evidencia en [N64_CORE_GATE.md](N64_CORE_GATE.md).
 
 ## 1. Objetivo y mandato
 

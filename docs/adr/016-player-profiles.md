@@ -1,6 +1,6 @@
 # ADR-016 — Perfiles de jugador locales
 
-> Revisión: [ADR-017](017-shared-library-ux.md) sustituye el ámbito del catálogo y documenta la migración. Las partidas y los recientes siguen separados por perfil.
+> Revisión: [ADR-018](018-shared-library-ux.md) sustituye el ámbito del catálogo y documenta la migración. Las partidas y los recientes siguen separados por perfil.
 Estado: aceptado. Fecha: 2026-11-06.
 
 ## Contexto

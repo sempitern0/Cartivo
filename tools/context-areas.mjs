@@ -66,9 +66,10 @@ export const areas = [
     context: [
       "docs/ADDING_A_SYSTEM.md",
       "docs/research/",
+      "packages/adapters/src/n64.ts",
       "experiments/n64/README.md",
-      "tests/{core-conformance,wasm-host}.test.ts",
-      "tests/e2e/{nes,gb,gba,snes,sega,pal,ps1}.spec.ts",
+      "tests/{core-conformance,wasm-host,n64}.test.ts",
+      "tests/e2e/{nes,gb,gba,snes,sega,pal,ps1,n64}.spec.ts",
     ],
   },
   {

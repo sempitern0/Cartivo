@@ -107,6 +107,51 @@ test("capture reports sticks only once ready, and centres them when lost", () =>
   assert.deepEqual(capture.read().analog, centered());
 });
 
+test("a system with its own stick does not also read it as the D-pad", () => {
+  const state = { pads: [pad([0, 0, 0, 0])] };
+  const read = (analogStick: boolean) => {
+    const capture = new InputCapture(
+      { ...defaultKeyboard },
+      () => state.pads,
+      () => ({ mode: "auto" }),
+      analogStick,
+    );
+    capture.start({ ...defaultKeyboard });
+    state.pads = [pad([0, 0, 0, 0])];
+    capture.read(); // released: ready from the next frame
+    state.pads = [pad([-1, 0, 0, 0])];
+    return capture.read();
+  };
+  assert.equal(read(false).input.left, true);
+  const own = read(true);
+  assert.equal(own.input.left, false);
+  close(own.analog.left.x, -1);
+});
+
+test("with its own stick, the keyboard's direction keys tilt it fully", () => {
+  const capture = new InputCapture(
+    { ...defaultKeyboard },
+    () => [],
+    () => ({ mode: "auto" }),
+    true,
+  );
+  capture.start({ ...defaultKeyboard });
+  capture.read(); // nothing held: ready from the next frame
+  capture.keyDown(defaultKeyboard.up, false);
+  capture.keyDown(defaultKeyboard.right, false);
+  capture.keyDown(defaultKeyboard.b, false);
+  const reading = capture.read();
+  assert.equal(reading.input.up, false);
+  assert.equal(reading.input.right, false);
+  assert.equal(reading.input.b, true);
+  close(reading.analog.left.x, Math.SQRT1_2);
+  close(reading.analog.left.y, -Math.SQRT1_2);
+  // Held from before the game started, the keys wait for a release.
+  capture.start({ ...defaultKeyboard });
+  capture.keyDown(defaultKeyboard.left, false);
+  assert.deepEqual(capture.read().analog, centered());
+});
+
 test("a bridge without sticks ignores them (no export, no error)", async () => {
   const sameboy = readFileSync(
     new URL("../cores/sameboy/dist/sameboy.wasm", import.meta.url),

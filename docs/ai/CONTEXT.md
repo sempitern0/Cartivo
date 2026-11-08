@@ -9,7 +9,7 @@ Este documento **no es una lista de lectura obligatoria**. Es una tabla de enrut
 | `input` | Controles, teclado, mando, foco y modo consola | `packages/input/src/`, `apps/web/src/{ControlsPanel,PauseMenu,PadHints,InterfacePreference}.svelte`, `apps/web/src/{game-capture,pad-navigation.svelte,input-mode.svelte}.ts` | `tests/{input,capture,ui-navigation}.test.ts`, `tests/e2e/{input,controls-page,pad-navigation}.spec.ts`, `docs/adr/006-*.md` |
 | `load` | Carga de ROM y discos: Worker, preparación y biblioteca | `apps/web/src/{emulator.worker,game-source}.ts`, `packages/runtime/src/{prepare-rom,client,protocol}.ts`, `packages/adapters/src/disc.ts`, `packages/storage/src/{library,sram,states,disc-identity}.ts` | `tests/{prepare-rom,library,client,disc,disc-identity}.test.ts`, `tests/e2e/{library,faults}.spec.ts`, `docs/adr/{012,015}-*.md` |
 | `runtime` | Protocolo, sesión y sistemas | `packages/runtime/src/{protocol,client,systems}.ts`, `apps/web/src/emulator.worker.ts` | `tests/{client,systems,core-conformance}.test.ts`, `docs/adr/002-*.md` |
-| `cores` | ROM, adaptador o consola | `packages/adapters/src/{contract,registry,wasm-host}.ts`, `cores/AGENTS.md` | `docs/ADDING_A_SYSTEM.md`, `docs/research/`, `experiments/n64/README.md`, `tests/{core-conformance,wasm-host}.test.ts`, `tests/e2e/{nes,gb,gba,snes,sega,pal,ps1}.spec.ts` |
+| `cores` | ROM, adaptador o consola | `packages/adapters/src/{contract,registry,wasm-host}.ts`, `cores/AGENTS.md` | `docs/ADDING_A_SYSTEM.md`, `docs/research/`, `packages/adapters/src/n64.ts`, `experiments/n64/README.md`, `tests/{core-conformance,wasm-host,n64}.test.ts`, `tests/e2e/{nes,gb,gba,snes,sega,pal,ps1,n64}.spec.ts` |
 | `storage` | SRAM, Partidas, biblioteca y perfiles | `packages/storage/src/`, `apps/web/src/{SavePanel,LibraryPage,RecentGames,ContinueCard,ProfilePicker}.svelte`, `apps/web/src/profile.svelte.ts` | `tests/{storage,snapshots,library,state-file,background-commit,persistence,profiles}.test.ts`, `tests/e2e/{saves,storage,library,integrity,faults,profiles}.spec.ts`, `docs/adr/{003,009,012,016}-*.md` |
 | `media` | Gráficos, audio y ritmo | `packages/media/src/`, `apps/web/src/{GraphicsPanel,GameStage,PerformanceDetails}.svelte`, `apps/web/src/{audio.worklet,sound.svelte}.ts` | `tests/{display-scaler,frame-pacer,frame-metrics}.test.ts`, `tests/e2e/nes.spec.ts`, `docs/DESIGN.md` |
 | `pwa` | PWA, caché y modo offline | `tools/pwa-plugin.mjs`, `apps/web/src/{pwa.svelte,offline-cache}.ts`, `apps/web/vite.config.ts` | `tests/pwa.test.ts`, `tests/e2e/{pwa,subpath}.spec.ts`, `docs/compatibility/H1-C-PWA.md`, `docs/adr/001-*.md` |
@@ -45,6 +45,7 @@ Patrones ya resueltos. Se reutilizan en lugar de reinventarlos:
 |---|---|---|
 | Guardar algo propio de cada jugador (base IndexedDB, clave de `localStorage`, Web Lock) | `scoped(nombre, perfil)` de `packages/storage/src/profiles.ts`. El Worker recibe el perfil en `load.profile`; la UI usa `profiles.key(…)` | ADR-016 |
 | Un sistema de disco (archivos grandes, varias pistas) | `DiscModule` en `contract.ts`, `prepareDisc` y la VFS `cartivo_vfs_*` del puente | ADR-015, `cores/pcsx-rearmed/src/cartivo.c` |
+| Un núcleo que dibuja con la GPU (WebGL2) | `SurfaceModule` en `contract.ts`, `surface: "webgl2"` en `systems.ts`; la UI transfiere el lienzo (`apps/web/src/surface.ts`) | ADR-017, `packages/adapters/src/n64.ts` |
 | Elegir el juego entre varios archivos abiertos juntos | `gameForFiles` (`systems.ts`); pistas de `.cue` con `cueFiles`/`matchTracks` (`storage/src/cue.ts`) | `tests/systems.test.ts`, `tests/disc.test.ts` |
 | Un botón que inicia un juego | Atributo `data-launch="<único>"`: al salir del juego el foco vuelve a él | `App.svelte` (`returnFocus`) |
 | Que el mando no salga de una zona mientras está abierta | `data-pad-scope` en su contenedor; un `<dialog>` modal ya acota | `pad-navigation.svelte.ts` |
@@ -67,6 +68,8 @@ Problemas reales que han costado iteraciones. Comprobarlos ahorra rondas de CI:
 - **Núcleos:** cambiar `cores/*/src` sin regenerar `dist`/`manifest.json` hace fallar `verify`. El build se pide en un commit aparte que solo toque `.build-request` (`cores/AGENTS.md`); el bot sube los artefactos y luego hay que hacer `git pull`.
 - **Discos:** `Blob.text()` quita el BOM UTF-8. Para detectarlo, lee los tres primeros bytes.
 - **PS1:** el núcleo amplía el color de 15 bits (0x20 → 0x21); los oráculos lo tienen en cuenta.
+- **Lienzo transferido (N64):** tras `transferControlToOffscreen` el `<canvas>` no admite `getContext` ni cambios de `width`/`height`. Las E2E leen los píxeles con una captura de pantalla (`tests/e2e/n64.spec.ts`), no con `getImageData`.
+- **Emscripten con Asyncify (N64):** una exportación que cambia de fibra pierde su valor de retorno. Los resultados se leen con getters (`n64_audio_frames`, `n64_snapshot_size`, `n64_restore_status`).
 - **Pruebas de tiempo real:** `tests/background-commit.test.ts` mide menos de 5 ms y puede fallar en un CI cargado. Se relanza el job; no es una regresión.
 
 ## Evitar búsquedas inútiles
