@@ -104,7 +104,11 @@ Prueba 100 ciclos de crear/destruir una fibra con pila C de 4 MiB, 100 cesiones 
 - **App:** `SurfaceModule` y el adaptador `packages/adapters/src/n64.ts`, en [ADR-017](../../docs/adr/017-n64-gpu-surface.md) y [H4-N64](../../docs/compatibility/H4-N64.md).
   - La demo de este laboratorio es ahora la fixture de la app, en `packages/fixtures/src/n64-control-demo.ts`.
   - La validación de cabecera pasa a `packages/adapters/src/n64-header.ts`.
-- **Siguiente:** QA del titular en la app (batería, Partidas, salir y volver) y el punto 4 de la cola del plan técnico.
+- **QA del titular en la app (2026-11-08):** la Partida se guardaba sin miniatura y no cargaba.
+  - Causa: `cooperative.c` reservaba las pilas de fibra con `malloc`, que alinea a 8 bytes. El código compilado supone 16 y calcula direcciones locales con `OR`, así que la cabecera del estado se leía desplazada y el núcleo respondía «ROM MD5 does not match».
+  - Ahora las pilas usan `aligned_alloc(16, …)`, y `lastFrame()` lee la miniatura de la superficie.
+  - Pendiente: comprobar si esa desalineación explica también el cuelgue con emsdk 6.0.12 (otro `malloc`, otra alineación).
+- **Siguiente:** el titular repite la QA (Partidas, batería, salir y volver) y se sigue con el punto 4 de la cola del plan técnico.
 
 ### Relevo — 2026-11-07, sesión 5
 

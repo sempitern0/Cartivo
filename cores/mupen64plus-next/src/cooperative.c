@@ -45,8 +45,13 @@ cothread_t co_create(unsigned int stack_size, void (*entry)(void)) {
   context *next = calloc(1, sizeof(*next));
   if (!next) return NULL;
   stack_size = (stack_size + 15u) & ~15u;
-  next->stack = malloc(stack_size);
-  next->async_stack = malloc(ASYNC_STACK_BYTES);
+  /* The C stack grows down from stack + stack_size, and the compiler
+   * assumes a 16-byte aligned stack pointer (it computes frame offsets with
+   * OR). malloc only guarantees 8 bytes in WebAssembly: a stack top at 8
+   * mod 16 shifted locals silently (corrupted savestate headers, MD5
+   * mismatch on load). */
+  next->stack = aligned_alloc(16, stack_size);
+  next->async_stack = aligned_alloc(16, ASYNC_STACK_BYTES);
   if (!next->stack || !next->async_stack) {
     free(next->stack);
     free(next->async_stack);

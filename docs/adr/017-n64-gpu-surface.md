@@ -20,7 +20,7 @@ La QA del titular (2026-11-07, Brave en Windows, GPU real) jugó *Super Mario 64
 - Es ortogonal a cartucho y disco: hoy, un cartucho cuyo núcleo dibuja con la GPU.
 - `create(rom, canvas, save)` es asíncrono, porque cada juego es una instancia de Emscripten.
 - `advance()` devuelve audio y contador, sin `pixels`. `Frame.pixels` pasa a ser opcional y solo lo omiten estos núcleos.
-- `lastFrame()` devuelve vacío: por ahora no hay miniaturas para Partidas ni para «Continuar».
+- `lastFrame()` lee la superficie bajo demanda, con un solo `readPixels` al guardar y nunca por fotograma. Así Partidas y «Continuar» tienen miniatura. El contexto conserva su búfer de dibujo (`preserveDrawingBuffer`) para poder leerlo en cualquier momento.
 
 **2. El lienzo se transfiere una vez, al cargar.**
 - `SystemInfo.surface = "webgl2"` le dice a la UI que el juego dibuja en su propio lienzo.
@@ -40,6 +40,9 @@ La QA del titular (2026-11-07, Brave en Windows, GPU real) jugó *Super Mario 64
 - **Batería:** el bloque del núcleo de 296 960 bytes (EEPROM, cuatro controller paks, SRAM y FlashRAM), en el formato `cartivo-n64-sram-v1`. Se escribe tras `n64_load`, que lo formatea. El límite de archivo de copia sube a 2 MiB.
 - **Partidas:** el estado propio del núcleo (≈ 16 MiB) comprimido con zlib en `frontend.c`, ligado a núcleo y versión como en ADR-009. La demo ocupa 75 KB; un juego real cabe bajo `MAX_STATE_BYTES` (8 MiB) si comprime lo suficiente, y si no la Partida se rechaza con un mensaje.
 - Las funciones que cambian de fibra devuelven sus resultados por getters, porque Asyncify pierde el valor de retorno.
+- **Pilas de fibra alineadas a 16 bytes** (`cooperative.c`, revisión 2026-11-08). La QA del titular encontró que las Partidas no cargaban: el núcleo rechazaba el estado por «ROM MD5 does not match».
+  - El compilador calcula direcciones del marco con `OR`, porque supone el puntero de pila alineado a 16. `malloc` solo alinea a 8 en WebAssembly, así que la cabecera local quedaba desplazada.
+  - Las pilas se reservan ahora con `aligned_alloc(16, …)`.
 
 ## Alternativas descartadas
 
@@ -54,7 +57,6 @@ La QA del titular (2026-11-07, Brave en Windows, GPU real) jugó *Super Mario 64
 - El navegador necesita WebGL2 en Workers. Está demostrado en Chromium (QA del titular y E2E). En la CI headless, Firefox y WebKit no lo ofrecen: muestran el mensaje y su E2E se salta.
 - Memoria: 256 MiB por instancia. Al cargar con batería existen dos instancias un momento.
 - **Límites:**
-  - sin miniaturas de Partidas;
   - Transfer Pak, Rumble Pak y 64DD no están;
   - resolución fija de 640×480, sin mejoras;
   - underruns ocasionales de audio cuando el Worker da tirones;

@@ -372,4 +372,5 @@
   - con teclado, las teclas de dirección inclinan el stick por completo;
   - los botones C están en X/A/L/R y en el stick derecho.
 - **Guardado:** batería de 296 960 bytes (EEPROM, controller paks, SRAM y FlashRAM). Partidas con el estado del núcleo comprimido con zlib. Las copias de batería admiten hasta 2 MiB.
-- **Límites:** las Partidas no tienen miniatura; sin Transfer Pak, Rumble Pak ni 64DD; cortes de audio ocasionales.
+- **Partidas:** se cargan bien (antes las pilas de fibra iban alineadas a 8 bytes y el núcleo rechazaba el estado) y tienen miniatura leída de la GPU al guardar.
+- **Límites:** sin Transfer Pak, Rumble Pak ni 64DD; cortes de audio ocasionales.

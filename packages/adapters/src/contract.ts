@@ -49,8 +49,8 @@ export interface EmulatorCore {
   snapshot(): Uint8Array;
   /** Restores a snapshot; throws a user-readable error if it does not fit. */
   restore(bytes: Uint8Array): void;
-  /** Copy of the last presented frame (empty before any frame, and always
-   * for a core that draws on its own surface). */
+  /** Copy of the last presented frame (empty before any frame); a core
+   * that draws on its own surface reads it back on demand. */
   lastFrame(): Uint8ClampedArray;
   /** Releases resources (wasm memory); the core is unusable afterwards. */
   dispose(): void;

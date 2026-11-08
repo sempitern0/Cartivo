@@ -228,9 +228,34 @@ class N64Core implements EmulatorCore {
       throw Error("Esta partida no corresponde a este núcleo de N64.");
   }
 
-  /** The picture lives on the GPU surface: no copy for previews yet. */
+  /**
+   * The picture on the surface, for Partidas and «Continuar» previews: one
+   * readback on demand (the context keeps its drawing buffer for this),
+   * never per frame. Rows come bottom-up from GL and are flipped.
+   */
   lastFrame(): Uint8ClampedArray {
-    return new Uint8ClampedArray(0);
+    const gl = this.#canvas.getContext("webgl2");
+    if (!this.#em || this.#lost || !gl || !this.frames)
+      return new Uint8ClampedArray(0);
+    const { width, height } = this.#canvas;
+    const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
+    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
+    const bottomUp = new Uint8ClampedArray(width * height * 4);
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, bottomUp);
+    // GLideN64 caches its bindings: leave them as they were.
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, read);
+    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pack);
+    const row = width * 4;
+    const frame = new Uint8ClampedArray(bottomUp.length);
+    for (let y = 0; y < height; y++)
+      frame.set(
+        bottomUp.subarray((height - 1 - y) * row, (height - y) * row),
+        y * row,
+      );
+    for (let i = 3; i < frame.length; i += 4) frame[i] = 255;
+    return frame;
   }
 
   dispose() {
@@ -274,7 +299,8 @@ export async function createN64(
     depth: true,
     stencil: true,
     antialias: false,
-    preserveDrawingBuffer: false,
+    // Kept between frames so lastFrame() can read a preview at any time.
+    preserveDrawingBuffer: true,
   });
   if (!context || !em.GL.makeContextCurrent(context))
     throw Error(

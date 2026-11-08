@@ -119,7 +119,8 @@ test("N64 quick-saves with F5 and loads with F9", async ({ page }) => {
   await page.keyboard.press("F9");
   await expect(page.getByTestId("toast")).toContainText("Partida cargada");
   await page.getByRole("button", { name: "Partidas" }).click();
-  await expect(page.locator('[data-slot="1"]')).toContainText(
-    "Mupen64Plus-Next",
-  );
+  const slot = page.locator('[data-slot="1"]');
+  await expect(slot).toContainText("Mupen64Plus-Next");
+  // The preview is read back from the GPU surface when saving.
+  await expect(slot.locator("canvas.thumb")).not.toHaveClass(/empty/);
 });
