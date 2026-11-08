@@ -22,6 +22,7 @@
 </script>
 
 <script lang="ts">
+  import { Tabs } from "bits-ui";
   import ControlsPanel from "./ControlsPanel.svelte";
   import InterfacePreference from "./InterfacePreference.svelte";
   import DisplayOptions from "./DisplayOptions.svelte";
@@ -50,25 +51,13 @@
   $effect.pre(() => {
     if (tab) selected = lastTab = tab;
   });
-  function select(id: SettingsTab, focus = false) {
-    selected = lastTab = id;
+  /** Bits UI runs the tabs (keys, focus, ARIA; ADR-019); this keeps the address. */
+  function select(id: string) {
+    const found = settingsTabs.find(([tab]) => tab === id)?.[0];
+    if (!found) return;
+    selected = lastTab = found;
     // The address names the tab without adding a history step.
-    history.replaceState(history.state, "", `#ajustes/${id}`);
-    if (focus) document.getElementById(`tab-${id}`)?.focus();
-  }
-  /** Arrows, Home and End move along the tabs (WAI-ARIA tabs pattern). */
-  function onTabKey(event: KeyboardEvent) {
-    const ids = settingsTabs.map(([id]) => id);
-    const at = ids.indexOf(selected);
-    const to = {
-      ArrowRight: at + 1,
-      ArrowLeft: at - 1,
-      Home: 0,
-      End: ids.length - 1,
-    }[event.key];
-    if (to === undefined) return;
-    event.preventDefault();
-    select(ids[(to + ids.length) % ids.length], true);
+    history.replaceState(history.state, "", `#ajustes/${found}`);
   }
 
   // Pantalla: one console at a time, the same options as in the game.
@@ -113,31 +102,14 @@
   }
 </script>
 
-<div
-  class="settings-tabs"
-  role="tablist"
-  aria-label="Secciones de ajustes"
-  tabindex="-1"
-  onkeydown={onTabKey}
->
-  {#each settingsTabs as [id, label] (id)}<button
-      id={`tab-${id}`}
-      role="tab"
-      aria-selected={selected === id}
-      aria-controls={id}
-      tabindex={selected === id ? 0 : -1}
-      onclick={() => select(id)}>{label}</button
+<Tabs.Root value={selected} onValueChange={select}>
+<Tabs.List class="settings-tabs" aria-label="Secciones de ajustes">
+  {#each settingsTabs as [id, label] (id)}<Tabs.Trigger value={id}
+      >{label}</Tabs.Trigger
     >{/each}
-</div>
+</Tabs.List>
 
-<div
-  class="category"
-  id="pantalla"
-  role="tabpanel"
-  aria-labelledby="tab-pantalla"
-  tabindex="0"
-  hidden={selected !== "pantalla"}
->
+<Tabs.Content class="settings-panel" id="pantalla" value="pantalla">
   <h2>Pantalla</h2>
   <p class="hint">
     Cada consola recuerda su escalado, proporción y suavizado. Durante la
@@ -172,16 +144,9 @@
         display.smooth === defaultDisplay.smooth}>Restablecer</button
     >
   </div>
-</div>
+</Tabs.Content>
 
-<div
-  class="category"
-  id="sonido"
-  role="tabpanel"
-  aria-labelledby="tab-sonido"
-  tabindex="0"
-  hidden={selected !== "sonido"}
->
+<Tabs.Content class="settings-panel" id="sonido" value="sonido">
   <h2>Sonido</h2>
   <label class="field volume"
     >Volumen <input
@@ -199,39 +164,18 @@
     los juegos</label
   >
   <p class="hint" aria-live="polite">{soundNote}</p>
-</div>
+</Tabs.Content>
 
-<div
-  class="category"
-  id="controles"
-  role="tabpanel"
-  aria-labelledby="tab-controles"
-  tabindex="0"
-  hidden={selected !== "controles"}
->
+<Tabs.Content class="settings-panel" id="controles" value="controles">
   <h2>Configurar controles</h2>
   <ControlsPanel />
-</div>
+</Tabs.Content>
 
-<div
-  class="category"
-  id="interfaz"
-  role="tabpanel"
-  aria-labelledby="tab-interfaz"
-  tabindex="0"
-  hidden={selected !== "interfaz"}
->
+<Tabs.Content class="settings-panel" id="interfaz" value="interfaz">
   <InterfacePreference />
-</div>
+</Tabs.Content>
 
-<div
-  class="category"
-  id="almacenamiento"
-  role="tabpanel"
-  aria-labelledby="tab-almacenamiento"
-  tabindex="0"
-  hidden={selected !== "almacenamiento"}
->
+<Tabs.Content class="settings-panel" id="almacenamiento" value="almacenamiento">
   <h2>Almacenamiento</h2>
   <p class="hint">
     Partidas, ajustes y las copias de los juegos que se recuerdan para
@@ -245,16 +189,9 @@
   {#if !inGame}<a class="button-link" href="#juegos"
       >Gestionar juegos en «Tus juegos»</a
     >{/if}
-</div>
+</Tabs.Content>
 
-<div
-  class="category"
-  id="avanzado"
-  role="tabpanel"
-  aria-labelledby="tab-avanzado"
-  tabindex="0"
-  hidden={selected !== "avanzado"}
->
+<Tabs.Content class="settings-panel" id="avanzado" value="avanzado">
   <h2>Avanzado</h2>
   {#each choosable as system (system.id)}
     {@const current = readCore(system)}
@@ -303,10 +240,11 @@
     El rendimiento de cada sesión y los detalles del núcleo están en la pausa
     del juego.
   </p>
-</div>
+</Tabs.Content>
+</Tabs.Root>
 
 <style>
-  .settings-tabs {
+  :global(.settings-tabs) {
     display: flex;
     gap: 4px;
     margin-bottom: 24px;
@@ -314,10 +252,10 @@
     scrollbar-width: none;
     border-bottom: 1px solid var(--border);
   }
-  .settings-tabs:focus {
+  :global(.settings-tabs:focus) {
     outline: none;
   }
-  .settings-tabs button {
+  :global(.settings-tabs button) {
     flex: none;
     min-height: 44px;
     padding: 10px 16px;
@@ -327,24 +265,34 @@
     background: transparent;
     color: var(--muted);
   }
-  .settings-tabs button:hover {
+  :global(.settings-tabs button:hover) {
     color: var(--text);
   }
-  .settings-tabs button[aria-selected="true"] {
+  :global(.settings-tabs button[data-state="active"]) {
     color: var(--text);
     border-bottom-color: var(--teal);
     font-weight: 650;
   }
-  .settings-tabs button:focus-visible {
+  :global(.settings-tabs button:focus-visible) {
     outline-offset: -2px;
   }
-  .category {
+  :global(.settings-panel) {
     margin: 0 0 32px;
   }
-  .category:focus {
+  /* Each panel rises in when its tab opens (no motion if reduced). */
+  :global(.settings-panel:not([hidden])) {
+    animation: panel-in 0.18s ease-out;
+  }
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  :global(.settings-panel:focus) {
     outline: none;
   }
-  .category:focus-visible {
+  :global(.settings-panel:focus-visible) {
     outline: 2px solid var(--focus);
     outline-offset: 6px;
     border-radius: 8px;

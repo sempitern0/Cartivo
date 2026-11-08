@@ -52,15 +52,16 @@ const library = (page: Page) =>
 const games = (page: Page) =>
   page.getByRole("link", { name: "Tus juegos", exact: true }).click();
 
-/** «Opciones» → «Eliminar del dispositivo» → confirm (every profile). */
+/** «⋯» → «Eliminar del dispositivo» → confirm in the dialog (every profile). */
 async function deleteFromDevice(page: Page, name: string) {
   await library(page)
     .getByRole("button", { name: `Opciones de ${name}` })
     .click();
-  await library(page)
-    .getByRole("button", { name: "Eliminar del dispositivo" })
+  await page
+    .getByRole("menuitem", { name: "Eliminar del dispositivo" })
     .click();
-  await library(page)
+  await page
+    .getByRole("alertdialog")
     .getByRole("button", { name: `Eliminar ${name}`, exact: true })
     .click();
   await expect(library(page).getByRole("status")).toContainText(
@@ -208,13 +209,19 @@ test("«Borrar mi progreso» erases this profile's Partidas; hiding is reversibl
   await games(page);
   const play = library(page).locator("li.card button.primary");
   await expect(play).toHaveText("Continuar");
-  await library(page)
-    .getByRole("button", { name: `Opciones de ${NAME}` })
-    .click();
-  await library(page)
-    .getByRole("button", { name: "Borrar mi progreso" })
-    .click();
-  const confirm = library(page).getByRole("button", {
+  const more = library(page).getByRole("button", {
+    name: `Opciones de ${NAME}`,
+  });
+  // Escape closes the menu and stays on «Tus juegos», focus back on «⋯».
+  await more.click();
+  await expect(page.getByRole("menu")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(more).toBeFocused();
+  await expect(page).toHaveURL(/#juegos$/);
+  await more.click();
+  await page.getByRole("menuitem", { name: "Borrar mi progreso" }).click();
+  const confirm = page.getByRole("alertdialog").getByRole("button", {
     name: `Borrar mi progreso en ${NAME}`,
   });
   await expect(confirm).toBeFocused();
@@ -227,7 +234,7 @@ test("«Borrar mi progreso» erases this profile's Partidas; hiding is reversibl
   await library(page)
     .getByRole("button", { name: `Opciones de ${NAME}` })
     .click();
-  await library(page).getByRole("button", { name: "Ocultar para mí" }).click();
+  await page.getByRole("menuitem", { name: "Ocultar para mí" }).click();
   await expect(library(page).locator("li.card")).toHaveCount(0);
   await library(page).getByText("Ocultos para ti (1)").click();
   await library(page)
@@ -673,7 +680,7 @@ test("a PS1 disc is copied while it plays and every profile opens that copy", as
   await library(page)
     .getByRole("button", { name: `Opciones de ${DISC}` })
     .click();
-  await library(page).getByRole("button", { name: "Ocultar para mí" }).click();
+  await page.getByRole("menuitem", { name: "Ocultar para mí" }).click();
   await expect(library(page).locator("li.card")).toHaveCount(0);
   await page.getByRole("link", { name: "Volver al inicio" }).click();
   await page

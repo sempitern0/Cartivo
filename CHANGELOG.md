@@ -399,6 +399,7 @@
   - **Botones de cada consola:** tarjeta visible bajo las asignaciones, con una píldora por botón («Cruz → B»), en lugar de notas en letra pequeña.
   - **Almacenamiento:** ya no se muestra la cuota del navegador (Brave dice 2 GB), que se leía como un límite de ROMs; se explica que solo cuenta las copias recordadas.
   - **Avanzado:** cada núcleo como tarjeta con «Recomendado», a favor, en contra y cuándo cambiar (NES: TetaNES o JSNES).
+- **Bits UI** ([ADR-019](docs/adr/019-ui-components-bits-ui.md)): las pestañas de Ajustes, el menú «⋯» de cada juego y el diálogo que confirma borrar progreso o eliminar un juego. Animaciones con las transiciones de Svelte (menú, diálogo y paneles), sin movimiento si el sistema pide reducirlo.
 
 ### CI más rápida, dependencias y arte de terceros
 

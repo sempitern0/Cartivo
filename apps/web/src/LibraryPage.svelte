@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { AlertDialog, DropdownMenu } from "bits-ui";
+  import { fade, fly, scale } from "svelte/transition";
   import SnapshotThumb from "./SnapshotThumb.svelte";
   import { when } from "./saves.ts";
   import { icons } from "./icons.ts";
@@ -43,42 +45,23 @@
   } = $props();
   let remember = $state(rememberGames());
   let note = $state("");
-  /** The two irreversible actions ask first, in place. */
+  /**
+   * «⋯» opens a menu (Bits UI, ADR-019); the two irreversible actions then
+   * ask in a dialog with the risky button focused.
+   */
   type Risky = "erase" | "delete";
-  let confirming = $state<{ hash: string; action: Risky }>();
-  let managing = $state<string>();
+  let confirming = $state.raw<{ entry: GameCard; action: Risky }>();
   let libraryElement: HTMLElement;
-  const focus = async (id: string) => {
+  /** Escape here belongs to the menu or dialog, not to the page's «back». */
+  const keepEscape = (event: KeyboardEvent) => event.stopPropagation();
+  function ask(entry: GameCard, action: Risky) {
+    confirming = { entry, action };
+  }
+  async function cancel() {
+    const hash = confirming?.entry.hash;
+    confirming = undefined;
     await tick();
-    document.getElementById(id)?.focus();
-  };
-  function open(hash: string) {
-    confirming = undefined;
-    managing = hash;
-    void focus(`options-${hash}`);
-  }
-  function close(hash: string) {
-    confirming = undefined;
-    managing = undefined;
-    void focus(`manage-${hash}`);
-  }
-  /** Escape (or the pad's back button) closes the options it reaches. */
-  function closesOnEscape(sheet: HTMLElement, hash: string) {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      e.stopPropagation();
-      close(hash);
-    };
-    sheet.addEventListener("keydown", onKey);
-    return { destroy: () => sheet.removeEventListener("keydown", onKey) };
-  }
-  function ask(hash: string, action: Risky) {
-    confirming = { hash, action };
-    void focus(`confirm-${hash}`);
-  }
-  function cancel(hash: string) {
-    confirming = undefined;
-    void focus(`options-${hash}`);
+    if (hash) document.getElementById(`manage-${hash}`)?.focus();
   }
   /** Titles this profile hid; they stay for everyone else. */
   const listed = $derived(games.filter((g) => !g.hidden));
@@ -117,7 +100,6 @@
     failed: string,
   ) {
     confirming = undefined;
-    managing = undefined;
     try {
       await work();
       note = done;
@@ -212,62 +194,54 @@
                 data-launch={`continue-${entry.hash}`}
                 onclick={() => system && oncontinue(entry, system)}
                 >{@html icons.play}{playLabel(entry)}</button
-              ><button
-                id={`manage-${entry.hash}`}
-                class="icon-button more"
-                aria-label={`Opciones de ${entry.name}`}
-                aria-expanded={managing === entry.hash}
-                aria-controls={`options-${entry.hash}`}
-                onclick={() => (managing === entry.hash ? close(entry.hash) : open(entry.hash))}
-                >{@html icons.more}</button
               >
-            </div>
-            <!-- Options cover the card instead of growing it: one list, then
-                 the confirmation of a risky action in the same place. -->
-            <div
-              id={`options-${entry.hash}`}
-              class="sheet"
-              role="group"
-              aria-label={`Opciones de ${entry.name}`}
-              tabindex="-1"
-              hidden={managing !== entry.hash}
-              use:closesOnEscape={entry.hash}
-            >
-              <div class="sheet-head">
-                <span class="name">{entry.name}</span><button
-                  class="icon-button"
-                  aria-label="Cerrar opciones"
-                  onclick={() => close(entry.hash)}>{@html icons.close}</button
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger
+                  id={`manage-${entry.hash}`}
+                  class="icon-button more"
+                  aria-label={`Opciones de ${entry.name}`}
+                  >{@html icons.more}</DropdownMenu.Trigger
                 >
-              </div>
-              {#if confirming?.hash === entry.hash}
-                <p class="hint">
-                  {confirming.action === "delete"
-                    ? "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan."
-                    : "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer."}
-                </p>
-                <button
-                  id={`confirm-${entry.hash}`}
-                  class="danger"
-                  onclick={() =>
-                    confirming?.action === "delete" ? remove(entry) : erase(entry)}
-                  >{confirming.action === "delete"
-                    ? `Eliminar ${entry.name}`
-                    : `Borrar mi progreso en ${entry.name}`}</button
-                ><button onclick={() => cancel(entry.hash)}>Cancelar</button>
-              {:else}
-                <button class="icon-button row" onclick={() => hide(entry, true)}
-                  >{@html icons.hide}Ocultar para mí</button
-                ><button
-                  class="icon-button row"
-                  onclick={() => ask(entry.hash, "erase")}
-                  >{@html icons.erase}Borrar mi progreso</button
-                ><button
-                  class="icon-button row danger"
-                  onclick={() => ask(entry.hash, "delete")}
-                  >{@html icons.trash}Eliminar del dispositivo</button
-                >
-              {/if}
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content
+                    forceMount
+                    align="end"
+                    sideOffset={6}
+                    onEscapeKeydown={keepEscape}
+                    onCloseAutoFocus={(e) => confirming && e.preventDefault()}
+                  >
+                    {#snippet child({ wrapperProps, props, open })}
+                      {#if open}
+                        <div {...wrapperProps}>
+                          <div
+                            {...props}
+                            class="game-menu"
+                            data-pad-scope
+                            transition:fly={{ y: -6, duration: 140 }}
+                          >
+                            <DropdownMenu.Item
+                              class="game-menu-item"
+                              onSelect={() => hide(entry, true)}
+                              >{@html icons.hide}Ocultar para mí</DropdownMenu.Item
+                            >
+                            <DropdownMenu.Item
+                              class="game-menu-item"
+                              onSelect={() => ask(entry, "erase")}
+                              >{@html icons.erase}Borrar mi progreso</DropdownMenu.Item
+                            >
+                            <DropdownMenu.Separator class="game-menu-separator" />
+                            <DropdownMenu.Item
+                              class="game-menu-item danger"
+                              onSelect={() => ask(entry, "delete")}
+                              >{@html icons.trash}Eliminar del dispositivo</DropdownMenu.Item
+                            >
+                          </div>
+                        </div>
+                      {/if}
+                    {/snippet}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             </div>
           </li>
         {/each}
@@ -314,6 +288,68 @@
   </p>
   {#if note}<p class="note" role="status">{note}</p>{/if}
 </section>
+
+<AlertDialog.Root
+  open={!!confirming}
+  onOpenChange={(open) => {
+    if (!open) void cancel();
+  }}
+>
+  <AlertDialog.Portal>
+    <AlertDialog.Overlay forceMount>
+      {#snippet child({ props, open })}
+        {#if open}<div
+            {...props}
+            class="dialog-overlay"
+            transition:fade={{ duration: 140 }}
+          ></div>{/if}
+      {/snippet}
+    </AlertDialog.Overlay>
+    <AlertDialog.Content
+      forceMount
+      onEscapeKeydown={keepEscape}
+      onOpenAutoFocus={(e) => {
+        e.preventDefault();
+        document.getElementById("confirm-risky")?.focus();
+      }}
+      onCloseAutoFocus={(e) => e.preventDefault()}
+    >
+      {#snippet child({ props, open })}
+        {#if open && confirming}
+          {@const { entry, action } = confirming}
+          <div
+            {...props}
+            class="dialog"
+            data-pad-scope
+            transition:scale={{ start: 0.96, duration: 160 }}
+          >
+            <AlertDialog.Title class="dialog-title"
+              >{action === "delete"
+                ? `¿Eliminar ${entry.name} del dispositivo?`
+                : `¿Borrar tu progreso en ${entry.name}?`}</AlertDialog.Title
+            >
+            <AlertDialog.Description class="dialog-text"
+              >{action === "delete"
+                ? "Se eliminará para todos los perfiles y se liberará su espacio. Las partidas se conservan."
+                : "Se borrarán tus partidas y tu guardado de este juego. No se puede deshacer."}</AlertDialog.Description
+            >
+            <div class="dialog-actions">
+              <AlertDialog.Cancel>Cancelar</AlertDialog.Cancel>
+              <AlertDialog.Action
+                id="confirm-risky"
+                class="danger"
+                onclick={() => (action === "delete" ? remove(entry) : erase(entry))}
+                >{action === "delete"
+                  ? `Eliminar ${entry.name}`
+                  : `Borrar mi progreso en ${entry.name}`}</AlertDialog.Action
+              >
+            </div>
+          </div>
+        {/if}
+      {/snippet}
+    </AlertDialog.Content>
+  </AlertDialog.Portal>
+</AlertDialog.Root>
 
 <style>
   .library {
@@ -433,55 +469,77 @@
     width: 44px;
     padding: 0;
   }
-  .card {
-    position: relative;
+  /* Menu and dialog live in a portal at the end of <body>: global styles. */
+  :global(.game-menu) {
+    min-width: 230px;
+    padding: 6px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: 0 18px 40px #0008;
   }
-  .sheet {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px;
-    overflow: auto;
-    border-radius: inherit;
-    background: color-mix(in srgb, var(--surface) 96%, transparent);
-    backdrop-filter: blur(6px);
-  }
-  .sheet[hidden] {
-    display: none;
-  }
-  .sheet:focus {
-    outline: none;
-  }
-  .sheet-head {
+  :global(.game-menu-item) {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-  .sheet-head button {
-    width: 44px;
-    padding: 0;
-    flex: none;
-    background: transparent;
-    border-color: transparent;
-  }
-  .sheet button {
+    gap: 10px;
     min-height: 44px;
+    padding: 0 12px;
+    border-radius: 10px;
     font-size: 14px;
+    cursor: pointer;
+    outline: none;
   }
-  .sheet .row {
-    justify-content: flex-start;
-    background: transparent;
-    border-color: transparent;
-    text-align: left;
-  }
-  .sheet .row:hover,
-  .sheet .row:focus-visible {
+  :global(.game-menu-item[data-highlighted]) {
     background: var(--surface-2);
+  }
+  :global(.game-menu-item.danger) {
+    color: var(--coral);
+  }
+  :global(.game-menu-separator) {
+    height: 1px;
+    margin: 6px 4px;
+    background: var(--border);
+  }
+  :global(.dialog-overlay) {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: #0009;
+    backdrop-filter: blur(3px);
+  }
+  :global(.dialog) {
+    position: fixed;
+    z-index: 51;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    width: min(440px, calc(100vw - 32px));
+    padding: 22px;
+    border-radius: var(--card-radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: 0 24px 60px #000a;
+  }
+  :global(.dialog-title) {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+  :global(.dialog-text) {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  :global(.dialog-actions) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+  :global(.dialog .danger) {
+    border-color: var(--coral);
+    color: var(--coral);
   }
   .hidden-games {
     margin: 20px 0 8px;
