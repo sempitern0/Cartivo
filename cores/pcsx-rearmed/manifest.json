@@ -34,7 +34,8 @@
     "cartivo_state_size",
     "cartivo_save_state",
     "cartivo_load_state",
-    "cartivo_frame_rate"
+    "cartivo_frame_rate",
+    "cartivo_set_analog"
   ],
   "imports": [
     "env.cartivo_vfs_open",
@@ -54,7 +55,7 @@
   "files": [
     {
       "path": "dist/pcsx-rearmed.wasm",
-      "sha256": "07e7d39042350ce8e1a64a3adab88e3f2dbf4704c1321fa7953843b3aa0918c9"
+      "sha256": "a1dced8399013aca1a18f77758db010ad5b1593310b9e025be0e25f1e5f260c7"
     }
   ]
 }

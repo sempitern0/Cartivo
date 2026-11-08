@@ -2,6 +2,7 @@
 // A core module is registered in registry.ts and checked by
 // tests/core-conformance.test.ts.
 import type { InputState } from "../../input/src/nes-input.ts";
+import type { Analog } from "../../input/src/analog.ts";
 import type { DiscImage } from "./disc.ts";
 
 export type Frame = {
@@ -27,6 +28,11 @@ export interface EmulatorCore {
    * more buttons extend InputState first (docs/ADDING_A_SYSTEM.md).
    */
   input(state: InputState): void;
+  /**
+   * Player 1's sticks, normalised (analog.ts), for cores with an analog pad;
+   * the others leave it out. Called right after input() each batch.
+   */
+  analog?(sticks: Analog): void;
   /** Emulates 1–3 frames. */
   advance(count: number): Frame;
   /**

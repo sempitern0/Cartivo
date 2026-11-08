@@ -94,3 +94,30 @@ export async function removeTitle(hash: string) {
     db.close();
   }
 }
+
+/** Avoid reading every profile's thumbnails once its legacy catalogue is imported. */
+export async function migratedProfiles(): Promise<Set<string>> {
+  const db = await open();
+  try {
+    const keys = await request(
+      db.transaction("migrated").objectStore("migrated").getAllKeys(),
+    );
+    return new Set(
+      keys.filter((key): key is string => typeof key === "string"),
+    );
+  } finally {
+    db.close();
+  }
+}
+export async function catalogueEntry(
+  hash: string,
+): Promise<LibraryEntry | undefined> {
+  const db = await open();
+  try {
+    return parseEntry(
+      await request(db.transaction("games").objectStore("games").get(hash)),
+    );
+  } finally {
+    db.close();
+  }
+}

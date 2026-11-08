@@ -38,6 +38,7 @@ typedef struct {
     double step, position;
     float previous;
     unsigned bits;
+    int16_t analog[4]; /* left x, left y, right x, right y */
     double fps;
 } cartivo_t;
 
@@ -155,6 +156,9 @@ static const char *option(const char *key)
         {"pcsx_rearmed_drc", "disabled"},
         {"pcsx_rearmed_memcard1", "libretro"},
         {"pcsx_rearmed_memcard2", "none"},
+        /* DualShock in digital mode until the game asks for analog (its
+         * config commands) or the player presses L1+R1+Select. */
+        {"pcsx_rearmed_analog_combo", "l1+r1+select"},
     };
     for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++)
         if (!strcmp(key, options[i][0])) return options[i][1];
@@ -239,13 +243,21 @@ static void input_poll(void) {}
 
 /* Bits: B, Y, select, start, up, down, left, right, A, X, L, R, L2, R2
  * (RETRO_DEVICE_ID_JOYPAD_* order; Cross is B, Circle A, Square Y,
- * Triangle X). Digital pad on port 1 only. */
+ * Triangle X). A DualShock on port 1 only: its sticks are read as
+ * RETRO_DEVICE_ANALOG, only while the pad is in analog mode. */
 static int16_t input_state(unsigned port, unsigned device, unsigned index, unsigned id)
 {
-    (void)index;
-    if (!current || port != 0 || (device & RETRO_DEVICE_MASK) != RETRO_DEVICE_JOYPAD) return 0;
-    if (id == RETRO_DEVICE_ID_JOYPAD_MASK) return (int16_t)current->bits;
-    return id < 14 ? (current->bits >> id) & 1 : 0;
+    if (!current || port != 0) return 0;
+    switch (device & RETRO_DEVICE_MASK) {
+    case RETRO_DEVICE_JOYPAD:
+        if (id == RETRO_DEVICE_ID_JOYPAD_MASK) return (int16_t)current->bits;
+        return id < 14 ? (current->bits >> id) & 1 : 0;
+    case RETRO_DEVICE_ANALOG:
+        if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y) return 0;
+        return current->analog[index * 2 + id];
+    default:
+        return 0;
+    }
 }
 
 /* `path` names the file to boot (.cue, .iso, .bin, .exe…); every file is
@@ -270,6 +282,10 @@ cartivo_t *cartivo_create(const char *path, size_t length)
     retro_set_input_poll(input_poll);
     retro_set_input_state(input_state);
     retro_init();
+    /* The core's RETRO_DEVICE_PSE_DUALSHOCK (frontend/libretro.c), chosen
+     * before the game loads: changed afterwards, the core simulates
+     * plugging a new pad in and answers no pad for 32 frames. */
+    retro_set_controller_port_device(0, RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 1));
     const struct retro_game_info game = {name, NULL, 0, NULL};
     const bool loaded = retro_load_game(&game);
     free(name);
@@ -279,7 +295,6 @@ cartivo_t *cartivo_create(const char *path, size_t length)
         free(c);
         return NULL;
     }
-    retro_set_controller_port_device(0, RETRO_DEVICE_JOYPAD);
     struct retro_system_av_info av;
     retro_get_system_av_info(&av);
     set_timing(&av.timing);
@@ -315,6 +330,15 @@ void cartivo_save(cartivo_t *c, uint8_t *out)
 void cartivo_set_input(cartivo_t *c, unsigned bits)
 {
     c->bits = bits & 0x3FFF;
+}
+
+/* Sticks in libretro's range (−32768…32767, y down). */
+void cartivo_set_analog(cartivo_t *c, int lx, int ly, int rx, int ry)
+{
+    c->analog[0] = (int16_t)lx;
+    c->analog[1] = (int16_t)ly;
+    c->analog[2] = (int16_t)rx;
+    c->analog[3] = (int16_t)ry;
 }
 
 /* Runs `count` frames; returns the number of audio samples produced. */

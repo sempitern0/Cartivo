@@ -1,6 +1,6 @@
 /* Experimental libretro frontend for the N64 laboratory (not Cartivo's
  * production host). Original Cartivo code. Linked with Mupen64Plus-Next built
- * as a static archive; the libco it expects comes from fibers/cooperative.c.
+ * as a static archive; the libco it expects comes from cooperative.c (fibers/Asyncify).
  *
  * The page's Worker owns an OffscreenCanvas and makes a WebGL2 context
  * current (Emscripten's GL library) before n64_load(); the core then draws
@@ -40,8 +40,17 @@ static unsigned frames_presented, frames_duped;
 static uint16_t buttons;
 static int16_t axes[4]; /* left x, left y, right x, right y */
 
-/* Fixed laboratory options: GLideN64 with HLE RSP, the cached interpreter
- * (no JIT in WebAssembly) and no threaded renderer. */
+/* The core's own option table (SET_CORE_OPTIONS_V2): every option it does
+ * not find falls back to the default it declares, as in RetroArch. Without
+ * it the core keeps its C zero-initialisers, which are not valid settings:
+ * MaxTxCacheSize = 0 made GLideN64 evict a texture on every insertion and
+ * pop an empty list, corrupting the heap (the SM64 crash). */
+static const struct retro_core_option_v2_definition *declared;
+
+/* Fixed laboratory overrides: GLideN64 with HLE RSP, the cached interpreter
+ * (no JIT in WebAssembly) and no threaded renderer. WebGL2 has neither
+ * glMapBufferRange for reading nor program binaries, so the colour and depth
+ * copies to RDRAM and the shader storage stay off (their defaults are on). */
 static const char *option(const char *key) {
   static const char *const options[][2] = {
       {"mupen64plus-rdp-plugin", "gliden64"},
@@ -51,9 +60,16 @@ static const char *option(const char *key) {
       {"mupen64plus-43screensize", "640x480"},
       {"mupen64plus-pak1", "memory"},
       {"mupen64plus-EnableFBEmulation", "True"},
+      {"mupen64plus-EnableCopyColorToRDRAM", "Off"},
+      {"mupen64plus-EnableCopyDepthToRDRAM", "Off"},
+      {"mupen64plus-EnableShadersStorage", "False"},
   };
   for (size_t i = 0; i < sizeof(options) / sizeof(options[0]); i++)
     if (!strcmp(key, options[i][0])) return options[i][1];
+  for (const struct retro_core_option_v2_definition *d = declared; d && d->key;
+       d++)
+    if (!strcmp(key, d->key))
+      return d->default_value ? d->default_value : d->values[0].value;
   return NULL;
 }
 
@@ -83,6 +99,16 @@ static bool environment(unsigned cmd, void *data) {
     hw = *cb;
     return true;
   }
+  case RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION:
+    *(unsigned *)data = 2;
+    return true;
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2:
+    declared = ((const struct retro_core_options_v2 *)data)->definitions;
+    return true;
+  case RETRO_ENVIRONMENT_SET_CORE_OPTIONS_V2_INTL:
+    declared =
+        ((const struct retro_core_options_v2_intl *)data)->us->definitions;
+    return true;
   case RETRO_ENVIRONMENT_GET_VARIABLE: {
     struct retro_variable *var = data;
     var->value = var->key ? option(var->key) : NULL;

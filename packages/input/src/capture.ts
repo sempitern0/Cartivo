@@ -14,9 +14,12 @@ import {
   type Pad,
 } from "./nes-input.ts";
 import type { PadPreference } from "./preferences.ts";
+import { analogOf, centered, type Analog } from "./analog.ts";
 
 export type InputReading = {
   input: InputState;
+  /** The chosen pad's sticks; centred until ready and without a pad. */
+  analog: Analog;
   /** False until every control has been released once (no stuck input). */
   ready: boolean;
   /** The chosen pad disappeared or changed: the game must pause. */
@@ -149,7 +152,13 @@ export class InputCapture {
       this.#ready = true;
       return this.#reading(input, false, !!pad);
     }
-    return this.#reading(input, this.#ready, !!pad);
+    return this.#reading(
+      input,
+      this.#ready,
+      !!pad,
+      false,
+      this.#ready ? analogOf(pad) : centered(),
+    );
   }
 
   #lost(): InputReading {
@@ -161,7 +170,8 @@ export class InputCapture {
     ready: boolean,
     connected: boolean,
     lost = false,
+    analog = centered(),
   ): InputReading {
-    return { input, ready, lost, connected, status: this.status };
+    return { input, analog, ready, lost, connected, status: this.status };
   }
 }

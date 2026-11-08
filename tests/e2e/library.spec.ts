@@ -524,3 +524,47 @@ test("legacy libraries and v1 snapshots migrate without copying progress to anot
   await page.reload();
   await expect(library(page).getByRole("listitem")).toHaveCount(0);
 });
+
+test("leaving after a failed resume does not replace the saved snapshot", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await playAndLeave(page);
+  const snapshot = async (damage: boolean) =>
+    page.evaluate(async (damage) => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const r = indexedDB.open("cartivo-states");
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      const tx = db.transaction("states", damage ? "readwrite" : "readonly");
+      const store = tx.objectStore("states");
+      const record = await new Promise<any>((resolve) => {
+        const r = store.openCursor();
+        r.onsuccess = () => {
+          const row = r.result!;
+          if (damage) {
+            row.value.bytes[0] ^= 255;
+            row.update(row.value);
+          }
+          resolve(row.value);
+        };
+      });
+      await new Promise<void>((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+      return {
+        createdAt: record.createdAt,
+        sha256: record.sha256,
+        bytes: Array.from(record.bytes),
+      };
+    }, damage);
+  const before = await snapshot(true);
+  await continueCard(page).getByRole("button", { name: "Continuar" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await exit(page);
+  expect(await snapshot(false)).toEqual(before);
+});

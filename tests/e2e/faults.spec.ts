@@ -79,3 +79,36 @@ test("closing the tab mid-game leaves a save that reopens cleanly", async ({
   expect(errors).toEqual([]);
   await context.close();
 });
+
+test("a failed exit snapshot keeps the session open and can be retried", async ({
+  page,
+}) => {
+  await patchWorker(
+    page,
+    `
+    const originalPut = IDBObjectStore.prototype.put;
+    let failAuto = true;
+    IDBObjectStore.prototype.put = function(value, ...args) {
+      if (this.name === "states" && value.slot === "auto" && failAuto) {
+        failAuto = false;
+        throw new DOMException("full", "QuotaExceededError");
+      }
+      return originalPut.call(this, value, ...args);
+    };
+  `,
+  );
+  await page.goto("/");
+  await playDemo(page, "NES");
+  const exit = page.getByRole("button", { name: "Salir", exact: true });
+  await exit.click();
+  await expect(page.getByRole("alert")).toContainText(
+    "No se pudo guardar la partida al salir",
+  );
+  await expect(page.getByTestId("player-phase")).toHaveText("En pausa");
+  await expect.poll(() => page.workers().length).toBe(1);
+  await exit.click();
+  await expect(
+    page.getByRole("heading", { name: "Elige una consola" }),
+  ).toBeVisible();
+  await expect.poll(() => page.workers().length).toBe(0);
+});

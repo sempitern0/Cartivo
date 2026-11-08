@@ -365,10 +365,10 @@
         </div>
       </div>
       <nav class="settings-sections" aria-label="Secciones de ajustes">
-        <button onclick={() => document.getElementById("interfaz")?.scrollIntoView({ block: "start" })}>Interfaz</button><button onclick={() => document.getElementById("configurar-controles")?.focus()}>Controles</button>
+        <button onclick={() => document.getElementById("interfaz")?.focus()}>Interfaz</button><button onclick={() => document.getElementById("configurar-controles")?.focus()}>Controles</button>
         {#if !game}<a href="#juegos">Biblioteca y almacenamiento</a>{/if}
       </nav>
-      <div id="interfaz"><InterfacePreference /></div>
+      <div id="interfaz" tabindex="-1"><InterfacePreference /></div>
       <h2 id="configurar-controles" tabindex="-1">Configurar controles</h2>
       <ControlsPanel />
     </section>

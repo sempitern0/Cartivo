@@ -1,6 +1,6 @@
 # N64 — admisión y primer incremento experimental
 
-Fecha: 2026-11-07. **Estado del núcleo: candidate; gate completo pendiente.** Este incremento solo incorpora código original del laboratorio y una microprueba de corutinas. No distribuye fuentes ni un binario del núcleo N64, ni cambia las licencias de Cartivo.
+Fecha: 2026-11-07. **CORE-LEGAL-01: accepted (uso privado)**, ver la [decisión](#core-legal-01-decisión). El núcleo se compila en CI (`cores/mupen64plus-next`, `tools/build-mupen64plus-next.mjs`). Solo lo carga el laboratorio; la app no lo registra hasta el gate de viabilidad.
 
 ## Identidad fijada y evidencia primaria
 
@@ -16,34 +16,38 @@ Candidato: Mupen64Plus-Next, repositorio `libretro/mupen64plus-libretro-nx`, com
 
 Toolchain usada para la microprueba: **Emscripten 6.0.12**, compilador `5488e0871d46d19a3209988190fa6a653126256f`; SDK release `6e9f6885cb17a3d6c8fd488a5cff730f50aba61d`. No usar `latest` en una receta del núcleo.
 
-## CORE-LEGAL-01 pendiente del artefacto completo
+## CORE-LEGAL-01: decisión
 
-- LICENSE raíz del candidato: [GPL v2](https://github.com/libretro/mupen64plus-libretro-nx/blob/15bada85906593376e8fd697f1b0b3af3a20f512/LICENSE). Verificar las cabeceras de los componentes efectivamente compilados antes de concluir si cada parte es only/or-later.
-- Inventariar GLideN64, RSP HLE, libretro-common, libco, dependencias de imagen/compresión y runtime del compilador. Identificar exclusiones concretas de paraLLEl/Angrylion y componentes no utilizados, no inferirlas solo por el nombre del núcleo.
-- El puente experimental es original del repositorio; no se ha copiado código de libco ni asignado una nueva licencia al proyecto. Su incorporación a un artefacto enlazado requiere revisar la licencia resultante según la política vigente.
-- Firmware/microcódigo: limitar inicialmente a cartuchos N64, sin 64DD, Transfer Pak, BIOS externas ni recursos propietarios; confirmar los requisitos efectivos del build antes de admitirlo.
-- SBOM, manifiesto de fuentes, hashes de artefactos, avisos y decisión de admisión del núcleo: **pendientes**. No generar registros que aparenten un build ya existente.
-- Uso privado según política vigente; no inferir que Worker, carga dinámica o repositorios separados resuelven la distribución de un trabajo combinado.
+**accepted (uso privado).** Todas las licencias están identificadas y son libres. Habilita compilar y versionar el núcleo mientras Cartivo no se distribuya; no lo convierte en publicable.
 
-## Inventario del artefacto de laboratorio (sesión 2)
+- **Licencias:** las del [inventario](#inventario-del-artefacto) y el SBOM que genera la receta (`cores/mupen64plus-next/sbom.json`). Textos en `apps/web/public/licenses/mupen64plus-next-LICENSE.txt` (GPL-2.0 raíz; el workflow lo compara con el checkout) y `mupen64plus-next-NOTICES.txt` (GLideN64 y sus terceros, libpng, mupen64plus-core y zlib, copiados del commit fijado).
+- **Si se publicara Cartivo:**
+  - la GPL enlazada estáticamente obligaría a ofrecer las fuentes correspondientes (receta reproducible, commit, parche y frontend) y afectaría a la licencia del conjunto, que hoy es PolyForm Noncommercial;
+  - GLideN64 declara GPL-2.0 sin «or later» e incluye código derivado de gles2n64 bajo LGPL-3.0, una combinación que conviene revisar jurídicamente antes de distribuir.
+  - No es asesoramiento legal.
+- **Firmware:** ninguno externo, solo cartuchos N64 (sin 64DD, Transfer Pak ni BIOS). PIF y CIC son HLE del núcleo e IPL3 viene en cada cartucho.
+- **Partidas (ADR-009):** el núcleo implementa `retro_serialize`. Se integra o se rechaza con motivo en la fase 5, con su formato ligado a núcleo y versión.
+- **Trazabilidad:** build en CI con el emsdk de `toolchain.json` (4.0.10, LLVM 21; ver [Emscripten 6.0.12](#emscripten-6012-se-cuelga-investigación-abierta)), `--verify` para reproducibilidad y hashes en `manifest.json`. `pnpm verify:core` lo comprobará en cuanto existan los artefactos del bot.
+- **Worker y carga diferida** no crean independencia jurídica del trabajo combinado.
 
-Lo enlazado por `experiments/n64/build-core.mjs`: 270 objetos del target `emscripten` de upstream, con GLES3, sin dynarec y sin hilos usados. Las licencias se leyeron en los archivos del checkout fijado.
+## Inventario del artefacto
+
+Lo enlazado por `tools/build-mupen64plus-next.mjs` (antes por la receta del laboratorio): 270 objetos del target `emscripten` de upstream, con GLES3, sin dynarec y sin hilos usados. Las licencias se leyeron en los archivos del checkout fijado.
 
 | Componente | Objetos | Licencia (archivo del checkout) |
 |---|---|---|
 | mupen64plus-core (CPU, intérprete en caché, PIF/CIC HLE, memoria) y `custom/mupen64plus-core` | 65 | GPL-2.0-or-later (`mupen64plus-core/LICENSES`) |
-| GLideN64 (RDP por GL, uCodes, GLideNHQ, OpenGLContext; el envoltorio con hilos se enlaza pero no se usa) | 131 | GPL-2.0-or-later (`GLideN64/LICENSE`, `GLideN64/licenses/`) |
+| GLideN64 (RDP por GL, uCodes, GLideNHQ, OpenGLContext; el envoltorio con hilos se enlaza pero no se usa) | 131 | GPL-2.0-only (`GLideN64/LICENSE`: «version 2»; la mayoría de sus fuentes no tienen cabecera). Terceros en `GLideN64/licenses/`: gles2n64 LGPL-3.0, GLSL-FXAA MIT, Glow MIT, readerwriterqueue BSD-2-Clause y Zlib |
 | mupen64plus-rsp-hle | 14 | GPL-2.0-or-later (`mupen64plus-rsp-hle/LICENSES`) |
-| Frontend libretro del núcleo (`libretro/libretro.c`) | 1 | GPL-2.0 (`LICENSE` raíz) |
+| Frontend libretro del núcleo (`libretro/libretro.c`) | 1 | GPL-2.0-or-later (cabecera; `LICENSE` raíz con la GPL-2.0) |
 | libretro-common (audio, glsm, glsym, VFS, streams…; su libco.o queda en el archivo, pero no se enlaza) | 23 | MIT |
-| libpng y zlib incluidos (`custom/dependencies`) | 30 | libpng-2.0 y Zlib |
+| libpng 1.6.34 y zlib 1.2.8 incluidos (`custom/dependencies`) | 30 | Libpng y Zlib |
 | minizip y md5 (`mupen64plus-core/subprojects`) | 4 | Zlib y licencia de L. Peter Deutsch (tipo zlib) |
-| `host/frontend.c` y `fibers/cooperative.c` (Cartivo) | 2 | código original del repositorio |
+| `cores/mupen64plus-next/src/frontend.c` y `cooperative.c` (Cartivo) | 2 | código original del repositorio |
 
 - **No se compilan:** paraLLEl-RDP, paraLLEl-RSP (con GNU lightning), cxd4, angrylion ni el dynarec.
-- **Parche aplicado:** `patches/emu-thread-entry.patch`, dos funciones en `libretro/libretro.c`. La entrada de la corutina se llama con el tipo `void (void)` que espera libco, porque WebAssembly detiene las llamadas indirectas con otro tipo. Es candidato a enviarse upstream.
+- **Parche aplicado:** `cores/mupen64plus-next/patches/emu-thread-entry.patch`, dos funciones en `libretro/libretro.c`. La entrada de la corutina se llama con el tipo `void (void)` que espera libco, porque WebAssembly detiene las llamadas indirectas con otro tipo. Es candidato a enviarse upstream.
 - **Firmware:** ninguno externo. El PIF y el CIC son HLE del núcleo, y cada cartucho trae su propio IPL3; la demo de Cartivo lo sustituye por código original.
-- **Pendiente para CORE-LEGAL-01:** SBOM completo con versiones (libpng, zlib), avisos, revisar las cabeceras «only/or-later» de cada archivo compilado y build reproducible con la toolchain fijada. La decisión sigue en **candidate**.
 
 ## Decisiones del primer incremento
 
@@ -87,7 +91,7 @@ Primer build reproducible, hecho por el titular en WSL (Ubuntu) con emsdk 6.0.12
 | Campo | Valor |
 |---|---|
 | Núcleo | `libretro/mupen64plus-libretro-nx` `15bada85906593376e8fd697f1b0b3af3a20f512` |
-| Parche | `patches/emu-thread-entry.patch` |
+| Parche | `cores/mupen64plus-next/patches/emu-thread-entry.patch` |
 | emcc | 6.0.12 (`5488e0871d46d19a3209988190fa6a653126256f`) |
 | clang | 24.0.0git |
 | `reproducible` | `true` |
@@ -95,6 +99,20 @@ Primer build reproducible, hecho por el titular en WSL (Ubuntu) con emsdk 6.0.12
 | Imports | 407 |
 
 El binario no se versiona (laboratorio, fuera de `cores/`). Falta repetirlo en un segundo entorno para comprobar que el hash coincide.
+
+## Emscripten 6.0.12 se cuelga (investigación abierta)
+
+- **Builds afectados:** el del titular en WSL y el de la CI, con el mismo hash, `269939ab…`. Arrancan, cargan el cartucho y crean el contexto WebGL2. Tras `M64CMD_EXECUTE` el Worker no vuelve a responder.
+- **Diagnóstico en Chromium headless:**
+  - pausando el Worker por CDP, siempre está en `fd_write` desde la misma función;
+  - instrumentando el glue, la primera línea que el núcleo imprime desde su fibra escribe el prefijo `[n64 1] ` y luego entra en un bucle de escrituras vacías a stderr: musl cree que quedan datos mientras el iovec que pasa mide 0.
+  - Son variables corruptas dentro de la fibra.
+- **Descartado:**
+  - el búfer de Asyncify por fibra: de 64 KiB a 1 MiB, sigue igual;
+  - el glue de fibras (`_emscripten_fiber_swap`, `finishContextSwitch`): idéntico en 4.0.10 y 6.0.12;
+  - la API `emscripten_fiber_init`: misma semántica.
+- **Candidatos:** LLVM 24 (snapshot `24.0.0git`), la libc de Emscripten 6 o el pase Asyncify de Binaryen 133. Aquí no se puede reproducir: falta LLVM 24, y Binaryen 133 no encaja con el emcc 4.0.10.
+- **Decisión:** el núcleo fija emsdk **4.0.10** con LLVM 21 (`toolchain.json`), con el que la demo, los botones, el audio, la pausa y la pérdida de contexto funcionan. Volver a 6.x requiere un build de diagnóstico (`-g2 -sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2`) en una máquina con emsdk.
 
 ## Siguiente acción concreta
 

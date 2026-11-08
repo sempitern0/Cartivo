@@ -64,13 +64,18 @@ test("cancel terminates an in-flight probe and discards stale results", async ({
   await expect(page.locator("#status")).toContainText("Diagnóstico completado");
 });
 
-// Needs the local core build (node experiments/n64/build-core.mjs); without
+// Needs the core in cores/mupen64plus-next/dist (CI build); without
 // it the test is skipped and does not count as N64 support demonstrated.
 test("a real session runs the original demo cartridge and reads the pad", async ({
   page,
 }) => {
   test.skip(
-    !existsSync(new URL(".build/web/n64-core.mjs", import.meta.url)),
+    !existsSync(
+      new URL(
+        "../../cores/mupen64plus-next/dist/n64-core.mjs",
+        import.meta.url,
+      ),
+    ),
     "núcleo local no compilado",
   );
   await page.goto("/");
@@ -113,7 +118,12 @@ test("a real session runs the original demo cartridge and reads the pad", async 
 
 test("a lost WebGL context stops the session and says so", async ({ page }) => {
   test.skip(
-    !existsSync(new URL(".build/web/n64-core.mjs", import.meta.url)),
+    !existsSync(
+      new URL(
+        "../../cores/mupen64plus-next/dist/n64-core.mjs",
+        import.meta.url,
+      ),
+    ),
     "núcleo local no compilado",
   );
   await page.goto("/");
@@ -136,7 +146,12 @@ test("pause holds the emulation, resume continues, the log names the GPU", async
   page,
 }) => {
   test.skip(
-    !existsSync(new URL(".build/web/n64-core.mjs", import.meta.url)),
+    !existsSync(
+      new URL(
+        "../../cores/mupen64plus-next/dist/n64-core.mjs",
+        import.meta.url,
+      ),
+    ),
     "núcleo local no compilado",
   );
   await page.goto("/");

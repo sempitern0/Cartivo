@@ -72,8 +72,12 @@ test("worker protocol rejects malformed input and unbounded frame batches", () =
     { ...r, v: 2 },
     { ...r, id: -1 },
     { ...r, session: "" },
+    { ...r, analog: { left: { x: 2, y: 0 }, right: { x: 0, y: 0 } } },
+    { ...r, analog: "centred" },
   ])
     assert.throws(() => parseNesRequest(bad));
+  const sticks = { left: { x: -1, y: 0.5 }, right: { x: 0, y: 0 } };
+  assert.deepEqual(parseNesRequest({ ...r, analog: sticks }).analog, sticks);
 });
 
 test("larger cartridges on mappers 1–4 execute original fixture and restore SRAM", () => {

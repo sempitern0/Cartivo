@@ -41,6 +41,7 @@
   let note = $state("");
   let confirming = $state<string>();
   let managing = $state<string>();
+  let libraryElement: HTMLElement;
   async function confirmRemove(hash: string) {
     confirming = hash;
     await tick();
@@ -55,6 +56,10 @@
   const consoles = $derived.by(() => {
     const present = new Set(games.map((g) => g.system));
     return availableSystems().filter((s) => present.has(s.id));
+  });
+  $effect(() => {
+    if (!loading && systemFilter && !games.some((game) => game.system === systemFilter))
+      systemFilter = "";
   });
   const shown = $derived(viewGames(games, { query, system: systemFilter, sort }));
   const megabytes = (bytes: number) =>
@@ -95,11 +100,11 @@
     }
     await onchange();
     await tick();
-    document.querySelector<HTMLInputElement>('.library input[type="search"]')?.focus();
+    (libraryElement.querySelector<HTMLInputElement>('input[type="search"]') ?? libraryElement).focus();
   }
 </script>
 
-<section class="library" aria-label="Tus juegos">
+<section bind:this={libraryElement} class="library" aria-label="Tus juegos" tabindex="-1">
   <p class="hint">Biblioteca compartida con todos los perfiles de este dispositivo. Partidas y recientes propios para cada perfil.</p>
   {#if games.length}
     <div class="filters">

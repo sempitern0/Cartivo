@@ -9,6 +9,8 @@ import { PRINCIPAL, scoped } from "./profiles.ts";
 import { digest } from "./sram.ts";
 import {
   catalogue,
+  catalogueEntry,
+  migratedProfiles,
   migrateTitles,
   overlayCatalogue,
   publishTitle,
@@ -163,10 +165,14 @@ export async function sharedGames(
   profile: string,
   profiles: readonly string[],
 ) {
+  const migrated = await migratedProfiles();
+  const relevant = [...new Set([...profiles, profile])].filter(
+    (id) => id === profile || !migrated.has(id),
+  );
   const lists = await Promise.all(
-    profiles.map(async (id) => {
+    relevant.map(async (id) => {
       const entries = await listGames(id);
-      await migrateTitles(id, entries);
+      if (!migrated.has(id)) await migrateTitles(id, entries);
       return { id, entries };
     }),
   );
@@ -184,13 +190,11 @@ export function updateGame(
   patch: Partial<Pick<LibraryEntry, "lastPlayedAt" | "preview" | "name">>,
   profile = PRINCIPAL,
 ): Promise<boolean> {
-  return catalogue().then((shared) =>
+  return catalogueEntry(hash).then((shared) =>
     withIndex(profile, async (db) => {
       const tx = db.transaction("games", "readwrite");
       const store = tx.objectStore("games");
-      const entry =
-        parseEntry(await request(store.get(hash))) ??
-        shared.find((game) => game.hash === hash);
+      const entry = parseEntry(await request(store.get(hash))) ?? shared;
       if (entry) store.put({ ...entry, ...patch });
       await done(tx);
       return !!entry;

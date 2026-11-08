@@ -90,6 +90,8 @@
   let savesButton = $state.raw<HTMLButtonElement>();
   let resumeOffer = $state.raw<StateMeta>();
   let toast = $state("");
+  let hasPlayed = false;
+  let exitSaveFailed = $state(false);
   let toastTimer = 0;
   function notify(message: string) {
     toast = message;
@@ -294,6 +296,7 @@
     pacer.start(performance.now());
     metrics.reset(performance.now());
     phase = "running";
+    hasPlayed = true;
     await tick();
     (actionsElement ?? screen)?.scrollIntoView({ block: "nearest" });
     screen?.focus({ preventScroll: true });
@@ -381,7 +384,11 @@
     }
     try {
       const requestedAt = performance.now();
-      const r = await client!.request("advance", { count, input });
+      const r = await client!.request("advance", {
+        count,
+        input,
+        analog: reading.analog,
+      });
       const completedAt = performance.now();
       if (active && phase === "running")
         metrics.record(completedAt, completedAt - requestedAt, count);
@@ -494,7 +501,13 @@
     if (phase === "running") await pause();
     // Exit snapshot so the next opening can continue from here. Skipped
     // while the continue offer is pending: nothing has been played yet.
-    if (phase === "paused" && !resumeOffer) await saveSlot("auto", true);
+    if (phase === "paused" && hasPlayed && !resumeOffer && !noStorage) {
+      exitSaveFailed = !(await saveSlot("auto", true));
+      if (exitSaveFailed) {
+        problem = "No se pudo guardar la partida al salir. Reintenta Salir o exporta una ranura desde Partidas antes de cerrar.";
+        return;
+      }
+    }
     if (saveStatus === "Guardado sin confirmar.") {
       problem =
         "Exporta una copia antes de cerrar: el guardado local no se ha confirmado.";
@@ -737,7 +750,7 @@
     />
   {/if}
 
-  {#if saveStatus === "Guardado sin confirmar."}<button
+  {#if saveStatus === "Guardado sin confirmar." || exitSaveFailed}<button
       onclick={() => {
         client?.dispose();
         sound.close();

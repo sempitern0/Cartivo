@@ -3,6 +3,7 @@ import {
   type Action,
   type InputState,
 } from "../../input/src/nes-input.ts";
+import { isAnalog, type Analog } from "../../input/src/analog.ts";
 
 /** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y, PS1 L2/R2). */
 const optional: readonly Action[] = ["l", "r", "x", "y", "l2", "r2"];
@@ -43,6 +44,8 @@ export type EmuRequest = {
   remember?: boolean;
   count?: number;
   input?: InputState;
+  /** `advance`: player 1's sticks; omitted means centred (older clients). */
+  analog?: Analog;
   backup?: unknown;
   /** System for `load` (systems.ts id); omitted means NES (protocol v1). */
   system?: string;
@@ -138,6 +141,8 @@ export function parseRequest(value: unknown): EmuRequest {
       ))
   )
     throw Error("Entrada inválida");
+  if (r.analog !== undefined && !isAnalog(r.analog))
+    throw Error("Sticks inválidos");
   // Protocol v1 clients from before L/R send eight buttons: L/R are released.
   if (r.input) for (const a of optional) r.input[a] ??= false;
   return r;

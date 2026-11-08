@@ -53,10 +53,12 @@ test("the start shows the consoles and Ajustes opens controls", async ({
     path: `${shots}/${variant(baseURL)}-home-desktop.png`,
   });
   // Controls are global: the header's «Ajustes», not each card.
-  await expect(page.getByRole("link", { name: /^Controles de/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /^Controles de/ })).toHaveCount(
+    0,
+  );
   await page.getByRole("link", { name: "Ajustes" }).click();
   await expect(
-    page.getByRole("heading", { name: "Configurar controles" }),
+    page.getByRole("heading", { name: "Ajustes", exact: true }),
   ).toBeFocused();
   await page.screenshot({
     path: `${shots}/${variant(baseURL)}-controls-desktop.png`,
@@ -83,8 +85,9 @@ test("keyboard drawing lights the pressed key during the test", async ({
 });
 
 test("a file dropped on a card opens with that console", async ({ page }) => {
-  const { controlDemo } =
-    await import("../../packages/fixtures/src/control-demo.ts");
+  const { controlDemo } = await import(
+    "../../packages/fixtures/src/control-demo.ts"
+  );
   await page.goto("/");
   const card = page.getByRole("article", { name: "NES", exact: true });
   const bytes = [...controlDemo()];
@@ -97,12 +100,12 @@ test("a file dropped on a card opens with that console", async ({ page }) => {
   await expect(card).toHaveClass(/\bover\b/);
   await card.dispatchEvent("drop", { dataTransfer: transfer });
   await playing(page);
-  await expect(page.getByRole("heading", { name: "soltado.nes" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "soltado.nes" }),
+  ).toBeVisible();
 });
 
-test("clicking anywhere on a card opens its game picker", async ({
-  page,
-}) => {
+test("clicking anywhere on a card opens its game picker", async ({ page }) => {
   await page.goto("/");
   const chooser = page.waitForEvent("filechooser");
   await page
@@ -113,8 +116,9 @@ test("clicking anywhere on a card opens its game picker", async ({
 });
 
 test("Cargar ROM replaces the game with a single session", async ({ page }) => {
-  const { controlDemo } =
-    await import("../../packages/fixtures/src/control-demo.ts");
+  const { controlDemo } = await import(
+    "../../packages/fixtures/src/control-demo.ts"
+  );
   await page.goto("/");
   await startDemo(page, "NES");
   await playing(page);
@@ -220,9 +224,7 @@ test("the logo returns to the start and the console cards line up", async ({
       cards.map((card) => ({
         row: Math.round(card.getBoundingClientRect().top),
         button: Math.round(
-          card
-            .querySelector("button.play")!
-            .getBoundingClientRect().top,
+          card.querySelector("button.play")!.getBoundingClientRect().top,
         ),
       })),
     );
