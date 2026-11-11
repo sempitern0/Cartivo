@@ -152,7 +152,7 @@ Esto implica:
 | JIT | No (intérprete) | WASM JIT (CodeGen_Wasm) |
 | SharedArrayBuffer | No necesario | **Obligatorio** |
 | COOP/COEP | No necesario | **Obligatorio** |
-| Tamaño WASM | 0,5–3 MiB | Estimado 5–15 MiB |
+| Tamaño WASM | 0,5–3 MiB | 2,4 MiB + 188 KiB de JS (build `a56f8b2`) |
 | Save states | ~5 KB – 300 KB | ~40 MiB (buffer) |
 | Disco | Cartucho en RAM | VFS bajo demanda |
 
@@ -184,7 +184,9 @@ Sin embargo, la **viabilidad técnica de la integración** requiere:
 
 Solo tras el spike se puede mover a `accepted (uso privado)` y planificar la integración.
 
-**Receta del spike (2026-11-11):** `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (envoltorio que enlaza `PlayCore`, `ui_shared`, `gsh_opengl` y el frontend libretro con el puente `cores/play/src/cartivo.cpp`), disparada solo por `cores/play/.build-request` (`.github/workflows/core-play.yml`). Salida: `play.js` (cargador ES y worker de pthreads) + `play.wasm`; contexto WebGL2 sobre el OffscreenCanvas del host (`#cartivo-canvas`) y disco montado con WORKERFS. El grafo CMake se ha validado con una configuración nativa (`USE_GLES=ON`); la compilación con Emscripten está **pendiente** del primer build deliberado.
+**Receta del spike (2026-11-11):** `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (envoltorio que enlaza `PlayCore`, `ui_shared`, `gsh_opengl` y el frontend libretro con el puente `cores/play/src/cartivo.cpp`), disparada solo por `cores/play/.build-request` (`.github/workflows/core-play.yml`). Salida: `play.js` (cargador ES y worker de pthreads) + `play.wasm`; contexto WebGL2 sobre el OffscreenCanvas del host (`#cartivo-canvas`) y disco montado con WORKERFS. El grafo CMake se ha validado con una configuración nativa (`USE_GLES=ON`); el primer build deliberado se completó en CI (run 42979336329, commit `a56f8b2`, emsdk 6.0.12): `play.js` 188 KiB (`334e6b17c6a6`) y `play.wasm` 2,4 MiB (`16aec860bcb4`), 16 dependencias con licencia identificada (`verify-core`) y aviso `License.txt` idéntico al upstream. Hicieron falta cuatro correcciones de receta: `include(Header)` después de `project()` para detectar Emscripten, `-lembind` para el JIT de CodeGen, versionar `cores/play/dist/` y seguir compilando tras un error (`-k`).
+
+**Paso 1 del spike (compilación): hecho.** Siguen pendientes la ejecución en navegador (adaptador, OffscreenCanvas, WORKERFS y pthreads con SharedArrayBuffer), el ADR de COOP/COEP, el rendimiento con homebrew y la persistencia de memory cards. Por eso el resultado sigue siendo `investigation`.
 
 ## SBOM resumido
 
