@@ -11,7 +11,7 @@ import {
   discIdentity,
   type DiscPart,
 } from "../../storage/src/disc-identity.ts";
-import { resolveDisc } from "../../storage/src/cue.ts";
+import { resolveDisc, sheetText } from "../../storage/src/cue.ts";
 import { digest } from "../../storage/src/sram.ts";
 
 type Loader = Pick<
@@ -76,11 +76,15 @@ export async function prepareDisc(
     parts = [{ name, blob: new Blob([bytes as BlobPart]) }];
   } else throw Error("Este sistema no tiene demo integrada.");
   const [first, ...others] = parts;
-  const layout = await resolveDisc(first, others, (part) => part.blob.text());
+  const layout = await resolveDisc(first, others, (part) =>
+    sheetText(part.name, part.blob),
+  );
   if (layout.missing.length)
     throw Error(
       `Faltan archivos del juego: ${layout.missing.join(", ")}. Ábrelos junto con el ${first.name.toLowerCase().endsWith(".m3u") ? ".m3u" : ".cue"} (selecciónalos todos a la vez).`,
     );
+  if (!layout.boots.length)
+    throw Error(`«${first.name}» no nombra ningún disco.`);
   // `identified`: the files of the game's identity, as the library copies
   // them, under the names the core asks for. The core reads a .cue itself
   // and does not expect a UTF-8 BOM (Blob.text() drops it silently).

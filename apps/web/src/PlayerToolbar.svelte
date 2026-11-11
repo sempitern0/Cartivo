@@ -4,6 +4,7 @@
   // never starts workers or writes saves; the player decides what happens.
   import { icons } from "./icons.ts";
   import DiscMenu from "./DiscMenu.svelte";
+  import type { DiscTrayState } from "../../../packages/runtime/src/protocol.ts";
   type Phase = "ready" | "loading" | "running" | "paused" | "error";
   let {
     systemName,
@@ -40,7 +41,7 @@
     onrom: () => void;
     onexit: () => void;
     /** A game on several discs: its tray (ADR-015). */
-    discs?: { names: string[]; current: number };
+    discs?: DiscTrayState;
     ondisc?: (index: number) => void;
   } = $props();
 </script>

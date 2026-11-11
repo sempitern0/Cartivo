@@ -3,6 +3,21 @@
 // the page (to ask for missing files before starting) and the Worker (to
 // identify the game and hand the core its files).
 
+/** A .cue or .m3u is a few lines of text: anything larger is not one. */
+export const MAX_SHEET_BYTES = 1024 * 1024;
+
+/**
+ * The text of a .cue or .m3u. Refuses a file too large to be one (a disc
+ * image with the wrong extension) instead of reading it whole into memory.
+ */
+export async function sheetText(name: string, blob: Blob): Promise<string> {
+  if (blob.size > MAX_SHEET_BYTES)
+    throw Error(
+      `«${name}» es demasiado grande para ser una lista de archivos (.cue o .m3u). Comprueba que no sea la imagen del disco con otra extensión.`,
+    );
+  return blob.text();
+}
+
 /** The files a .cue sheet names, in order (`FILE "name" TYPE` lines). */
 export function cueFiles(text: string): string[] {
   return [

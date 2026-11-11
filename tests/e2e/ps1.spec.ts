@@ -176,12 +176,25 @@ test("an .m3u game: disc 1 boots, the tray swaps to disc 2 and a reset boots it"
     page.getByRole("heading", { name: "Cartivo Demo.m3u" }),
   ).toBeVisible();
   await expect.poll(() => shows(page, [33, 33, 99])).toBe(true); // disc 1
-  await page.getByRole("button", { name: /^Disco 1 de 2/ }).click();
-  await page.getByRole("menuitem", { name: /^Disco 2/ }).click();
-  await expect(page.getByTestId("toast")).toContainText("Disco 2 puesto");
-  await expect(
-    page.getByRole("button", { name: /^Disco 2 de 2/ }),
-  ).toBeVisible();
+  await page.keyboard.press("F5"); // a Partida on disc 1
+  await expect(page.getByTestId("toast")).toContainText("ranura 1");
+  const tray = (disc: number) =>
+    page.getByRole("button", { name: new RegExp(`^Disco ${disc} de 2`) });
+  const inTray = (disc: number) =>
+    page.getByRole("menuitemradio", { name: new RegExp(`^Disco ${disc}`) });
+  const swapToDisc2 = async () => {
+    await tray(1).click();
+    await expect(inTray(1)).toBeChecked();
+    await inTray(2).click();
+    await expect(page.getByTestId("toast")).toContainText("Disco 2 puesto");
+    await expect(tray(2)).toBeVisible();
+  };
+  await swapToDisc2();
+  // Loading the Partida saved on disc 1 puts disc 1 back, and the tray says so.
+  await page.keyboard.press("F9");
+  await expect(page.getByTestId("toast")).toContainText("Partida cargada");
+  await expect(tray(1)).toBeVisible();
+  await swapToDisc2();
   // A reset keeps the disc in the tray: disc 2 boots, dark green.
   const pause = page.getByRole("button", { name: "Pausar juego" });
   if (await pause.isVisible()) await pause.click();

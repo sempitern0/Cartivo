@@ -144,9 +144,14 @@ test("an .m3u game boots disc 1, swaps to disc 2 and a new core boots it", async
     "Cartivo Demo (Disc 2).cue",
   ]);
   assert.equal(idleColour(core), 0x212163); // disc 1: dark blue
+  const onDisc1 = core.snapshot();
   core.discs!.insert(1);
   assert.equal(core.discs!.current(), 1);
   assert.throws(() => core.discs!.insert(5), /disco 6/);
+  // A Partida saved on disc 1 puts it back; the Worker reports the tray.
+  core.restore(onDisc1);
+  assert.equal(core.discs!.current(), 0);
+  core.discs!.insert(1);
   core.dispose();
   // A reset makes a new core with the disc in the tray: disc 2, dark green.
   const again = new PcsxRearmedAdapter(disc.withFirst(1));

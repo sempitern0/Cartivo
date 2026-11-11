@@ -12,7 +12,9 @@ import {
   cueFiles,
   m3uFiles,
   matchTracks,
+  MAX_SHEET_BYTES,
   resolveDisc,
+  sheetText,
 } from "../packages/storage/src/cue.ts";
 import { parseRequest } from "../packages/runtime/src/protocol.ts";
 
@@ -102,6 +104,21 @@ test("an .m3u lists discs: comments and blank lines are skipped", () => {
   const m3u =
     "\uFEFF#EXTM3U\r\nGame (Disc 1).cue\r\n\r\n  Game (Disc 2).chd  \n";
   assert.deepEqual(m3uFiles(m3u), ["Game (Disc 1).cue", "Game (Disc 2).chd"]);
+});
+
+test("a sheet too large to be one, or that names no disc, is refused", async () => {
+  // A disc image with the wrong extension is never read whole as text.
+  const huge = { size: MAX_SHEET_BYTES + 1, text: async () => "never" };
+  await assert.rejects(
+    sheetText("Juego.cue", huge as unknown as Blob),
+    /demasiado grande/,
+  );
+  assert.equal(await sheetText("a.m3u", new Blob(["a.chd\n"])), "a.chd\n");
+  const empty = new File(["#EXTM3U\n"], "Vacío.m3u");
+  await assert.rejects(
+    prepareDisc({ prepare: async () => {} }, empty, [], read),
+    /no nombra ningún disco/,
+  );
 });
 
 test("a game's files: .m3u → discs → tracks, with what is missing", async () => {

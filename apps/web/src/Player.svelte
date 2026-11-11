@@ -21,6 +21,7 @@
   import { downloadJson } from "./download.ts";
   import { stateFileName } from "../../../packages/storage/src/state-file.ts";
   import { EmulatorClient } from "../../../packages/runtime/src/client.ts";
+  import type { DiscTrayState } from "../../../packages/runtime/src/protocol.ts";
   import {
     acceptFor,
     type SystemInfo,
@@ -70,7 +71,7 @@
     onreplace?: (files: File[]) => void;
   } = $props();
   /** A game on several discs (ADR-015): its tray, from the Worker. */
-  let discs = $state.raw<{ names: string[]; current: number }>();
+  let discs = $state.raw<DiscTrayState>();
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
   );
@@ -126,6 +127,7 @@
       const r = await client.request("state-load", { slot });
       saves = r.states ?? saves;
       frames = r.frames ?? frames;
+      discs = r.discs ?? discs;
       resumeOffer = undefined;
       savesOpen = false;
       problem = "";

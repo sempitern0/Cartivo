@@ -368,7 +368,12 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       (id) => coreLabel(module.system, id),
     );
     core.restore(bytes);
-    return { frames: core.frames, states: await snapshots().list() };
+    // The core puts back the disc the Partida was saved on.
+    return {
+      frames: core.frames,
+      discs: tray(),
+      states: await snapshots().list(),
+    };
   }
   if (r.command === "state-export") {
     const record = await snapshots().record(r.slot!);

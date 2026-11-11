@@ -166,6 +166,9 @@ export function parseRequest(value: unknown): EmuRequest {
   if (r.input) for (const a of optional) r.input[a] ??= false;
   return r;
 }
+/** A multi-disc game's discs (boot file names, in order) and the one in. */
+export type DiscTrayState = { names: string[]; current: number };
+
 export type EmuResult = {
   pixels?: Uint8ClampedArray;
   /** Size of `pixels` in pixels (RGBA, width × height × 4 bytes). */
@@ -196,8 +199,11 @@ export type EmuResult = {
    * outcome (`remembered` or `libraryError`) comes with a later advance.
    */
   remembering?: number;
-  /** load and disc: a multi-disc game's discs (file names) and the one in. */
-  discs?: { names: string[]; current: number };
+  /**
+   * load, disc and state-load: a multi-disc game's tray. A Partida saved on
+   * another disc puts that disc back, so loading one reports it too.
+   */
+  discs?: DiscTrayState;
   /** load: this browser cannot save at all; the game runs without saving. */
   storageError?: string;
 };

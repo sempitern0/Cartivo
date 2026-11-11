@@ -37,7 +37,10 @@
     initials,
     type Profile,
   } from "../../../packages/storage/src/profiles.ts";
-  import { resolveDisc } from "../../../packages/storage/src/cue.ts";
+  import {
+    resolveDisc,
+    sheetText,
+  } from "../../../packages/storage/src/cue.ts";
   /** Screens without a router: the hash names the page (#ajustes, #juegos). */
   type Page = "inicio" | "ajustes" | "juegos";
   let page = $state<Page>("inicio");
@@ -146,9 +149,9 @@
   async function missingTracks({ file, extra }: GameFiles<File>) {
     if (!/\.(cue|m3u)$/i.test(file.name)) return [];
     try {
-      return (await resolveDisc(file, extra, (f) => f.text())).missing;
+      return (await resolveDisc(file, extra, (f) => sheetText(f.name, f))).missing;
     } catch {
-      return []; // unreadable here: the Worker reports it
+      return []; // unreadable or not a sheet: the Worker reports it
     }
   }
   /** Picks the system by extension; a card choice wins for its own picker. */

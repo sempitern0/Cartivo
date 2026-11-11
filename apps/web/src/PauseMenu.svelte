@@ -2,6 +2,7 @@
   import PerformanceDetails from "./PerformanceDetails.svelte";
   import type { FrameMetrics } from "../../../packages/media/src/frame-metrics.ts";
   import { onMount } from "svelte";
+  import type { DiscTrayState } from "../../../packages/runtime/src/protocol.ts";
   // Modo consola (ADR-006): the pause as a vertical menu over the game. A
   // modal dialog, so the pad and Tab stay in it; B or Escape resumes.
   let {
@@ -31,7 +32,7 @@
     onreset: () => void;
     onexit: () => void;
     /** A game on several discs: one button per disc not in the tray. */
-    discs?: { names: string[]; current: number };
+    discs?: DiscTrayState;
     ondisc?: (index: number) => void;
   } = $props();
   let dialog: HTMLDialogElement;

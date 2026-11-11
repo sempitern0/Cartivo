@@ -1,20 +1,22 @@
 <!--
   The disc tray of a game on several discs (an .m3u, ADR-015), in the player's
-  toolbar: «Disco N» opens a menu (Bits UI, ADR-019) with every disc; the one
-  in the tray is checked. Choosing another asks the player to swap it.
+  toolbar: «Disco N» opens a menu (Bits UI, ADR-019) with every disc as a
+  radio item; the one in the tray is checked. Choosing another asks the player
+  to swap it.
 -->
 <script lang="ts">
   import { DropdownMenu } from "bits-ui";
   import { fly } from "svelte/transition";
   import { icons } from "./icons.ts";
   import { motion } from "./motion.svelte.ts";
+  import type { DiscTrayState } from "../../../packages/runtime/src/protocol.ts";
 
   let {
     discs,
     disabled = false,
     onchange,
   }: {
-    discs: { names: string[]; current: number };
+    discs: DiscTrayState;
     disabled?: boolean;
     onchange: (index: number) => void;
   } = $props();
@@ -43,17 +45,28 @@
               data-pad-scope
               transition:fly={{ y: -6, duration: motion.ms(160) }}
             >
-              {#each discs.names as name, index (name)}
-                <DropdownMenu.Item
-                  class="disc-item"
-                  onSelect={() => onchange(index)}
-                  ><span class="check" aria-hidden="true"
-                    >{#if index === discs.current}{@html icons.check}{/if}</span
-                  ><span
-                    ><strong>Disco {index + 1}</strong><small>{name}</small></span
-                  ></DropdownMenu.Item
-                >
-              {/each}
+              <!-- A radio group: assistive technology announces the disc in
+                   the tray as checked. Controlled by the tray itself, so a
+                   refused swap never shows the wrong disc. -->
+              <DropdownMenu.RadioGroup
+                aria-label="Disco en la bandeja"
+                bind:value={
+                  () => String(discs.current), (index) => onchange(Number(index))
+                }
+              >
+                {#each discs.names as name, index (name)}
+                  <DropdownMenu.RadioItem class="disc-item" value={String(index)}>
+                    {#snippet children({ checked })}
+                      <span class="check" aria-hidden="true"
+                        >{#if checked}{@html icons.check}{/if}</span
+                      ><span
+                        ><strong>Disco {index + 1}</strong><small>{name}</small
+                        ></span
+                      >
+                    {/snippet}
+                  </DropdownMenu.RadioItem>
+                {/each}
+              </DropdownMenu.RadioGroup>
             </div>
           </div>
         {/if}
