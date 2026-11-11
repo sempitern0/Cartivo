@@ -1,6 +1,6 @@
 import { inflateSync } from "node:zlib";
 import { test, expect, type Page } from "./fixtures.ts";
-import { playDemo } from "./play.ts";
+import { playing, startDemo } from "./play.ts";
 
 // WebGL2 in software on CI runners: one heavy test at a time (fixtures.ts).
 test.use({ heavy: true });
@@ -9,19 +9,27 @@ test.use({ heavy: true });
 // the game canvas handed to the Worker (ADR-017), with Cartivo's own
 // cartridge. Oracle: dark blue, A red, Start yellow (a white square on top).
 
-/** Whether this engine offers WebGL2 inside a Worker, as the core needs. */
-const workerWebGl2 = (page: Page) =>
-  page.evaluate(
-    () =>
-      new Promise<boolean>((resolve) => {
-        const source =
-          "postMessage(!!(self.OffscreenCanvas && new OffscreenCanvas(1, 1).getContext('webgl2')))";
-        const url = URL.createObjectURL(new Blob([source]));
-        const worker = new Worker(url);
-        worker.onmessage = (e) => resolve(e.data === true);
-        worker.onerror = () => resolve(false);
-      }),
-  );
+/**
+ * Starts the demo and says whether this engine can play it. The core needs
+ * WebGL2 inside a Worker; where there is none, the player says why instead
+ * of failing silently. Decided by what the app does, not by a Worker made
+ * here: the built app's policy refuses blob: workers (ADR-021).
+ */
+async function demoStarts(page: Page) {
+  await startDemo(page, "N64");
+  const refused = page.getByRole("alert").filter({ hasText: "WebGL2" });
+  const started = async () =>
+    (await page.getByTestId("player-phase").textContent())?.includes(
+      "Jugando",
+    ) ||
+    (await page.getByRole("button", { name: "Empezar de nuevo" }).count()) > 0;
+  await expect
+    .poll(async () => (await refused.count()) > 0 || (await started()), {
+      timeout: 15000,
+    })
+    .toBe(true);
+  return (await refused.count()) === 0;
+}
 
 /** RGB at the centre of a PNG screenshot (8-bit RGB/RGBA, no interlace). */
 function centre(png: Buffer): number[] {
@@ -75,14 +83,11 @@ test("N64 demo: the core draws on the canvas and the pad recolours it", async ({
   await page.goto("/");
   const card = page.getByRole("article", { name: "N64", exact: true });
   await expect(card).toContainText("Experimental");
-  if (!(await workerWebGl2(page))) {
-    // The player says why instead of failing silently.
-    await card.getByRole("button", { name: /^Jugar/ }).focus();
-    await page.evaluate(() => (location.hash = "#demo/n64"));
-    await expect(page.getByRole("alert")).toContainText("WebGL2");
-    test.skip(true, "This engine offers no WebGL2 in a Worker here.");
-  }
-  await playDemo(page, "N64", 30);
+  test.skip(
+    !(await demoStarts(page)),
+    "This engine offers no WebGL2 in a Worker here.",
+  );
+  await playing(page, 30);
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("width", "640");
   await expect.poll(() => shows(page, [33, 33, 99])).toBe(true);
@@ -115,8 +120,8 @@ test("N64 demo: the core draws on the canvas and the pad recolours it", async ({
 
 test("N64 quick-saves with F5 and loads with F9", async ({ page }) => {
   await page.goto("/");
-  test.skip(!(await workerWebGl2(page)), "No WebGL2 in a Worker here.");
-  await playDemo(page, "N64");
+  test.skip(!(await demoStarts(page)), "No WebGL2 in a Worker here.");
+  await playing(page);
   await page.keyboard.press("F5");
   await expect(page.getByTestId("toast")).toContainText("ranura 1");
   await page.keyboard.press("F9");
