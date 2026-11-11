@@ -155,10 +155,8 @@ export function parseRequest(value: unknown): EmuRequest {
       ))
   )
     throw Error("Entrada inválida");
-  if (
-    r.command === "disc" &&
-    (!Number.isInteger(r.disc) || r.disc! < 0 || r.disc! > 7)
-  )
+  // Which discs exist is the core's to say (DiscTray.insert refuses the rest).
+  if (r.command === "disc" && (!Number.isInteger(r.disc) || r.disc! < 0))
     throw Error("Disco inválido");
   if (r.analog !== undefined && !isAnalog(r.analog))
     throw Error("Sticks inválidos");

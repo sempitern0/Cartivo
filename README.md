@@ -14,9 +14,9 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 | **Perfiles** | «¿Quién juega?» al abrir: cada perfil tiene sus partidas, sus juegos y sus controles en el mismo dispositivo, sin contraseña ([ADR-016](docs/adr/016-player-profiles.md)) |
 | **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola (los discos de PlayStation se copian mientras juegas, avisando si no caben) |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
-| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) QA de PlayStation con discos reales y de Nintendo 64 con más juegos, PSP; Safari/iOS con prioridad baja |
+| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado), QA de PlayStation con discos reales y de Nintendo 64 con más juegos, integración de PlayStation 2 (núcleo ya compilado); Safari/iOS con prioridad baja |
 
-Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
+Catálogo previsto: NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PS2 (en integración); PSP, GameCube y Dreamcast quedan aplazadas. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
 ## Empezar
 

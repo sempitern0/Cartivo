@@ -218,6 +218,13 @@ test("only a load from a file carries a disc's other files", () => {
   );
 });
 
+test("a disc change names a disc by its index", () => {
+  const swap = { v: 1, session: "s", id: 2, command: "disc" } as const;
+  assert.equal(parseRequest({ ...swap, disc: 1 }).disc, 1);
+  for (const disc of [undefined, -1, 1.5, "1"])
+    assert.throws(() => parseRequest({ ...swap, disc }), /Disco inválido/);
+});
+
 test("an .m3u game boots its first disc and can boot another after a reset", async () => {
   const module = { prepare: async () => {}, demo: undefined };
   const f = (name: string, text: string) => new File([text], name);
