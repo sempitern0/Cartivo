@@ -54,4 +54,5 @@ Además, el service worker instalaba lo que descargaba sin comprobarlo, aunque y
 
 - **Unitarias** (`tests/pwa.test.ts`): el service worker añade la política a la navegación, a copias en caché sin cabeceras y a lo que viene de la red; la política no admite `'unsafe-eval'`, comodines ni orígenes remotos; una copia vieja se vuelve a pedir y un archivo alterado hace fallar la instalación sin escribir el manifiesto.
 - **E2E** (`tests/e2e/pwa.spec.ts`, preview): la respuesta trae la política, una sesión de juego completa no produce ninguna violación, y una petición a otro origen se bloquea con una violación de `connect-src`. El resto de la suite en preview corre bajo la política en los tres navegadores.
-- **CI:** pendiente del run de la Foundation CI sobre este cambio.
+- **CI:** Foundation CI 43014407649 sobre `2076076`, en verde: `verify` y las seis tandas E2E. La política se cumple en los tres navegadores en preview.
+  - El primer run (`9febf96`) falló solo en la demo de N64 en Chromium preview, y fue por el test: su comprobación previa creaba un Worker desde un `blob:`, que `worker-src 'self'` bloquea como debe. Ahora decide según lo que hace la app (`tests/e2e/n64.spec.ts`). La app no necesitó ningún cambio.

@@ -9,6 +9,14 @@ export default defineConfig({
   // worker's entry again when a dynamic chunk imports from it, which reset
   // the session after the first core loaded. The cores' WebAssembly is still
   // fetched and compiled only when a game of that system starts.
+  // The dev server transforms the app and the emulator Worker when it
+  // starts, not on the first visit: with a cold server the first game took
+  // longer than the E2E's wait (the first test of every dev run was retried).
+  server: {
+    warmup: {
+      clientFiles: ["./src/main.ts", "./src/emulator.worker.ts"],
+    },
+  },
   worker: {
     format: "es",
     rollupOptions: { output: { codeSplitting: false } },
