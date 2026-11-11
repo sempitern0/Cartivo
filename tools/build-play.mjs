@@ -121,13 +121,14 @@ if (verify) {
 }
 
 // --- SBOM: what the `play` target links (its CMake graph for TARGET_PLATFORM_JS):
-// PlayCore, gsh_opengl, Framework, CodeGen, libchdr, zstd, zlib and xxHash.
+// PlayCore, gsh_opengl, Framework, CodeGen, libchdr, bzip2, zstd, zlib and xxHash.
 const emscripten = { version: pins.emsdk.version, repository: "https://github.com/emscripten-core/emscripten" };
 const sbom = [
   { name: "Play! (PS2 VM: EE, IOP HLE, SPU; OpenGL GS)", license: "BSD-2-Clause", version: commit, repository },
   { name: "Play--Framework", license: "BSD-2-Clause", version: sub["deps/Framework"], repository: "https://github.com/jpd002/Play--Framework" },
   { name: "Play--CodeGen (JIT, CodeGen_Wasm)", license: "BSD-2-Clause", version: sub["deps/CodeGen"], repository: "https://github.com/jpd002/Play--CodeGen" },
   { name: "libchdr (with bundled zlib 1.3.1, zstd 1.5.6, LZMA SDK 24.05)", license: "BSD-3-Clause AND Zlib AND LicenseRef-public-domain", version: sub["deps/libchdr"], repository: "https://github.com/jpd002/libchdr" },
+  { name: "bzip2 1.0.6", license: "bzip2-1.0.6", version: sub["deps/Dependencies"], repository: "https://github.com/jpd002/Play-Dependencies", path: "bzip2-1.0.6" },
   { name: "ghc::filesystem", license: "MIT", version: sub["deps/Dependencies/ghc_filesystem"], repository: "https://github.com/gulrak/filesystem" },
   { name: "Zstandard (zstd_zlibwrapper)", license: "BSD-3-Clause", version: sub["deps/Dependencies/zstd"], repository: "https://github.com/facebook/zstd" },
   { name: "xxHash", license: "BSD-2-Clause", version: sub["deps/Dependencies/xxHash"], repository: "https://github.com/Cyan4973/xxHash" },

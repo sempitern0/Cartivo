@@ -12,7 +12,7 @@ import { join, resolve } from "node:path";
 // licence, including the named non-commercial ones of the integrated cores.
 // Unknown or missing licences still fail.
 const allowed =
-  /^(MIT|Apache-2\.0|Apache-2\.0 WITH LLVM-exception|BSD-[23]-Clause|0BSD|ISC|Zlib|Unlicense|Unicode-3\.0|Libpng|MPL-2\.0|NCSA|CC0-1\.0|LicenseRef-public-domain|LicenseRef-(Snes9x|GenesisPlusGX|Musashi|MAME-Z80|notaz-SVP|NukedOPLL)-noncommercial|L?GPL-[23]\.[01](-only|-or-later)?)$/;
+  /^(MIT|Apache-2\.0|Apache-2\.0 WITH LLVM-exception|BSD-[23]-Clause|0BSD|ISC|Zlib|Unlicense|Unicode-3\.0|Libpng|bzip2-1\.0\.6|MPL-2\.0|NCSA|CC0-1\.0|LicenseRef-public-domain|LicenseRef-(Snes9x|GenesisPlusGX|Musashi|MAME-Z80|notaz-SVP|NukedOPLL)-noncommercial|L?GPL-[23]\.[01](-only|-or-later)?)$/;
 
 /** "MIT OR Apache-2.0", "(A AND B) / C": some alternative fully allowed. */
 const licensed = (expression) =>

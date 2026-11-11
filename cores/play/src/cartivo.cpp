@@ -36,6 +36,7 @@
 
 #include "AppConfig.h"
 #include "BasicBlock.h"
+#include "DefaultAppConfig.h" // defines CAppConfig::GetBasePath for this frontend
 #include "Jitter_CodeGen_Wasm.h"
 #include "MemStream.h"
 #include "MemoryUtils.h"
