@@ -6,10 +6,11 @@
 // cores/play/dist is built and committed by CI on request; its frontend is
 // cores/play/src/cartivo.cpp.
 import type { EmulatorCore } from "./contract.ts";
-import type { DiscImage, DiscPart } from "./disc.ts";
+import type { DiscImage } from "./disc.ts";
 import { surfaceFrame, useSurface, type EmscriptenGl } from "./surface.ts";
 import { compileFrom, libretroInputBits } from "./wasm-host.ts";
 import type { InputState } from "../../input/src/nes-input.ts";
+import type { DiscPart } from "../../storage/src/disc-identity.ts";
 import { centered, toInt16, type Analog } from "../../input/src/analog.ts";
 
 /** The parts of the Emscripten module this adapter uses. */
@@ -118,6 +119,7 @@ const drawing = new WeakMap<OffscreenCanvas, Ps2Core>();
 class Ps2Core implements EmulatorCore {
   /** Memory cards are not exported yet: progress is kept with Partidas. */
   readonly battery = false;
+  readonly saveBytes = 0;
   readonly frameRate: number;
   frames = 0;
   #em: Emscripten | undefined;
