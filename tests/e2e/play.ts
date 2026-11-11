@@ -6,7 +6,11 @@ import { expect, type Page } from "./fixtures.ts";
 export const frames = async (page: Page) =>
   Number(await page.locator("canvas").getAttribute("data-frames"));
 
-/** Waits for «Jugando» (starting over if a continue offer appears) and frames. */
+/**
+ * Waits for «Jugando» (starting over if a continue offer appears) and frames.
+ * Loading a multi-file disc game under Vite dev in WebKit takes several
+ * seconds, so the first wait gets more than the default 5 s.
+ */
 export async function playing(page: Page, minFrames = 10) {
   const offer = page.getByRole("button", { name: "Empezar de nuevo" });
   await expect
@@ -15,6 +19,7 @@ export async function playing(page: Page, minFrames = 10) {
         (await page.getByTestId("player-phase").textContent())?.includes(
           "Jugando",
         ) || (await offer.count()) > 0,
+      { timeout: 15000 },
     )
     .toBe(true);
   if (await offer.count()) await offer.click();

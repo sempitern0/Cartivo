@@ -147,7 +147,7 @@ export const SECOND_DISC_IDLE = 0x206020;
  */
 export function ps1TwoDiscDemo(): { name: string; bytes: Uint8Array }[] {
   const text = new TextEncoder();
-  const files = [
+  const files: { name: string; bytes: Uint8Array }[] = [
     {
       name: "Cartivo Demo.m3u",
       bytes: text.encode(
