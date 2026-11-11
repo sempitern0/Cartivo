@@ -74,7 +74,8 @@ run(
   ],
   { stdio: "inherit" },
 );
-run("cmake", ["--build", cmakeBuild, "--target", "play", "--parallel", String(availableParallelism())], {
+// -k (keep going): one CI run reports every compile error, not just the first.
+run("cmake", ["--build", cmakeBuild, "--target", "play", "--parallel", String(availableParallelism()), "--", "-k"], {
   stdio: "inherit",
 });
 

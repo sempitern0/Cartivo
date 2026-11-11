@@ -32,6 +32,9 @@ project(CartivoPlayPS2)
 # main_libretro.cpp reports PLAY_VERSION as library_version; upstream's top
 # level derives it from `git describe`, here it is the pinned commit.
 add_definitions(-DPLAY_VERSION="${PLAY_VERSION}")
+# Play-Dependencies' zlib ships the generic zconf.h, which only includes
+# <unistd.h> (lseek, off_t) when HAVE_UNISTD_H is set; Emscripten has it.
+add_compile_definitions(HAVE_UNISTD_H=1)
 
 # --- Play! static libraries (same targets as Source/ui_libretro) -----------
 if(NOT TARGET PlayCore)
