@@ -29,7 +29,7 @@
   "host": {
     "crossOriginIsolated": true,
     "surface": "WebGL2 context of the game canvas, current before cartivo_create",
-    "filesystem": "WORKERFS (disc mounted by path) or MEMFS"
+    "disc": "Module.discImageDevice (single-file image, read on demand)"
   },
   "frame": {
     "width": 640,
@@ -41,7 +41,6 @@
     "free",
     "cartivo_create",
     "cartivo_free",
-    "cartivo_reset",
     "cartivo_set_input",
     "cartivo_set_analog",
     "cartivo_frames",
@@ -54,11 +53,11 @@
   "files": [
     {
       "path": "dist/play.js",
-      "sha256": "3adc8c2827e29c0eb6d5a0f66c0a1a438b81a7cdbe0c06208cf2492f95a34300"
+      "sha256": "c70d3a1771bd51cef98640b301143f9b518f7a754d2d2a4e402f727990b69c6f"
     },
     {
       "path": "dist/play.wasm",
-      "sha256": "945352540d0fa6ba9c63e6ca8585a12425dfbc51cdf9b09d544ef2639a8717b1"
+      "sha256": "5be0e1fe9720c0509c205e224ec5af081848192b035da315943af30bf85cf310"
     }
   ]
 }
