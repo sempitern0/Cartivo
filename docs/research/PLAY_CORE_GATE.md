@@ -43,7 +43,7 @@
 | Componente | Licencia | En el WASM |
 |---|---|---|
 | bzip2 1.0.6 | BSD-like (Julian Seward) | Sí (compresión) |
-| GLEW 2.0.0 | BSD/MIT (Milan Ikits et al.) | Sí (extensiones GL) |
+| GLEW 2.0.0 | BSD/MIT (Milan Ikits et al.) | **No**: con Emscripten `TARGET_PLATFORM_JS` activa `USE_GLES` y `FrameworkOpenGl/CMakeLists.txt` no compila GLEW |
 | LZMA SDK 18.05 | Dominio público (Igor Pavlov) | Sí (compresión) |
 | sqlite 3.20.1 | Dominio público | Probable (almacenamiento) |
 | xxHash | BSD-2-Clause (Yann Collet) | Sí (hashing) |
@@ -184,6 +184,8 @@ Sin embargo, la **viabilidad técnica de la integración** requiere:
 
 Solo tras el spike se puede mover a `accepted (uso privado)` y planificar la integración.
 
+**Receta del spike (2026-11-11):** `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (envoltorio que enlaza `PlayCore`, `ui_shared`, `gsh_opengl` y el frontend libretro con el puente `cores/play/src/cartivo.cpp`), disparada solo por `cores/play/.build-request` (`.github/workflows/core-play.yml`). Salida: `play.js` (cargador ES y worker de pthreads) + `play.wasm`; contexto WebGL2 sobre el OffscreenCanvas del host (`#cartivo-canvas`) y disco montado con WORKERFS. El grafo CMake se ha validado con una configuración nativa (`USE_GLES=ON`); la compilación con Emscripten está **pendiente** del primer build deliberado.
+
 ## SBOM resumido
 
 | Componente | SPDX | Enlace estático | En el WASM |
@@ -194,7 +196,7 @@ Solo tras el spike se puede mover a `accepted (uso privado)` y planificar la int
 | Nuanceur (shaders) | BSD-2-Clause | Sí | Sí |
 | libchdr | BSD-3-Clause | Sí | Sí si CHD |
 | libretro-common (ext/libretro.h) | MIT | Sí | Sí si libretro |
-| GLEW 2.0.0 | BSD/MIT | Sí | Sí |
+| GLEW 2.0.0 | BSD/MIT | Sí | No (build GLES) |
 | bzip2 1.0.6 | BSD-like | Sí | Sí |
 | LZMA SDK 18.05 | Dominio público | Sí | Sí |
 | sqlite 3.20.1 | Dominio público | Sí | Probable |
