@@ -21,6 +21,52 @@ test("the app is cross-origin isolated (ADR-020)", async ({ page }) => {
   expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
 });
 
+test("the built app enforces its Content Security Policy (ADR-021)", async ({
+  page,
+  baseURL,
+}) => {
+  test.skip(
+    !baseURL?.includes(":4173"),
+    "The policy applies to the production build (preview); dev only isolates.",
+  );
+  // Violations of the page, recorded from before any script runs.
+  await page.addInitScript(() => {
+    const seen: string[] = [];
+    (window as unknown as { cspViolations: string[] }).cspViolations = seen;
+    document.addEventListener("securitypolicyviolation", (e) =>
+      seen.push(`${e.violatedDirective} ${e.blockedURI}`),
+    );
+  });
+  const violations = () =>
+    page.evaluate(
+      () => (window as unknown as { cspViolations: string[] }).cspViolations,
+    );
+  const response = await page.goto("/");
+  const policy = response!.headers()["content-security-policy"];
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).not.toContain("'unsafe-eval'");
+  // A whole game session (worker, WebAssembly, audio, saves) breaks no rule.
+  await startDemo(page, "NES");
+  await startOver(page);
+  await expect
+    .poll(async () =>
+      Number(await page.locator("canvas").getAttribute("data-frames")),
+    )
+    .toBeGreaterThan(10);
+  expect(await violations()).toEqual([]);
+  // Nothing leaves the origin: a request elsewhere is refused by the policy.
+  const sent = await page.evaluate(() =>
+    fetch("https://cartivo.invalid/leak", { mode: "no-cors" }).then(
+      () => true,
+      () => false,
+    ),
+  );
+  expect(sent).toBe(false);
+  await expect
+    .poll(violations)
+    .toContainEqual(expect.stringMatching(/^connect-src /));
+});
+
 test("web app manifest is installable and its icons load", async ({
   page,
   request,

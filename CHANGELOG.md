@@ -426,3 +426,5 @@
 
 - **Núcleo Play! en CI:** receta `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (frontend libretro y puente `cartivo.cpp`, WebGL2 sobre `#cartivo-canvas`, disco con WORKERFS). Primer build `a56f8b2`: `play.js` 188 KiB y `play.wasm` 2,4 MiB, 16 dependencias con licencia identificada; `verify:core` lo comprueba. Aún sin integrar en la app: el gate sigue en `investigation`.
 - **COOP/COEP en toda la PWA ([ADR-020](docs/adr/020-cross-origin-isolation.md)):** Vite dev y preview envían las cabeceras y el service worker las añade a todo lo que sirve, también a copias en caché guardadas sin ellas. E2E de `crossOriginIsolated` en dev, preview y sin red.
+- **Content Security Policy e instalación verificada ([ADR-021](docs/adr/021-content-security-policy.md)):** la app construida y sus workers solo cargan y contactan su propio origen (`connect-src 'self'`, sin `eval`), y el service worker comprueba el SHA-256 de cada archivo que instala.
+- **Discos:** cargar una Partida guardada con otro disco actualiza la bandeja; el menú de discos es un grupo de radio accesible; un `.cue` o `.m3u` demasiado grande o sin discos se rechaza con un mensaje claro.
