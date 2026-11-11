@@ -7,3 +7,4 @@ export function shouldPrecache(path: string): boolean;
 export function precacheVersion(entries: { path: string; hash: string }[]): string;
 export function buildServiceWorker(entries: { path: string; hash: string }[]): string;
 export function cartivoPwa(): Plugin;
+export function crossOriginIsolation(): Plugin;

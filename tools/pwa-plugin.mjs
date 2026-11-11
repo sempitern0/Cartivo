@@ -12,8 +12,8 @@ export const MANIFEST_PATH = "__cartivo-precache.json";
 /**
  * Cross-origin isolation (ADR-020): SharedArrayBuffer, and with it pthreads
  * in cores such as Play! (PS2), needs both headers on every document and
- * worker. Vite's dev and preview servers send them (apps/web/vite.config.ts)
- * and the service worker adds them to everything it serves.
+ * worker. Vite's dev and preview servers send them (crossOriginIsolation
+ * below) and the service worker adds them to everything it serves.
  */
 export const ISOLATION_HEADERS = {
   "Cross-Origin-Opener-Policy": "same-origin",
@@ -161,6 +161,25 @@ self.addEventListener("fetch", (event) => {
   );
 });
 `;
+}
+
+/**
+ * Vite plugin: the isolation headers on every dev and preview response.
+ * A middleware, not `server.headers`: Vite adds those after its ETag check,
+ * so a `304 Not Modified` for the emulator worker went out without COEP, and
+ * WebKit then blocked the worker the second time a game started.
+ */
+export function crossOriginIsolation() {
+  const isolate = (_req, res, next) => {
+    for (const [name, value] of Object.entries(ISOLATION_HEADERS))
+      res.setHeader(name, value);
+    next();
+  };
+  return {
+    name: "cartivo-cross-origin-isolation",
+    configureServer: (server) => void server.middlewares.use(isolate),
+    configurePreviewServer: (server) => void server.middlewares.use(isolate),
+  };
 }
 
 function walk(dir, root = dir, out = []) {

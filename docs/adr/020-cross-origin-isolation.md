@@ -21,7 +21,7 @@ Estado de partida, comprobado en el repositorio:
 1. **Aislamiento para toda la app**, no solo para PS2:
    - `COOP: same-origin` y `COEP: require-corp` en todos los documentos y workers;
    - las dos cabeceras se definen una sola vez, en `ISOLATION_HEADERS` (`tools/pwa-plugin.mjs`).
-2. **Servidores de Vite:** `server.headers` y `preview.headers` las envían (`apps/web/vite.config.ts`). Así toda la matriz E2E de la CI (Chromium, Firefox y WebKit, en dev y preview, también en subruta) corre aislada, y es la prueba de regresión de todos los núcleos.
+2. **Servidores de Vite:** el plugin `crossOriginIsolation` las pone en todas las respuestas de dev y preview con un middleware (`apps/web/vite.config.ts`). No se usa `server.headers` porque Vite lo aplica después de comprobar el ETag: un `304 Not Modified` del worker salía sin COEP y WebKit bloqueaba el worker la segunda vez que arrancaba un juego (recargar, reabrir, otra pestaña). Así toda la matriz E2E de la CI (Chromium, Firefox y WebKit, en dev y preview, también en subruta) corre aislada, y es la prueba de regresión de todos los núcleos.
 3. **Service worker:** añade las cabeceras a **todo** lo que sirve, navegación incluida, desde la caché o desde la red.
    - Sin esto, tras actualizar desde una versión anterior, una copia reutilizada de un worker sin COEP llegaría a una página aislada y el navegador la bloquearía.
    - Efecto secundario útil: con el SW ya instalado, la app queda aislada aunque el servidor no envíe las cabeceras.
