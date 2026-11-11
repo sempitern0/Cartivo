@@ -80,6 +80,9 @@ target_link_options(play PRIVATE
 	# CodeGen_Wasm instantiates JIT blocks that call back through the table.
 	"-sWASM_BIGINT"
 	"-sALLOW_TABLE_GROWTH"
+	# CodeGen's MemoryFunction (Wasm JIT) uses emscripten::val; upstream ui_js
+	# links with --bind, whose current spelling is -lembind.
+	"-lembind"
 	# The core opens discs by path (need_fullpath): the host mounts the
 	# player's File with WORKERFS, read on demand like the other disc cores.
 	"-sFORCE_FILESYSTEM"
