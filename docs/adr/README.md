@@ -25,3 +25,4 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [019](019-ui-components-bits-ui.md) | Componentes de interfaz con Bits UI; animaciones de Svelte | Aceptado |
 | [020](020-cross-origin-isolation.md) | Aislamiento de origen cruzado (COOP/COEP) en toda la PWA, también desde el service worker | Aceptado |
 | [021](021-content-security-policy.md) | Content Security Policy (nada sale del origen) e instalación verificada por hash | Aceptado |
+| [022](022-ps2-play.md) | PlayStation 2 con Play!: hilos, superficie WebGL2 y frontend propio | Aceptado (experimental) |

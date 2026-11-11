@@ -1,6 +1,6 @@
 # Gate CORE-LEGAL-01 — Play! (PS2)
 
-**Fecha:** 2026-11-08 · **Resultado:** `investigation` — legal favorable, port WASM viable pero requiere SharedArrayBuffer (COOP/COEP) y tiene requisitos de integración significativos.
+**Fecha:** 2026-11-08 · **Actualizado:** 2026-11-11 · **Resultado:** `accepted (uso privado)` — licencias permisivas, spike completado e integrado como experimental ([ADR-022](../adr/022-ps2-play.md)). El resultado inicial fue `investigation`; §7 conserva el razonamiento y registra el cierre.
 
 ## 1. Identificación
 
@@ -186,7 +186,17 @@ Solo tras el spike se puede mover a `accepted (uso privado)` y planificar la int
 
 **Receta del spike (2026-11-11):** `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (envoltorio que enlaza `PlayCore`, `ui_shared`, `gsh_opengl` y el frontend libretro con el puente `cores/play/src/cartivo.cpp`), disparada solo por `cores/play/.build-request` (`.github/workflows/core-play.yml`). Salida: `play.js` (cargador ES y worker de pthreads) + `play.wasm`; contexto WebGL2 sobre el OffscreenCanvas del host (`#cartivo-canvas`) y disco montado con WORKERFS. El grafo CMake se ha validado con una configuración nativa (`USE_GLES=ON`); el primer build deliberado se completó en CI (run 42979336329, commit `a56f8b2`, emsdk 6.0.12): `play.js` 188 KiB (`334e6b17c6a6`) y `play.wasm` 2,4 MiB (`16aec860bcb4`), 16 dependencias con licencia identificada (`verify-core`) y aviso `License.txt` idéntico al upstream. Hicieron falta cuatro correcciones de receta: `include(Header)` después de `project()` para detectar Emscripten, `-lembind` para el JIT de CodeGen, versionar `cores/play/dist/` y seguir compilando tras un error (`-k`).
 
-**Paso 1 del spike (compilación): hecho.** Siguen pendientes la ejecución en navegador (adaptador, OffscreenCanvas, WORKERFS y pthreads con SharedArrayBuffer), el ADR de COOP/COEP, el rendimiento con homebrew y la persistencia de memory cards. Por eso el resultado sigue siendo `investigation`.
+**Cierre del spike (2026-11-11): `accepted (uso privado)`.**
+
+1. **Compilación:** hecha. El build vigente es `2bbb8f7` (run 43109997432, emsdk 6.0.12): `play.wasm` de 2 483 711 bytes y `play.js` de 135 806.
+2. **ADR de COOP/COEP:** [ADR-020](../adr/020-cross-origin-isolation.md); la CSP admite el JIT ([ADR-021](../adr/021-content-security-policy.md)).
+3. **Ejecución en navegador:** el frontend libretro no sirve con el JIT de WebAssembly (cada hilo tiene su tabla de funciones), así que Cartivo tiene un frontend propio sobre las clases de Play! (`cores/play/src/cartivo.cpp`, [ADR-022](../adr/022-ps2-play.md)). Con él, una demo original arranca desde `.elf` y desde una imagen `.iso`, responde al mando y guarda y carga Partidas, en Chromium con el adaptador de producción.
+4. **Rendimiento:** medido solo con la demo propia (menos de 1 ms por fotograma en Chromium headless). **Con juegos comerciales no está medido**; queda para la QA del titular y por eso el sistema es experimental.
+5. **Memory cards:** no se exportan todavía; el progreso se guarda con Partidas ([H4-PS2](../compatibility/H4-PS2.md)).
+
+Lo que cambia respecto al inventario de arriba: el binario **no** enlaza el frontend libretro ni `ui_shared` (fuera `libretro.h`, sqlite y nlohmann/json), ni GLEW ni Nuanceur; sí enlaza bzip2. El SBOM exacto es `cores/play/sbom.json`.
+
+Si Cartivo se distribuyera: todas las licencias son permisivas y solo exigen conservar los avisos de copyright (`apps/web/public/licenses/play-License.txt` y los de las dependencias); no hay obligación de publicar fuentes. Conviene igualmente la revisión jurídica previa a publicar que piden los demás núcleos.
 
 ## SBOM resumido
 

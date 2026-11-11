@@ -1,6 +1,6 @@
 # Cartivo — Plan técnico
 
-> **Revisión 10 · 11 de noviembre de 2026.** Ocho consolas jugables (hasta PlayStation, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. PS2 (Play!) como siguiente hito; PSP, GameCube y Dreamcast aplazados. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 11 · 11 de noviembre de 2026.** Diez consolas jugables (hasta PlayStation 2, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. PS2 (Play!) integrada como experimental y pendiente de QA con juegos reales; PSP, GameCube y Dreamcast aplazados. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
@@ -33,6 +33,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` suelto de hasta 10 MiB | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
 | **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.m3u` multidisco con cambio desde la barra y la pausa, `.cue` con sus pistas, `.chd` (CHD v5 con libchdr), `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos se recuerdan: sus archivos se copian a `roms/<identidad>/` mientras se juega, con aviso de espacio, y «Continuar» abre la copia | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed`; `packages/storage/src/library.ts` (`rememberDisc`, `storedDisc`); `apps/web/src/DiscMenu.svelte` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
 | **Nintendo 64:** Mupen64Plus-Next `15bada8` con GLideN64 sobre WebGL2 en el Worker (`SurfaceModule`: la página transfiere el lienzo); `.z64`/`.n64`/`.v64`; stick analógico (teclado: dirección completa) y botones C; batería de 296 960 bytes; Partidas comprimidas con zlib, con miniatura leída de la GPU | `packages/adapters/src/n64.ts`, `n64-header.ts`; `cores/mupen64plus-next`; `apps/web/src/surface.ts` | ADR-017 | `tests/n64.test.ts`, `tests/e2e/n64.spec.ts`, [H4-N64](compatibility/H4-N64.md) |
+| **PlayStation 2:** Play! `1f27232` con su BIOS HLE y su JIT de WebAssembly; la consola en un hilo (página aislada) y el GS sobre WebGL2 en el Worker (`SurfaceDiscModule`); frontend propio en el hilo de la VM; imágenes de un archivo (`.iso`, `.chd`, `.cso`, `.isz`) leídas bajo demanda y `.elf`; 640×448 fijo a 4:3; PAL por la región del disco; Partidas con el estado de Play!, sin memory card | `packages/adapters/src/ps2.ts`, `surface.ts`; `cores/play` (`src/cartivo.cpp`); `apps/web/src/surface.ts` | ADR-022, ADR-020 | `tests/ps2.test.ts`, `tests/e2e/ps2.spec.ts`, [H4-PS2](compatibility/H4-PS2.md) |
 | Discos bajo demanda: `DiscModule` en el contrato, `prepareDisc` (identidad por bloques WebCrypto, sin leer el disco entero), VFS de libretro sobre `FileReaderSync` (`cartivo_vfs_*`), varios archivos por `load` (`extra`) y `gameForFiles` para elegir el juego | `packages/adapters/src/disc.ts`, `contract.ts`; `packages/storage/src/disc-identity.ts`; `packages/runtime/src/prepare-rom.ts`, `systems.ts` | ADR-015 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts` |
 | Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive, PlayStation) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | Cadencia por juego: el núcleo libretro informa de la frecuencia del juego cargado (`cartivo_frame_rate`, 50 Hz en PAL) y el host la usa; sin ese dato, la nominal del sistema | `EmulatorCore.frameRate`, `wasm-host.ts`, `Player.svelte`; puentes de `cores/snes9x` y `cores/genesis-plus-gx` | ADR-002 | `tests/wasm-host.test.ts`, `tests/e2e/pal.spec.ts` |
@@ -76,11 +77,10 @@ Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está te
      - emsdk 6.0.12 (LLVM 24) se cuelga en el primer fotograma: el núcleo usa emsdk 4.0.10 (LLVM 21).
    - *Empieza por:* `packages/adapters/src/n64.ts`, `cores/mupen64plus-next/src/frontend.c` y el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
    - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio. Los dos puntos anteriores están registrados como límites en [H4-N64](compatibility/H4-N64.md).
-4. **PS2** (Play! `1f27232`, BSD-2-Clause, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`), con JIT WASM nativo de CodeGen. Requiere pthreads (SharedArrayBuffer + COOP/COEP). Gate CORE-LEGAL-01: `investigation` — legal muy favorable (todo permisivo).
-   - **Hecho:** el núcleo compila en CI (`tools/build-play.mjs`, build `a56f8b2`: `play.js` + `play.wasm` de 2,4 MiB, en `verify:core`) y la app está aislada ([ADR-020](adr/020-cross-origin-isolation.md)) y con CSP que admite el JIT ([ADR-021](adr/021-content-security-policy.md)).
-   - **Falta:** el adaptador (cargar `play.js` en el Worker, OffscreenCanvas en `#cartivo-canvas`, disco con WORKERFS), una fixture homebrew, rendimiento medido y decidir la persistencia de memory cards (hoy solo Partidas).
-   - *Empieza por:* [expediente PLAY_CORE_GATE](research/PLAY_CORE_GATE.md), `cores/play/src/cartivo.cpp` y `packages/adapters/src/n64.ts` (el otro núcleo con superficie propia).
-   - *Terminado cuando:* un homebrew PS2 arranca en Cartivo con WebGL2, save states y entrada.
+4. **PS2 · QA con juegos reales.** PS2 ya está en la app como experimental ([ADR-022](adr/022-ps2-play.md), [H4-PS2](compatibility/H4-PS2.md)): la demo propia arranca desde `.elf` y desde `.iso`, con mando y Partidas.
+   - **Falta:** probar juegos comerciales del titular en una GPU real (qué arranca, velocidad, audio) y, según el resultado, exportar la memory card como batería, mejoras de resolución y los `.cue`/`.bin`.
+   - *Empieza por:* [H4-PS2](compatibility/H4-PS2.md), `packages/adapters/src/ps2.ts` y `cores/play/src/cartivo.cpp`.
+   - *Terminado cuando:* la QA del titular confirma un juego comercial jugable con Partidas, o registra como límite por qué no.
 5. **PSP, GameCube y Dreamcast** aplazados para iteraciones posteriores. PSP: gate `investigation` ([expediente PPSSPP](research/PPSSPP_CORE_GATE.md)), sin port WASM. Dreamcast: BIOS propietaria requerida (bloqueado por AGENTS.md). GameCube: requiere SharedArrayBuffer, sin audio, rendimiento insuficiente.
 
 ### 3.3 Deuda técnica conocida (cuando toque su área)
@@ -136,7 +136,7 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se i
 | Master System / Mega Drive | Genesis Plus GX `a5834b3` (licencias no comerciales) | **accepted (uso privado)** |
 | N64 | Mupen64Plus-Next `15bada8` (GPL-2.0) | **accepted (uso privado)**; en la app como experimental (ADR-017) |
 | PlayStation | PCSX-ReARMed `7b0e8f8` (GPL-2.0-or-later, BIOS HLE) | **accepted (uso privado)** |
-| PS2 | Play! `1f27232` (BSD-2-Clause, HLE, JIT WASM) | **investigation**; legal favorable, núcleo compilado (`a56f8b2`), sin integrar |
+| PS2 | Play! `1f27232` (BSD-2-Clause, HLE, JIT WASM) | **accepted (uso privado)**; integrado como experimental (ADR-022) |
 | PSP | PPSSPP `9dc79eb` (GPL-3.0 del conjunto, HLE) | **investigation**; aplazado |
 
 - **Pospuestos:** Game Gear, DS y Dreamcast.

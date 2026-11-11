@@ -16,7 +16,7 @@ Solo un port integrado y probado en Cartivo acredita soporte. Las demos upstream
 | Master System y Mega Drive · Genesis Plus GX (WASM) | Experimental: cartuchos NTSC, mando de seis botones, SVP | [H2-SEGA](H2-SEGA.md) |
 | PlayStation · PCSX-ReARMed (WASM) | Experimental: `.cue`/`.bin`, `.chd`, `.iso`, `.exe` y juegos de varios discos (`.m3u`) leídos bajo demanda; BIOS HLE | [H4-PS1](H4-PS1.md) |
 | N64 · Mupen64Plus-Next (WebGL2 en el Worker) | Experimental: `.z64`/`.n64`/`.v64`, stick analógico, batería y Partidas; necesita WebGL2 | [H4-N64](H4-N64.md) |
-| PS2 · Play! (WASM, pthreads y WebGL2) | En investigación: el núcleo compila en CI, aún sin integrar en la app | [expediente](../research/PLAY_CORE_GATE.md) |
+| PS2 · Play! (hilos y WebGL2 en el Worker) | Experimental: `.iso`, `.chd`, `.cso`, `.isz` y `.elf` leídos bajo demanda, BIOS HLE, Partidas (sin memory card); necesita página aislada y WebGL2. Juegos comerciales sin medir | [H4-PS2](H4-PS2.md) |
 | PSP | Aplazada | [expediente](../research/PPSSPP_CORE_GATE.md) |
 
 ## Plantilla de informe por núcleo o build

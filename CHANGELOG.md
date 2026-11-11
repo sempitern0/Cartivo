@@ -418,7 +418,7 @@
   - **Cambiar de disco:** menú «Disco N de M» en la barra del reproductor y «Poner el disco N» en el menú de pausa. La tapa se cierra sola en unos dos segundos.
   - **Reinicio y batería:** un núcleo nuevo arranca con el disco que estaba en la bandeja.
   - **Identidad:** la del `.m3u` con todos sus discos; la tarjeta de memoria es una por juego.
-  - **Límite:** una Partida no recuerda qué disco hay en la bandeja.
+  - **Partidas:** cargar una guardada con otro disco lo repone, y la barra lo muestra.
 - **CHD (v5):** compilado con `HAVE_CHD` (libchdr BSD-3-Clause, LZMA SDK dominio público, Zstandard BSD-3-Clause o GPL-2.0, dr_flac Unlicense o MIT-0). Los 14 archivos y decodificadores están en el SBOM.
 - **Fixtures:** `ps1TwoDiscDemo` (dos cue/bin propios, el segundo disco pinta en verde) y `ps1DiscChd` (CHD v5 sin comprimir). Tests unitarios y E2E de cambio de disco y arranque CHD.
 
@@ -428,3 +428,12 @@
 - **COOP/COEP en toda la PWA ([ADR-020](docs/adr/020-cross-origin-isolation.md)):** Vite dev y preview envían las cabeceras y el service worker las añade a todo lo que sirve, también a copias en caché guardadas sin ellas. E2E de `crossOriginIsolated` en dev, preview y sin red.
 - **Content Security Policy e instalación verificada ([ADR-021](docs/adr/021-content-security-policy.md)):** la app construida y sus workers solo cargan y contactan su propio origen (`connect-src 'self'`, sin `eval`), y el service worker comprueba el SHA-256 de cada archivo que instala.
 - **Discos:** cargar una Partida guardada con otro disco actualiza la bandeja; el menú de discos es un grupo de radio accesible; un `.cue` o `.m3u` demasiado grande o sin discos se rechaza con un mensaje claro.
+
+### PlayStation 2 jugable (experimental)
+
+- **PS2 en Cartivo con Play!** ([ADR-022](docs/adr/022-ps2-play.md), [H4-PS2](docs/compatibility/H4-PS2.md)): imágenes de un archivo (`.iso`, `.chd`, `.cso`, `.isz`) leídas bajo demanda y ejecutables `.elf`, sin BIOS; la consola corre en su hilo y el GS dibuja con WebGL2 en el lienzo del juego; DualShock 2 con sticks; Partidas con el estado de Play!. Sin memory card todavía.
+- **Frontend propio** (`cores/play/src/cartivo.cpp`): el de libretro no funciona con el JIT de WebAssembly. Arranque y estados en el hilo de la consola, un fotograma por paso, y un juego que deja de responder se avisa en vez de bloquear.
+- **Contrato:** `SurfaceDiscModule` (disco + superficie) y `threads` en los sistemas; lo común de N64 y PS2 con la GPU, en `packages/adapters/src/surface.ts`.
+- **`.iso` y `.chd`** sirven a PlayStation y a PS2: sin elegir consola, más de 900 MiB es un DVD de PS2.
+- **Fixtures:** `ps2ControlDemo` (ELF) y `ps2DiscDemo` (ISO 9660), con un ensamblador MIPS compartido (`mips.ts`) que también usa la de PlayStation (mismo ejecutable, byte a byte).
+- **Límites:** probado solo con la demo propia; la compatibilidad y el rendimiento con juegos comerciales quedan para la QA del titular. Sin multidisco, `.cue`/`.bin`, vibración ni mejoras de resolución.
