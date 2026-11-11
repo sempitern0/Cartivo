@@ -48,4 +48,4 @@ Estado de partida, comprobado en el repositorio:
 
 - **Unitarias** (`tests/pwa.test.ts`): el SW sirve con COOP/COEP la navegación, un archivo en caché guardado sin cabeceras y uno que no estaba en caché, y conserva el resto de cabeceras y el cuerpo.
 - **E2E** (`tests/e2e/pwa.spec.ts`): `crossOriginIsolated` es verdadero al cargar, en dev y en preview, y al reabrir sin red servida por el SW; el resto de la suite cubre todos los núcleos con la app aislada.
-- **CI:** pendiente del run de la Foundation CI sobre este cambio.
+- **CI:** Foundation CI 42986846283 sobre `fd43763`, en verde: `verify` y las seis tandas E2E (Chromium, Firefox y WebKit, en dev y preview, con subruta), es decir, todos los núcleos con la app aislada. El run anterior (`4871525`, con `server.headers`) falló en WebKit dev con las 16 pruebas que vuelven a arrancar el worker, y así se encontró lo del 304. La prueba de MIME incorrecto en WebKit ya salía inestable antes de este ADR y pasa al reintento.
