@@ -1,277 +1,557 @@
-// Cartivo bridge to Play! (BSD-2-Clause, https://github.com/jpd002/Play-)
-// through its libretro frontend, linked statically. Original Cartivo code,
-// licensed like the other bridges (ADR-014, ADR-015).
+// Cartivo frontend for Play! (BSD-2-Clause, https://github.com/jpd002/Play-),
+// linked statically with its core. Original Cartivo code, licensed like the
+// other bridges (ADR-014); the JIT registration list follows upstream's own
+// web frontend (Source/ui_js/Ps2VmJs.cpp).
 //
-// PlayStation 2 discs with the core's own HLE: Play! emulates the IOP
-// modules (IopBios) and the EE kernel without Sony's BIOS. The disc stays in
-// the player's files: the host mounts it with WORKERFS and passes its path.
+// PlayStation 2 with the core's own HLE: Play! emulates the IOP modules and
+// the EE kernel without Sony's BIOS. The disc stays in the player's files:
+// the host mounts it (WORKERFS) and passes its path.
 //
-// Differences from the standalone-WASM bridges (NES–PS1):
-// - Play! runs the VM on a pthread; the GS runs on the thread that calls
-//   retro_run (this one), so the GL context lives here too.
-// - The GS renders with WebGL2 (libretro HW render). The bridge creates the
-//   context on the host's OffscreenCanvas ("#cartivo-canvas", registered in
-//   specialHTMLTargets) and reads each frame back with glReadPixels into a
-//   fixed 640×448 RGBA buffer, the same contract as the PS1 bridge.
-// - Memory cards are not exposed through RETRO_MEMORY_SAVE_RAM: Play! keeps
-//   them in its own (in-memory) filesystem. Cartivo PS2 uses save states
-//   (Partidas) only; they are ~40 MiB before compression.
+// Why not Play!'s libretro frontend: it boots, resets and (un)serialises
+// from the caller's thread. With the WebAssembly JIT every thread has its
+// own function table, so anything that creates or drops compiled blocks
+// must run on the VM thread, as upstream's web frontend does.
+//
+// Threads:
+// - The VM (EE, IOP, SPU) runs on a pthread and is never touched from here
+//   except through its mailbox (on_vm).
+// - The GS has no thread of its own: its calls are queued and run on the
+//   thread that calls cartivo_frames, which owns the WebGL2 context. The
+//   host creates that context on the game canvas and makes it current
+//   before cartivo_create; the GS presents on it (ADR-017).
+// - The VM stops by itself two frames ahead of the GS (MAX_INFLIGHT_FRAMES),
+//   so the host's clock paces the game and nothing runs while it is paused.
+//
+// Memory cards are files of Play!'s own (in-memory) filesystem and are not
+// exported yet: Cartivo PS2 keeps progress with save states (Partidas).
+#include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
 
-#include <emscripten/html5.h>
-#include <GLES3/gl3.h>
+#include "AppConfig.h"
+#include "BasicBlock.h"
+#include "Jitter_CodeGen_Wasm.h"
+#include "MemStream.h"
+#include "MemoryUtils.h"
+#include "PS2VM.h"
+#include "PS2VM_Preferences.h"
+#include "PadHandler.h"
+#include "PtrStream.h"
+#include "gs/GSH_OpenGL/GSH_OpenGL.h"
+#include "sound/SoundHandler.h"
+#include "zip/ZipArchiveReader.h"
+#include "zip/ZipArchiveWriter.h"
 
-#include "ext/libretro.h"
+extern "C" uint32 LWL_Proxy(uint32, uint32, CMIPS *);
+extern "C" uint32 LWR_Proxy(uint32, uint32, CMIPS *);
+extern "C" uint64 LDL_Proxy(uint32, uint64, CMIPS *);
+extern "C" uint64 LDR_Proxy(uint32, uint64, CMIPS *);
+extern "C" void SWL_Proxy(uint32, uint32, CMIPS *);
+extern "C" void SWR_Proxy(uint32, uint32, CMIPS *);
+extern "C" void SDL_Proxy(uint32, uint64, CMIPS *);
+extern "C" void SDR_Proxy(uint32, uint64, CMIPS *);
 
-static constexpr const char *CANVAS = "#cartivo-canvas";
-static constexpr int OUT_RATE = 48000;
-static constexpr int MAX_SAMPLES = OUT_RATE;
-// Output frame, as in retro_get_system_av_info's base geometry.
-static constexpr unsigned WIDTH = 640;
-static constexpr unsigned HEIGHT = 448;
-// Largest frame the GS presents at 1x (PAL interlaced is 640×512).
-static constexpr unsigned READ_WIDTH = 640;
-static constexpr unsigned READ_HEIGHT = 512;
+namespace
+{
 
-struct cartivo_t {
-    uint32_t pixels[WIDTH * HEIGHT];
-    uint32_t readback[READ_WIDTH * READ_HEIGHT];
-    float audio[MAX_SAMPLES];
-    unsigned samples;
-    // Linear resampler from the core's rate to 48 kHz (mono).
-    double step, position;
-    float previous;
-    unsigned bits;
-    int16_t analog[4]; // left x, left y, right x, right y
-    double fps;
-    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl;
-    retro_hw_context_reset_t context_reset, context_destroy;
+constexpr int OUT_RATE = 48000;
+constexpr unsigned MAX_SAMPLES = OUT_RATE; // one second of output
+// The picture the GS presents, whatever the game's video mode (the canvas).
+constexpr unsigned WIDTH = 640;
+constexpr unsigned HEIGHT = 448;
+// A frame that takes longer than this means the VM is not running.
+constexpr auto FRAME_TIMEOUT = std::chrono::seconds(5);
+
+// --- VM ---------------------------------------------------------------------
+
+class Vm : public CPS2VM
+{
+public:
+	// On the VM thread: the functions JIT blocks import, registered in the
+	// table of the thread that will compile them.
+	void CreateVM() override
+	{
+		using Jitter::CWasmFunctionRegistry;
+		const auto add = [](auto function, const char *name, const char *signature) {
+			CWasmFunctionRegistry::RegisterFunction(reinterpret_cast<uintptr_t>(function), name, signature);
+		};
+		add(&EmptyBlockHandler, "_EmptyBlockHandler", "vi");
+		add(&MemoryUtils_GetByteProxy, "_MemoryUtils_GetByteProxy", "iii");
+		add(&MemoryUtils_GetHalfProxy, "_MemoryUtils_GetHalfProxy", "iii");
+		add(&MemoryUtils_GetWordProxy, "_MemoryUtils_GetWordProxy", "iii");
+		add(&MemoryUtils_GetDoubleProxy, "_MemoryUtils_GetDoubleProxy", "jii");
+		add(&MemoryUtils_SetByteProxy, "_MemoryUtils_SetByteProxy", "viii");
+		add(&MemoryUtils_SetHalfProxy, "_MemoryUtils_SetHalfProxy", "viii");
+		add(&MemoryUtils_SetWordProxy, "_MemoryUtils_SetWordProxy", "viii");
+		add(&MemoryUtils_SetDoubleProxy, "_MemoryUtils_SetDoubleProxy", "viji");
+		add(&LWL_Proxy, "_LWL_Proxy", "iiii");
+		add(&LWR_Proxy, "_LWR_Proxy", "iiii");
+		add(&LDL_Proxy, "_LDL_Proxy", "jiji");
+		add(&LDR_Proxy, "_LDR_Proxy", "jiji");
+		add(&SWL_Proxy, "_SWL_Proxy", "viii");
+		add(&SWR_Proxy, "_SWR_Proxy", "viii");
+		add(&SDL_Proxy, "_SDL_Proxy", "viji");
+		add(&SDR_Proxy, "_SDR_Proxy", "viji");
+		CPS2VM::CreateVM();
+	}
+
+	/** Queues `call` for the VM thread. */
+	void post(CMailBox::FunctionType call) { m_mailBox.SendCall(std::move(call)); }
+
+	using CPS2VM::ResumeImpl;
 };
 
-static cartivo_t *current;
+// --- GS: OpenGL ES 3 on the caller's context --------------------------------
 
-// --- libretro frontend callbacks ------------------------------------------
-
-static uintptr_t current_framebuffer() { return 0; } // the canvas itself
-
-static retro_proc_address_t proc_address(const char *symbol)
+class Gs : public CGSH_OpenGL
 {
-    return reinterpret_cast<retro_proc_address_t>(emscripten_webgl_get_proc_address(symbol));
+public:
+	Gs()
+	    : CGSH_OpenGL(false)
+	{
+		// Present every frame, also when the game left the display registers
+		// alone: one step of the host is always one frame of the console.
+		m_frame = OnNewFrame.Connect([this](uint32) { m_regsDirty = true; });
+	}
+
+	static FactoryFunction factory()
+	{
+		return []() { return new Gs(); };
+	}
+
+	/**
+	 * Runs the GS calls of one frame of the console, up to its flip. False if
+	 * the VM produced none in time (it stopped or aborted).
+	 */
+	bool frame()
+	{
+		const auto deadline = std::chrono::steady_clock::now() + FRAME_TIMEOUT;
+		m_presented = false;
+		m_stopAtFlip = true;
+		while(!m_presented)
+		{
+			pump();
+			if(m_presented) break;
+			if(std::chrono::steady_clock::now() > deadline) break;
+			std::this_thread::sleep_for(std::chrono::microseconds(200));
+		}
+		m_stopAtFlip = false;
+		return m_presented;
+	}
+
+	/**
+	 * Runs the GS calls queued so far, without waiting for more (inside
+	 * frame(), only up to the frame's flip: the VM may be a frame ahead).
+	 * ProcessSingleFrame returns at a flip; the marker call counts as one,
+	 * so it never blocks on an empty queue.
+	 */
+	void pump()
+	{
+		SendGSCall([this]() { m_flipped = true; });
+		ProcessSingleFrame();
+	}
+
+	/** Frees the GL objects, on the thread that owns the context. */
+	void release()
+	{
+		pump();
+		CGSH_OpenGL::ReleaseImpl();
+		m_released = true;
+	}
+
+protected:
+	void InitializeImpl() override
+	{
+		PRESENTATION_PARAMS params;
+		params.mode = PRESENTATION_MODE_FILL;
+		params.windowWidth = WIDTH;
+		params.windowHeight = HEIGHT;
+		SetPresentationParams(params);
+		CGSH_OpenGL::InitializeImpl();
+	}
+
+	void ReleaseImpl() override
+	{
+		// Queued by the VM when it destroys the handler; release() did it.
+		if(!m_released) CGSH_OpenGL::ReleaseImpl();
+	}
+
+	void FlipImpl(const DISPLAY_INFO &info) override
+	{
+		CGSH_OpenGL::FlipImpl(info); // leaves m_flipped set
+		m_presented = true;
+		// Outside frame(), carry on to the end of the queue.
+		if(!m_stopAtFlip) m_flipped = false;
+	}
+
+	void PresentBackbuffer() override
+	{
+		// The browser presents the canvas when the Worker yields.
+	}
+
+private:
+	NewFrameEvent::Connection m_frame;
+	bool m_presented = false;
+	bool m_stopAtFlip = false;
+	bool m_released = false;
+};
+
+// --- Sound: SPU blocks from the VM thread -----------------------------------
+
+class Sound : public CSoundHandler
+{
+public:
+	void Reset() override
+	{
+		std::lock_guard lock(m_mutex);
+		m_stereo.clear();
+	}
+
+	void Write(int16 *samples, unsigned int count, unsigned int rate) override
+	{
+		std::lock_guard lock(m_mutex);
+		m_rate = rate;
+		// Never more than a second: a paused host must not grow this.
+		if(m_stereo.size() + count > static_cast<size_t>(rate) * 2) m_stereo.clear();
+		m_stereo.insert(m_stereo.end(), samples, samples + count);
+	}
+
+	bool HasFreeBuffers() override { return true; }
+	void RecycleBuffers() override {}
+
+	/** Moves what the VM wrote since the last call into `out`. */
+	unsigned take(std::vector<int16> &out)
+	{
+		std::lock_guard lock(m_mutex);
+		out.swap(m_stereo);
+		m_stereo.clear();
+		return m_rate;
+	}
+
+private:
+	std::mutex m_mutex;
+	std::vector<int16> m_stereo;
+	unsigned m_rate = 48000;
+};
+
+// --- Pad: player 1's DualShock 2 --------------------------------------------
+
+struct Pad_state
+{
+	std::atomic<uint32_t> bits{0};
+	std::atomic<uint8_t> axes[4]; // left x, left y, right x, right y
+	Pad_state()
+	{
+		for(auto &axis : axes) axis = 0x7F;
+	}
+};
+
+class Pad : public CPadHandler
+{
+public:
+	explicit Pad(const Pad_state &state)
+	    : m_state(state)
+	{
+	}
+
+	// On the VM thread, once per frame.
+	void Update(uint8 *ram) override
+	{
+		using Info = PS2::CControllerInfo;
+		// Bit of each button in the host's order (libretro's joypad).
+		static const struct
+		{
+			Info::BUTTON button;
+			unsigned bit;
+		} buttons[] = {
+		    {Info::CROSS, 0}, {Info::SQUARE, 1}, {Info::SELECT, 2}, {Info::START, 3},
+		    {Info::DPAD_UP, 4}, {Info::DPAD_DOWN, 5}, {Info::DPAD_LEFT, 6}, {Info::DPAD_RIGHT, 7},
+		    {Info::CIRCLE, 8}, {Info::TRIANGLE, 9}, {Info::L1, 10}, {Info::R1, 11},
+		    {Info::L2, 12}, {Info::R2, 13}, {Info::L3, 14}, {Info::R3, 15},
+		};
+		static const Info::BUTTON axes[] = {
+		    Info::ANALOG_LEFT_X, Info::ANALOG_LEFT_Y, Info::ANALOG_RIGHT_X, Info::ANALOG_RIGHT_Y};
+		const uint32_t bits = m_state.bits;
+		for(auto *listener : m_interfaces)
+		{
+			for(const auto &entry : buttons)
+				listener->SetButtonState(0, entry.button, (bits >> entry.bit) & 1, ram);
+			for(unsigned i = 0; i < 4; i++)
+				listener->SetAxisState(0, axes[i], m_state.axes[i], ram);
+		}
+	}
+
+private:
+	const Pad_state &m_state;
+};
+
+} // namespace
+
+// --- The game ---------------------------------------------------------------
+
+struct cartivo_t
+{
+	Vm vm;
+	Gs *gs = nullptr;
+	Sound *sound = nullptr;
+	Pad_state pad;
+	std::string path;
+	bool disc = false;
+	bool pal = false;
+	// Mono output at 48 kHz, resampled from the SPU's rate.
+	float audio[MAX_SAMPLES];
+	unsigned samples = 0;
+	double position = 0;
+	float previous = 0;
+	std::vector<int16> stereo;
+	std::vector<uint8_t> state;
+};
+
+namespace
+{
+
+cartivo_t *current;
+
+/**
+ * Runs `call` on the VM thread and waits for it, running the GS meanwhile:
+ * the VM may be blocked on a GS call, and would never get to its mailbox.
+ */
+void on_vm(cartivo_t *c, const std::function<void()> &call)
+{
+	std::atomic<bool> done{false};
+	c->vm.post([&]() {
+		call();
+		done = true;
+	});
+	while(!done)
+	{
+		if(c->gs) c->gs->pump();
+		std::this_thread::sleep_for(std::chrono::microseconds(500));
+	}
 }
 
-static void set_timing(const struct retro_system_timing *timing)
+/** Stops the VM, running the GS calls it may be waiting on. */
+void pause(cartivo_t *c)
 {
-    current->step = timing->sample_rate / static_cast<double>(OUT_RATE);
-    current->fps = timing->fps;
+	c->vm.PauseAsync();
+	while(c->vm.GetStatus() != CVirtualMachine::PAUSED)
+	{
+		c->gs->pump();
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
 }
 
-static bool environment(unsigned cmd, void *data)
+/** Boots the game from the start; false if Play! refuses the file. */
+bool boot(cartivo_t *c)
 {
-    switch (cmd) {
-    case RETRO_ENVIRONMENT_SET_PIXEL_FORMAT:
-        return *static_cast<const retro_pixel_format *>(data) == RETRO_PIXEL_FORMAT_XRGB8888;
-    case RETRO_ENVIRONMENT_SET_HW_RENDER: {
-        // `data` is the core's own g_hw_render: fill in the frontend side.
-        auto *hw = static_cast<retro_hw_render_callback *>(data);
-        if (hw->context_type != RETRO_HW_CONTEXT_OPENGLES3) return false;
-        hw->get_current_framebuffer = current_framebuffer;
-        hw->get_proc_address = proc_address;
-        current->context_reset = hw->context_reset;
-        current->context_destroy = hw->context_destroy;
-        return true;
-    }
-    case RETRO_ENVIRONMENT_GET_VARIABLE: {
-        // Original resolution and presentation (fidelity by default).
-        auto *var = static_cast<retro_variable *>(data);
-        static const char *const values[][2] = {
-            {"play_res_multi", "1x"},
-            {"play_presentation_mode", "Fit Screen"},
-            {"play_bilinear_filtering", "false"},
-        };
-        for (const auto &v : values)
-            if (!strcmp(var->key, v[0])) { var->value = v[1]; return true; }
-        var->value = nullptr;
-        return false;
-    }
-    case RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE:
-        *static_cast<bool *>(data) = false;
-        return true;
-    case RETRO_ENVIRONMENT_GET_INPUT_BITMASKS:
-    case RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT:
-    case RETRO_ENVIRONMENT_SET_VARIABLES:
-        return true;
-    default:
-        return false;
-    }
+	bool booted = false;
+	on_vm(c, [&]() {
+		try
+		{
+			if(c->disc) CAppConfig::GetInstance().SetPreferencePath(PREF_PS2_CDROM0_PATH, c->path);
+			c->vm.Reset();
+			if(c->disc)
+				c->vm.m_ee->m_os->BootFromCDROM();
+			else
+				c->vm.m_ee->m_os->BootFromFile(c->path);
+			// European releases (SLES, SCES, SLED, SCED) are PAL.
+			const std::string id = c->vm.m_ee->m_os->GetExecutableName();
+			c->pal = c->disc && (id.rfind("SLE", 0) == 0 || id.rfind("SCE", 0) == 0);
+			c->vm.ResumeImpl();
+			booted = true;
+		}
+		catch(...)
+		{
+		}
+	});
+	return booted;
 }
 
-// The GS presented a frame of `width`×`height` into the canvas, bottom-up
-// (bottom_left_origin). Read it back and scale it to WIDTH×HEIGHT top-down.
-static void video(const void *data, unsigned width, unsigned height, size_t)
+void resample(cartivo_t *c, unsigned rate)
 {
-    if (data != RETRO_HW_FRAME_BUFFER_VALID || !current || !width || !height) return;
-    const unsigned w = width < READ_WIDTH ? width : READ_WIDTH;
-    const unsigned h = height < READ_HEIGHT ? height : READ_HEIGHT;
-    glPixelStorei(GL_PACK_ROW_LENGTH, READ_WIDTH);
-    glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, current->readback);
-    for (unsigned y = 0; y < HEIGHT; y++) {
-        const uint32_t *in = current->readback + (h - 1 - y * h / HEIGHT) * READ_WIDTH;
-        uint32_t *out = current->pixels + y * WIDTH;
-        for (unsigned x = 0; x < WIDTH; x++) out[x] = in[x * w / WIDTH] | 0xFF000000u;
-    }
+	const double step = static_cast<double>(rate) / OUT_RATE;
+	const size_t frames = c->stereo.size() / 2;
+	for(size_t i = 0; i < frames; i++)
+	{
+		const float sample = (c->stereo[i * 2] + c->stereo[i * 2 + 1]) / 65536.0f;
+		while(c->position <= 1.0 && c->samples < MAX_SAMPLES)
+		{
+			const float t = static_cast<float>(c->position);
+			c->audio[c->samples++] = c->previous + (sample - c->previous) * t;
+			c->position += step;
+		}
+		c->position -= 1.0;
+		c->previous = sample;
+	}
 }
 
-static size_t audio_batch(const int16_t *data, size_t frames)
+bool ends_with(const std::string &text, const char *suffix)
 {
-    if (!current) return frames;
-    for (size_t i = 0; i < frames; i++) {
-        const float sample = (data[i * 2] + data[i * 2 + 1]) / 65536.0f;
-        while (current->position <= 1.0 && current->samples < MAX_SAMPLES) {
-            const float t = static_cast<float>(current->position);
-            current->audio[current->samples++] = current->previous + (sample - current->previous) * t;
-            current->position += current->step;
-        }
-        current->position -= 1.0;
-        current->previous = sample;
-    }
-    return frames;
+	const size_t n = strlen(suffix);
+	if(text.size() < n) return false;
+	for(size_t i = 0; i < n; i++)
+		if(tolower(static_cast<unsigned char>(text[text.size() - n + i])) != suffix[i]) return false;
+	return true;
 }
 
-static void audio_sample(int16_t left, int16_t right)
-{
-    const int16_t frame[2] = {left, right};
-    audio_batch(frame, 1);
-}
+} // namespace
 
-static void input_poll() {}
-
-// DualShock 2 in libretro's joypad order (B=Cross, Y=Square, A=Circle,
-// X=Triangle, then L1, R1, L2, R2, L3, R3) plus both sticks.
-static int16_t input_state(unsigned port, unsigned device, unsigned index, unsigned id)
-{
-    if (!current || port != 0) return 0;
-    switch (device & RETRO_DEVICE_MASK) {
-    case RETRO_DEVICE_JOYPAD:
-        if (id == RETRO_DEVICE_ID_JOYPAD_MASK) return static_cast<int16_t>(current->bits);
-        return id < 16 ? (current->bits >> id) & 1 : 0;
-    case RETRO_DEVICE_ANALOG:
-        if (index > RETRO_DEVICE_INDEX_ANALOG_RIGHT || id > RETRO_DEVICE_ID_ANALOG_Y) return 0;
-        return current->analog[index * 2 + id];
-    default:
-        return 0;
-    }
-}
-
-// WebGL2 context on the host's canvas, current on this thread.
-static EMSCRIPTEN_WEBGL_CONTEXT_HANDLE create_context()
-{
-    EmscriptenWebGLContextAttributes attributes;
-    emscripten_webgl_init_context_attributes(&attributes);
-    attributes.majorVersion = 2;
-    attributes.alpha = false;
-    attributes.depth = true;
-    attributes.antialias = false;
-    attributes.preserveDrawingBuffer = true; // read back after presenting
-    const auto gl = emscripten_webgl_create_context(CANVAS, &attributes);
-    if (gl <= 0) return 0;
-    emscripten_set_canvas_element_size(CANVAS, READ_WIDTH, READ_HEIGHT);
-    emscripten_webgl_make_context_current(gl);
-    return gl;
-}
-
-static void release(cartivo_t *c, bool loaded)
-{
-    if (c->gl && c->context_destroy) c->context_destroy();
-    if (loaded) retro_unload_game();
-    retro_deinit();
-    if (c->gl) emscripten_webgl_destroy_context(c->gl);
-    current = nullptr;
-    free(c);
-}
-
-// --- Cartivo public API (exported to the host) ----------------------------
+// --- Cartivo public API (exported to the host) ------------------------------
 
 extern "C" {
 
-// `path` names the file to boot (.iso, .chd, .cue, .cso, .isz, .elf) in the
-// Emscripten FS. Returns NULL if the core refuses it or WebGL2 is missing.
+void cartivo_free(cartivo_t *c);
+
+// `path` names the file to boot in the module's filesystem: an .elf, or a
+// disc image (.iso, .chd, .cue, .cso, .isz). The WebGL2 context of the game
+// canvas must be current on this thread. Returns NULL if Play! refuses it.
 cartivo_t *cartivo_create(const char *path, size_t length)
 {
-    if (current) return nullptr; // one game per module
-    auto *c = static_cast<cartivo_t *>(calloc(1, sizeof(cartivo_t)));
-    auto *name = static_cast<char *>(malloc(length + 1));
-    if (!c || !name) {
-        free(c);
-        free(name);
-        return nullptr;
-    }
-    memcpy(name, path, length);
-    name[length] = 0;
-    current = c;
-    retro_set_environment(environment);
-    retro_set_video_refresh(video);
-    retro_set_audio_sample(audio_sample);
-    retro_set_audio_sample_batch(audio_batch);
-    retro_set_input_poll(input_poll);
-    retro_set_input_state(input_state);
-    retro_init();
+	if(current) return nullptr; // one game per module
+	auto *c = new cartivo_t();
+	c->path.assign(path, length);
+	c->disc = !ends_with(c->path, ".elf");
 
-    const retro_game_info game = {name, nullptr, 0, nullptr};
-    const bool loaded = retro_load_game(&game);
-    free(name);
-    if (loaded) c->gl = create_context();
-    if (!loaded || !c->gl || !c->context_reset) {
-        release(c, loaded);
-        return nullptr;
-    }
-    c->context_reset(); // creates the GS handler on this context
-    retro_system_av_info av;
-    retro_get_system_av_info(&av);
-    set_timing(&av.timing);
-    return c;
+	auto &config = CAppConfig::GetInstance();
+	config.RegisterPreferenceInteger(PREF_AUDIO_SPUBLOCKCOUNT, 22);
+	// The host's clock paces the game (see the header): no limiter of Play!'s
+	// own. Set before the VM thread exists, which reads it when it starts.
+	config.SetPreferenceBoolean(PREF_PS2_LIMIT_FRAMERATE, false);
+	c->vm.ReloadFrameRateLimit();
+	c->vm.Initialize();
+
+	c->vm.CreateGSHandler(Gs::factory());
+	c->gs = static_cast<Gs *>(c->vm.GetGSHandler());
+	c->vm.CreatePadHandler([c]() { return new Pad(c->pad); });
+	c->vm.CreateSoundHandler([c]() { return c->sound = new Sound(); });
+	c->gs->pump(); // InitializeImpl, on this thread's context
+
+	current = c;
+	if(!boot(c))
+	{
+		cartivo_free(c);
+		return nullptr;
+	}
+	return c;
 }
 
-double cartivo_frame_rate(cartivo_t *c) { return c->fps; }
-
-size_t cartivo_state_size(cartivo_t *) { return retro_serialize_size(); }
-
-int cartivo_save_state(cartivo_t *, uint8_t *out, size_t length)
+// The rate the host must pace the game at: PAL discs run at 50 Hz. Known
+// from the disc's region as soon as it boots, before the game sets its mode.
+double cartivo_frame_rate(cartivo_t *c)
 {
-    return retro_serialize(out, length) ? 0 : 1;
+	return c->pal ? 50.0 : 59.94;
 }
 
-int cartivo_load_state(cartivo_t *, const uint8_t *data, size_t length)
+// Runs `count` frames; returns the audio samples produced, or -1 if the VM
+// stopped answering (the game cannot continue).
+int cartivo_frames(cartivo_t *c, unsigned count)
 {
-    return retro_unserialize(data, length) ? 0 : 1;
+	c->samples = 0;
+	for(unsigned i = 0; i < count; i++)
+		if(!c->gs->frame()) return -1;
+	resample(c, c->sound->take(c->stereo));
+	return static_cast<int>(c->samples);
 }
 
-void cartivo_set_input(cartivo_t *c, unsigned bits) { c->bits = bits & 0xFFFF; }
+float *cartivo_audio(cartivo_t *c)
+{
+	return c->audio;
+}
 
+// Buttons in libretro's joypad order (B=Cross, Y=Square, Select, Start, Up,
+// Down, Left, Right, A=Circle, X=Triangle, L1, R1, L2, R2, L3, R3).
+void cartivo_set_input(cartivo_t *c, unsigned bits)
+{
+	c->pad.bits = bits & 0xFFFF;
+}
+
+// Sticks as signed 16-bit, as the host normalises them.
 void cartivo_set_analog(cartivo_t *c, int lx, int ly, int rx, int ry)
 {
-    c->analog[0] = static_cast<int16_t>(lx);
-    c->analog[1] = static_cast<int16_t>(ly);
-    c->analog[2] = static_cast<int16_t>(rx);
-    c->analog[3] = static_cast<int16_t>(ry);
+	const int values[4] = {lx, ly, rx, ry};
+	for(unsigned i = 0; i < 4; i++)
+	{
+		const int clamped = values[i] < -32768 ? -32768 : values[i] > 32767 ? 32767 : values[i];
+		c->pad.axes[i] = static_cast<uint8_t>((clamped + 32768) >> 8);
+	}
 }
 
-unsigned cartivo_frames(cartivo_t *c, unsigned count)
+// Save states (Partidas): a zip of the EE, IOP and GS, written on the VM
+// thread. cartivo_snapshot returns its size (0 on failure) and
+// cartivo_snapshot_data the bytes, valid until the next snapshot.
+size_t cartivo_snapshot(cartivo_t *c)
 {
-    c->samples = 0;
-    for (unsigned i = 0; i < count; i++) retro_run();
-    return c->samples;
+	c->state.clear();
+	on_vm(c, [&]() {
+		try
+		{
+			Framework::CMemStream stream;
+			Framework::CZipArchiveWriter archive;
+			c->vm.m_ee->SaveState(archive);
+			c->vm.m_iop->SaveState(archive);
+			c->vm.m_ee->m_gs->SaveState(archive);
+			archive.Write(stream);
+			c->state.assign(stream.GetBuffer(), stream.GetBuffer() + stream.GetSize());
+		}
+		catch(...)
+		{
+			c->state.clear();
+		}
+	});
+	return c->state.size();
 }
 
-uint32_t *cartivo_pixels(cartivo_t *c) { return c->pixels; }
-float *cartivo_audio(cartivo_t *c) { return c->audio; }
+const uint8_t *cartivo_snapshot_data(cartivo_t *c)
+{
+	return c->state.data();
+}
 
-void cartivo_reset(cartivo_t *) { retro_reset(); }
+// 0 if the state was restored; the game is unusable after a failure half-way.
+int cartivo_restore(cartivo_t *c, const uint8_t *data, size_t length)
+{
+	bool restored = false;
+	on_vm(c, [&]() {
+		try
+		{
+			Framework::CPtrStream stream(data, length);
+			Framework::CZipArchiveReader archive(stream);
+			c->vm.m_ee->LoadState(archive);
+			c->vm.m_iop->LoadState(archive);
+			c->vm.m_ee->m_gs->LoadState(archive);
+			restored = true;
+		}
+		catch(...)
+		{
+		}
+	});
+	if(restored) c->vm.OnMachineStateChange();
+	return restored ? 0 : 1;
+}
+
+// Power cycle: the game boots again from its file. 0 on success.
+int cartivo_reset(cartivo_t *c)
+{
+	pause(c);
+	return boot(c) ? 0 : 1;
+}
 
 void cartivo_free(cartivo_t *c)
 {
-    if (c) release(c, true);
+	if(!c) return;
+	pause(c);
+	c->gs->release();
+	c->vm.DestroyPadHandler();
+	c->vm.DestroySoundHandler();
+	c->vm.DestroyGSHandler();
+	c->vm.Destroy();
+	current = nullptr;
+	delete c;
 }
 
 } // extern "C"

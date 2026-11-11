@@ -44,14 +44,15 @@ const head = run("git", ["-C", play, "rev-parse", "HEAD"]);
 if (head !== commit) throw Error(`Play!: ${head} no es el commit fijado ${commit}`);
 
 // Each submodule is checked out at the SHA recorded by its superproject, so
-// the pinned Play! commit fixes the whole tree. AltKit (iOS) and
-// SDWebImage (iOS) are not part of the WASM build.
+// the pinned Play! commit fixes the whole tree. AltKit and SDWebImage
+// (iOS) and Nuanceur (Vulkan and Direct3D renderers) are not part of the
+// WASM build.
 const submodule = (repo, path) => {
   run("git", ["-C", repo, "submodule", "update", "--init", "--depth", "1", path], { stdio: "inherit" });
   return run("git", ["-C", repo, "rev-parse", `HEAD:${path}`]);
 };
 const sub = Object.fromEntries(
-  ["deps/Dependencies", "deps/Framework", "deps/CodeGen", "deps/Nuanceur", "deps/libchdr"].map((p) => [p, submodule(play, p)]),
+  ["deps/Dependencies", "deps/Framework", "deps/CodeGen", "deps/libchdr"].map((p) => [p, submodule(play, p)]),
 );
 const dependencies = join(play, "deps/Dependencies");
 for (const p of ["ghc_filesystem", "zstd", "xxHash", "zlib"]) sub[`deps/Dependencies/${p}`] = submodule(dependencies, p);
@@ -84,12 +85,19 @@ run("cmake", ["--build", cmakeBuild, "--target", "play", "--parallel", String(av
 const out = verify ? mkdtempSync(join(tmpdir(), "play-")) : join(core, "dist");
 if (!verify) rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
-const files = ["play.js", "play.wasm"].map((name) => {
+for (const name of ["play.js", "play.wasm"]) {
   const built = join(cmakeBuild, name);
   if (!existsSync(built)) throw Error(`Falta el artefacto ${built}`);
   copyFileSync(built, join(out, name));
-  return { path: `dist/${name}`, sha256: sha256(join(out, name)) };
-});
+}
+// Emscripten starts each pthread from a file literally called "play.js" next
+// to the loader; the app's bundler renames assets with a content hash. The
+// loader names itself instead, which is right under any file name.
+const byName = 'new URL("play.js",import.meta.url)';
+const glue = readFileSync(join(out, "play.js"), "utf8");
+if (glue.split(byName).length !== 2) throw Error(`play.js: se esperaba una sola referencia ${byName}`);
+writeFileSync(join(out, "play.js"), glue.replace(byName, "new URL(import.meta.url)"));
+const files = ["play.js", "play.wasm"].map((name) => ({ path: `dist/${name}`, sha256: sha256(join(out, name)) }));
 
 // The exports are declared once, in CMakeLists.txt; check that the loader
 // really exposes each of them.
@@ -112,23 +120,18 @@ if (verify) {
   process.exit(0);
 }
 
-// --- SBOM: components compiled into play.wasm (CMake graph for TARGET_PLATFORM_JS)
-const deps = (path) => ({ version: sub["deps/Dependencies"], repository: "https://github.com/jpd002/Play-Dependencies", path });
+// --- SBOM: what the `play` target links (its CMake graph for TARGET_PLATFORM_JS):
+// PlayCore, gsh_opengl, Framework, CodeGen, libchdr, zstd, zlib and xxHash.
 const emscripten = { version: pins.emsdk.version, repository: "https://github.com/emscripten-core/emscripten" };
 const sbom = [
-  { name: "Play! (PS2 VM: EE, IOP HLE, GS, SPU; ui_libretro, ui_shared)", license: "BSD-2-Clause", version: commit, repository },
+  { name: "Play! (PS2 VM: EE, IOP HLE, SPU; OpenGL GS)", license: "BSD-2-Clause", version: commit, repository },
   { name: "Play--Framework", license: "BSD-2-Clause", version: sub["deps/Framework"], repository: "https://github.com/jpd002/Play--Framework" },
   { name: "Play--CodeGen (JIT, CodeGen_Wasm)", license: "BSD-2-Clause", version: sub["deps/CodeGen"], repository: "https://github.com/jpd002/Play--CodeGen" },
-  { name: "Nuanceur (shaders)", license: "BSD-2-Clause", version: sub["deps/Nuanceur"], repository: "https://github.com/jpd002/Nuanceur" },
   { name: "libchdr (with bundled zlib 1.3.1, zstd 1.5.6, LZMA SDK 24.05)", license: "BSD-3-Clause AND Zlib AND LicenseRef-public-domain", version: sub["deps/libchdr"], repository: "https://github.com/jpd002/libchdr" },
-  { name: "bzip2 1.0.6", license: "bzip2-1.0.6", ...deps("bzip2-1.0.6") },
-  { name: "sqlite 3.20.1 (FrameworkSqlite)", license: "LicenseRef-public-domain", ...deps("sqlite-3.20.1") },
-  { name: "nlohmann/json", license: "MIT", ...deps("nlohmann_json") },
   { name: "ghc::filesystem", license: "MIT", version: sub["deps/Dependencies/ghc_filesystem"], repository: "https://github.com/gulrak/filesystem" },
   { name: "Zstandard (zstd_zlibwrapper)", license: "BSD-3-Clause", version: sub["deps/Dependencies/zstd"], repository: "https://github.com/facebook/zstd" },
   { name: "xxHash", license: "BSD-2-Clause", version: sub["deps/Dependencies/xxHash"], repository: "https://github.com/Cyan4973/xxHash" },
   { name: "zlib", license: "Zlib", version: sub["deps/Dependencies/zlib"], repository: "https://github.com/madler/zlib" },
-  { name: "libretro API header (Source/ui_libretro/ext/libretro.h)", license: "MIT", version: commit, repository },
   { name: "Emscripten system libraries and JS runtime", license: "MIT OR NCSA", ...emscripten },
   { name: "musl libc (Emscripten)", license: "MIT", ...emscripten },
   { name: "libc++ / libc++abi / compiler-rt (Emscripten)", license: "Apache-2.0 WITH LLVM-exception", ...emscripten },
@@ -146,8 +149,8 @@ const manifest = {
   bios: "None: Play!'s HLE (IopBios, EE kernel) replaces Sony's BIOS; games that need unimplemented IOP modules may not boot.",
   host: {
     crossOriginIsolated: true,
-    canvas: "#cartivo-canvas (OffscreenCanvas in specialHTMLTargets)",
-    filesystem: "WORKERFS (disc mounted by path)",
+    surface: "WebGL2 context of the game canvas, current before cartivo_create",
+    filesystem: "WORKERFS (disc mounted by path) or MEMFS",
   },
   frame: { width: 640, height: 448 },
   saveRam: false,
