@@ -43,3 +43,4 @@ cores/play/build/
 !cores/snes9x/dist/
 !cores/mgba/dist/
 !cores/mupen64plus-next/dist/
+!cores/play/dist/
