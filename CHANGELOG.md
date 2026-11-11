@@ -421,3 +421,8 @@
   - **Límite:** una Partida no recuerda qué disco hay en la bandeja.
 - **CHD (v5):** compilado con `HAVE_CHD` (libchdr BSD-3-Clause, LZMA SDK dominio público, Zstandard BSD-3-Clause o GPL-2.0, dr_flac Unlicense o MIT-0). Los 14 archivos y decodificadores están en el SBOM.
 - **Fixtures:** `ps1TwoDiscDemo` (dos cue/bin propios, el segundo disco pinta en verde) y `ps1DiscChd` (CHD v5 sin comprimir). Tests unitarios y E2E de cambio de disco y arranque CHD.
+
+### PS2: build de Play! y aislamiento de origen cruzado
+
+- **Núcleo Play! en CI:** receta `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (frontend libretro y puente `cartivo.cpp`, WebGL2 sobre `#cartivo-canvas`, disco con WORKERFS). Primer build `a56f8b2`: `play.js` 188 KiB y `play.wasm` 2,4 MiB, 16 dependencias con licencia identificada; `verify:core` lo comprueba. Aún sin integrar en la app: el gate sigue en `investigation`.
+- **COOP/COEP en toda la PWA ([ADR-020](docs/adr/020-cross-origin-isolation.md)):** Vite dev y preview envían las cabeceras y el service worker las añade a todo lo que sirve, también a copias en caché guardadas sin ellas. E2E de `crossOriginIsolated` en dev, preview y sin red.

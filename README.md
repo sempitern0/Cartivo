@@ -43,6 +43,8 @@ Para publicarla en una subcarpeta del dominio (por ejemplo `https://ejemplo.com/
 pnpm build --base /cartivo/ && pnpm preview --base /cartivo/   # http://127.0.0.1:4173/cartivo/
 ```
 
+El servidor debe enviar `Cross-Origin-Opener-Policy: same-origin` y `Cross-Origin-Embedder-Policy: require-corp` en todas las respuestas ([ADR-020](docs/adr/020-cross-origin-isolation.md)); `pnpm dev` y `pnpm preview` ya lo hacen.
+
 Por defecto, sin `--base`, se publica y se prueba en la raíz. Si al abrir la app la consola muestra `404` y `Manifest: Line 1, column 1, Syntax error`, el build y la vista previa tienen bases distintas: vuelve a construir sin `--base` o pasa la misma a los dos.
 
 ## Comandos

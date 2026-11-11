@@ -177,7 +177,7 @@ Esto implica:
 Sin embargo, la **viabilidad técnica de la integración** requiere:
 
 1. **Spike de compilación**: compilar Play! (web target o libretro) a WASM con Emscripten, confirmando que los pthreads funcionan con SharedArrayBuffer en Cartivo.
-2. **ADR para COOP/COEP**: evaluar el impacto de añadir las cabeceras en toda la PWA.
+2. **ADR para COOP/COEP**: evaluar el impacto de añadir las cabeceras en toda la PWA. **Hecho:** [ADR-020](../adr/020-cross-origin-isolation.md) (aislamiento global, también desde el service worker).
 3. **Evaluar el rendimiento** con un homebrew PS2 (no un juego comercial).
 4. **Resolver la persistencia de memory cards**.
 5. **Evaluar el tamaño** del WASM y la precarga.

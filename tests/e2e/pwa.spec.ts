@@ -15,6 +15,12 @@ async function startOver(page: import("./fixtures.ts").Page) {
   await expect(page.getByTestId("player-phase")).toHaveText("Jugando");
 }
 
+test("the app is cross-origin isolated (ADR-020)", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("main, #app").first()).toBeVisible();
+  expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
+});
+
 test("web app manifest is installable and its icons load", async ({
   page,
   request,
@@ -106,6 +112,8 @@ test("installed shell reopens offline and plays the demo", async ({
       const html = (await page.content()).slice(0, 800);
       throw new Error(`${e.message}\n${problems.join("\n")}\n${html}`);
     });
+  // Served by the service worker, still isolated (ADR-020).
+  expect(await page.evaluate(() => self.crossOriginIsolated)).toBe(true);
   await startDemo(page, "NES");
   await startOver(page);
   await expect

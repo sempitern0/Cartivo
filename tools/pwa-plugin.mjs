@@ -9,6 +9,16 @@ export const SW_FILE = "sw.js";
 export const CACHE_PREFIX = "cartivo-shell-";
 /** Cache entry listing path → content hash, so an update can reuse files. */
 export const MANIFEST_PATH = "__cartivo-precache.json";
+/**
+ * Cross-origin isolation (ADR-020): SharedArrayBuffer, and with it pthreads
+ * in cores such as Play! (PS2), needs both headers on every document and
+ * worker. Vite's dev and preview servers send them (apps/web/vite.config.ts)
+ * and the service worker adds them to everything it serves.
+ */
+export const ISOLATION_HEADERS = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+};
 
 /** Files that must not be precached. */
 export function shouldPrecache(path) {
@@ -41,6 +51,20 @@ const MANIFEST = ${JSON.stringify(MANIFEST_PATH)};
 // Downloads at a time: the whole catalogue in one burst can stall phones.
 const PARALLEL = 6;
 const url = (path) => new URL(path, self.registration.scope).href;
+const ISOLATION = ${JSON.stringify(ISOLATION_HEADERS)};
+
+/**
+ * The response with the cross-origin isolation headers (ADR-020), whatever
+ * headers its cached copy was stored with: a copy reused from a version
+ * installed before isolation would otherwise serve a worker without COEP to
+ * an isolated page, which the browser blocks. Opaque responses pass as is.
+ */
+function isolated(response) {
+  if (response.type === "opaque" || response.type === "opaqueredirect") return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(ISOLATION)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
 
 /** The newest previous Cartivo cache whose manifest says what it holds. */
 async function previousCache() {
@@ -123,7 +147,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       caches.open(CACHE).then(async (cache) =>
-        (await cache.match(url("index.html"), { ignoreVary: true })) ?? fetch(request),
+        isolated((await cache.match(url("index.html"), { ignoreVary: true })) ?? (await fetch(request))),
       ),
     );
     return;
@@ -132,7 +156,7 @@ self.addEventListener("fetch", (event) => {
   // precached entries were stored without it ("Vary: Origin" would miss).
   event.respondWith(
     caches.open(CACHE).then(async (cache) =>
-      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? fetch(request),
+      isolated((await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? (await fetch(request))),
     ),
   );
 });

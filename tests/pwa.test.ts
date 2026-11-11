@@ -63,19 +63,22 @@ test("cache lookups ignore Vary so crossorigin module requests hit offline", () 
   assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 2);
 });
 
-/** Runs a generated service worker against in-memory caches and network. */
-async function installWith(
+/** Loads a generated service worker over in-memory caches and network. */
+function loadWorker(
   source: string,
   stores: Map<string, Map<string, Response>>,
-  network = async (target: string) => new Response(`body of ${target}`),
+  network: (target: string) => Promise<Response>,
 ) {
   const fetched: string[] = [];
+  // The worker passes a URL or, from its fetch handler, the request itself.
+  const key = (k: string | { url: string }) =>
+    typeof k === "string" ? k : k.url;
   const handlers: Record<string, (event: unknown) => void> = {};
   const open = async (name: string) => {
     if (!stores.has(name)) stores.set(name, new Map());
     const store = stores.get(name)!;
     return {
-      match: async (key: string) => store.get(key)?.clone(),
+      match: async (k: string | { url: string }) => store.get(key(k))?.clone(),
       put: async (key: string, response: Response) => {
         store.set(key, response);
       },
@@ -88,10 +91,12 @@ async function installWith(
       handlers[type] = fn;
     },
     caches: { keys: async () => [...stores.keys()], open },
-    fetch: async (target: string) => {
+    fetch: async (request: string | { url: string }) => {
+      const target = key(request);
       fetched.push(target.replace("https://cartivo.test/", ""));
       return network(target);
     },
+    Headers,
     Response,
     URL,
   };
@@ -99,6 +104,16 @@ async function installWith(
     ...Object.values(scope),
     scope,
   );
+  return { handlers, fetched };
+}
+
+/** Runs a generated service worker's install; returns the downloaded paths. */
+async function installWith(
+  source: string,
+  stores: Map<string, Map<string, Response>>,
+  network = async (target: string) => new Response(`body of ${target}`),
+) {
+  const { handlers, fetched } = loadWorker(source, stores, network);
   let done: Promise<unknown> = Promise.resolve();
   handlers.install({ waitUntil: (p: Promise<unknown>) => (done = p) });
   await done;
@@ -129,6 +144,45 @@ test("an update downloads only the files whose content changed", async () => {
     await newest.get("https://cartivo.test/assets/core-1.wasm")!.text(),
     "body of https://cartivo.test/assets/core-1.wasm",
   );
+});
+
+test("everything the worker serves is cross-origin isolated (ADR-020)", async () => {
+  const stores = new Map<string, Map<string, Response>>();
+  // Cached copies stored without the headers, as from a version installed
+  // before isolation, and a file missing from the cache.
+  const plain = async (target: string) =>
+    new Response(`body of ${target}`, {
+      headers: { "Content-Type": "text/javascript" },
+    });
+  await installWith(buildServiceWorker(entries), stores, plain);
+  const { handlers } = loadWorker(buildServiceWorker(entries), stores, plain);
+  const serve = async (path: string, mode = "cors") => {
+    let served: Promise<Response> | undefined;
+    handlers.fetch({
+      request: { method: "GET", mode, url: `https://cartivo.test/${path}` },
+      respondWith: (p: Promise<Response>) => (served = p),
+    });
+    return served!;
+  };
+  for (const [path, mode] of [
+    ["", "navigate"],
+    ["assets/index-1.js", "cors"],
+    ["assets/not-precached.js", "cors"],
+  ]) {
+    const response = await serve(path, mode);
+    assert.equal(
+      response.headers.get("Cross-Origin-Opener-Policy"),
+      "same-origin",
+      path,
+    );
+    assert.equal(
+      response.headers.get("Cross-Origin-Embedder-Policy"),
+      "require-corp",
+      path,
+    );
+    assert.equal(response.headers.get("Content-Type"), "text/javascript", path);
+    assert.match(await response.text(), /^body of /, path);
+  }
 });
 
 test("installs a few files at a time and only completes with all of them", async () => {

@@ -66,6 +66,8 @@ Problemas reales que han costado iteraciones. Comprobarlos ahorra rondas de CI:
 - **Playwright:** una opción de fixture con valor `undefined` vuelve a su valor por defecto. Para desactivarla, usa `""` o `null`.
 - **`tests/context.test.ts`** solo ve archivos que git conoce: haz `git add` de los nuevos antes de ejecutarlo.
 - **Núcleos:** cambiar `cores/*/src` sin regenerar `dist`/`manifest.json` hace fallar `verify`. El build se pide en un commit aparte que solo toque `.build-request` (`cores/AGENTS.md`); el bot sube los artefactos y luego hay que hacer `git pull`.
+- **Aislamiento (ADR-020):** la app corre con COOP/COEP. Un recurso de otro origen necesita CORP o CORS, y un worker sin COEP se bloquea: las cabeceras salen de `ISOLATION_HEADERS` (`tools/pwa-plugin.mjs`), que usan Vite y el service worker.
+- **CMake con Emscripten:** `include(Header)` de Play! va después de `project()`, que es quien lee el toolchain y define `EMSCRIPTEN`; antes, configura como Unix x86 (`-msse`, zlib sin `unistd.h`).
 - **Discos:** `Blob.text()` quita el BOM UTF-8. Para detectarlo, lee los tres primeros bytes.
 - **PS1:** el núcleo amplía el color de 15 bits (0x20 → 0x21); los oráculos lo tienen en cuenta.
 - **Lienzo transferido (N64):** tras `transferControlToOffscreen` el `<canvas>` no admite `getContext` ni cambios de `width`/`height`. Las E2E leen los píxeles con una captura de pantalla (`tests/e2e/n64.spec.ts`), no con `getImageData`.
