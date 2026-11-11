@@ -72,4 +72,4 @@ El primer intento, sobre el frontend libretro de Play!, compiló pero no funcion
   - dos juegos seguidos sobre el mismo lienzo; el primero queda cerrado.
 - **Unitarias** (`tests/ps2.test.ts`, `tests/systems.test.ts`): contrato en UI y Worker, la fixture (ELF e ISO 9660), el ensamblador MIPS, la forma de zip y el reparto de `.iso`/`.chd` por tamaño.
 - **E2E** (`tests/e2e/ps2.spec.ts`): demo con colores por captura, F5/F9 con miniatura y la imagen `.iso` abierta desde el selector.
-- **CI:** pendiente del run de la Foundation CI sobre este cambio.
+- **CI:** Foundation CI 43115390468 sobre `7f72d57`, en verde: `verify` y las seis tandas E2E. Las tres pruebas de PS2 pasan en Chromium, en dev y en preview (bajo la CSP de ADR-021); Firefox y WebKit las saltan por no ofrecer WebGL2 en Workers. El run anterior (`6faade5`) ya las pasaba y falló por tipos del adaptador, la tarjeta sin portada y dos textos de otras E2E.

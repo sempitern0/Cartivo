@@ -27,7 +27,7 @@ Estado: **experimental.** PlayStation 2 funciona en la app con Play!: la consola
   - un segundo juego sobre el mismo lienzo cierra el primero;
   - un archivo que no es un disco de PS2 se rechaza con un mensaje.
 - **E2E** (`tests/e2e/ps2.spec.ts`): demo, colores por captura de pantalla, F5/F9 con miniatura y la imagen `.iso` abierta desde el selector de archivos. En un motor sin WebGL2 en Workers se salta con el motivo.
-  - CI: pendiente del run sobre este cambio.
+  - CI: Foundation CI 43115390468 sobre `7f72d57`, en verde: `verify` y las seis tandas E2E. Las tres pruebas de PS2 pasan en Chromium, en dev y en preview (bajo la CSP de ADR-021); Firefox y WebKit las saltan por no ofrecer WebGL2 en Workers. El run anterior (`6faade5`) ya las pasaba y falló por tipos del adaptador, la tarjeta sin portada y dos textos de otras E2E.
 
 ## Pendiente (QA del titular)
 
