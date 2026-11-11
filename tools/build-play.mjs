@@ -151,7 +151,7 @@ const manifest = {
   host: {
     crossOriginIsolated: true,
     surface: "WebGL2 context of the game canvas, current before cartivo_create",
-    filesystem: "WORKERFS (disc mounted by path) or MEMFS",
+    disc: "Module.discImageDevice (single-file image, read on demand)",
   },
   frame: { width: 640, height: 448 },
   saveRam: false,

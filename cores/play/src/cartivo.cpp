@@ -5,7 +5,9 @@
 //
 // PlayStation 2 with the core's own HLE: Play! emulates the IOP modules and
 // the EE kernel without Sony's BIOS. The disc stays in the player's files:
-// the host mounts it (WORKERFS) and passes its path.
+// under Emscripten Play! reads its image through Module.discImageDevice
+// (Js_DiscImageDeviceStream.cpp), which the host provides; the path only
+// tells the format by its extension. An .elf is read from the filesystem.
 //
 // Why not Play!'s libretro frontend: it boots, resets and (un)serialises
 // from the caller's thread. With the WebAssembly JIT every thread has its
@@ -149,13 +151,23 @@ public:
 	/**
 	 * Runs the GS calls queued so far, without waiting for more (inside
 	 * frame(), only up to the frame's flip: the VM may be a frame ahead).
-	 * ProcessSingleFrame returns at a flip; the marker call counts as one,
-	 * so it never blocks on an empty queue.
+	 * ProcessSingleFrame returns at a flip; a marker call counts as one, so
+	 * it never blocks on an empty queue. Only the newest marker does: one
+	 * left behind by a flip must not stop a later pump early.
 	 */
 	void pump()
 	{
-		SendGSCall([this]() { m_flipped = true; });
+		SendGSCall([this, marker = ++m_marker]() {
+			if(marker == m_marker) m_flipped = true;
+		});
 		ProcessSingleFrame();
+	}
+
+	/** Brings the GS memory up to date with what is drawn (for a state). */
+	void sync()
+	{
+		pump();
+		SyncMemoryCache();
 	}
 
 	/** Frees the GL objects, on the thread that owns the context. */
@@ -163,7 +175,6 @@ public:
 	{
 		pump();
 		CGSH_OpenGL::ReleaseImpl();
-		m_released = true;
 	}
 
 protected:
@@ -175,12 +186,6 @@ protected:
 		params.windowHeight = HEIGHT;
 		SetPresentationParams(params);
 		CGSH_OpenGL::InitializeImpl();
-	}
-
-	void ReleaseImpl() override
-	{
-		// Queued by the VM when it destroys the handler; release() did it.
-		if(!m_released) CGSH_OpenGL::ReleaseImpl();
 	}
 
 	void FlipImpl(const DISPLAY_INFO &info) override
@@ -198,9 +203,9 @@ protected:
 
 private:
 	NewFrameEvent::Connection m_frame;
+	uint32_t m_marker = 0;
 	bool m_presented = false;
 	bool m_stopAtFlip = false;
-	bool m_released = false;
 };
 
 // --- Sound: SPU blocks from the VM thread -----------------------------------
@@ -410,11 +415,12 @@ extern "C" {
 void cartivo_free(cartivo_t *c);
 
 // `path` names the file to boot in the module's filesystem: an .elf, or a
-// disc image (.iso, .chd, .cue, .cso, .isz). The WebGL2 context of the game
-// canvas must be current on this thread. Returns NULL if Play! refuses it.
+// single-file disc image (.iso, .chd, .cso, .isz) served by the host's
+// Module.discImageDevice. The WebGL2 context of the game canvas must be
+// current on this thread. Returns NULL if Play! refuses it.
 cartivo_t *cartivo_create(const char *path, size_t length)
 {
-	if(current) return nullptr; // one game per module
+	if(current) return nullptr; // one game per module, ever
 	auto *c = new cartivo_t();
 	c->path.assign(path, length);
 	c->disc = !ends_with(c->path, ".elf");
@@ -489,6 +495,7 @@ void cartivo_set_analog(cartivo_t *c, int lx, int ly, int rx, int ry)
 size_t cartivo_snapshot(cartivo_t *c)
 {
 	c->state.clear();
+	c->gs->sync();
 	on_vm(c, [&]() {
 		try
 		{
@@ -535,24 +542,16 @@ int cartivo_restore(cartivo_t *c, const uint8_t *data, size_t length)
 	return restored ? 0 : 1;
 }
 
-// Power cycle: the game boots again from its file. 0 on success.
-int cartivo_reset(cartivo_t *c)
-{
-	pause(c);
-	return boot(c) ? 0 : 1;
-}
-
+// Stops the console and frees its GL objects; the canvas's context outlives
+// the game. The VM itself is not torn down: destroying it from this thread
+// would drop its JIT blocks in the wrong function table, and the module is
+// single-use (a game is a new instance; the host then ends its threads and
+// drops it, memory included). The host resets by starting a new instance.
 void cartivo_free(cartivo_t *c)
 {
 	if(!c) return;
 	pause(c);
 	c->gs->release();
-	c->vm.DestroyPadHandler();
-	c->vm.DestroySoundHandler();
-	c->vm.DestroyGSHandler();
-	c->vm.Destroy();
-	current = nullptr;
-	delete c;
 }
 
 } // extern "C"
