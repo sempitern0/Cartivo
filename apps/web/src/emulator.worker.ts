@@ -11,6 +11,7 @@ import type {
   CartridgeModule,
   CoreModule,
   DiscModule,
+  SurfaceDiscModule,
   EmulatorCore,
   SurfaceModule,
 } from "../../../packages/adapters/src/contract.ts";
@@ -216,8 +217,16 @@ async function loadSurface(
   return { start: (save) => module.create(rom, canvas, save), rom, hash };
 }
 
-/** A disc from the player's files, or its copy in the library (ADR-015). */
-async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
+/**
+ * A disc from the player's files, or its copy in the library (ADR-015). A
+ * core that draws on the page's canvas (PS2) gets it too (ADR-017).
+ */
+async function loadDisc(
+  module: DiscModule | SurfaceDiscModule,
+  r: EmuRequest,
+): Promise<Loaded> {
+  const canvas = r.canvas;
+  if (module.surface && !canvas) throw Error("Falta el lienzo del juego.");
   const [file, ...extra] = r.stored
     ? await storedDiscFiles(r.stored)
     : [r.file, ...(r.extra ?? [])];
@@ -233,8 +242,12 @@ async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
     );
   return {
     // A new instance (reset, battery load) boots the disc in the tray.
-    start: async (save) =>
-      module.create(disc.withFirst(core?.discs?.current() ?? 0), save),
+    start: async (save) => {
+      const tray = disc.withFirst(core?.discs?.current() ?? 0);
+      return module.surface
+        ? module.create(tray, canvas!)
+        : module.create(tray, save);
+    },
     hash,
     parts,
   };

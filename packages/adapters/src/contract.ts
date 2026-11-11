@@ -97,17 +97,29 @@ export interface CartridgeModule extends CartridgeInfo {
   create(rom: Uint8Array, save?: Uint8Array): EmulatorCore;
 }
 
+type DiscInfo = ModuleInfo & {
+  disc: true;
+  /** Original test program for the demo entry, as a file the core boots. */
+  demo?(): { name: string; bytes: Uint8Array };
+};
+
 /**
  * Disc systems (ADR-015): the game stays in the player's files and the core
  * reads the sectors it needs. The page picks the file to boot (systems.ts
  * `gameForFiles`); the core opens the rest by name.
  */
-export interface DiscModule extends ModuleInfo {
-  disc: true;
+export interface DiscModule extends DiscInfo {
   surface?: undefined;
-  /** Original test program for the demo entry, as a file the core boots. */
-  demo?(): { name: string; bytes: Uint8Array };
   create(disc: DiscImage, save?: Uint8Array): EmulatorCore;
+}
+
+/**
+ * Disc systems whose core draws with the GPU (ADR-017, ADR-022): the core
+ * renders on the game canvas and reads the disc itself. No battery RAM.
+ */
+export interface SurfaceDiscModule extends DiscInfo {
+  surface: "webgl2";
+  create(disc: DiscImage, canvas: OffscreenCanvas): Promise<EmulatorCore>;
 }
 
 /**
@@ -125,4 +137,8 @@ export interface SurfaceModule extends CartridgeInfo {
   ): Promise<EmulatorCore>;
 }
 
-export type CoreModule = CartridgeModule | DiscModule | SurfaceModule;
+export type CoreModule =
+  | CartridgeModule
+  | DiscModule
+  | SurfaceModule
+  | SurfaceDiscModule;

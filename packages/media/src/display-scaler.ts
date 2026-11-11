@@ -85,6 +85,16 @@ export const N64_VIDEO: VideoDescriptor = {
   dynamicResolution: false,
 };
 
+/** PlayStation 2: the GS presents every video mode on a 640 × 448 surface
+ * (4:3) with WebGL2 (ADR-022); a PAL game's 512 lines are scaled to it. */
+export const PS2_VIDEO: VideoDescriptor = {
+  sourceWidth: 640,
+  sourceHeight: 448,
+  displayAspect: 4 / 3,
+  pixelArt: false,
+  dynamicResolution: false,
+};
+
 export const GBA_VIDEO: VideoDescriptor = {
   sourceWidth: 240,
   sourceHeight: 160,

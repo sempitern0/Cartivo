@@ -35,7 +35,7 @@
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
   import { GameSound } from "./sound.svelte.ts";
-  import { surfaceFor } from "./surface.ts";
+  import { surfaceFor, threadsProblem } from "./surface.ts";
   import { claimPadWhile } from "./pad-navigation.svelte.ts";
   import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import { captureGameInput } from "./game-capture.ts";
@@ -261,6 +261,8 @@
     try {
       // A core that draws itself gets the game canvas (ADR-017); after the
       // transfer the page never touches its pixels again.
+      const isolation = system.threads && threadsProblem();
+      if (isolation) throw Error(isolation);
       const canvas = system.surface ? surfaceFor(screen) : undefined;
       const r = await client.request(
         "load",
