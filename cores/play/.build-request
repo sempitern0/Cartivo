@@ -1,3 +1,3 @@
 Bump this file only to build Play! once in CI (core-play.yml).
-Reason: own frontend, second attempt (CAppConfig::GetBasePath).
+Reason: frontend fixes found in the browser lab (stale GS markers, close without VM teardown, disc device, no WORKERFS).
 
