@@ -1,2 +1,2 @@
 Bump this file only to build Play! once in CI (core-play.yml).
-Reason: first Emscripten build of Play! (PS2), CORE-LEGAL-01 spike (attempt 4: embind).
+Reason: first Emscripten build of Play! (PS2), CORE-LEGAL-01 spike (attempt 5: commit artefacts).
