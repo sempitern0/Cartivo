@@ -23,18 +23,20 @@ set(CMAKE_MODULE_PATH
 	${PLAY_UPSTREAM}/deps/Dependencies/cmake-modules
 	${CMAKE_MODULE_PATH}
 )
-# Header.cmake detects EMSCRIPTEN → TARGET_PLATFORM_JS (GLES, no GLEW) and
-# adds -fexceptions -pthread to the compile and link flags.
-include(Header)
-
 project(CartivoPlayPS2)
+
+# After project(): the Emscripten toolchain file, which sets EMSCRIPTEN, is
+# only read by project(). Header.cmake then picks TARGET_PLATFORM_JS (GLES, no
+# GLEW, no -msse, HAVE_UNISTD_H for zlib) and adds -fexceptions -pthread.
+# Upstream's top-level CMakeLists.txt uses the same order.
+include(Header)
 
 # main_libretro.cpp reports PLAY_VERSION as library_version; upstream's top
 # level derives it from `git describe`, here it is the pinned commit.
 add_definitions(-DPLAY_VERSION="${PLAY_VERSION}")
-# Play-Dependencies' zlib ships the generic zconf.h, which only includes
-# <unistd.h> (lseek, off_t) when HAVE_UNISTD_H is set; Emscripten has it.
-add_compile_definitions(HAVE_UNISTD_H=1)
+if(NOT TARGET_PLATFORM_JS)
+	message(FATAL_ERROR "Configure with emcmake: Header.cmake did not detect Emscripten")
+endif()
 
 # --- Play! static libraries (same targets as Source/ui_libretro) -----------
 if(NOT TARGET PlayCore)
