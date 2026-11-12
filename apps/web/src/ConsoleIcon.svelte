@@ -21,6 +21,7 @@
     sms: pad,
     md: '<path d="M9 18.5c6.5-3.2 23.5-3.2 30 0 4.5 2.2 5.5 8.5 3.3 12.4-2 3.6-6 3.9-8.8 1.1H14.5c-2.8 2.8-6.8 2.5-8.8-1.1C3.5 27 4.5 20.7 9 18.5z"/><path d="M10.5 25h6.5M13.75 21.75v6.5"/><circle cx="29.5" cy="27" r="1.8" class="dot"/><circle cx="33.75" cy="25" r="1.8" class="dot"/><circle cx="38" cy="23" r="1.8" class="dot"/>',
     n64: '<path d="M8 17.5h32a4 4 0 0 1 3.6 5.7l-4.2 8.6a3.4 3.4 0 0 1-5.9.3L31 28H17l-2.5 4.1a3.4 3.4 0 0 1-5.9-.3l-4.2-8.6A4 4 0 0 1 8 17.5z"/><path d="M20 28l1.6 9.2a2.4 2.4 0 0 0 4.8 0L28 28"/><circle cx="24" cy="23.5" r="2.6" class="dot"/><path d="M10.5 22.5h5M13 20v5"/><circle cx="35" cy="21.5" r="1.5" class="dot"/><circle cx="35" cy="25.5" r="1.5" class="dot"/>',
+    ps2: '<rect x="15" y="5" width="18" height="38" rx="2.5"/><path d="M15 16h18M20.5 10.5h7"/><path class="sheen" d="M20 23v13M24.5 23v13"/><circle cx="28.5" cy="38" r="1.6" class="dot"/>',
     ps1: '<circle cx="24" cy="24" r="17"/><circle cx="24" cy="24" r="5"/><path class="sheen" d="M24 12a12 12 0 0 1 11 7.5M13.5 30a12 12 0 0 0 6 5"/>',
   };
 </script>

@@ -6,17 +6,17 @@ PWA para jugar consolas retro en el navegador: **elige consola, abre tu juego y 
 
 | | |
 |---|---|
-| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive · PlayStation · Nintendo 64 (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive; discos de PlayStation leídos bajo demanda; Nintendo 64 dibuja con WebGL2) |
-| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive) · PCSX-ReARMed (PlayStation, BIOS HLE) · Mupen64Plus-Next con GLideN64 (Nintendo 64, WebGL2). Todos en WebAssembly y sin BIOS propietarias |
+| **Consolas** | NES · Game Boy · Game Boy Color · Game Boy Advance · SNES · Master System · Mega Drive · PlayStation · Nintendo 64 · PlayStation 2 (todas **experimentales**; cartuchos NTSC, y también PAL a 50 Hz en SNES y Mega Drive; discos de PlayStation y PlayStation 2 leídos bajo demanda; Nintendo 64 y PlayStation 2 dibujan con WebGL2) |
+| **Núcleos** | TetaNES 0.17.0 (NES; JSNES 2.1.0 como alternativa) · SameBoy 1.0.4 (GB/GBC) · mGBA 0.10.5 (GBA, BIOS HLE) · Snes9x 1.63 (SNES) · Genesis Plus GX (Master System y Mega Drive) · PCSX-ReARMed (PlayStation, BIOS HLE) · Mupen64Plus-Next con GLideN64 (Nintendo 64, WebGL2) · Play! (PlayStation 2, BIOS HLE, hilos y WebGL2). Todos en WebAssembly y sin BIOS propietarias |
 | **App** | PWA instalable con todos los núcleos; funciona sin conexión y cada actualización solo descarga lo que cambia |
 | **Controles** | Teclado y mando (Gamepad API) con remapeo, también para moverse por la interfaz; cada consola usa sus botones y nombres (mando de seis botones en Mega Drive; L2/R2 y sticks en PlayStation; stick analógico y botones C en Nintendo 64) |
 | **Partidas** | 3 ranuras + «Al salir» en cualquier juego, F5/F9, exportar e importar cada ranura; la memoria de batería del cartucho (o la tarjeta de memoria de PlayStation) se guarda sola sin frenar la imagen |
 | **Perfiles** | «¿Quién juega?» al abrir: cada perfil tiene sus partidas, sus juegos y sus controles en el mismo dispositivo, sin contraseña ([ADR-016](docs/adr/016-player-profiles.md)) |
 | **Biblioteca** | Los juegos que abres se recuerdan en el navegador: los tres últimos en el inicio y todos en «Tus juegos», con búsqueda y filtro por consola (los discos de PlayStation se copian mientras juegas, avisando si no caben) |
 | **Calidad** | CI con pruebas unitarias, conformidad de núcleos y E2E en Chromium, Firefox y WebKit (dev y build de producción) |
-| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado) QA de PlayStation con discos reales y de Nintendo 64 con más juegos, PSP; Safari/iOS con prioridad baja |
+| **Pendiente** | QA física (mando real, móviles Android, audio), despliegue público (aplazado), QA de PlayStation con discos reales, de Nintendo 64 con más juegos y de PlayStation 2 con juegos comerciales (solo probada con la demo propia; sin memory card); Safari/iOS con prioridad baja |
 
-Catálogo previsto (V1): NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PSP; PS2 como laboratorio. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
+Catálogo previsto: NES, SNES, GB, GBC, GBA, Master System, Mega Drive, N64, PS1 y PS2; PSP, GameCube y Dreamcast quedan aplazadas. Cada sistema entra solo cuando su núcleo supera el gate técnico y de licencia. Qué está hecho y qué falta, en orden: [plan técnico](docs/PLAN_TECNICO_CARTIVO.md).
 
 ## Empezar
 
@@ -42,6 +42,13 @@ Para publicarla en una subcarpeta del dominio (por ejemplo `https://ejemplo.com/
 ```sh
 pnpm build --base /cartivo/ && pnpm preview --base /cartivo/   # http://127.0.0.1:4173/cartivo/
 ```
+
+El servidor debe enviar en todas las respuestas las cabeceras de `SECURITY_HEADERS` (`tools/pwa-plugin.mjs`), y servir los archivos de la build sin modificarlos:
+
+- `Cross-Origin-Opener-Policy: same-origin` y `Cross-Origin-Embedder-Policy: require-corp` ([ADR-020](docs/adr/020-cross-origin-isolation.md));
+- la `Content-Security-Policy` de la app ([ADR-021](docs/adr/021-content-security-policy.md)).
+
+`pnpm preview` ya las envía todas; `pnpm dev`, solo las dos primeras.
 
 Por defecto, sin `--base`, se publica y se prueba en la raíz. Si al abrir la app la consola muestra `404` y `Manifest: Line 1, column 1, Syntax error`, el build y la vista previa tienen bases distintas: vuelve a construir sin `--base` o pasa la misma a los dos.
 

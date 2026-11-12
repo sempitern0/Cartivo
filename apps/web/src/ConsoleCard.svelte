@@ -118,11 +118,11 @@
   {#if missing}
     <div class="tracks" role="alert">
       <p>
-        <strong>Faltan pistas de «{missing.file}»</strong>
-        {missing.tracks.join(", ")}. Elígelas para jugar.
+        <strong>Faltan archivos de «{missing.file}»</strong>
+        {missing.tracks.join(", ")}. Elígelos para jugar.
       </p>
       <div class="tracks-actions">
-        <button class="primary" onclick={onpicktracks}>Elegir pistas</button
+        <button class="primary" onclick={onpicktracks}>Elegir archivos</button
         ><button class="link" onclick={oncanceltracks}>Cancelar</button>
       </div>
     </div>

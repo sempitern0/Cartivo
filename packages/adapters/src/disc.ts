@@ -20,15 +20,47 @@ export const fileReaderSync: ReadSync = (blob, start, end) =>
 
 export class DiscImage {
   readonly parts: readonly DiscPart[];
-  /** The file the core opens first (the .cue, .chd, .iso…). */
+  /** The boot file of each disc of the game (an .m3u's list), in order. */
+  readonly discs: readonly string[];
+  /** Index in `discs` of the disc the core boots. */
+  readonly first: number;
+  /** The file the core opens first: the .cue, .chd, .iso… of disc `first`. */
   readonly primary: DiscPart;
+  readonly #disc1: DiscPart;
   readonly #read: ReadSync;
 
-  constructor(parts: readonly DiscPart[], primary: DiscPart, read: ReadSync) {
-    if (!parts.includes(primary)) throw Error("Disco sin archivo principal");
+  /**
+   * `disc1` is the boot file of the game's first disc and `others` those of
+   * its other discs, in order; `first` picks the one the core boots.
+   */
+  constructor(
+    parts: readonly DiscPart[],
+    disc1: DiscPart,
+    read: ReadSync,
+    others: readonly string[] = [],
+    first = 0,
+  ) {
+    if (!parts.includes(disc1)) throw Error("Disco sin archivo principal");
     this.parts = parts;
-    this.primary = primary;
+    this.#disc1 = disc1;
+    this.discs = [disc1.name, ...others];
     this.#read = read;
+    for (const name of others)
+      if (!this.find(name)) throw Error(`Falta el disco «${name}»`);
+    if (!this.discs[first]) throw Error(`No hay disco ${first + 1}`);
+    this.first = first;
+    this.primary = first ? this.find(this.discs[first])! : disc1;
+  }
+
+  /** The same game booting disc `index` (a reset keeps the disc in the tray). */
+  withFirst(index: number): DiscImage {
+    return new DiscImage(
+      this.parts,
+      this.#disc1,
+      this.#read,
+      this.discs.slice(1),
+      index,
+    );
   }
 
   /** A part by the name the core uses (any folder, any case). */

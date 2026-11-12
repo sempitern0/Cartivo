@@ -7,6 +7,7 @@ import { isAnalog, type Analog } from "../../input/src/analog.ts";
 
 /** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y, PS1 L2/R2). */
 const optional: readonly Action[] = ["l", "r", "x", "y", "l2", "r2"];
+import { MAX_RENDER_SCALE } from "./render-scale.ts";
 import { system as findSystem } from "./systems.ts";
 import { isProfileId } from "../../storage/src/profiles.ts";
 import {
@@ -23,6 +24,7 @@ export type EmuCommand =
   | "save"
   | "import"
   | "reset"
+  | "disc"
   | "state-list"
   | "state-save"
   | "state-load"
@@ -54,6 +56,8 @@ export type EmuRequest = {
   /** Profile for `load` whose saves, Partidas and library are used
    * (ADR-016); omitted means the first profile. */
   profile?: string;
+  /** `disc`: index of the disc to put in (a multi-disc game). */
+  disc?: number;
   /** Snapshot slot for state-save/state-load/state-delete/state-export. */
   slot?: StateSlot;
   /** Parsed JSON of an exported snapshot for state-import (checked in the Worker). */
@@ -61,6 +65,9 @@ export type EmuRequest = {
   /** `load` of a system the core draws itself (systems.ts `surface`): the
    * page's game canvas, transferred (ADR-017). */
   canvas?: OffscreenCanvas;
+  /** `load` with a canvas: the core draws at this many times the console's
+   * resolution (1 to MAX_RENDER_SCALE); omitted means 1. */
+  scale?: number;
 };
 /** More files than any multi-track disc needs (99 tracks and its .cue). */
 const MAX_EXTRA_FILES = 100;
@@ -81,6 +88,7 @@ export function parseRequest(value: unknown): EmuRequest {
       "save",
       "import",
       "reset",
+      "disc",
       "state-list",
       "state-save",
       "state-load",
@@ -125,7 +133,18 @@ export function parseRequest(value: unknown): EmuRequest {
       throw Error(
         target.surface ? "Falta el lienzo del juego" : "Lienzo inesperado",
       );
-  } else if (r.canvas !== undefined) throw Error("Lienzo inesperado");
+    if (
+      r.scale !== undefined &&
+      !(
+        target.surface &&
+        Number.isInteger(r.scale) &&
+        r.scale >= 1 &&
+        r.scale <= MAX_RENDER_SCALE
+      )
+    )
+      throw Error("Resolución inválida");
+  } else if (r.canvas !== undefined || r.scale !== undefined)
+    throw Error("Lienzo inesperado");
   if (
     ["state-save", "state-load", "state-delete", "state-export"].includes(
       r.command,
@@ -151,12 +170,18 @@ export function parseRequest(value: unknown): EmuRequest {
       ))
   )
     throw Error("Entrada inválida");
+  // Which discs exist is the core's to say (DiscTray.insert refuses the rest).
+  if (r.command === "disc" && (!Number.isInteger(r.disc) || r.disc! < 0))
+    throw Error("Disco inválido");
   if (r.analog !== undefined && !isAnalog(r.analog))
     throw Error("Sticks inválidos");
   // Protocol v1 clients from before L/R send eight buttons: L/R are released.
   if (r.input) for (const a of optional) r.input[a] ??= false;
   return r;
 }
+/** A multi-disc game's discs (boot file names, in order) and the one in. */
+export type DiscTrayState = { names: string[]; current: number };
+
 export type EmuResult = {
   pixels?: Uint8ClampedArray;
   /** Size of `pixels` in pixels (RGBA, width × height × 4 bytes). */
@@ -187,6 +212,11 @@ export type EmuResult = {
    * outcome (`remembered` or `libraryError`) comes with a later advance.
    */
   remembering?: number;
+  /**
+   * load, disc and state-load: a multi-disc game's tray. A Partida saved on
+   * another disc puts that disc back, so loading one reports it too.
+   */
+  discs?: DiscTrayState;
   /** load: this browser cannot save at all; the game runs without saving. */
   storageError?: string;
 };

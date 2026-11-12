@@ -11,7 +11,7 @@ import {
   discIdentity,
   type DiscPart,
 } from "../../storage/src/disc-identity.ts";
-import { cueFiles, matchTracks, trackName } from "../../storage/src/cue.ts";
+import { resolveDisc, sheetText } from "../../storage/src/cue.ts";
 import { digest } from "../../storage/src/sram.ts";
 
 type Loader = Pick<
@@ -75,33 +75,40 @@ export async function prepareDisc(
     const { name, bytes } = module.demo();
     parts = [{ name, blob: new Blob([bytes as BlobPart]) }];
   } else throw Error("Este sistema no tiene demo integrada.");
-  let identified = parts.slice(0, 1);
-  if (parts[0].name.toLowerCase().endsWith(".cue")) {
-    const [cue, ...others] = parts;
-    const text = await cue.blob.text(); // decoding drops a UTF-8 BOM
-    // The core reads the sheet itself and does not expect that BOM.
-    const head = new Uint8Array(await cue.blob.slice(0, 3).arrayBuffer());
-    const bom = head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf;
-    const sheet = bom ? { name: cue.name, blob: cue.blob.slice(3) } : cue;
-    const { tracks, missing } = matchTracks(cueFiles(text), others);
-    if (missing.length)
-      throw Error(
-        `Faltan archivos del disco: ${missing.join(", ")}. Abre el .cue junto con sus pistas (selecciónalos todos a la vez).`,
-      );
-    // A renamed track is offered to the core under the name the cue uses.
-    const named = [...tracks].map(([name, part]) =>
-      trackName(part.name) === trackName(name)
-        ? part
-        : { name, blob: part.blob },
+  const [first, ...others] = parts;
+  const layout = await resolveDisc(first, others, (part) =>
+    sheetText(part.name, part.blob),
+  );
+  if (layout.missing.length)
+    throw Error(
+      `Faltan archivos del juego: ${layout.missing.join(", ")}. Ábrelos junto con el ${first.name.toLowerCase().endsWith(".m3u") ? ".m3u" : ".cue"} (selecciónalos todos a la vez).`,
     );
-    parts = [
-      sheet,
-      ...named,
-      ...others.filter((p) => !named.some((n) => n.blob === p.blob)),
-    ];
-    identified = [sheet, ...named];
-  }
-  const disc = new DiscImage(parts, parts[0], read);
+  if (!layout.boots.length)
+    throw Error(`«${first.name}» no nombra ningún disco.`);
+  // `identified`: the files of the game's identity, as the library copies
+  // them, under the names the core asks for. The core reads a .cue itself
+  // and does not expect a UTF-8 BOM (Blob.text() drops it silently).
+  const identified: DiscPart[] = await Promise.all(
+    layout.parts.map(async ({ name, file }) => {
+      if (!name.toLowerCase().endsWith(".cue"))
+        return { name, blob: file.blob };
+      const head = new Uint8Array(await file.blob.slice(0, 3).arrayBuffer());
+      const bom = head[0] === 0xef && head[1] === 0xbb && head[2] === 0xbf;
+      return { name, blob: bom ? file.blob.slice(3) : file.blob };
+    }),
+  );
+  // Unrelated files opened alongside stay readable but outside the identity.
+  parts = [
+    ...identified,
+    ...others.filter((p) => !layout.parts.some((part) => part.file === p)),
+  ];
+  const [boot, ...rest] = layout.boots;
+  const disc = new DiscImage(
+    parts,
+    identified.find((p) => p.name === boot)!,
+    read,
+    rest,
+  );
   const [hash] = await Promise.all([
     discIdentity(identified),
     module.prepare(),

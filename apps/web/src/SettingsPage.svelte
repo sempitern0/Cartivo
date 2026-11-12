@@ -26,6 +26,7 @@
   import ControlsPanel from "./ControlsPanel.svelte";
   import InterfacePreference from "./InterfacePreference.svelte";
   import DisplayOptions from "./DisplayOptions.svelte";
+  import { megabytes } from "./format.ts";
   import { DisplaySettings } from "./display.svelte.ts";
   import {
     availableSystems,
@@ -39,7 +40,12 @@
     readSound,
     writeSound,
   } from "../../../packages/media/src/sound-preferences.ts";
-  import { defaultDisplay } from "../../../packages/media/src/display-preferences.ts";
+  import {
+    defaultDisplay,
+    readRenderCeiling,
+  } from "../../../packages/media/src/display-preferences.ts";
+  import { autoRenderScale } from "../../../packages/runtime/src/render-scale.ts";
+  import { screenLines } from "./surface.ts";
 
   let {
     inGame = false,
@@ -79,8 +85,6 @@
   // Almacenamiento: only what Cartivo uses. The browser's quota is left out:
   // some browsers report a masked figure (Brave says 2 GB) and it read as a
   // limit on the ROMs a player can open from their own disk.
-  const megabytes = (bytes: number) =>
-    `${(bytes / (1024 * 1024)).toLocaleString("es", { maximumFractionDigits: 1 })} MB`;
   let usage = $state("");
   $effect(() => {
     void navigator.storage
@@ -132,6 +136,12 @@
     scaleMode={display.scale}
     aspectMode={display.aspect}
     smooth={display.smooth}
+    resolution={screenSystem.surface ? display.resolution : undefined}
+    autoScale={autoRenderScale(
+      screenLines(),
+      screenSystem.video.sourceHeight,
+      readRenderCeiling(screenSystem.id),
+    )}
     name="settings"
     onchange={(patch) => display.set(patch)}
   />
@@ -141,7 +151,8 @@
       onclick={() => display.set({ ...defaultDisplay })}
       disabled={display.scale === defaultDisplay.scale &&
         display.aspect === defaultDisplay.aspect &&
-        display.smooth === defaultDisplay.smooth}>Restablecer</button
+        display.smooth === defaultDisplay.smooth &&
+        display.resolution === defaultDisplay.resolution}>Restablecer</button
     >
   </div>
 </Tabs.Content>

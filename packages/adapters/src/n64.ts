@@ -4,19 +4,14 @@
 // to the page as RGBA. libco runs on fibers/Asyncify (src/cooperative.c).
 // cores/mupen64plus-next/dist is built and committed by CI on request.
 import type { EmulatorCore } from "./contract.ts";
+import { surfaceFrame, useSurface, type EmscriptenGl } from "./surface.ts";
 import { compileFrom, libretroInputBits } from "./wasm-host.ts";
 import type { InputState } from "../../input/src/nes-input.ts";
 import { centered, toInt16, type Analog } from "../../input/src/analog.ts";
 
 /** The parts of the Emscripten module this adapter uses (frontend.c). */
 type Emscripten = {
-  GL: {
-    createContext(
-      canvas: OffscreenCanvas,
-      attributes: Record<string, unknown>,
-    ): number;
-    makeContextCurrent(handle: number): boolean;
-  };
+  GL: EmscriptenGl;
   FS: {
     mkdirTree(path: string): void;
     writeFile(path: string, data: Uint8Array): void;
@@ -26,7 +21,7 @@ type Emscripten = {
   stringToNewUTF8(text: string): number;
   _malloc(bytes: number): number;
   _free(pointer: number): void;
-  _n64_init(): number;
+  _n64_init(scale: number): number;
   _n64_load(path: number): number;
   _n64_run(): void;
   _n64_audio(): number;
@@ -93,6 +88,8 @@ export function prepareN64(): Promise<void> {
 
 /** The core's fixed output rate is downmixed to the app's 48 kHz mono. */
 const OUTPUT_RATE = 48000;
+/** The console's picture; the core draws at 1 to 4 times it. */
+const PICTURE = { width: 640, height: 480 };
 
 /**
  * Stereo 16-bit audio at `from` Hz to mono floats at 48 kHz, by linear
@@ -228,34 +225,11 @@ class N64Core implements EmulatorCore {
       throw Error("Esta partida no corresponde a este núcleo de N64.");
   }
 
-  /**
-   * The picture on the surface, for Partidas and «Continuar» previews: one
-   * readback on demand (the context keeps its drawing buffer for this),
-   * never per frame. Rows come bottom-up from GL and are flipped.
-   */
+  /** The picture on the surface, for Partidas and «Continuar» previews. */
   lastFrame(): Uint8ClampedArray {
-    const gl = this.#canvas.getContext("webgl2");
-    if (!this.#em || this.#lost || !gl || !this.frames)
+    if (!this.#em || this.#lost || !this.frames)
       return new Uint8ClampedArray(0);
-    const { width, height } = this.#canvas;
-    const read = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING);
-    const pack = gl.getParameter(gl.PIXEL_PACK_BUFFER_BINDING);
-    const bottomUp = new Uint8ClampedArray(width * height * 4);
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, bottomUp);
-    // GLideN64 caches its bindings: leave them as they were.
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, read);
-    gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pack);
-    const row = width * 4;
-    const frame = new Uint8ClampedArray(bottomUp.length);
-    for (let y = 0; y < height; y++)
-      frame.set(
-        bottomUp.subarray((height - 1 - y) * row, (height - y) * row),
-        y * row,
-      );
-    for (let i = 3; i < frame.length; i += 4) frame[i] = 255;
-    return frame;
+    return surfaceFrame(this.#canvas, PICTURE.width);
   }
 
   dispose() {
@@ -276,6 +250,7 @@ class N64Core implements EmulatorCore {
 export async function createN64(
   rom: Uint8Array,
   canvas: OffscreenCanvas,
+  scale: number,
   save?: Uint8Array,
 ): Promise<EmulatorCore> {
   if (!loaded) throw Error(`El núcleo ${NAME} no está preparado.`);
@@ -292,24 +267,11 @@ export async function createN64(
       return {};
     },
   });
-  const context = em.GL.createContext(canvas, {
-    majorVersion: 2,
-    minorVersion: 0,
-    alpha: false,
-    depth: true,
-    stencil: true,
-    antialias: false,
-    // Kept between frames so lastFrame() can read a preview at any time.
-    preserveDrawingBuffer: true,
-  });
-  if (!context || !em.GL.makeContextCurrent(context))
-    throw Error(
-      "Este navegador no ofrece WebGL2 en segundo plano, que Nintendo 64 necesita.",
-    );
+  useSurface(em.GL, canvas, "Nintendo 64", true, { ...PICTURE, scale });
   em.FS.mkdirTree("/n64/system");
   em.FS.mkdirTree("/n64/save");
   em.FS.writeFile("/n64/rom.z64", rom);
-  em._n64_init();
+  em._n64_init(scale);
   const path = em.stringToNewUTF8("/n64/rom.z64");
   const status = em._n64_load(path);
   em._free(path);

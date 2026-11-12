@@ -16,11 +16,12 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 test("system ids and extensions are unique", () => {
   assert.equal(new Set(systems.map((s) => s.id)).size, systems.length);
-  // Only .bin is shared (Mega Drive cartridge or CD track): gameForFiles
-  // tells them apart.
+  // Shared, and told apart by gameForFiles: .bin (Mega Drive cartridge or
+  // CD track) and the disc images of both PlayStations (.iso, .chd).
+  const shared = [".bin", ".iso", ".chd"];
   const extensions = systems
     .flatMap((s) => s.extensions)
-    .filter((e) => e !== ".bin");
+    .filter((e) => !shared.includes(e));
   assert.equal(new Set(extensions).size, extensions.length);
   for (const ext of extensions) assert.match(ext, /^\.[a-z0-9]+$/);
 });
@@ -68,6 +69,24 @@ test("files are routed by extension", () => {
   // A lone .bin: a cartridge up to Mega Drive's limit, beyond it a CD track.
   assert.equal(systemFor("juego.bin"), "md");
   assert.equal(systemFor("juego.bin", 300 * 1024 * 1024), "ps1");
+  assert.equal(systemFor("juego.cso"), "ps2");
+  assert.equal(systemFor("juego.ISZ"), "ps2");
+  assert.equal(systemFor("demo.elf"), "ps2");
+});
+
+test("an image both PlayStations accept goes by its size, or by the card", () => {
+  const MiB = 1024 * 1024;
+  const systemFor = (name: string, size: number, card?: string) =>
+    gameForFiles([{ name, size }], card ? system(card) : undefined)?.system.id;
+  // A CD is a PlayStation game; anything larger can only be a PS2 DVD.
+  assert.equal(systemFor("juego.iso", 700 * MiB), "ps1");
+  assert.equal(systemFor("juego.iso", 4300 * MiB), "ps2");
+  assert.equal(systemFor("juego.chd", 300 * MiB), "ps1");
+  assert.equal(systemFor("juego.chd", 2000 * MiB), "ps2");
+  // The card whose picker opened it decides: a PS2 game on CD, or a
+  // PlayStation image of any size.
+  assert.equal(systemFor("juego.iso", 600 * MiB, "ps2"), "ps2");
+  assert.equal(systemFor("juego.iso", 4300 * MiB, "ps1"), "ps1");
 });
 
 test("a disc's .cue is booted with its tracks, whatever the order", () => {
@@ -89,7 +108,7 @@ test("a disc's .cue is booted with its tracks, whatever the order", () => {
 test("pickers accept every available format and cores have short names", () => {
   assert.equal(
     acceptFor(availableSystems()),
-    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.cue,.iso,.exe,.z64,.n64,.v64",
+    ".nes,.gb,.gbc,.gba,.sfc,.smc,.sms,.md,.gen,.bin,.m3u,.cue,.chd,.iso,.exe,.z64,.n64,.v64,.cso,.isz,.elf",
   );
   assert.equal(coreLabel("md", "genesis-plus-gx"), "Genesis Plus GX");
   assert.equal(coreLabel("snes", "snes9x"), "Snes9x");
@@ -106,9 +125,10 @@ test("the manifest opens the extensions of available systems", () => {
   const handled = manifest.file_handlers.flatMap((h) =>
     Object.values(h.accept).flat(),
   );
-  // Generic formats (any disc image, any Windows program) are opened from
-  // the app, never claimed in the operating system.
-  const generic = [".iso", ".exe"];
+  // Generic formats (any disc image, any Windows or Linux program, music
+  // playlists) are opened from the app, never claimed in the operating
+  // system.
+  const generic = [".iso", ".exe", ".elf", ".m3u"];
   const offered = new Set(availableSystems().flatMap((s) => s.extensions));
   assert.deepEqual(
     handled.sort(),
@@ -158,8 +178,8 @@ test("each system declares the buttons of its controller", () => {
   assert.deepEqual(controlButtons(["l", "a", "r"]), ["l", "a", "r"]);
   const guide = buttonGuide((a) => a.toUpperCase());
   assert.deepEqual(guide.minority, [
-    "X e Y solo los usan SNES, Mega Drive, PlayStation y N64.",
-    "L2 y R2 solo los usan PlayStation y N64.",
+    "X e Y solo los usan SNES, Mega Drive, PlayStation, N64 y PS2.",
+    "L2 y R2 solo los usan PlayStation, N64 y PS2.",
   ]);
   const where = (name: string) =>
     guide.consoles
@@ -168,8 +188,9 @@ test("each system declares the buttons of its controller", () => {
       .join(" ");
   assert.deepEqual(
     guide.consoles.map((c) => c.name),
-    ["Master System", "Mega Drive", "PlayStation", "N64"],
+    ["Master System", "Mega Drive", "PlayStation", "N64", "PS2"],
   );
+  assert.equal(where("PS2"), where("PlayStation"));
   assert.equal(where("Master System"), "1=B 2=A Pause=START");
   assert.equal(where("Mega Drive"), "A=Y B=B C=A X=L Y=X Z=R Mode=SELECT");
   assert.equal(

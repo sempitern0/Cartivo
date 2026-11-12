@@ -8,7 +8,14 @@ import {
   type ReadSync,
 } from "../packages/adapters/src/disc.ts";
 import { prepareDisc } from "../packages/runtime/src/prepare-rom.ts";
-import { cueFiles, matchTracks } from "../packages/storage/src/cue.ts";
+import {
+  cueFiles,
+  m3uFiles,
+  matchTracks,
+  MAX_SHEET_BYTES,
+  resolveDisc,
+  sheetText,
+} from "../packages/storage/src/cue.ts";
 import { parseRequest } from "../packages/runtime/src/protocol.ts";
 
 const bin = Uint8Array.from({ length: 10_000 }, (_, i) => i & 0xff);
@@ -93,6 +100,68 @@ test("tracks are matched by name; one renamed track is still found", () => {
   );
 });
 
+test("an .m3u lists discs: comments and blank lines are skipped", () => {
+  const m3u =
+    "\uFEFF#EXTM3U\r\nGame (Disc 1).cue\r\n\r\n  Game (Disc 2).chd  \n";
+  assert.deepEqual(m3uFiles(m3u), ["Game (Disc 1).cue", "Game (Disc 2).chd"]);
+});
+
+test("a sheet too large to be one, or that names no disc, is refused", async () => {
+  // A disc image with the wrong extension is never read whole as text.
+  const huge = { size: MAX_SHEET_BYTES + 1, text: async () => "never" };
+  await assert.rejects(
+    sheetText("Juego.cue", huge as unknown as Blob),
+    /demasiado grande/,
+  );
+  assert.equal(await sheetText("a.m3u", new Blob(["a.chd\n"])), "a.chd\n");
+  const empty = new File(["#EXTM3U\n"], "Vacío.m3u");
+  await assert.rejects(
+    prepareDisc({ prepare: async () => {} }, empty, [], read),
+    /no nombra ningún disco/,
+  );
+});
+
+test("a game's files: .m3u → discs → tracks, with what is missing", async () => {
+  const files: Record<string, string> = {
+    "Game.m3u": "Game (Disc 1).cue\nGame (Disc 2).cue\nGame (Disc 3).chd\n",
+    "Game (Disc 1).cue": 'FILE "Game (Disc 1).bin" BINARY\n',
+    "Game (Disc 2).cue": 'FILE "Game (Disc 2).bin" BINARY\n',
+  };
+  const file = (name: string) => ({ name });
+  const text = async (f: { name: string }) => files[f.name] ?? "";
+  const opened = [
+    "Game (Disc 1).cue",
+    "game (disc 1).bin",
+    "Game (Disc 2).cue",
+    "LEEME.txt",
+  ].map(file);
+  const partial = await resolveDisc(file("Game.m3u"), opened, text);
+  assert.deepEqual(partial.missing, ["Game (Disc 2).bin", "Game (Disc 3).chd"]);
+  const all = [...opened, file("Game (Disc 2).bin"), file("Game (Disc 3).chd")];
+  const layout = await resolveDisc(file("Game.m3u"), all, text);
+  assert.deepEqual(layout.missing, []);
+  assert.deepEqual(layout.boots, [
+    "Game (Disc 1).cue",
+    "Game (Disc 2).cue",
+    "Game (Disc 3).chd",
+  ]);
+  assert.deepEqual(
+    layout.parts.map((p) => p.name),
+    [
+      "Game.m3u",
+      "Game (Disc 1).cue",
+      "game (disc 1).bin",
+      "Game (Disc 2).cue",
+      "Game (Disc 2).bin",
+      "Game (Disc 3).chd",
+    ],
+  );
+  // One disc by itself, or a .cue: one boot file.
+  assert.deepEqual((await resolveDisc(file("x.chd"), [], text)).boots, [
+    "x.chd",
+  ]);
+});
+
 test("a disc is identified and prepared without reading it whole", async () => {
   let prepared = 0;
   const module = {
@@ -147,4 +216,35 @@ test("only a load from a file carries a disc's other files", () => {
   assert.throws(() =>
     parseRequest({ ...base, file: cue, extra: Array(101).fill(track) }),
   );
+});
+
+test("a disc change names a disc by its index", () => {
+  const swap = { v: 1, session: "s", id: 2, command: "disc" } as const;
+  assert.equal(parseRequest({ ...swap, disc: 1 }).disc, 1);
+  for (const disc of [undefined, -1, 1.5, "1"])
+    assert.throws(() => parseRequest({ ...swap, disc }), /Disco inválido/);
+});
+
+test("an .m3u game boots its first disc and can boot another after a reset", async () => {
+  const module = { prepare: async () => {}, demo: undefined };
+  const f = (name: string, text: string) => new File([text], name);
+  const { disc, parts } = await prepareDisc(
+    module,
+    f("Game.m3u", "Game (Disc 1).cue\nGame (Disc 2).cue\n"),
+    [
+      f("Game (Disc 2).bin", "2"),
+      f("Game (Disc 1).cue", 'FILE "Game (Disc 1).bin" BINARY\n'),
+      f("Game (Disc 1).bin", "1"),
+      f("Game (Disc 2).cue", 'FILE "Game (Disc 2).bin" BINARY\n'),
+    ],
+    (blob, start, end) => new Uint8Array(end - start),
+  );
+  assert.deepEqual(disc.discs, ["Game (Disc 1).cue", "Game (Disc 2).cue"]);
+  assert.equal(disc.primary.name, "Game (Disc 1).cue");
+  assert.equal(parts[0].name, "Game.m3u");
+  const second = disc.withFirst(1);
+  assert.equal(second.primary.name, "Game (Disc 2).cue");
+  assert.deepEqual(second.discs, disc.discs);
+  assert.equal(second.first, 1);
+  assert.throws(() => disc.withFirst(2), /disco 3/);
 });

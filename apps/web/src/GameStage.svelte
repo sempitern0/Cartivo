@@ -34,7 +34,7 @@
     style:height={calculated.height + "px"}
     data-actual-scale={calculated.actualMode}
     data-scale-fallback={String(calculated.fallback)}
-    class:smooth
+    class:smooth={smooth || !video.pixelArt}
   ></canvas>
 </div>
 

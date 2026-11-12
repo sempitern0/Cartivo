@@ -9,10 +9,14 @@ import {
   N64_VIDEO,
   NES_VIDEO,
   PS1_VIDEO,
+  PS2_VIDEO,
   SMS_VIDEO,
   SNES_VIDEO,
   type VideoDescriptor,
 } from "../../media/src/display-scaler.ts";
+
+/** No CD image is larger (a 99-minute disc holds about 870 MiB). */
+const MAX_CD_BYTES = 900 * 1024 * 1024;
 
 export type CoreInfo = {
   /** Must match a module id in packages/adapters/src/registry.ts. */
@@ -40,8 +44,13 @@ export type SystemInfo = {
    * order the core prefers to boot them (a .cue before its tracks).
    */
   extensions: string[];
-  /** Games on CD, read on demand from the player's files (ADR-015). */
+  /** Games on disc, read on demand from the player's files (ADR-015). */
   disc?: true;
+  /**
+   * The largest disc image this console can have (its discs are CDs): a
+   * larger file opened without choosing a console belongs to another one.
+   */
+  maxDiscBytes?: number;
   /** A portable console (the home card's accent says so). */
   handheld?: true;
   /**
@@ -49,9 +58,19 @@ export type SystemInfo = {
    * the Worker at load (ADR-017); absent: the core returns RGBA frames.
    */
   surface?: "webgl2";
+  /**
+   * The core runs threads on shared memory, so the page must be
+   * cross-origin isolated (ADR-020); checked before anything is downloaded.
+   */
+  threads?: true;
   /** The controller's main control is an analog stick (N64): a pad's left
    * stick drives it and is not mirrored on the D-pad. */
   analogStick?: true;
+  /**
+   * A demanding console: a device that cannot hold its speed plays it in
+   * slow motion, with the speed on screen, instead of pausing (ADR-022).
+   */
+  slowMotion?: true;
   /** Shown as experimental: playable, with the limits its sheet lists. */
   experimental?: true;
   video: VideoDescriptor;
@@ -237,8 +256,11 @@ export const systems: readonly SystemInfo[] = [
     id: "ps1",
     name: "PlayStation",
     longName: "Sony PlayStation",
-    extensions: [".cue", ".iso", ".exe", ".bin"],
+    // An .m3u (several discs) boots before its .cue files, a .cue before
+    // its tracks.
+    extensions: [".m3u", ".cue", ".chd", ".iso", ".exe", ".bin"],
     disc: true,
+    maxDiscBytes: MAX_CD_BYTES,
     video: PS1_VIDEO,
     // NTSC nominal; the core reports each game's rate (PAL 50 Hz).
     frameRate: 60,
@@ -267,7 +289,7 @@ export const systems: readonly SystemInfo[] = [
     ],
     defaultCore: "pcsx-rearmed",
     formatNote:
-      "discos .cue con sus pistas .bin, imágenes .iso o .bin de una pista y ejecutables .exe, con la BIOS HLE del núcleo",
+      "discos .cue con sus pistas .bin, .chd, imágenes .iso o .bin de una pista, juegos de varios discos con su .m3u y ejecutables .exe, con la BIOS HLE del núcleo",
     demo: true,
     available: true,
   },
@@ -317,6 +339,47 @@ export const systems: readonly SystemInfo[] = [
     defaultCore: "mupen64plus-next",
     formatNote:
       "cartuchos .z64, .n64 o .v64 con el mando analógico; experimental, necesita WebGL2",
+    demo: true,
+    available: true,
+  },
+  {
+    id: "ps2",
+    name: "PS2",
+    longName: "Sony PlayStation 2",
+    // Single-file images: Play! reads one image per game (ADR-022).
+    extensions: [".iso", ".chd", ".cso", ".isz", ".elf"],
+    disc: true,
+    surface: "webgl2",
+    threads: true,
+    slowMotion: true,
+    experimental: true,
+    video: PS2_VIDEO,
+    // NTSC nominal; the core reports each game's rate (PAL 50 Hz).
+    frameRate: 60,
+    // DualShock 2 by position, as PlayStation: Cross/Circle on B/A,
+    // Square/Triangle on Y/X. L3 and R3 have no action yet.
+    buttons: ["b", "a", "y", "x", "l", "r", "l2", "r2", "start", "select"],
+    labels: {
+      b: "Cruz",
+      a: "Círculo",
+      y: "Cuadrado",
+      x: "Triángulo",
+      l: "L1",
+      r: "R1",
+    },
+    cores: [
+      {
+        id: "play",
+        label: "Play! · WebGL2",
+        version: "1f27232",
+        licenses: [
+          { name: "BSD-2-Clause (Play!)", href: "licenses/play-License.txt" },
+        ],
+      },
+    ],
+    defaultCore: "play",
+    formatNote:
+      "imágenes de disco en un solo archivo (.iso, .chd, .cso o .isz) y ejecutables .elf, sin BIOS (la emula el núcleo); el progreso se guarda con Partidas, aún sin memory card",
     demo: true,
     available: true,
   },
@@ -415,6 +478,9 @@ export type GameFiles<F> = {
  * The game among files opened together: a disc's boot file with the rest,
  * or a cartridge. Disc systems are tried first, so a .cue wins over its .bin
  * tracks; `preferred` (the card whose picker opened them) limits the choice.
+ * Without it, an image two consoles accept (.iso, .chd) goes to the first
+ * whose discs can be that large: PlayStation up to a CD, PlayStation 2
+ * beyond. A PS2 game on CD is opened from its card.
  */
 export function gameForFiles<F extends { name: string; size: number }>(
   files: readonly F[],
@@ -433,7 +499,8 @@ export function gameForFiles<F extends { name: string; size: number }>(
       const file = files.find(
         (f) =>
           f.name.toLowerCase().endsWith(extension) &&
-          !(system.disc && extension === ".bin" && cartridgeBin(f)),
+          !(system.disc && extension === ".bin" && cartridgeBin(f)) &&
+          !(!preferred && f.size > (system.maxDiscBytes ?? Infinity)),
       );
       if (file)
         return {

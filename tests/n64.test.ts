@@ -49,6 +49,15 @@ test("loading a surface system needs the transferred game canvas", () => {
     () => parseRequest({ ...base, command: "save", canvas: {}, system: "gba" }),
     /Lienzo inesperado/,
   );
+  // A rendering resolution only goes with a canvas, at load.
+  assert.throws(
+    () => parseRequest({ ...base, system: "gba", scale: 2 }),
+    /Resolución inválida/,
+  );
+  assert.throws(
+    () => parseRequest({ ...base, command: "save", scale: 2 }),
+    /Lienzo inesperado/,
+  );
   assert.equal(parseRequest({ ...base, system: "gba" }).system, "gba");
 });
 

@@ -4,6 +4,8 @@ import {
   defaultDisplay,
   parseDisplay,
   readDisplay,
+  readRenderCeiling,
+  writeRenderCeiling,
   writeDisplay,
   displayKey,
 } from "../packages/media/src/display-preferences.ts";
@@ -20,7 +22,12 @@ class Memory {
 
 test("display preferences round-trip per system", () => {
   const store = new Memory();
-  const prefs = { scale: "integer", aspect: "native", smooth: true } as const;
+  const prefs = {
+    scale: "integer",
+    aspect: "native",
+    smooth: true,
+    resolution: 2,
+  } as const;
   assert.equal(writeDisplay("nes", prefs, store), true);
   assert.deepEqual(readDisplay("nes", store), prefs);
   assert.deepEqual(readDisplay("snes", store), defaultDisplay);
@@ -56,4 +63,25 @@ test("unavailable storage does not throw", () => {
   };
   assert.deepEqual(readDisplay("nes", broken), defaultDisplay);
   assert.equal(writeDisplay("nes", defaultDisplay, broken), false);
+});
+
+test("preferences saved before the resolution existed mean automatic", () => {
+  assert.deepEqual(
+    parseDisplay({ v: 1, scale: "fit", aspect: "corrected", smooth: false }),
+    defaultDisplay,
+  );
+  assert.equal(
+    parseDisplay({ ...defaultDisplay, v: 1, resolution: 5 }),
+    undefined,
+  );
+});
+
+test("the resolution ceiling of a system is remembered", () => {
+  const store = new Memory();
+  assert.equal(readRenderCeiling("ps2", store), 4);
+  writeRenderCeiling("ps2", 2, store);
+  assert.equal(readRenderCeiling("ps2", store), 2);
+  assert.equal(readRenderCeiling("n64", store), 4);
+  store.setItem("cartivo:render-ceiling:n64:v1", "9");
+  assert.equal(readRenderCeiling("n64", store), 4, "an invalid value");
 });

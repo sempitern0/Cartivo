@@ -9,6 +9,44 @@ export const SW_FILE = "sw.js";
 export const CACHE_PREFIX = "cartivo-shell-";
 /** Cache entry listing path → content hash, so an update can reuse files. */
 export const MANIFEST_PATH = "__cartivo-precache.json";
+/**
+ * Cross-origin isolation (ADR-020): SharedArrayBuffer, and with it pthreads
+ * in cores such as Play! (PS2), needs both headers on every document and
+ * worker. Vite's dev and preview servers send them (securityHeaders below)
+ * and the service worker adds them to everything it serves.
+ */
+export const ISOLATION_HEADERS = {
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Embedder-Policy": "require-corp",
+};
+/**
+ * Content Security Policy (ADR-021): the app and its workers only load and
+ * contact their own origin, so the player's files and saves cannot leave the
+ * device even if a dependency misbehaved. As a header, not a <meta>: a
+ * worker takes its policy from its own response.
+ * - 'wasm-unsafe-eval': compiling WebAssembly (every core, and Play!'s JIT);
+ *   no 'unsafe-eval', no inline or remote scripts.
+ * - style 'unsafe-inline': Svelte transitions and Bits UI set inline styles.
+ * - data:/blob: images are the app's own previews and CSS glyphs.
+ */
+export const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' blob:",
+  "connect-src 'self' blob:",
+  "worker-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+/** Every header of the built app: preview, the service worker, the host. */
+export const SECURITY_HEADERS = {
+  ...ISOLATION_HEADERS,
+  "Content-Security-Policy": CONTENT_SECURITY_POLICY,
+};
 
 /** Files that must not be precached. */
 export function shouldPrecache(path) {
@@ -41,6 +79,42 @@ const MANIFEST = ${JSON.stringify(MANIFEST_PATH)};
 // Downloads at a time: the whole catalogue in one burst can stall phones.
 const PARALLEL = 6;
 const url = (path) => new URL(path, self.registration.scope).href;
+const SECURITY = ${JSON.stringify(SECURITY_HEADERS)};
+
+/**
+ * The response with the app's security headers: cross-origin isolation
+ * (ADR-020) and the Content Security Policy (ADR-021), whatever headers its
+ * cached copy was stored with. A copy reused from a version installed before
+ * isolation would otherwise serve a worker without COEP to an isolated page,
+ * which the browser blocks. Opaque responses pass as is.
+ */
+function secured(response) {
+  if (response.type === "opaque" || response.type === "opaqueredirect") return response;
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+/** SHA-256 of a response's body, in hex; the response is consumed. */
+async function digest(response) {
+  const hash = await crypto.subtle.digest("SHA-256", await response.arrayBuffer());
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Downloads a file of this build and checks it is the one the build made.
+ * A stale copy from the HTTP cache is asked again from the server; a file
+ * that still differs (truncated, rewritten by a proxy, from another deploy)
+ * fails the install instead of becoming part of the app.
+ */
+async function download(path, hash) {
+  for (const cache of ["default", "reload"]) {
+    const response = await fetch(url(path), { cache });
+    if (!response.ok) throw new Error("Precache failed: " + path);
+    if ((await digest(response.clone())) === hash) return response;
+  }
+  throw new Error("Precache integrity failed: " + path);
+}
 
 /** The newest previous Cartivo cache whose manifest says what it holds. */
 async function previousCache() {
@@ -58,7 +132,8 @@ async function previousCache() {
 /**
  * Stores every file, copying unchanged ones (same path and hash) from the
  * previous version instead of downloading them again: an update only
- * fetches what changed. The manifest is written last, once all files are in:
+ * fetches what changed, and every download is checked against its hash, so
+ * the installed app is exactly the build. The manifest is written last:
  * a cache without it is an incomplete install, and a failed install leaves
  * the previous version serving the app.
  */
@@ -73,9 +148,7 @@ async function install() {
         previous?.hashes[path] === hash
           ? await previous.cache.match(url(path))
           : undefined;
-      const response = reused ?? (await fetch(url(path)));
-      if (!response.ok) throw new Error("Precache failed: " + path);
-      await cache.put(url(path), response);
+      await cache.put(url(path), reused ?? (await download(path, hash)));
     }
   };
   await Promise.all(Array.from({ length: PARALLEL }, next));
@@ -123,7 +196,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       caches.open(CACHE).then(async (cache) =>
-        (await cache.match(url("index.html"), { ignoreVary: true })) ?? fetch(request),
+        secured((await cache.match(url("index.html"), { ignoreVary: true })) ?? (await fetch(request))),
       ),
     );
     return;
@@ -132,11 +205,35 @@ self.addEventListener("fetch", (event) => {
   // precached entries were stored without it ("Vary: Origin" would miss).
   event.respondWith(
     caches.open(CACHE).then(async (cache) =>
-      (await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? fetch(request),
+      secured((await cache.match(request, { ignoreSearch: true, ignoreVary: true })) ?? (await fetch(request))),
     ),
   );
 });
 `;
+}
+
+/**
+ * Vite plugin: the security headers on every response. Preview serves the
+ * built app with all of them, as the production host must; the dev server
+ * only isolates, because Vite's own client (HMR socket, injected modules)
+ * is not written for the app's Content Security Policy.
+ * A middleware, not `server.headers`: Vite adds those after its ETag check,
+ * so a `304 Not Modified` for the emulator worker went out without COEP, and
+ * WebKit then blocked the worker the second time a game started.
+ */
+export function securityHeaders() {
+  const send = (headers) => (_req, res, next) => {
+    for (const [name, value] of Object.entries(headers))
+      res.setHeader(name, value);
+    next();
+  };
+  return {
+    name: "cartivo-security-headers",
+    configureServer: (server) =>
+      void server.middlewares.use(send(ISOLATION_HEADERS)),
+    configurePreviewServer: (server) =>
+      void server.middlewares.use(send(SECURITY_HEADERS)),
+  };
 }
 
 function walk(dir, root = dir, out = []) {

@@ -1,0 +1,2 @@
+Bump this file only to build Play! once in CI (core-play.yml).
+Reason: rendering resolution chosen by the host (cartivo_create scale, ADR-023).

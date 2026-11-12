@@ -21,6 +21,7 @@
   import { downloadJson } from "./download.ts";
   import { stateFileName } from "../../../packages/storage/src/state-file.ts";
   import { EmulatorClient } from "../../../packages/runtime/src/client.ts";
+  import type { DiscTrayState } from "../../../packages/runtime/src/protocol.ts";
   import {
     acceptFor,
     type SystemInfo,
@@ -34,7 +35,12 @@
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
   import { GameSound } from "./sound.svelte.ts";
-  import { surfaceFor } from "./surface.ts";
+  import { screenLines, surfaceFor, threadsProblem } from "./surface.ts";
+  import {
+    readRenderCeiling,
+    writeRenderCeiling,
+  } from "../../../packages/media/src/display-preferences.ts";
+  import { renderScale } from "../../../packages/runtime/src/render-scale.ts";
   import { claimPadWhile } from "./pad-navigation.svelte.ts";
   import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import { captureGameInput } from "./game-capture.ts";
@@ -69,6 +75,8 @@
     /** Files opened from the player to start instead (a disc may be several). */
     onreplace?: (files: File[]) => void;
   } = $props();
+  /** A game on several discs (ADR-015): its tray, from the Worker. */
+  let discs = $state.raw<DiscTrayState>();
   let phase = $state<"ready" | "loading" | "running" | "paused" | "error">(
     "ready",
   );
@@ -100,7 +108,10 @@
     clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => (toast = ""), 2600);
   }
+  /** Why the last saveSlot failed, for the callers that report it themselves. */
+  let saveFailure = "";
   async function saveSlot(slot: StateSlot, quiet = false) {
+    saveFailure = "";
     if (!client || phase === "loading" || phase === "error") return false;
     try {
       const r = await client.request("state-save", { slot });
@@ -111,8 +122,8 @@
       else if (!quiet) notify(`Partida guardada en ${where}.`);
       return true;
     } catch (e) {
-      if (!quiet)
-        problem = e instanceof Error ? e.message : "No se pudo guardar la partida";
+      saveFailure = e instanceof Error ? e.message : "";
+      if (!quiet) problem = saveFailure || "No se pudo guardar la partida";
       return false;
     }
   }
@@ -124,6 +135,7 @@
       const r = await client.request("state-load", { slot });
       saves = r.states ?? saves;
       frames = r.frames ?? frames;
+      discs = r.discs ?? discs;
       resumeOffer = undefined;
       savesOpen = false;
       problem = "";
@@ -224,7 +236,26 @@
   // the pacer follows it.
   // svelte-ignore state_referenced_locally
   let frameRate = $state(system.frameRate);
-  const pacer = $derived(new FramePacer(frameRate));
+  const pacer = $derived(
+    new FramePacer(frameRate, undefined, undefined, !!system.slowMotion),
+  );
+  /** Percent of the game's speed, while a slow-motion system runs below it. */
+  let speed = $state<number>();
+  let speedAt = 0;
+  /** Multiple of the console's resolution this game is drawn at (surface). */
+  let drawnScale = 1;
+  /** Seconds in a row a slow-motion game has been clearly below its speed. */
+  let slowSeconds = 0;
+  /**
+   * «Automática» was too much for this device: the next game opens one
+   * step lower. Says so once; a resolution the player fixed is theirs.
+   */
+  function lowerResolution() {
+    if (display.resolution !== "auto" || drawnScale <= 1) return false;
+    writeRenderCeiling(system.id, drawnScale - 1);
+    drawnScale = 1; // once per game
+    return true;
+  }
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
   let loadMs = $state<number>();
@@ -257,7 +288,18 @@
     try {
       // A core that draws itself gets the game canvas (ADR-017); after the
       // transfer the page never touches its pixels again.
+      const isolation = system.threads && threadsProblem();
+      if (isolation) throw Error(isolation);
       const canvas = system.surface ? surfaceFor(screen) : undefined;
+      // Rendered for the screen, not the window: full screen needs no change.
+      drawnScale = canvas
+        ? renderScale(
+            display.resolution,
+            screenLines(),
+            system.video.sourceHeight,
+            readRenderCeiling(system.id),
+          )
+        : 1;
       const r = await client.request(
         "load",
         {
@@ -266,6 +308,7 @@
           profile: profiles.id,
           core: coreChoice,
           canvas,
+          scale: canvas ? drawnScale : undefined,
         },
         canvas ? [canvas] : [],
       );
@@ -274,6 +317,7 @@
       if (!active) return;
       frameRate = r.frameRate ?? system.frameRate;
       battery = !!r.battery;
+      discs = r.discs;
       saves = r.states ?? [];
       noStorage = r.storageError ?? "";
       saveStatus = noStorage
@@ -390,8 +434,9 @@
     }
     const step = pacer.step(now);
     if ("tooSlow" in step) {
-      problem =
-        "Este dispositivo no consigue mantener la velocidad del juego. Reanuda para seguir; el juego nunca se acelera para recuperar.";
+      problem = lowerResolution()
+        ? "Este equipo no mantiene la velocidad a esta resolución. Reanuda para seguir; la próxima vez que abras el juego se verá a una resolución menor y más fluida."
+        : "Este dispositivo no consigue mantener la velocidad del juego. Reanuda para seguir; el juego nunca se acelera para recuperar.";
       await pause();
       return;
     }
@@ -410,6 +455,16 @@
       const completedAt = performance.now();
       if (active && phase === "running")
         metrics.record(completedAt, completedAt - requestedAt, count);
+      if (system.slowMotion && completedAt - speedAt > 1000) {
+        speedAt = completedAt;
+        const { samples, fps } = metrics.snapshot();
+        const percent = Math.round((fps / frameRate) * 100);
+        speed = samples >= 30 && percent < 95 ? percent : undefined;
+        slowSeconds = speed !== undefined && speed < 85 ? slowSeconds + 1 : 0;
+        if (slowSeconds >= 5 && lowerResolution())
+          problem =
+            "Este equipo no mantiene la velocidad a esta resolución. La próxima vez que abras el juego se verá a una resolución menor y más fluida.";
+      }
       if (!active) return;
       if (r.pixels && screen) {
         const ctx = screen.getContext("2d");
@@ -462,6 +517,19 @@
   function tapControl(action: "start" | "select") {
     if (phase !== "running") return;
     controls.tap(action);
+  }
+  /** Swaps the disc as a player would: the lid opens and closes again. */
+  async function changeDisc(index: number) {
+    if (!client || busy || !discs || index === discs.current) return;
+    busy = true;
+    try {
+      discs = (await client.request("disc", { disc: index })).discs ?? discs;
+      notify(`Disco ${index + 1} puesto. La tapa se cierra en unos segundos.`);
+    } catch (error) {
+      problem = error instanceof Error ? error.message : "No se pudo cambiar de disco";
+    } finally {
+      busy = false;
+    }
   }
   async function resetConsole() {
     if (phase === "running") await pause();
@@ -526,7 +594,7 @@
     if (phase === "paused" && hasPlayed && !resumeOffer && !noStorage) {
       exitSaveFailed = !(await saveSlot("auto", true));
       if (exitSaveFailed) {
-        problem = "No se pudo guardar la partida al salir. Reintenta Salir o exporta una ranura desde Partidas antes de cerrar.";
+        problem = `No se pudo guardar la partida al salir${saveFailure ? ` (${saveFailure.replace(/\.$/, "")})` : ""}. Reintenta Salir o exporta una ranura desde Partidas antes de cerrar.`;
         return;
       }
     }
@@ -629,6 +697,9 @@
     onsaves={toggleSaves}
     onrom={chooseRom}
     onexit={() => close()}
+    {discs}
+    ondisc={changeDisc}
+    speed={phase === "running" ? speed : undefined}
   />
   <input
     bind:this={romInput}
@@ -656,6 +727,13 @@
       scaleMode={display.scale}
       aspectMode={display.aspect}
       smooth={display.smooth}
+      resolution={system.surface ? display.resolution : undefined}
+      autoScale={renderScale(
+        "auto",
+        screenLines(),
+        system.video.sourceHeight,
+        readRenderCeiling(system.id),
+      )}
       fallback={scaleFallback}
       note={display.note}
       onchange={(patch) => display.set(patch)}
@@ -722,6 +800,8 @@
         oncontrols={() => (location.hash = "#controles")}
         onreset={resetConsole}
         onexit={() => close()}
+        {discs}
+        ondisc={changeDisc}
       />
     {:else if fullscreen && phase === "paused" && !resumeOffer}
       <FullscreenPause {busy} onresume={resume} onexit={toggleFullscreen} />

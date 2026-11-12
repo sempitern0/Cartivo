@@ -1,0 +1,13 @@
+{
+  "play": {
+    "commit": "1f27232772e484bfb79364b751b84f41f4c87481",
+    "repository": "https://github.com/jpd002/Play-",
+    "spdx": "BSD-2-Clause"
+  },
+  "emsdk": {
+    "version": "6.0.12",
+    "commit": "35ff8a6d150541276abbc6bae512ca90bcfbe220",
+    "repository": "https://github.com/emscripten-core/emsdk",
+    "why": "Same version as PS1 (PCSX-ReARMed). Play! needs pthreads/WebGL2/OFFSCREEN_FRAMEBUFFER which are stable in 6.0.12. If the WASM JIT hits issues like N64 did with LLVM 24, try 4.0.10 first."
+  }
+}

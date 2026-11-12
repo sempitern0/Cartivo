@@ -11,6 +11,7 @@ import type {
   CartridgeModule,
   CoreModule,
   DiscModule,
+  SurfaceDiscModule,
   EmulatorCore,
   SurfaceModule,
 } from "../../../packages/adapters/src/contract.ts";
@@ -130,6 +131,12 @@ function snapshots(): StateStore {
   if (!states) throw Error(noStorage ?? "Partidas no disponibles");
   return states;
 }
+/** A multi-disc game's discs and the one in the tray, for the page. */
+const tray = (): EmuResult["discs"] =>
+  core?.discs && {
+    names: [...core.discs.names],
+    current: core.discs.current(),
+  };
 const failure = (e: unknown, fallback: string) =>
   e instanceof Error ? e.message : fallback;
 
@@ -207,11 +214,24 @@ async function loadSurface(
   const canvas = r.canvas;
   if (!canvas) throw Error("Falta el lienzo del juego.");
   const { rom, hash } = await readCartridge(module, r);
-  return { start: (save) => module.create(rom, canvas, save), rom, hash };
+  const scale = r.scale ?? 1;
+  return {
+    start: (save) => module.create(rom, canvas, scale, save),
+    rom,
+    hash,
+  };
 }
 
-/** A disc from the player's files, or its copy in the library (ADR-015). */
-async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
+/**
+ * A disc from the player's files, or its copy in the library (ADR-015). A
+ * core that draws on the page's canvas (PS2) gets it too (ADR-017).
+ */
+async function loadDisc(
+  module: DiscModule | SurfaceDiscModule,
+  r: EmuRequest,
+): Promise<Loaded> {
+  const canvas = r.canvas;
+  if (module.surface && !canvas) throw Error("Falta el lienzo del juego.");
   const [file, ...extra] = r.stored
     ? await storedDiscFiles(r.stored)
     : [r.file, ...(r.extra ?? [])];
@@ -226,7 +246,13 @@ async function loadDisc(module: DiscModule, r: EmuRequest): Promise<Loaded> {
       "La copia de este disco en el dispositivo está dañada. Ábrelo otra vez desde sus archivos; tus partidas siguen guardadas.",
     );
   return {
-    start: async (save) => module.create(disc, save),
+    // A new instance (reset, battery load) boots the disc in the tray.
+    start: async (save) => {
+      const tray = disc.withFirst(core?.discs?.current() ?? 0);
+      return module.surface
+        ? module.create(tray, canvas!, r.scale ?? 1)
+        : module.create(tray, save);
+    },
     hash,
     parts,
   };
@@ -285,6 +311,7 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       storageError: noStorage,
       battery: core!.battery,
       frameRate: core!.frameRate,
+      discs: tray(),
       recovered: store?.recovered ?? false,
       ...library,
     };
@@ -315,6 +342,11 @@ async function run(r: EmuRequest): Promise<EmuResult> {
     use(await start(previousSave));
     saves.restart();
     return { saved, frames: 0 };
+  }
+  if (r.command === "disc") {
+    if (!core.discs) throw Error("Este juego tiene un solo disco.");
+    core.discs.insert(r.disc!);
+    return { discs: tray() };
   }
   core.input(neutral());
   core.analog?.(centered());
@@ -354,7 +386,12 @@ async function run(r: EmuRequest): Promise<EmuResult> {
       (id) => coreLabel(module.system, id),
     );
     core.restore(bytes);
-    return { frames: core.frames, states: await snapshots().list() };
+    // The core puts back the disc the Partida was saved on.
+    return {
+      frames: core.frames,
+      discs: tray(),
+      states: await snapshots().list(),
+    };
   }
   if (r.command === "state-export") {
     const record = await snapshots().record(r.slot!);

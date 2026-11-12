@@ -52,8 +52,23 @@ export interface EmulatorCore {
   /** Copy of the last presented frame (empty before any frame); a core
    * that draws on its own surface reads it back on demand. */
   lastFrame(): Uint8ClampedArray;
+  /**
+   * A game on several discs (an .m3u): which one is in and changing it, as
+   * opening the lid would. Cores of one disc or cartridge leave it out.
+   */
+  readonly discs?: DiscTray;
   /** Releases resources (wasm memory); the core is unusable afterwards. */
   dispose(): void;
+}
+
+/** The disc tray of a multi-disc game (ADR-015). */
+export interface DiscTray {
+  /** The boot file of each disc, in order. */
+  readonly names: readonly string[];
+  /** Index of the disc in the tray. */
+  current(): number;
+  /** Puts disc `index` in; throws a user-readable error if the core refuses. */
+  insert(index: number): void;
 }
 
 type ModuleInfo = {
@@ -82,17 +97,34 @@ export interface CartridgeModule extends CartridgeInfo {
   create(rom: Uint8Array, save?: Uint8Array): EmulatorCore;
 }
 
+type DiscInfo = ModuleInfo & {
+  disc: true;
+  /** Original test program for the demo entry, as a file the core boots. */
+  demo?(): { name: string; bytes: Uint8Array };
+};
+
 /**
  * Disc systems (ADR-015): the game stays in the player's files and the core
  * reads the sectors it needs. The page picks the file to boot (systems.ts
  * `gameForFiles`); the core opens the rest by name.
  */
-export interface DiscModule extends ModuleInfo {
-  disc: true;
+export interface DiscModule extends DiscInfo {
   surface?: undefined;
-  /** Original test program for the demo entry, as a file the core boots. */
-  demo?(): { name: string; bytes: Uint8Array };
   create(disc: DiscImage, save?: Uint8Array): EmulatorCore;
+}
+
+/**
+ * Disc systems whose core draws with the GPU (ADR-017, ADR-022): the core
+ * renders on the game canvas and reads the disc itself. No battery RAM.
+ */
+export interface SurfaceDiscModule extends DiscInfo {
+  surface: "webgl2";
+  /** `scale`: the core draws at 1 to 4 times the console's resolution. */
+  create(
+    disc: DiscImage,
+    canvas: OffscreenCanvas,
+    scale: number,
+  ): Promise<EmulatorCore>;
 }
 
 /**
@@ -106,8 +138,14 @@ export interface SurfaceModule extends CartridgeInfo {
   create(
     rom: Uint8Array,
     canvas: OffscreenCanvas,
+    /** The core draws at 1 to 4 times the console's resolution. */
+    scale: number,
     save?: Uint8Array,
   ): Promise<EmulatorCore>;
 }
 
-export type CoreModule = CartridgeModule | DiscModule | SurfaceModule;
+export type CoreModule =
+  | CartridgeModule
+  | DiscModule
+  | SurfaceModule
+  | SurfaceDiscModule;

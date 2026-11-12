@@ -1,10 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import {
   buildServiceWorker,
   precacheVersion,
   shouldPrecache,
   CACHE_PREFIX,
+  CONTENT_SECURITY_POLICY,
   MANIFEST_PATH,
 } from "../tools/pwa-plugin.mjs";
 import {
@@ -63,19 +65,32 @@ test("cache lookups ignore Vary so crossorigin module requests hit offline", () 
   assert.equal((source.match(/ignoreVary: true/g) ?? []).length, 2);
 });
 
-/** Runs a generated service worker against in-memory caches and network. */
-async function installWith(
+const body = (target: string) => `body of ${target}`;
+/** Precache entries for `paths` as the fake network serves them (`body`). */
+const built = (paths: string[], content = body) =>
+  paths.map((path) => ({
+    path,
+    hash: createHash("sha256")
+      .update(content(`https://cartivo.test/${path}`))
+      .digest("hex"),
+  }));
+
+/** Loads a generated service worker over in-memory caches and network. */
+function loadWorker(
   source: string,
   stores: Map<string, Map<string, Response>>,
-  network = async (target: string) => new Response(`body of ${target}`),
+  network: (target: string) => Promise<Response>,
 ) {
   const fetched: string[] = [];
+  // The worker passes a URL or, from its fetch handler, the request itself.
+  const key = (k: string | { url: string }) =>
+    typeof k === "string" ? k : k.url;
   const handlers: Record<string, (event: unknown) => void> = {};
   const open = async (name: string) => {
     if (!stores.has(name)) stores.set(name, new Map());
     const store = stores.get(name)!;
     return {
-      match: async (key: string) => store.get(key)?.clone(),
+      match: async (k: string | { url: string }) => store.get(key(k))?.clone(),
       put: async (key: string, response: Response) => {
         store.set(key, response);
       },
@@ -88,17 +103,30 @@ async function installWith(
       handlers[type] = fn;
     },
     caches: { keys: async () => [...stores.keys()], open },
-    fetch: async (target: string) => {
+    fetch: async (request: string | { url: string }) => {
+      const target = key(request);
       fetched.push(target.replace("https://cartivo.test/", ""));
       return network(target);
     },
+    Headers,
     Response,
     URL,
+    crypto,
   };
   new Function(...Object.keys(scope), "self", source)(
     ...Object.values(scope),
     scope,
   );
+  return { handlers, fetched };
+}
+
+/** Runs a generated service worker's install; returns the downloaded paths. */
+async function installWith(
+  source: string,
+  stores: Map<string, Map<string, Response>>,
+  network = async (target: string) => new Response(body(target)),
+) {
+  const { handlers, fetched } = loadWorker(source, stores, network);
   let done: Promise<unknown> = Promise.resolve();
   handlers.install({ waitUntil: (p: Promise<unknown>) => (done = p) });
   await done;
@@ -107,23 +135,29 @@ async function installWith(
 
 test("an update downloads only the files whose content changed", async () => {
   const stores = new Map<string, Map<string, Response>>();
-  const first = [
-    { path: "index.html", hash: "a" },
-    { path: "assets/core-1.wasm", hash: "w" },
-    { path: "assets/index-1.js", hash: "b" },
-  ];
+  const first = built([
+    "index.html",
+    "assets/core-1.wasm",
+    "assets/index-1.js",
+  ]);
   // First install: everything comes from the network, cores included.
   assert.deepEqual(
     (await installWith(buildServiceWorker(first), stores)).sort(),
     ["assets/core-1.wasm", "assets/index-1.js", "index.html"],
   );
+  const page2 = (target: string) => `${body(target)}, second deploy`;
   const next = first.map((e) =>
-    e.path === "index.html" ? { ...e, hash: "a2" } : e,
+    e.path === "index.html" ? built(["index.html"], page2)[0] : e,
   );
   // The core and the unchanged script are copied from the previous cache.
-  assert.deepEqual(await installWith(buildServiceWorker(next), stores), [
-    "index.html",
-  ]);
+  assert.deepEqual(
+    await installWith(
+      buildServiceWorker(next),
+      stores,
+      async (target) => new Response(page2(target)),
+    ),
+    ["index.html"],
+  );
   const newest = stores.get(CACHE_PREFIX + precacheVersion(next))!;
   assert.equal(
     await newest.get("https://cartivo.test/assets/core-1.wasm")!.text(),
@@ -131,18 +165,62 @@ test("an update downloads only the files whose content changed", async () => {
   );
 });
 
+test("everything the worker serves carries the security headers (ADR-020, ADR-021)", async () => {
+  const stores = new Map<string, Map<string, Response>>();
+  // Cached copies stored without the headers, as from a version installed
+  // before isolation, and a file missing from the cache.
+  const plain = async (target: string) =>
+    new Response(`body of ${target}`, {
+      headers: { "Content-Type": "text/javascript" },
+    });
+  const site = built(entries.map((e) => e.path));
+  await installWith(buildServiceWorker(site), stores, plain);
+  const { handlers } = loadWorker(buildServiceWorker(site), stores, plain);
+  const serve = async (path: string, mode = "cors") => {
+    let served: Promise<Response> | undefined;
+    handlers.fetch({
+      request: { method: "GET", mode, url: `https://cartivo.test/${path}` },
+      respondWith: (p: Promise<Response>) => (served = p),
+    });
+    return served!;
+  };
+  for (const [path, mode] of [
+    ["", "navigate"],
+    ["assets/index-1.js", "cors"],
+    ["assets/not-precached.js", "cors"],
+  ]) {
+    const response = await serve(path, mode);
+    assert.equal(
+      response.headers.get("Cross-Origin-Opener-Policy"),
+      "same-origin",
+      path,
+    );
+    assert.equal(
+      response.headers.get("Cross-Origin-Embedder-Policy"),
+      "require-corp",
+      path,
+    );
+    assert.equal(
+      response.headers.get("Content-Security-Policy"),
+      CONTENT_SECURITY_POLICY,
+      path,
+    );
+    assert.equal(response.headers.get("Content-Type"), "text/javascript", path);
+    assert.match(await response.text(), /^body of /, path);
+  }
+});
+
 test("installs a few files at a time and only completes with all of them", async () => {
-  const many = Array.from({ length: 20 }, (_, i) => ({
-    path: `assets/file-${i}.js`,
-    hash: String(i),
-  }));
+  const many = built(
+    Array.from({ length: 20 }, (_, i) => `assets/file-${i}.js`),
+  );
   let inFlight = 0;
   let peak = 0;
   const slow = async (target: string) => {
     peak = Math.max(peak, ++inFlight);
     await new Promise((resolve) => setTimeout(resolve, 2));
     inFlight--;
-    return new Response(`body of ${target}`);
+    return new Response(body(target));
   };
   const stores = new Map<string, Map<string, Response>>();
   assert.equal(
@@ -157,10 +235,41 @@ test("installs a few files at a time and only completes with all of them", async
   const missing = async (target: string) =>
     target.endsWith("file-7.js")
       ? new Response("", { status: 404 })
-      : new Response("ok");
+      : new Response(body(target));
   await assert.rejects(installWith(buildServiceWorker(many), broken, missing));
   const cache = broken.get(CACHE_PREFIX + precacheVersion(many))!;
   assert.equal(cache.has(`https://cartivo.test/${MANIFEST_PATH}`), false);
+});
+
+test("a download that is not the file the build made fails the install", async () => {
+  const site = built(["index.html", "assets/index-1.js"]);
+  const sw = buildServiceWorker(site);
+  const cached = (stores: Map<string, Map<string, Response>>) =>
+    stores.get(CACHE_PREFIX + precacheVersion(site))!;
+  // A stale copy from the HTTP cache: asked again from the server, and kept.
+  const calls: string[] = [];
+  const stores = new Map<string, Map<string, Response>>();
+  const staleOnce = async (target: string) => {
+    const stale = target.endsWith("index.html") && !calls.includes(target);
+    calls.push(target);
+    return new Response(stale ? "the previous deploy" : body(target));
+  };
+  await installWith(sw, stores, staleOnce);
+  assert.equal(calls.filter((c) => c.endsWith("index.html")).length, 2);
+  assert.equal(
+    await cached(stores).get("https://cartivo.test/index.html")!.text(),
+    body("https://cartivo.test/index.html"),
+  );
+  // A file the server keeps serving different (truncated, rewritten): no
+  // install, no manifest; the previous version keeps serving the app.
+  const broken = new Map<string, Map<string, Response>>();
+  const rewritten = async (target: string) =>
+    new Response(target.endsWith(".js") ? "tampered" : body(target));
+  await assert.rejects(installWith(sw, broken, rewritten), /integrity/);
+  assert.equal(
+    cached(broken).has(`https://cartivo.test/${MANIFEST_PATH}`),
+    false,
+  );
 });
 
 test("offline is reported only for a complete cache", async () => {
@@ -290,4 +399,23 @@ test("activation removes old shell caches, even with the updating window open", 
     assert.deepEqual(removed, [CACHE_PREFIX + "old"]);
     assert.equal(claimed, true);
   }
+});
+
+test("the policy keeps scripts and connections on the app's own origin", () => {
+  const rules = Object.fromEntries(
+    CONTENT_SECURITY_POLICY.split("; ").map((rule) => {
+      const [name, ...values] = rule.split(" ");
+      return [name, values];
+    }),
+  );
+  assert.deepEqual(rules["default-src"], ["'self'"]);
+  // WebAssembly may be compiled; no eval, inline or remote script.
+  assert.deepEqual(rules["script-src"], ["'self'", "'wasm-unsafe-eval'"]);
+  assert.deepEqual(rules["connect-src"], ["'self'", "blob:"]);
+  assert.deepEqual(rules["worker-src"], ["'self'"]);
+  assert.deepEqual(rules["object-src"], ["'none'"]);
+  assert.deepEqual(rules["frame-ancestors"], ["'none'"]);
+  for (const values of Object.values(rules))
+    for (const value of values)
+      assert.doesNotMatch(value, /^(\*|https?:|'unsafe-eval')$/);
 });

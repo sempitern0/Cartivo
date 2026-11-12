@@ -3,6 +3,8 @@
   // (Partidas · Ajustes del juego · … · Guardar y salir). Presentation only: it
   // never starts workers or writes saves; the player decides what happens.
   import { icons } from "./icons.ts";
+  import DiscMenu from "./DiscMenu.svelte";
+  import type { DiscTrayState } from "../../../packages/runtime/src/protocol.ts";
   type Phase = "ready" | "loading" | "running" | "paused" | "error";
   let {
     systemName,
@@ -19,6 +21,9 @@
     onsaves,
     onrom,
     onexit,
+    discs,
+    ondisc,
+    speed,
   }: {
     systemName: string;
     title: string;
@@ -36,12 +41,24 @@
     onsaves: () => void;
     onrom: () => void;
     onexit: () => void;
+    /** A game on several discs: its tray (ADR-015). */
+    discs?: DiscTrayState;
+    ondisc?: (index: number) => void;
+    /** Percent of full speed, when the game runs below it (slow motion). */
+    speed?: number;
   } = $props();
 </script>
 
 <div class="heading" data-player-chrome>
   <div class="title">
-    <p class="kicker">{systemName}</p>
+    <p class="kicker">
+      {systemName}{#if speed !== undefined}<span
+          class="speed"
+          data-testid="game-speed"
+          title="Este dispositivo no alcanza la velocidad del juego: va a cámara lenta en vez de pausarse."
+          > · Velocidad {speed} %</span
+        >{/if}
+    </p>
     <h1>{title}</h1>
   </div>
   <div class="toolbar" role="toolbar" aria-label="Partida">
@@ -62,6 +79,11 @@
       aria-controls="graphics-panel"
       >{@html icons.monitor}<span>Ajustes del juego</span></button
     >
+    {#if discs && ondisc}<DiscMenu
+        {discs}
+        disabled={busy || phase === "loading"}
+        onchange={ondisc}
+      />{/if}
     <button
       class="tool icon-button"
       onclick={onrom}
@@ -107,19 +129,23 @@
     margin: 4px 0;
     font-size: 12px;
   }
+  .speed {
+    color: var(--gold);
+  }
   .toolbar {
     display: flex;
     align-items: center;
     gap: 4px;
     flex-wrap: wrap;
   }
-  .tool {
+  /* Global inside the toolbar: DiscMenu's trigger is a .tool too. */
+  .toolbar :global(.tool) {
     background: transparent;
     border-color: transparent;
     color: var(--text);
     padding: 10px 14px;
   }
-  .tool:hover:not(:disabled) {
+  .toolbar :global(.tool:hover:not(:disabled)) {
     background: #ffffff0d;
   }
   .divider {
@@ -130,7 +156,7 @@
   }
   @media (max-width: 640px) {
     /* Icon-only on phones; the text stays as the accessible name. */
-    .tool span {
+    .toolbar :global(.tool span) {
       position: absolute;
       width: 1px;
       height: 1px;

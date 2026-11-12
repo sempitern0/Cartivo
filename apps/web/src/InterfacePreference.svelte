@@ -43,51 +43,59 @@
   let motionNote = $state("");
 </script>
 
-<fieldset class="interface card">
-  <legend>Interfaz</legend>
+<!-- One set of option cards per preference: same look, keys and note. -->
+{#snippet choices(
+  title: string,
+  name: string,
+  items: { value: string; label: string; hint: string }[],
+  current: string,
+  choose: (value: string) => boolean,
+  setNote: (note: string) => void,
+)}
+  <legend>{title}</legend>
   <div class="options">
-    {#each options as option (option.value)}<label
+    {#each items as option (option.value)}<label
         class="option"
-        class:checked={ui.preference === option.value}
+        class:checked={current === option.value}
         ><input
           type="radio"
-          name="ui-mode"
+          {name}
           value={option.value}
-          checked={ui.preference === option.value}
-          onchange={() => {
-            note = ui.choose(option.value)
-              ? ""
-              : "El navegador no permite guardar esta preferencia: solo durará esta sesión.";
-          }}
+          checked={current === option.value}
+          onchange={() =>
+            setNote(
+              choose(option.value)
+                ? ""
+                : "El navegador no permite guardar esta preferencia: solo durará esta sesión.",
+            )}
         /><span class="name">{option.label}</span><span class="hint"
           >{option.hint}</span
         ></label
       >{/each}
   </div>
+{/snippet}
+
+<fieldset class="interface card">
+  {@render choices(
+    "Interfaz",
+    "ui-mode",
+    options,
+    ui.preference,
+    (value) => ui.choose(value as UiPreference),
+    (text) => (note = text),
+  )}
   {#if note}<p class="note" role="status">{note}</p>{/if}
 </fieldset>
 
 <fieldset class="interface card">
-  <legend>Animaciones</legend>
-  <div class="options">
-    {#each motionOptions as option (option.value)}<label
-        class="option"
-        class:checked={motion.preference === option.value}
-        ><input
-          type="radio"
-          name="motion"
-          value={option.value}
-          checked={motion.preference === option.value}
-          onchange={() => {
-            motionNote = motion.choose(option.value)
-              ? ""
-              : "El navegador no permite guardar esta preferencia: solo durará esta sesión.";
-          }}
-        /><span class="name">{option.label}</span><span class="hint"
-          >{option.hint}</span
-        ></label
-      >{/each}
-  </div>
+  {@render choices(
+    "Animaciones",
+    "motion",
+    motionOptions,
+    motion.preference,
+    (value) => motion.choose(value as MotionPreference),
+    (text) => (motionNote = text),
+  )}
   {#if motion.systemReduces && motion.preference === "auto"}<p class="note">
       Tu sistema pide reducir el movimiento (en Windows, «Efectos de
       animación» desactivado), así que Cartivo no anima. Elige «Activadas»

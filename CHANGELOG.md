@@ -309,7 +309,7 @@
 - Imagen fija de 640×480 a 4:3 para todos los modos; cadencia del juego (PAL 50 Hz); tarjeta de memoria 1 guardada como la batería de un cartucho; Partidas de unos 4,4 MB.
 - Nuevas acciones L2/R2 (gatillos del mando estándar, Y y P en el teclado), con migración de perfiles guardados. Cruz/Círculo/Cuadrado/Triángulo y L1/R1 se nombran en Controles.
 - Demo: un PS-EXE original que la BIOS HLE arranca como un disco de un archivo.
-- Límites: los discos aún no se recuerdan en la biblioteca; sin CHD, `.pbp`, multidisco ni mando analógico. N64 queda aplazado: necesita WebGL2 o hilos.
+- Límites: sin `.pbp` ni mando analógico. N64 queda aplazado: necesita WebGL2 o hilos.
 
 ### Perfiles de jugador
 
@@ -411,3 +411,33 @@
 - **Dependencias:** nuevo workflow `Dependencies`. Si `package.json` cambia sin el lockfile al día, la CI de ese commit resuelve igualmente (con aviso) y el workflow sube `pnpm-lock.yaml` y vuelve a lanzar la CI con la instalación bloqueada.
 - **Política (ADR-005, revisión 2026-11-08):** se admiten librerías de terceros estables y logotipos o arte de terceros, originales o alterados, para uso privado. ROMs comerciales, BIOS y datos de usuario siguen fuera del repositorio.
 - **ADR-019:** Bits UI para los componentes de interfaz y las animaciones de Svelte.
+
+### PS1: multidisco y CHD
+
+- **Multidisco (`.m3u`):** la tarjeta pide todos los archivos del juego antes de arrancar; el núcleo arranca el primero y el puente añade los demás con su interfaz de control de discos.
+  - **Cambiar de disco:** menú «Disco N de M» en la barra del reproductor y «Poner el disco N» en el menú de pausa. La tapa se cierra sola en unos dos segundos.
+  - **Reinicio y batería:** un núcleo nuevo arranca con el disco que estaba en la bandeja.
+  - **Identidad:** la del `.m3u` con todos sus discos; la tarjeta de memoria es una por juego.
+  - **Partidas:** cargar una guardada con otro disco lo repone, y la barra lo muestra.
+- **CHD (v5):** compilado con `HAVE_CHD` (libchdr BSD-3-Clause, LZMA SDK dominio público, Zstandard BSD-3-Clause o GPL-2.0, dr_flac Unlicense o MIT-0). Los 14 archivos y decodificadores están en el SBOM.
+- **Fixtures:** `ps1TwoDiscDemo` (dos cue/bin propios, el segundo disco pinta en verde) y `ps1DiscChd` (CHD v5 sin comprimir). Tests unitarios y E2E de cambio de disco y arranque CHD.
+
+### PS2: build de Play! y aislamiento de origen cruzado
+
+- **Núcleo Play! en CI:** receta `tools/build-play.mjs` + `cores/play/CMakeLists.txt` (frontend libretro y puente `cartivo.cpp`, WebGL2 sobre `#cartivo-canvas`, disco con WORKERFS). Primer build `a56f8b2`: `play.js` 188 KiB y `play.wasm` 2,4 MiB, 16 dependencias con licencia identificada; `verify:core` lo comprueba. Aún sin integrar en la app: el gate sigue en `investigation`.
+- **COOP/COEP en toda la PWA ([ADR-020](docs/adr/020-cross-origin-isolation.md)):** Vite dev y preview envían las cabeceras y el service worker las añade a todo lo que sirve, también a copias en caché guardadas sin ellas. E2E de `crossOriginIsolated` en dev, preview y sin red.
+- **Content Security Policy e instalación verificada ([ADR-021](docs/adr/021-content-security-policy.md)):** la app construida y sus workers solo cargan y contactan su propio origen (`connect-src 'self'`, sin `eval`), y el service worker comprueba el SHA-256 de cada archivo que instala.
+- **Discos:** cargar una Partida guardada con otro disco actualiza la bandeja; el menú de discos es un grupo de radio accesible; un `.cue` o `.m3u` demasiado grande o sin discos se rechaza con un mensaje claro.
+
+### PlayStation 2 jugable (experimental)
+
+- **PS2 en Cartivo con Play!** ([ADR-022](docs/adr/022-ps2-play.md), [H4-PS2](docs/compatibility/H4-PS2.md)): imágenes de un archivo (`.iso`, `.chd`, `.cso`, `.isz`) leídas bajo demanda y ejecutables `.elf`, sin BIOS; la consola corre en su hilo y el GS dibuja con WebGL2 en el lienzo del juego; DualShock 2 con sticks; Partidas con el estado de Play!. Sin memory card todavía.
+- **Frontend propio** (`cores/play/src/cartivo.cpp`): el de libretro no funciona con el JIT de WebAssembly. Arranque y estados en el hilo de la consola, un fotograma por paso, y un juego que deja de responder se avisa en vez de bloquear.
+- **Contrato:** `SurfaceDiscModule` (disco + superficie) y `threads` en los sistemas; lo común de N64 y PS2 con la GPU, en `packages/adapters/src/surface.ts`.
+- **`.iso` y `.chd`** sirven a PlayStation y a PS2: sin elegir consola, más de 900 MiB es un DVD de PS2.
+- **PS2 a cámara lenta en vez de pausa:** si el equipo no alcanza la velocidad del juego, este sigue más despacio y la cabecera muestra «Velocidad N %» (`slowMotion`, `FramePacer`).
+- **PS2, primera QA con juegos reales:** las Partidas admiten hasta 64 MiB (la de un juego comercial no cabía en 8 y «Guardar y salir» fallaba), el fallo al salir dice su causa, y el sonido se reparte por fotograma (`AudioPace`) en vez de llegar a bloques.
+- **Build de Play! tras la primera QA** (`9bb3810`): sonido en bloques de 4 ms (antes 100 ms por un ajuste que no se aplicaba), plazos de 30 s al arrancar, guardar, cargar y cerrar, fotograma perdido a los 20 s y el `GameConfig.xml` de Play! (arreglos para 47 juegos) dentro del módulo.
+- **Resolución 3D automática** (ADR-023): N64 y PS2 se dibujan al múltiplo de su resolución que mejor llena la pantalla del equipo (hasta ×4), así que la pantalla completa no cambia nada; Cartivo la baja si el equipo no mantiene la velocidad y se puede fijar en «Ajustes del juego». Las consolas 3D se amplían con suavizado (antes, con píxel duro).
+- **Fixtures:** `ps2ControlDemo` (ELF) y `ps2DiscDemo` (ISO 9660), con un ensamblador MIPS compartido (`mips.ts`) que también usa la de PlayStation (mismo ejecutable, byte a byte).
+- **Límites:** probado solo con la demo propia; la compatibilidad y el rendimiento con juegos comerciales quedan para la QA del titular. Sin multidisco, `.cue`/`.bin`, vibración ni mejoras de resolución.

@@ -1,0 +1,63 @@
+{
+  "id": "play-ps2-wasm",
+  "engine": "WebAssembly (Emscripten module: pthreads + WebGL2)",
+  "upstream": {
+    "name": "Play!",
+    "commit": "1f27232772e484bfb79364b751b84f41f4c87481",
+    "repository": "https://github.com/jpd002/Play-",
+    "spdx": "BSD-2-Clause"
+  },
+  "submodules": {
+    "deps/Dependencies": "8a5f6b1dea0b888b5a42b821e79470142bbea4e3",
+    "deps/Framework": "587f278917acc0026bf5fc34b39f995fc26bd015",
+    "deps/CodeGen": "a5009f7dca062695b8e5aebbd71e67b4ddfa9251",
+    "deps/libchdr": "284e38b6e53e0a7270cc234934e45230ed915a25",
+    "deps/Dependencies/ghc_filesystem": "2a8b380f8d4e77b389c42a194ab9c70d8e3a0f1e",
+    "deps/Dependencies/zstd": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+    "deps/Dependencies/xxHash": "e626a72bc2321cd320e953a0ccf1584cad60f363",
+    "deps/Dependencies/zlib": "5a82f71ed1dfc0bec044d9702463dbdf84ea3b71"
+  },
+  "toolchain": {
+    "emcc": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 6.0.12 (5488e0871d46d19a3209988190fa6a653126256f)",
+    "emsdk": "6.0.12 (35ff8a6d150541276abbc6bae512ca90bcfbe220)"
+  },
+  "platforms": [
+    "PlayStation 2"
+  ],
+  "biosRequired": false,
+  "bios": "None: Play!'s HLE (IopBios, EE kernel) replaces Sony's BIOS; games that need unimplemented IOP modules may not boot.",
+  "host": {
+    "crossOriginIsolated": true,
+    "surface": "WebGL2 context of the game canvas, current before cartivo_create",
+    "disc": "Module.discImageDevice (single-file image, read on demand)"
+  },
+  "frame": {
+    "width": 640,
+    "height": 448
+  },
+  "saveRam": false,
+  "exports": [
+    "malloc",
+    "free",
+    "cartivo_create",
+    "cartivo_free",
+    "cartivo_set_input",
+    "cartivo_set_analog",
+    "cartivo_frames",
+    "cartivo_audio",
+    "cartivo_frame_rate",
+    "cartivo_snapshot",
+    "cartivo_snapshot_data",
+    "cartivo_restore"
+  ],
+  "files": [
+    {
+      "path": "dist/play.js",
+      "sha256": "5e71231ed45a998816e021500f1e14659cb66f59c2751a75301ac48e7b6994ca"
+    },
+    {
+      "path": "dist/play.wasm",
+      "sha256": "5394f26248e7c3a5e81e22b9fb7e911f7e1b62e40830bd57f5b69267176e5427"
+    }
+  ]
+}

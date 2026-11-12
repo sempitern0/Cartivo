@@ -1,12 +1,22 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import { cartivoPwa } from "../../tools/pwa-plugin.mjs";
+import { cartivoPwa, securityHeaders } from "../../tools/pwa-plugin.mjs";
 export default defineConfig({
-  plugins: [svelte(), cartivoPwa()],
+  // securityHeaders: COOP/COEP in dev and preview (ADR-020) plus the Content
+  // Security Policy in preview (ADR-021), as the production host must send.
+  plugins: [svelte(), securityHeaders(), cartivoPwa()],
   // One file for the emulator Worker: WebKit (Safari) evaluates a module
   // worker's entry again when a dynamic chunk imports from it, which reset
   // the session after the first core loaded. The cores' WebAssembly is still
   // fetched and compiled only when a game of that system starts.
+  // The dev server transforms the app and the emulator Worker when it
+  // starts, not on the first visit: with a cold server the first game took
+  // longer than the E2E's wait (the first test of every dev run was retried).
+  server: {
+    warmup: {
+      clientFiles: ["./src/main.ts", "./src/emulator.worker.ts"],
+    },
+  },
   worker: {
     format: "es",
     rollupOptions: { output: { codeSplitting: false } },

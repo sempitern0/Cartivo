@@ -1,6 +1,6 @@
 # Cartivo — Plan técnico
 
-> **Revisión 8 · 7 de noviembre de 2026.** Ocho consolas jugables (hasta PlayStation, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
+> **Revisión 11 · 11 de noviembre de 2026.** Diez consolas jugables (hasta PlayStation 2, con discos leídos bajo demanda) y perfiles de jugador locales; §3 es una cola de incrementos con criterio de terminado. PS2 (Play!) integrada como experimental y pendiente de QA con juegos reales; PSP, GameCube y Dreamcast aplazados. Separa lo **hecho** (no reimplementar) de lo **pendiente** (la única lista de trabajo).
 > **Producto:** PWA *local-first* para jugar consolas retro desde el navegador, sin BIOS propietarias, sin ROMs distribuidas y sin servidor de juego.
 > **Fuentes de verdad:** reglas en `AGENTS.md`; estado y evidencias en README y `docs/compatibility/`; decisiones en `docs/adr/`.
 
@@ -31,8 +31,10 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | **GBA:** mGBA 0.10.5 con BIOS HLE; SRAM, Flash y EEPROM | `packages/adapters/src/mgba.ts`, `gba-header.ts` | ADR-011 | `tests/gba-saves.test.ts`, `tests/e2e/gba.spec.ts`, [H2-GBA](compatibility/H2-GBA.md) |
 | **SNES:** Snes9x 1.63 (C++ sobre su frontend libretro); NTSC y PAL (50 Hz) LoROM/HiROM/ExHiROM, chips emulados; botones X/Y | `packages/adapters/src/snes9x.ts`, `snes-header.ts`; `cores/snes9x` | ADR-013 | `tests/snes.test.ts`, `tests/e2e/snes.spec.ts`, [H2-SNES](compatibility/H2-SNES.md) |
 | **Master System y Mega Drive:** Genesis Plus GX `a5834b3`, un WASM y dos `CoreModule`; cartuchos NTSC y PAL (Mega-CD, 32X, Game Gear y SMD rechazados); mando de seis botones con etiquetas por sistema; `.bin` suelto de hasta 10 MiB | `packages/adapters/src/genesis-plus-gx.ts`, `sega-header.ts`; `cores/genesis-plus-gx` | ADR-014 | `tests/sega.test.ts`, `tests/e2e/sega.spec.ts`, [H2-SEGA](compatibility/H2-SEGA.md) |
-| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.cue` con sus pistas, `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos se recuerdan: sus archivos se copian a `roms/<identidad>/` mientras se juega, con aviso de espacio, y «Continuar» abre la copia | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed`; `packages/storage/src/library.ts` (`rememberDisc`, `storedDisc`) | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
+| **PlayStation:** PCSX-ReARMed `7b0e8f8` con su BIOS HLE (nunca la de Sony), intérprete; `.m3u` multidisco con cambio desde la barra y la pausa, `.cue` con sus pistas, `.chd` (CHD v5 con libchdr), `.iso`, `.bin` y `.exe`; 640×480 fijo a 4:3; tarjeta de memoria 1 como batería; DualShock (digital con L2/R2, y sticks cuando el juego pasa a analógico). Los discos se recuerdan: sus archivos se copian a `roms/<identidad>/` mientras se juega, con aviso de espacio, y «Continuar» abre la copia | `packages/adapters/src/pcsx-rearmed.ts`; `cores/pcsx-rearmed`; `packages/storage/src/library.ts` (`rememberDisc`, `storedDisc`); `apps/web/src/DiscMenu.svelte` | ADR-015 | `tests/ps1.test.ts`, `tests/e2e/ps1.spec.ts`, [H4-PS1](compatibility/H4-PS1.md) |
 | **Nintendo 64:** Mupen64Plus-Next `15bada8` con GLideN64 sobre WebGL2 en el Worker (`SurfaceModule`: la página transfiere el lienzo); `.z64`/`.n64`/`.v64`; stick analógico (teclado: dirección completa) y botones C; batería de 296 960 bytes; Partidas comprimidas con zlib, con miniatura leída de la GPU | `packages/adapters/src/n64.ts`, `n64-header.ts`; `cores/mupen64plus-next`; `apps/web/src/surface.ts` | ADR-017 | `tests/n64.test.ts`, `tests/e2e/n64.spec.ts`, [H4-N64](compatibility/H4-N64.md) |
+| **PlayStation 2:** Play! `1f27232` con su BIOS HLE y su JIT de WebAssembly; la consola en un hilo (página aislada) y el GS sobre WebGL2 en el Worker (`SurfaceDiscModule`); frontend propio en el hilo de la VM; imágenes de un archivo (`.iso`, `.chd`, `.cso`, `.isz`) leídas bajo demanda y `.elf`; 640×448 a 4:3 (ADR-023 para la resolución); cámara lenta con velocidad en pantalla; PAL por la región del disco; Partidas con el estado de Play!, sin memory card | `packages/adapters/src/ps2.ts`, `surface.ts`; `cores/play` (`src/cartivo.cpp`); `apps/web/src/surface.ts` | ADR-022, ADR-020 | `tests/ps2.test.ts`, `tests/e2e/ps2.spec.ts`, [H4-PS2](compatibility/H4-PS2.md) |
+| **Resolución 3D automática:** N64 y PS2 se dibujan al múltiplo entero (×1–×4) más cercano a la pantalla del equipo, fijado al abrir el juego; techo aprendido si el equipo no mantiene la velocidad; ajustable por sistema; miniaturas a la resolución de la consola; consolas 3D ampliadas con suavizado | `packages/runtime/src/render-scale.ts`, `packages/media/src/display-preferences.ts`, `packages/adapters/src/surface.ts`, `apps/web/src/DisplayOptions.svelte` | ADR-023 | `tests/render-scale.test.ts`, `tests/display-preferences.test.ts` |
 | Discos bajo demanda: `DiscModule` en el contrato, `prepareDisc` (identidad por bloques WebCrypto, sin leer el disco entero), VFS de libretro sobre `FileReaderSync` (`cartivo_vfs_*`), varios archivos por `load` (`extra`) y `gameForFiles` para elegir el juego | `packages/adapters/src/disc.ts`, `contract.ts`; `packages/storage/src/disc-identity.ts`; `packages/runtime/src/prepare-rom.ts`, `systems.ts` | ADR-015 | `tests/disc.test.ts`, `disc-identity.test.ts`, `systems.test.ts` |
 | Fixtures originales con hash y oráculo (NES, GB/GBC, GBA, SNES, Master System, Mega Drive, PlayStation) | `packages/fixtures/src/` | — | Pruebas de cada sistema |
 | Cadencia por juego: el núcleo libretro informa de la frecuencia del juego cargado (`cartivo_frame_rate`, 50 Hz en PAL) y el host la usa; sin ese dato, la nominal del sistema | `EmulatorCore.frameRate`, `wasm-host.ts`, `Player.svelte`; puentes de `cores/snes9x` y `cores/genesis-plus-gx` | ADR-002 | `tests/wasm-host.test.ts`, `tests/e2e/pal.spec.ts` |
@@ -42,7 +44,7 @@ El usuario abre la app, **elige consola, elige juego y juega**, con teclado o ma
 | Entrada: teclado y Gamepad API, perfiles, remapeo, zona muerta, neutralización; durante la partida, la captura deja funcionar cualquier control de la página; catorce acciones (L/R, X/Y, L2/R2); botones y etiquetas declarados por sistema | `packages/input/src/`; `systems.ts` (`buttons`, `controlButtons`, `buttonNotes`); `apps/web/src/ControlsPanel.svelte` | ADR-006 | `tests/input.test.ts`, `capture.test.ts`, `tests/e2e/input.spec.ts`, `controls-page.spec.ts` |
 | Pantalla: Ajustar, Píxel entero y entero por proporción; aspecto del sistema; suavizado; preferencias por sistema | `packages/media/src/display-scaler.ts`, `display-preferences.ts`; `apps/web/src/GraphicsPanel.svelte`, `display.svelte.ts` | — | `tests/display-*.test.ts` |
 | Reproductor dividido: sesión y bucle en `Player.svelte`; acciones, capas, copias, núcleo, sonido y captura de entrada en módulos propios | `apps/web/src/Player.svelte` y `PlayerActions`, `PlayerToolbar`, `ResumeOffer`, `FullscreenPause`, `BackupPanel`, `AboutCore`, `DeviceStatus`, `sound.svelte.ts`, `game-capture.ts` | — | `tests/e2e/nes.spec.ts`, `ui.spec.ts` |
-| PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió; «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
+| PWA: SW propio que precarga **todo** el build (núcleos incluidos), 6 descargas a la vez; una actualización solo descarga lo que cambió y cada descarga se comprueba contra el SHA-256 de la build; toda la app va aislada (COOP/COEP, ADR-020) y con Content Security Policy sin salidas a otros orígenes (ADR-021); «sin conexión» solo con la caché completa verificada; nunca recarga una sesión activa; «Abrir con», arrastrar y soltar; `persist()` en la app instalada | `tools/pwa-plugin.mjs`, `apps/web/src/pwa.svelte.ts` | — | `tests/pwa.test.ts`, `tests/e2e/pwa.spec.ts`, [H1-C](compatibility/H1-C-PWA.md) |
 | Inicio, Focus y pantalla completa distintos, foco discreto, logo al inicio, tarjetas alineadas | `apps/web/src/App.svelte`, `theme.css`, [DESIGN.md](DESIGN.md) | — | `tests/e2e/ui.spec.ts` |
 | Fiabilidad y portabilidad (auditoría del titular): escrituras recuperables de la biblioteca, captura acotada, guardado SRAM separado y en segundo plano, carga WASM con alternativa, timeouts por operación, «sin conexión» verificado, E2E en Firefox y WebKit (Worker de un solo archivo, `FramePacer`), subruta (`--base`), avisos cuando el navegador guarda menos y fallos inyectados en navegador real | `packages/storage/src/{library,background-commit,persistence,idb}.ts`, `wasm-host.ts`, `client.ts`, `offline-cache.ts`, `frame-pacer.ts` | ADR-003/007/012 | `tests/e2e/{faults,storage,subpath}.spec.ts`, [H1-QA](compatibility/H1-QA.md) |
 | **Perfiles de jugador:** «¿Quién juega?» en cada visita (la elección dura la pestaña); cada perfil con sus Partidas, batería/tarjeta, biblioteca y controles; copias de ROM compartidas por hash; el primer perfil conserva los datos anteriores sin migrar; crear, renombrar y borrar (con sus datos), sin contraseña | `packages/storage/src/profiles.ts` (`scoped`), `apps/web/src/profile.svelte.ts`, `ProfilePicker.svelte`; protocolo `load.profile` | ADR-016 | `tests/profiles.test.ts`, `tests/e2e/profiles.spec.ts` |
@@ -68,24 +70,19 @@ Cada punto es un incremento con rama y PR propias. «Terminado» significa su cr
 
 Cada entrada dice por dónde empezar (área de `pnpm context`), cuándo está terminada y qué queda fuera. Si una entrada necesita una decisión de producto que no está aquí, se pregunta antes de programar.
 
-1. **PS1 · multidisco.** El DualShock con sticks ya está hecho (ADR-006, revisión de 2026-11-07); falta la QA con un juego analógico propio.
-   - *Objetivo:* `.m3u` con cambio de disco desde el menú de pausa.
-   - *Empieza por:* área `load` y `cores`: `pcsx-rearmed.ts`, `cores/pcsx-rearmed/src/cartivo.c` (interfaz de disco de libretro) y ADR-015.
-   - *Ojo:* cambiar el puente obliga a reconstruir el núcleo (`cores/AGENTS.md`).
-   - *Terminado cuando:* fixture original de dos discos, cambio desde la pausa y conformidad.
-   - *Fuera:* pistola, multitap.
-2. **PS1 · CHD.**
-   - *Cómo:* reconstruir con `HAVE_CHD` (libchdr, lzma y zstd).
-   - *Requisitos previos:* gate de licencias de esas dependencias y lectura por la VFS.
-   - *Terminado cuando:* fixture CHD propia arranca en Node y en E2E.
+1. ~~**PS1 · multidisco.**~~ ✔ Hecho: `.m3u` con cambio de disco desde la barra y la pausa (`DiscMenu`), fixture de dos discos, tests unitarios y E2E. ADR-015 revisado.
+2. ~~**PS1 · CHD.**~~ ✔ Hecho: compilado con `HAVE_CHD` (libchdr, LZMA SDK, Zstandard, dr_flac), licencias en el SBOM y LICENSES.md, fixture CHD v5, tests unitarios y E2E.
 3. **N64 · pulido tras la QA en la app.** N64 ya está en la app como experimental ([ADR-017](adr/017-n64-gpu-surface.md), [H4-N64](compatibility/H4-N64.md)).
-   - *Pendiente:*
-     - cortes de audio por tirones del Worker;
-     - el cuelgue con emsdk 6.0.12.
+   - *Registrado como límite:*
+     - underruns de audio inherentes al modelo sin hilos (el Worker se retrasa → el AudioWorklet se vacía → silencio);
+     - emsdk 6.0.12 (LLVM 24) se cuelga en el primer fotograma: el núcleo usa emsdk 4.0.10 (LLVM 21).
    - *Empieza por:* `packages/adapters/src/n64.ts`, `cores/mupen64plus-next/src/frontend.c` y el relevo de [experiments/n64/README.md](../experiments/n64/README.md#estado-de-relevo).
-   - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio, y cada punto pendiente tiene prueba o queda registrado como límite.
-4. **PSP** (PPSSPP, GPL-2.0-or-later, HLE), sobre la superficie WebGL2 de ADR-017 (`SurfaceModule`) y el camino de discos (`.iso`/`.cso`).
-5. **Laboratorio PS2** (Play!, BSD-2, HLE): opcional, con límites publicados.
+   - *Terminado cuando:* la QA del titular confirma batería, Partidas y salir/volver con un juego propio. Los dos puntos anteriores están registrados como límites en [H4-N64](compatibility/H4-N64.md).
+4. **PS2 · QA con juegos reales.** PS2 ya está en la app como experimental ([ADR-022](adr/022-ps2-play.md), [H4-PS2](compatibility/H4-PS2.md)): la demo propia arranca desde `.elf` y desde `.iso`, con mando y Partidas.
+   - **Falta:** probar juegos comerciales del titular en una GPU real (qué arranca, velocidad, audio) y, según el resultado, exportar la memory card como batería, mejoras de resolución y los `.cue`/`.bin`.
+   - *Empieza por:* [H4-PS2](compatibility/H4-PS2.md), `packages/adapters/src/ps2.ts` y `cores/play/src/cartivo.cpp`.
+   - *Terminado cuando:* la QA del titular confirma un juego comercial jugable con Partidas, o registra como límite por qué no.
+5. **PSP, GameCube y Dreamcast** aplazados para iteraciones posteriores. PSP: gate `investigation` ([expediente PPSSPP](research/PPSSPP_CORE_GATE.md)), sin port WASM. Dreamcast: BIOS propietaria requerida (bloqueado por AGENTS.md). GameCube: requiere SharedArrayBuffer, sin audio, rendimiento insuficiente.
 
 ### 3.3 Deuda técnica conocida (cuando toque su área)
 
@@ -140,8 +137,8 @@ Estados: `candidate → evaluating → accepted | blocked`. Solo `accepted` se i
 | Master System / Mega Drive | Genesis Plus GX `a5834b3` (licencias no comerciales) | **accepted (uso privado)** |
 | N64 | Mupen64Plus-Next `15bada8` (GPL-2.0) | **accepted (uso privado)**; en la app como experimental (ADR-017) |
 | PlayStation | PCSX-ReARMed `7b0e8f8` (GPL-2.0-or-later, BIOS HLE) | **accepted (uso privado)** |
-| PSP | PPSSPP (GPL-2.0-or-later, HLE) | candidate (uso privado) |
-| PS2 | Play! (BSD-2, HLE) | laboratorio opt-in |
+| PS2 | Play! `1f27232` (BSD-2-Clause, HLE, JIT WASM) | **accepted (uso privado)**; integrado como experimental (ADR-022) |
+| PSP | PPSSPP `9dc79eb` (GPL-3.0 del conjunto, HLE) | **investigation**; aplazado |
 
 - **Pospuestos:** Game Gear, DS y Dreamcast.
 - **Fuera:** Saturn, 32X, Mega-CD, arcade y accesorios especiales.

@@ -23,3 +23,7 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [017](017-n64-gpu-surface.md) | Nintendo 64 con Mupen64Plus-Next: superficie WebGL2 en el Worker (`SurfaceModule`) | Aceptado (experimental) |
 | [018](018-shared-library-ux.md) | Biblioteca común y reanudación por perfil | Aceptado |
 | [019](019-ui-components-bits-ui.md) | Componentes de interfaz con Bits UI; animaciones de Svelte | Aceptado |
+| [020](020-cross-origin-isolation.md) | Aislamiento de origen cruzado (COOP/COEP) en toda la PWA, también desde el service worker | Aceptado |
+| [021](021-content-security-policy.md) | Content Security Policy (nada sale del origen) e instalación verificada por hash | Aceptado |
+| [022](022-ps2-play.md) | PlayStation 2 con Play!: hilos, superficie WebGL2 y frontend propio | Aceptado (experimental) |
+| [023](023-render-resolution.md) | Resolución de las consolas 3D (N64, PS2): automática para la pantalla del equipo, ajustable | Aceptado |

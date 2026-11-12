@@ -22,6 +22,7 @@ import { smsControlDemo } from "../../fixtures/src/sms-control-demo.ts";
 import { mdControlDemo } from "../../fixtures/src/md-control-demo.ts";
 import { ps1ControlDemo } from "../../fixtures/src/ps1-control-demo.ts";
 import { n64ControlDemo } from "../../fixtures/src/n64-control-demo.ts";
+import { ps2ControlDemo } from "../../fixtures/src/ps2-control-demo.ts";
 import { MAX_N64_ROM_BYTES, validateN64Rom } from "./n64-header.ts";
 
 /**
@@ -83,6 +84,11 @@ const mupen = onDemand(
   () => import("./n64.ts"),
   (lib) => lib.prepareN64(),
 );
+const play = onDemand(
+  "Play!",
+  () => import("./ps2.ts"),
+  (lib) => lib.preparePs2(),
+);
 
 /** Game Boy and Game Boy Color share SameBoy; the header picks the model. */
 const sameboyModule = (system: string, color: boolean): CoreModule => ({
@@ -104,6 +110,8 @@ const GENESIS_VERSION = "a5834b3";
 /** Neither do PCSX-ReARMed's libretro builds, nor Mupen64Plus-Next's. */
 const PCSX_VERSION = "7b0e8f8";
 const MUPEN_VERSION = "15bada8";
+/** Play!'s releases are weekly tags: the pinned commit names the build. */
+const PLAY_VERSION = "1f27232";
 
 const nesVideo = { width: 256, height: 240 };
 
@@ -209,7 +217,19 @@ export const coreModules: readonly CoreModule[] = [
     validate: validateN64Rom,
     demo: n64ControlDemo,
     prepare: mupen.prepare,
-    create: (rom, canvas, save) => mupen.get().createN64(rom, canvas, save),
+    create: (rom, canvas, scale, save) =>
+      mupen.get().createN64(rom, canvas, scale, save),
+  },
+  {
+    system: "ps2",
+    id: "play",
+    version: PLAY_VERSION,
+    disc: true,
+    surface: "webgl2",
+    video: { width: 640, height: 448 },
+    demo: () => ({ name: "cartivo-demo.elf", bytes: ps2ControlDemo() }),
+    prepare: play.prepare,
+    create: (disc, canvas, scale) => play.get().createPs2(disc, canvas, scale),
   },
 ];
 

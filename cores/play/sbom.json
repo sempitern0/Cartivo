@@ -1,0 +1,75 @@
+[
+  {
+    "name": "Play! (PS2 VM: EE, IOP HLE, SPU; OpenGL GS)",
+    "license": "BSD-2-Clause",
+    "version": "1f27232772e484bfb79364b751b84f41f4c87481",
+    "repository": "https://github.com/jpd002/Play-"
+  },
+  {
+    "name": "Play--Framework",
+    "license": "BSD-2-Clause",
+    "version": "587f278917acc0026bf5fc34b39f995fc26bd015",
+    "repository": "https://github.com/jpd002/Play--Framework"
+  },
+  {
+    "name": "Play--CodeGen (JIT, CodeGen_Wasm)",
+    "license": "BSD-2-Clause",
+    "version": "a5009f7dca062695b8e5aebbd71e67b4ddfa9251",
+    "repository": "https://github.com/jpd002/Play--CodeGen"
+  },
+  {
+    "name": "libchdr (with bundled zlib 1.3.1, zstd 1.5.6, LZMA SDK 24.05)",
+    "license": "BSD-3-Clause AND Zlib AND LicenseRef-public-domain",
+    "version": "284e38b6e53e0a7270cc234934e45230ed915a25",
+    "repository": "https://github.com/jpd002/libchdr"
+  },
+  {
+    "name": "bzip2 1.0.6",
+    "license": "bzip2-1.0.6",
+    "version": "8a5f6b1dea0b888b5a42b821e79470142bbea4e3",
+    "repository": "https://github.com/jpd002/Play-Dependencies",
+    "path": "bzip2-1.0.6"
+  },
+  {
+    "name": "ghc::filesystem",
+    "license": "MIT",
+    "version": "2a8b380f8d4e77b389c42a194ab9c70d8e3a0f1e",
+    "repository": "https://github.com/gulrak/filesystem"
+  },
+  {
+    "name": "Zstandard (zstd_zlibwrapper)",
+    "license": "BSD-3-Clause",
+    "version": "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+    "repository": "https://github.com/facebook/zstd"
+  },
+  {
+    "name": "xxHash",
+    "license": "BSD-2-Clause",
+    "version": "e626a72bc2321cd320e953a0ccf1584cad60f363",
+    "repository": "https://github.com/Cyan4973/xxHash"
+  },
+  {
+    "name": "zlib",
+    "license": "Zlib",
+    "version": "5a82f71ed1dfc0bec044d9702463dbdf84ea3b71",
+    "repository": "https://github.com/madler/zlib"
+  },
+  {
+    "name": "Emscripten system libraries and JS runtime",
+    "license": "MIT OR NCSA",
+    "version": "6.0.12",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "musl libc (Emscripten)",
+    "license": "MIT",
+    "version": "6.0.12",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  },
+  {
+    "name": "libc++ / libc++abi / compiler-rt (Emscripten)",
+    "license": "Apache-2.0 WITH LLVM-exception",
+    "version": "6.0.12",
+    "repository": "https://github.com/emscripten-core/emscripten"
+  }
+]

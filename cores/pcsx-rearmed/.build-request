@@ -1,2 +1,2 @@
 Bump this file only to build PCSX-ReARMed once in CI (core-pcsx-rearmed.yml).
-Reason: choose the DualShock before loading the game (a later change makes the core simulate a replug: no pad for 32 frames).
+Reason: disc control for .m3u games (cartivo_disc_*) and CHD images (libchdr, HAVE_CHD).

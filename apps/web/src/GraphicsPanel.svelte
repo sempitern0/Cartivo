@@ -12,12 +12,15 @@
     ScaleMode,
     VideoDescriptor,
   } from "../../../packages/media/src/display-scaler.ts";
+  import type { RenderChoice } from "../../../packages/runtime/src/render-scale.ts";
   import DisplayOptions from "./DisplayOptions.svelte";
   let {
     video,
     scaleMode,
     aspectMode,
     smooth,
+    resolution,
+    autoScale,
     fallback,
     note,
     onchange,
@@ -27,6 +30,9 @@
     scaleMode: ScaleMode;
     aspectMode: AspectMode;
     smooth: boolean;
+    /** A console drawn by the GPU: its resolution and what «auto» gives. */
+    resolution?: RenderChoice;
+    autoScale?: number;
     /** The chosen scale does not fit and «Ajustar» is used meanwhile. */
     fallback: boolean;
     note: string;
@@ -72,6 +78,8 @@
     {scaleMode}
     {aspectMode}
     {smooth}
+    {resolution}
+    {autoScale}
     name="graphics"
     {onchange}
   />
