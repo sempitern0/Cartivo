@@ -9,6 +9,10 @@
     VideoDescriptor,
   } from "../../../packages/media/src/display-scaler.ts";
   import { aspectLabel } from "../../../packages/media/src/display-scaler.ts";
+  import {
+    renderChoices,
+    type RenderChoice,
+  } from "../../../packages/runtime/src/render-scale.ts";
   import DisplayPreview from "./DisplayPreview.svelte";
   let {
     video,
@@ -16,6 +20,8 @@
     aspectMode,
     smooth,
     name = "display",
+    resolution,
+    autoScale = 1,
     onchange,
   }: {
     video: VideoDescriptor;
@@ -24,6 +30,10 @@
     smooth: boolean;
     /** Radio group names: unique when two sets share a page. */
     name?: string;
+    /** Only for a console drawn by the GPU: its rendering resolution. */
+    resolution?: RenderChoice;
+    /** What «Automática» means on this device. */
+    autoScale?: number;
     onchange: (patch: Partial<DisplayPreferences>) => void;
   } = $props();
   const ratio = $derived(aspectLabel(video.displayAspect));
@@ -42,6 +52,14 @@
     { value: "corrected", label: `${ratio} original`, hint: "Como se veía en su pantalla" },
     { value: "native", label: "Píxeles cuadrados", hint: `Imagen original de ${video.sourceWidth} × ${video.sourceHeight}` },
   ]);
+  const size = (scale: number) =>
+    `${video.sourceWidth * scale} × ${video.sourceHeight * scale}`;
+  const resolutionLabel = (choice: RenderChoice) =>
+    choice === "auto"
+      ? `Automática (${size(autoScale)})`
+      : choice === 1
+        ? `Original (${size(1)})`
+        : `×${choice} (${size(choice)})`;
 </script>
 
   <DisplayPreview {video} {scaleMode} {aspectMode} {smooth} />
@@ -94,7 +112,30 @@
         </label>{/each}
     </div>
   </fieldset>{/if}
-  <label class="switch">
+  {#if resolution !== undefined}<label class="resolution">
+      <span class="name">Resolución 3D</span>
+      <select
+        value={String(resolution)}
+        onchange={(e) => {
+          const value = e.currentTarget.value;
+          onchange({
+            resolution:
+              renderChoices.find((c) => String(c) === value) ?? "auto",
+          });
+        }}
+      >
+        {#each renderChoices as choice}<option value={String(choice)}
+            >{resolutionLabel(choice)}</option
+          >{/each}
+      </select>
+      <span class="hint"
+        >Automática elige la que mejor llena tu pantalla y la baja si el
+        equipo no mantiene la velocidad. Se aplica la próxima vez que abras
+        el juego.</span
+      >
+    </label>{/if}
+  <!-- Polygons are always scaled smoothly: the switch is for pixel art. -->
+  {#if video.pixelArt}<label class="switch">
     <input
       type="checkbox"
       role="switch"
@@ -109,7 +150,7 @@
         original.</span
       >
     </span>
-  </label>
+  </label>{/if}
 
 <style>
   .options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -125,6 +166,8 @@
   .diagram .image { fill: #24324b; stroke: var(--blue); stroke-width: 1.5; }
   .option.checked .diagram .image { fill: #2b4f7d; }
   .diagram .px { stroke: #619de566; stroke-width: 0.8; }
+  .resolution { display: grid; gap: 6px; margin-top: 20px; padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); }
+  .resolution select { max-width: 320px; }
   .switch { position: relative; display: flex; align-items: flex-start; gap: 14px; margin-top: 20px; padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); cursor: pointer; }
   .track { flex: none; position: relative; width: 44px; height: 26px; border-radius: 999px; background: #2a2e3d; border: 1px solid var(--border); margin-top: 2px; }
   .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); }

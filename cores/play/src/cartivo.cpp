@@ -26,6 +26,7 @@
 //
 // Memory cards are files of Play!'s own (in-memory) filesystem and are not
 // exported yet: Cartivo PS2 keeps progress with save states (Partidas).
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -70,6 +71,10 @@ constexpr unsigned MAX_SAMPLES = OUT_RATE; // one second of output
 // The picture the GS presents, whatever the game's video mode (the canvas).
 constexpr unsigned WIDTH = 640;
 constexpr unsigned HEIGHT = 448;
+// The GS draws at this many times the console's resolution, on a canvas of
+// WIDTH × HEIGHT times it (the host sizes the canvas). Fixed per game.
+constexpr unsigned MAX_SCALE = 4;
+unsigned render_scale = 1;
 // A frame that takes longer than this means the VM is not running. Generous:
 // while a game loads, one frame can take seconds of disc reads and JIT.
 constexpr auto FRAME_TIMEOUT = std::chrono::seconds(20);
@@ -190,8 +195,8 @@ protected:
 	{
 		PRESENTATION_PARAMS params;
 		params.mode = PRESENTATION_MODE_FILL;
-		params.windowWidth = WIDTH;
-		params.windowHeight = HEIGHT;
+		params.windowWidth = WIDTH * render_scale;
+		params.windowHeight = HEIGHT * render_scale;
 		SetPresentationParams(params);
 		CGSH_OpenGL::InitializeImpl();
 	}
@@ -437,15 +442,20 @@ void cartivo_free(cartivo_t *c);
 // `path` names the file to boot in the module's filesystem: an .elf, or a
 // single-file disc image (.iso, .chd, .cso, .isz) served by the host's
 // Module.discImageDevice. The WebGL2 context of the game canvas must be
-// current on this thread. Returns NULL if Play! refuses it.
-cartivo_t *cartivo_create(const char *path, size_t length)
+// current on this thread, on a canvas of 640 × 448 times `scale` (1 to 4,
+// the resolution the GS draws at). Returns NULL if Play! refuses it.
+cartivo_t *cartivo_create(const char *path, size_t length, unsigned scale)
 {
 	if(current) return nullptr; // one game per module, ever
+	render_scale = std::clamp(scale, 1u, MAX_SCALE);
 	// Before the VM exists: its constructor registers its own default (100
 	// blocks, a tenth of a second per write) and reads the value.
 	auto &config = CAppConfig::GetInstance();
 	config.RegisterPreferenceInteger(PREF_AUDIO_SPUBLOCKCOUNT, SPU_BLOCKS);
 	config.SetPreferenceInteger(PREF_AUDIO_SPUBLOCKCOUNT, SPU_BLOCKS);
+	// Before the GS exists: it reads the factor when it is initialised.
+	config.RegisterPreferenceInteger(PREF_CGSH_OPENGL_RESOLUTION_FACTOR, render_scale);
+	config.SetPreferenceInteger(PREF_CGSH_OPENGL_RESOLUTION_FACTOR, render_scale);
 	auto *c = new cartivo_t();
 	c->path.assign(path, length);
 	c->disc = !ends_with(c->path, ".elf");

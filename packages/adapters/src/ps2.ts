@@ -33,7 +33,7 @@ type Emscripten = {
   stringToNewUTF8(text: string): number;
   _malloc(bytes: number): number;
   _free(pointer: number): void;
-  _cartivo_create(path: number, length: number): number;
+  _cartivo_create(path: number, length: number, scale: number): number;
   _cartivo_free(game: number): void;
   _cartivo_set_input(game: number, bits: number): void;
   _cartivo_set_analog(
@@ -70,6 +70,8 @@ const WASM = new URL("../../../cores/play/dist/play.wasm", import.meta.url);
 const MAX_ELF_BYTES = 64 * 1024 * 1024;
 /** The bridge's output rate (cartivo.cpp OUT_RATE). */
 const SAMPLE_RATE = 48000;
+/** The console's picture; the GS draws at 1 to 4 times it. */
+const PICTURE = { width: 640, height: 448 };
 
 let ready: Promise<{ factory: Factory; wasm: WebAssembly.Module }> | undefined;
 let loaded: { factory: Factory; wasm: WebAssembly.Module } | undefined;
@@ -243,7 +245,7 @@ class Ps2Core implements EmulatorCore {
   lastFrame(): Uint8ClampedArray {
     if (!this.#em || this.#lost || !this.frames)
       return new Uint8ClampedArray(0);
-    return surfaceFrame(this.#canvas);
+    return surfaceFrame(this.#canvas, PICTURE.width);
   }
 
   dispose() {
@@ -271,6 +273,7 @@ const extension = (part: DiscPart) =>
 export async function createPs2(
   disc: DiscImage,
   canvas: OffscreenCanvas,
+  scale: number,
 ): Promise<EmulatorCore> {
   if (!loaded) throw Error(`El núcleo ${NAME} no está preparado.`);
   const { factory, wasm } = loaded;
@@ -290,7 +293,7 @@ export async function createPs2(
   });
   let game = 0;
   try {
-    useSurface(em.GL, canvas, "PlayStation 2", false);
+    useSurface(em.GL, canvas, "PlayStation 2", false, { ...PICTURE, scale });
     const image = disc.primary;
     // Play! takes the format from the extension; the name is not a real path.
     const name = `/${image.name.toLowerCase().endsWith(".elf") ? "game.elf" : `disc${extension(image)}`}`;
@@ -313,7 +316,11 @@ export async function createPs2(
       };
     }
     const path = em.stringToNewUTF8(name);
-    game = em._cartivo_create(path, new TextEncoder().encode(name).length);
+    game = em._cartivo_create(
+      path,
+      new TextEncoder().encode(name).length,
+      scale,
+    );
     em._free(path);
     if (!game)
       throw Error(

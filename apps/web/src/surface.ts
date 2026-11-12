@@ -30,3 +30,7 @@ export function surfaceFor(canvas: HTMLCanvasElement | undefined) {
   if (!canvas) throw Error("El lienzo del juego no está preparado.");
   return canvas.transferControlToOffscreen();
 }
+
+/** Physical lines of this device's screen: what a full-screen game fills. */
+export const screenLines = () =>
+  Math.round(screen.height * (globalThis.devicePixelRatio || 1));

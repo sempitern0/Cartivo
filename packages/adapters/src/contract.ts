@@ -119,7 +119,12 @@ export interface DiscModule extends DiscInfo {
  */
 export interface SurfaceDiscModule extends DiscInfo {
   surface: "webgl2";
-  create(disc: DiscImage, canvas: OffscreenCanvas): Promise<EmulatorCore>;
+  /** `scale`: the core draws at 1 to 4 times the console's resolution. */
+  create(
+    disc: DiscImage,
+    canvas: OffscreenCanvas,
+    scale: number,
+  ): Promise<EmulatorCore>;
 }
 
 /**
@@ -133,6 +138,8 @@ export interface SurfaceModule extends CartridgeInfo {
   create(
     rom: Uint8Array,
     canvas: OffscreenCanvas,
+    /** The core draws at 1 to 4 times the console's resolution. */
+    scale: number,
     save?: Uint8Array,
   ): Promise<EmulatorCore>;
 }

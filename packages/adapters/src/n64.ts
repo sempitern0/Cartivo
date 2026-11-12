@@ -21,7 +21,7 @@ type Emscripten = {
   stringToNewUTF8(text: string): number;
   _malloc(bytes: number): number;
   _free(pointer: number): void;
-  _n64_init(): number;
+  _n64_init(scale: number): number;
   _n64_load(path: number): number;
   _n64_run(): void;
   _n64_audio(): number;
@@ -88,6 +88,8 @@ export function prepareN64(): Promise<void> {
 
 /** The core's fixed output rate is downmixed to the app's 48 kHz mono. */
 const OUTPUT_RATE = 48000;
+/** The console's picture; the core draws at 1 to 4 times it. */
+const PICTURE = { width: 640, height: 480 };
 
 /**
  * Stereo 16-bit audio at `from` Hz to mono floats at 48 kHz, by linear
@@ -227,7 +229,7 @@ class N64Core implements EmulatorCore {
   lastFrame(): Uint8ClampedArray {
     if (!this.#em || this.#lost || !this.frames)
       return new Uint8ClampedArray(0);
-    return surfaceFrame(this.#canvas);
+    return surfaceFrame(this.#canvas, PICTURE.width);
   }
 
   dispose() {
@@ -248,6 +250,7 @@ class N64Core implements EmulatorCore {
 export async function createN64(
   rom: Uint8Array,
   canvas: OffscreenCanvas,
+  scale: number,
   save?: Uint8Array,
 ): Promise<EmulatorCore> {
   if (!loaded) throw Error(`El núcleo ${NAME} no está preparado.`);
@@ -264,11 +267,11 @@ export async function createN64(
       return {};
     },
   });
-  useSurface(em.GL, canvas, "Nintendo 64", true);
+  useSurface(em.GL, canvas, "Nintendo 64", true, { ...PICTURE, scale });
   em.FS.mkdirTree("/n64/system");
   em.FS.mkdirTree("/n64/save");
   em.FS.writeFile("/n64/rom.z64", rom);
-  em._n64_init();
+  em._n64_init(scale);
   const path = em.stringToNewUTF8("/n64/rom.z64");
   const status = em._n64_load(path);
   em._free(path);

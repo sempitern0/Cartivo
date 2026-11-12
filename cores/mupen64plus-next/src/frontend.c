@@ -54,13 +54,17 @@ static const struct retro_core_option_v2_definition *declared;
  * (no JIT in WebAssembly) and no threaded renderer. WebGL2 has neither
  * glMapBufferRange for reading nor program binaries, so the colour and depth
  * copies to RDRAM and the shader storage stay off (their defaults are on). */
+/* The picture the core draws, 640 × 480 times the scale the host asked for
+ * (n64_init): the sizes the core's own option offers. */
+static const char *screen_size = "640x480";
+
 static const char *option(const char *key) {
+  if (!strcmp(key, "mupen64plus-43screensize")) return screen_size;
   static const char *const options[][2] = {
       {"mupen64plus-rdp-plugin", "gliden64"},
       {"mupen64plus-rsp-plugin", "hle"},
       {"mupen64plus-cpucore", "cached_interpreter"},
       {"mupen64plus-ThreadedRenderer", "False"},
-      {"mupen64plus-43screensize", "640x480"},
       {"mupen64plus-pak1", "memory"},
       {"mupen64plus-EnableFBEmulation", "True"},
       {"mupen64plus-EnableCopyColorToRDRAM", "Off"},
@@ -185,7 +189,11 @@ static int16_t input_state(unsigned port, unsigned device, unsigned index,
   }
 }
 
-EMSCRIPTEN_KEEPALIVE int n64_init(void) {
+/* `scale`: 1 to 4 times 640 × 480; the canvas must have that size. */
+EMSCRIPTEN_KEEPALIVE int n64_init(unsigned scale) {
+  static const char *const sizes[] = {"640x480", "1280x960", "1920x1440",
+                                      "2560x1920"};
+  screen_size = sizes[scale >= 1 && scale <= 4 ? scale - 1 : 0];
   retro_set_environment(environment);
   retro_set_video_refresh(video);
   retro_set_audio_sample(audio_sample);

@@ -40,7 +40,12 @@
     readSound,
     writeSound,
   } from "../../../packages/media/src/sound-preferences.ts";
-  import { defaultDisplay } from "../../../packages/media/src/display-preferences.ts";
+  import {
+    defaultDisplay,
+    readRenderCeiling,
+  } from "../../../packages/media/src/display-preferences.ts";
+  import { autoRenderScale } from "../../../packages/runtime/src/render-scale.ts";
+  import { screenLines } from "./surface.ts";
 
   let {
     inGame = false,
@@ -131,6 +136,12 @@
     scaleMode={display.scale}
     aspectMode={display.aspect}
     smooth={display.smooth}
+    resolution={screenSystem.surface ? display.resolution : undefined}
+    autoScale={autoRenderScale(
+      screenLines(),
+      screenSystem.video.sourceHeight,
+      readRenderCeiling(screenSystem.id),
+    )}
     name="settings"
     onchange={(patch) => display.set(patch)}
   />
@@ -140,7 +151,8 @@
       onclick={() => display.set({ ...defaultDisplay })}
       disabled={display.scale === defaultDisplay.scale &&
         display.aspect === defaultDisplay.aspect &&
-        display.smooth === defaultDisplay.smooth}>Restablecer</button
+        display.smooth === defaultDisplay.smooth &&
+        display.resolution === defaultDisplay.resolution}>Restablecer</button
     >
   </div>
 </Tabs.Content>

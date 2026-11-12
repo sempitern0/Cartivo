@@ -217,7 +217,8 @@ export const coreModules: readonly CoreModule[] = [
     validate: validateN64Rom,
     demo: n64ControlDemo,
     prepare: mupen.prepare,
-    create: (rom, canvas, save) => mupen.get().createN64(rom, canvas, save),
+    create: (rom, canvas, scale, save) =>
+      mupen.get().createN64(rom, canvas, scale, save),
   },
   {
     system: "ps2",
@@ -228,7 +229,7 @@ export const coreModules: readonly CoreModule[] = [
     video: { width: 640, height: 448 },
     demo: () => ({ name: "cartivo-demo.elf", bytes: ps2ControlDemo() }),
     prepare: play.prepare,
-    create: (disc, canvas) => play.get().createPs2(disc, canvas),
+    create: (disc, canvas, scale) => play.get().createPs2(disc, canvas, scale),
   },
 ];
 

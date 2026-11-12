@@ -35,7 +35,12 @@
     StateSlot,
   } from "../../../packages/storage/src/states.ts";
   import { GameSound } from "./sound.svelte.ts";
-  import { surfaceFor, threadsProblem } from "./surface.ts";
+  import { screenLines, surfaceFor, threadsProblem } from "./surface.ts";
+  import {
+    readRenderCeiling,
+    writeRenderCeiling,
+  } from "../../../packages/media/src/display-preferences.ts";
+  import { renderScale } from "../../../packages/runtime/src/render-scale.ts";
   import { claimPadWhile } from "./pad-navigation.svelte.ts";
   import { isPauseGesture } from "../../../packages/input/src/ui-navigation.ts";
   import { captureGameInput } from "./game-capture.ts";
@@ -237,6 +242,20 @@
   /** Percent of the game's speed, while a slow-motion system runs below it. */
   let speed = $state<number>();
   let speedAt = 0;
+  /** Multiple of the console's resolution this game is drawn at (surface). */
+  let drawnScale = 1;
+  /** Seconds in a row a slow-motion game has been clearly below its speed. */
+  let slowSeconds = 0;
+  /**
+   * «Automática» was too much for this device: the next game opens one
+   * step lower. Says so once; a resolution the player fixed is theirs.
+   */
+  function lowerResolution() {
+    if (display.resolution !== "auto" || drawnScale <= 1) return false;
+    writeRenderCeiling(system.id, drawnScale - 1);
+    drawnScale = 1; // once per game
+    return true;
+  }
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
   let loadMs = $state<number>();
@@ -272,6 +291,15 @@
       const isolation = system.threads && threadsProblem();
       if (isolation) throw Error(isolation);
       const canvas = system.surface ? surfaceFor(screen) : undefined;
+      // Rendered for the screen, not the window: full screen needs no change.
+      drawnScale = canvas
+        ? renderScale(
+            display.resolution,
+            screenLines(),
+            system.video.sourceHeight,
+            readRenderCeiling(system.id),
+          )
+        : 1;
       const r = await client.request(
         "load",
         {
@@ -280,6 +308,7 @@
           profile: profiles.id,
           core: coreChoice,
           canvas,
+          scale: canvas ? drawnScale : undefined,
         },
         canvas ? [canvas] : [],
       );
@@ -405,8 +434,9 @@
     }
     const step = pacer.step(now);
     if ("tooSlow" in step) {
-      problem =
-        "Este dispositivo no consigue mantener la velocidad del juego. Reanuda para seguir; el juego nunca se acelera para recuperar.";
+      problem = lowerResolution()
+        ? "Este equipo no mantiene la velocidad a esta resolución. Reanuda para seguir; la próxima vez que abras el juego se verá a una resolución menor y más fluida."
+        : "Este dispositivo no consigue mantener la velocidad del juego. Reanuda para seguir; el juego nunca se acelera para recuperar.";
       await pause();
       return;
     }
@@ -430,6 +460,10 @@
         const { samples, fps } = metrics.snapshot();
         const percent = Math.round((fps / frameRate) * 100);
         speed = samples >= 30 && percent < 95 ? percent : undefined;
+        slowSeconds = speed !== undefined && speed < 85 ? slowSeconds + 1 : 0;
+        if (slowSeconds >= 5 && lowerResolution())
+          problem =
+            "Este equipo no mantiene la velocidad a esta resolución. La próxima vez que abras el juego se verá a una resolución menor y más fluida.";
       }
       if (!active) return;
       if (r.pixels && screen) {
@@ -693,6 +727,13 @@
       scaleMode={display.scale}
       aspectMode={display.aspect}
       smooth={display.smooth}
+      resolution={system.surface ? display.resolution : undefined}
+      autoScale={renderScale(
+        "auto",
+        screenLines(),
+        system.video.sourceHeight,
+        readRenderCeiling(system.id),
+      )}
       fallback={scaleFallback}
       note={display.note}
       onchange={(patch) => display.set(patch)}

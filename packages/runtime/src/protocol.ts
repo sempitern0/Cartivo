@@ -7,6 +7,7 @@ import { isAnalog, type Analog } from "../../input/src/analog.ts";
 
 /** Buttons added after protocol v1 shipped (GBA L/R, SNES X/Y, PS1 L2/R2). */
 const optional: readonly Action[] = ["l", "r", "x", "y", "l2", "r2"];
+import { MAX_RENDER_SCALE } from "./render-scale.ts";
 import { system as findSystem } from "./systems.ts";
 import { isProfileId } from "../../storage/src/profiles.ts";
 import {
@@ -64,6 +65,9 @@ export type EmuRequest = {
   /** `load` of a system the core draws itself (systems.ts `surface`): the
    * page's game canvas, transferred (ADR-017). */
   canvas?: OffscreenCanvas;
+  /** `load` with a canvas: the core draws at this many times the console's
+   * resolution (1 to MAX_RENDER_SCALE); omitted means 1. */
+  scale?: number;
 };
 /** More files than any multi-track disc needs (99 tracks and its .cue). */
 const MAX_EXTRA_FILES = 100;
@@ -129,7 +133,18 @@ export function parseRequest(value: unknown): EmuRequest {
       throw Error(
         target.surface ? "Falta el lienzo del juego" : "Lienzo inesperado",
       );
-  } else if (r.canvas !== undefined) throw Error("Lienzo inesperado");
+    if (
+      r.scale !== undefined &&
+      !(
+        target.surface &&
+        Number.isInteger(r.scale) &&
+        r.scale >= 1 &&
+        r.scale <= MAX_RENDER_SCALE
+      )
+    )
+      throw Error("Resolución inválida");
+  } else if (r.canvas !== undefined || r.scale !== undefined)
+    throw Error("Lienzo inesperado");
   if (
     ["state-save", "state-load", "state-delete", "state-export"].includes(
       r.command,

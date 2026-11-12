@@ -214,7 +214,12 @@ async function loadSurface(
   const canvas = r.canvas;
   if (!canvas) throw Error("Falta el lienzo del juego.");
   const { rom, hash } = await readCartridge(module, r);
-  return { start: (save) => module.create(rom, canvas, save), rom, hash };
+  const scale = r.scale ?? 1;
+  return {
+    start: (save) => module.create(rom, canvas, scale, save),
+    rom,
+    hash,
+  };
 }
 
 /**
@@ -245,7 +250,7 @@ async function loadDisc(
     start: async (save) => {
       const tray = disc.withFirst(core?.discs?.current() ?? 0);
       return module.surface
-        ? module.create(tray, canvas!)
+        ? module.create(tray, canvas!, r.scale ?? 1)
         : module.create(tray, save);
     },
     hash,
