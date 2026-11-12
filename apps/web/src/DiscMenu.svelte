@@ -54,7 +54,7 @@
                   () => String(discs.current), (index) => onchange(Number(index))
                 }
               >
-                {#each discs.names as name, index (name)}
+                {#each discs.names as name, index (index)}
                   <DropdownMenu.RadioItem class="disc-item" value={String(index)}>
                     {#snippet children({ checked })}
                       <span class="check" aria-hidden="true"

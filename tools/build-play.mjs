@@ -9,7 +9,7 @@
 // SharedArrayBuffer. The recipe is CMake, not a source list: Play! and its
 // submodules have hundreds of sources and per-platform options that its own
 // CMake files already encode. cores/play/CMakeLists.txt links upstream's
-// static libraries with the libretro frontend and the Cartivo bridge.
+// static libraries with Cartivo's own frontend (src/cartivo.cpp, ADR-022).
 //
 //   node tools/build-play.mjs           build → dist/, manifest.json, sbom.json
 //   node tools/build-play.mjs --verify  rebuild and compare with the manifest
