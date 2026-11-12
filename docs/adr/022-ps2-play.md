@@ -22,7 +22,7 @@ El primer intento, sobre el frontend libretro de Play!, compiló pero no funcion
 - La VM es una subclase de `CPS2VM` que registra las funciones del JIT en su hilo.
 - Arranque y estados se ejecutan en ese hilo, a través de su buzón. Mientras esperan, el hilo del anfitrión sigue atendiendo al GS, porque la consola puede estar esperándolo.
 - El GS no tiene hilo propio: sus llamadas se ejecutan en el hilo del Worker, dueño del contexto WebGL2, y presenta un fotograma por paso aunque el juego no haya cambiado nada.
-- Un fotograma que no llega en 5 s se da por perdido: el adaptador avisa de que el juego ha dejado de responder, en vez de bloquear el Worker.
+- Un fotograma que no llega en 20 s (5 s hasta la revisión de 2026-11-12) se da por perdido: el adaptador avisa de que el juego ha dejado de responder, en vez de bloquear el Worker.
 - El anfitrión marca el ritmo: Play! sin su limitador, y la consola se detiene sola dos fotogramas por delante del GS, así que nada corre mientras el juego está en pausa.
 
 **2. Un cuarto tipo de módulo: `SurfaceDiscModule`** (`packages/adapters/src/contract.ts`): un disco cuyo núcleo dibuja en el lienzo. `create(disc, canvas)` es asíncrono y no recibe batería. Lo que comparten N64 y PS2 (crear el contexto y leer la superficie para las miniaturas) está en `packages/adapters/src/surface.ts`.
@@ -56,7 +56,9 @@ El primer intento, sobre el frontend libretro de Play!, compiló pero no funcion
 - **Experimental.** Play! no arranca todos los juegos y el rendimiento con juegos reales no está medido: depende de la GPU y del JIT en cada navegador. Queda para la QA del titular con sus propios discos.
 - **Cámara lenta en vez de pausa** (revisión 2026-11-12, tras la primera prueba del titular con un DVD comercial). En las demás consolas el reproductor se pausa si el dispositivo no mantiene la velocidad; en PS2 (`slowMotion` en `systems.ts`) el juego sigue por debajo de su velocidad, fotograma a fotograma, y la cabecera muestra «Velocidad N %». Nunca se acelera para recuperar.
 - **Partidas de hasta 64 MiB** (revisión 2026-11-12). La de un juego real no cabía en los 8 MiB anteriores (32 MiB de RAM más vídeo y sonido, comprimidos por Play!) y «Guardar y salir» fallaba. `MAX_STATE_BYTES` sube para todos los sistemas; los de cartucho siguen muy por debajo.
-- **Sonido a ritmo constante** (revisión 2026-11-12). El hilo de la consola entrega el sonido en bloques de unos 22 ms, no por fotograma; `AudioPace` (`packages/adapters/src/audio-pace.ts`) lo reparte por fotograma con 60 ms de reserva. Sigue en mono, como el resto de núcleos.
+- **Sonido a ritmo constante** (revisión 2026-11-12). El núcleo escribía el sonido en bloques de 100 ms: el valor que fijaba el frontend (22) no se aplicaba, porque `CPS2VM` registra antes el suyo. Ahora son bloques de 4 (≈ 4 ms), y `AudioPace` (`packages/adapters/src/audio-pace.ts`) reparte por fotograma lo que la consola, que va hasta dos fotogramas por delante, entrega a ráfagas, con 60 ms de reserva. Sigue en mono, como el resto de núcleos.
+- **Plazos en la consola** (revisión 2026-11-12). Arrancar, guardar o cargar una Partida y cerrar esperan a la consola 30 s como mucho; antes, una consola parada fuera de un fotograma colgaba el Worker.
+- **Arreglos por juego de Play!** (revisión 2026-11-12). Su `GameConfig.xml` (parches, bucles de espera y redondeo para 47 títulos) va dentro del módulo, donde `GameConfig.cpp` lo busca; la versión web de upstream no lo incluye.
 - **Sin memory card:** un juego que solo guarde en memory card pierde ese guardado al salir; las Partidas lo sustituyen.
 - **Sin multidisco, sin `.cue`/`.bin`, sin mejoras de resolución, sin L3/R3** (no tienen acción en Cartivo) **ni vibración.**
 - **Un PAL a 60 Hz** (los que ofrecen ese modo) se sigue marcando a 50.
@@ -67,6 +69,7 @@ El primer intento, sobre el frontend libretro de Play!, compiló pero no funcion
 ## Evidencia
 
 - **Build:** `core-play.yml` run 43109997432 sobre `f1ceea0`, emsdk 6.0.12; commit del bot `2bbb8f7`; `play.wasm` 2,4 MiB (`5be0e1fe9720…`) y `play.js` 133 KiB (`c70d3a1771bd…`), sin `eval` ni `new Function` (ADR-021).
+- **Build de la revisión 2026-11-12:** `core-play.yml` run 43278203709 sobre `97cd13d`; commit del bot `9bb3810`; `play.wasm` 2 495 898 bytes (`88d957834ec3…`) y `play.js` 136 267 bytes (`8a3129bffa02…`). Banco local con el adaptador real: la misma batería en verde, 800–801 muestras de sonido por fotograma durante 40 fotogramas seguidos y `GameConfig.xml` presente en el módulo. Los plazos de 30 s no se han provocado en el banco.
 - **Banco local** (Chromium headless con SwiftShader, servidor con COOP/COEP, el adaptador `ps2.ts` sin modificar):
   - la demo `.elf` arranca en 0,5 s y cada fotograma tarda menos de 1 ms;
   - oráculo de color y mando (Cruz, Círculo, Start);

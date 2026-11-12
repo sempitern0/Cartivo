@@ -1,7 +1,8 @@
 // Steady audio from a core whose console runs on its own thread (PS2,
-// ADR-022): its sound arrives in blocks of about 22 ms, not frame by frame,
-// so some frames bring none and others two frames' worth. Played as it
-// comes, the page's queue would run dry between blocks and click.
+// ADR-022): the console runs up to two frames ahead of the picture, so its
+// sound does not arrive frame by frame; some frames bring none and others
+// two frames' worth. Played as it comes, the page's queue would run dry and
+// click.
 
 /** Samples held back before any are played: 60 ms at 48 kHz. */
 const PREFILL = 2880;

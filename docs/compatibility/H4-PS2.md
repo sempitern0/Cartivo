@@ -7,7 +7,7 @@ Estado: **experimental.** PlayStation 2 funciona en la app con Play!: la consola
 | Campo | Evidencia |
 |---|---|
 | Núcleo | Play! `1f27232` (BSD-2-Clause; dependencias BSD, MIT, Zlib y dominio público); expediente [PLAY_CORE_GATE](../research/PLAY_CORE_GATE.md), **accepted (uso privado)** |
-| Build | `core-play.yml` (run 43109997432) sobre `f1ceea0`, emsdk 6.0.12; commit del bot `2bbb8f7`; `dist/play.wasm` SHA-256 `5be0e1fe9720…` (2 483 711 bytes) y `dist/play.js` `c70d3a1771bd…` |
+| Build | `core-play.yml` (run 43278203709) sobre `97cd13d`, emsdk 6.0.12; commit del bot `9bb3810`; `dist/play.wasm` SHA-256 `88d957834ec3…` (2 495 898 bytes) y `dist/play.js` `8a3129bffa02…` (136 267 bytes). Build anterior: run 43109997432, `2bbb8f7` |
 | Firmware | BIOS por HLE del núcleo (kernel del EE y módulos del IOP). Sin BIOS de Sony |
 | Requisitos | Página aislada (COOP/COEP, [ADR-020](../adr/020-cross-origin-isolation.md)), WebGL2 y `OffscreenCanvas` en Workers; se comprueban antes de descargar el núcleo y, si faltan, se explica el motivo |
 | Formatos | Imágenes de un solo archivo: `.iso`, `.chd`, `.cso` e `.isz`, leídas bajo demanda; ejecutables `.elf`. Fuera: `.cue`/`.bin` y multidisco |
