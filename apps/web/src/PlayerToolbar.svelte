@@ -23,6 +23,7 @@
     onexit,
     discs,
     ondisc,
+    speed,
   }: {
     systemName: string;
     title: string;
@@ -43,12 +44,21 @@
     /** A game on several discs: its tray (ADR-015). */
     discs?: DiscTrayState;
     ondisc?: (index: number) => void;
+    /** Percent of full speed, when the game runs below it (slow motion). */
+    speed?: number;
   } = $props();
 </script>
 
 <div class="heading" data-player-chrome>
   <div class="title">
-    <p class="kicker">{systemName}</p>
+    <p class="kicker">
+      {systemName}{#if speed !== undefined}<span
+          class="speed"
+          data-testid="game-speed"
+          title="Este dispositivo no alcanza la velocidad del juego: va a cámara lenta en vez de pausarse."
+          > · Velocidad {speed} %</span
+        >{/if}
+    </p>
     <h1>{title}</h1>
   </div>
   <div class="toolbar" role="toolbar" aria-label="Partida">
@@ -118,6 +128,9 @@
   :global(.player:fullscreen) .kicker {
     margin: 4px 0;
     font-size: 12px;
+  }
+  .speed {
+    color: var(--gold);
   }
   .toolbar {
     display: flex;

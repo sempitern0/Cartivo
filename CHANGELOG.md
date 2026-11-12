@@ -435,5 +435,6 @@
 - **Frontend propio** (`cores/play/src/cartivo.cpp`): el de libretro no funciona con el JIT de WebAssembly. Arranque y estados en el hilo de la consola, un fotograma por paso, y un juego que deja de responder se avisa en vez de bloquear.
 - **Contrato:** `SurfaceDiscModule` (disco + superficie) y `threads` en los sistemas; lo común de N64 y PS2 con la GPU, en `packages/adapters/src/surface.ts`.
 - **`.iso` y `.chd`** sirven a PlayStation y a PS2: sin elegir consola, más de 900 MiB es un DVD de PS2.
+- **PS2 a cámara lenta en vez de pausa:** si el equipo no alcanza la velocidad del juego, este sigue más despacio y la cabecera muestra «Velocidad N %» (`slowMotion`, `FramePacer`).
 - **Fixtures:** `ps2ControlDemo` (ELF) y `ps2DiscDemo` (ISO 9660), con un ensamblador MIPS compartido (`mips.ts`) que también usa la de PlayStation (mismo ejecutable, byte a byte).
 - **Límites:** probado solo con la demo propia; la compatibilidad y el rendimiento con juegos comerciales quedan para la QA del titular. Sin multidisco, `.cue`/`.bin`, vibración ni mejoras de resolución.

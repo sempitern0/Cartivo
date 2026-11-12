@@ -40,3 +40,15 @@ test("stalls that keep coming mean the device is too slow", () => {
   assert.equal(frames(pacer.step(6000)), 1);
   assert.equal(frames(pacer.step(12000)), 1);
 });
+
+test("slow motion never pauses and runs one frame per step while behind", () => {
+  const pacer = new FramePacer(60, undefined, undefined, true);
+  pacer.start(0);
+  for (const now of [300, 600, 900, 1200])
+    assert.equal(frames(pacer.step(now)), 1, "a stall, never tooSlow");
+  // 100 ms owe six frames: one at a time while the last stall is recent…
+  assert.equal(frames(pacer.step(1300)), 1);
+  // …and in batches again once the device has kept up for a while.
+  pacer.start(0);
+  assert.equal(frames(pacer.step(50)), 3);
+});

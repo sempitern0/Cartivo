@@ -31,6 +31,7 @@ Estado: **experimental.** PlayStation 2 funciona en la app con Play!: la consola
 
 ## Pendiente (QA del titular)
 
+- Un equipo que no alcanza la velocidad del juego lo ejecuta a cámara lenta y muestra «Velocidad N %» en la cabecera, sin pausarlo (unitarias de `FramePacer`; pendiente de QA con un juego real).
 - Juegos comerciales propios: qué arranca, a qué velocidad y con qué fallos gráficos, en una GPU real.
 - Audio en un juego real (la demo no suena).
 - Salir y volver con una Partida de un juego real.

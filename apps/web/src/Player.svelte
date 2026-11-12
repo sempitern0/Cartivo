@@ -228,7 +228,12 @@
   // the pacer follows it.
   // svelte-ignore state_referenced_locally
   let frameRate = $state(system.frameRate);
-  const pacer = $derived(new FramePacer(frameRate));
+  const pacer = $derived(
+    new FramePacer(frameRate, undefined, undefined, !!system.slowMotion),
+  );
+  /** Percent of the game's speed, while a slow-motion system runs below it. */
+  let speed = $state<number>();
+  let speedAt = 0;
   const metrics = new FrameMetrics();
   let diagnostics = $state.raw(metrics.snapshot());
   let loadMs = $state<number>();
@@ -417,6 +422,12 @@
       const completedAt = performance.now();
       if (active && phase === "running")
         metrics.record(completedAt, completedAt - requestedAt, count);
+      if (system.slowMotion && completedAt - speedAt > 1000) {
+        speedAt = completedAt;
+        const { samples, fps } = metrics.snapshot();
+        const percent = Math.round((fps / frameRate) * 100);
+        speed = samples >= 30 && percent < 95 ? percent : undefined;
+      }
       if (!active) return;
       if (r.pixels && screen) {
         const ctx = screen.getContext("2d");
@@ -651,6 +662,7 @@
     onexit={() => close()}
     {discs}
     ondisc={changeDisc}
+    speed={phase === "running" ? speed : undefined}
   />
   <input
     bind:this={romInput}

@@ -66,6 +66,11 @@ export type SystemInfo = {
   /** The controller's main control is an analog stick (N64): a pad's left
    * stick drives it and is not mirrored on the D-pad. */
   analogStick?: true;
+  /**
+   * A demanding console: a device that cannot hold its speed plays it in
+   * slow motion, with the speed on screen, instead of pausing (ADR-022).
+   */
+  slowMotion?: true;
   /** Shown as experimental: playable, with the limits its sheet lists. */
   experimental?: true;
   video: VideoDescriptor;
@@ -346,6 +351,7 @@ export const systems: readonly SystemInfo[] = [
     disc: true,
     surface: "webgl2",
     threads: true,
+    slowMotion: true,
     experimental: true,
     video: PS2_VIDEO,
     // NTSC nominal; the core reports each game's rate (PAL 50 Hz).
