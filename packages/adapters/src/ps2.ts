@@ -5,6 +5,7 @@
 // asks this adapter for the sectors it needs (ADR-015).
 // cores/play/dist is built and committed by CI on request; its frontend is
 // cores/play/src/cartivo.cpp.
+import { AudioPace } from "./audio-pace.ts";
 import type { EmulatorCore } from "./contract.ts";
 import type { DiscImage } from "./disc.ts";
 import { surfaceFrame, useSurface, type EmscriptenGl } from "./surface.ts";
@@ -67,6 +68,8 @@ const GLUE = new URL("../../../cores/play/dist/play.js", import.meta.url);
 const WASM = new URL("../../../cores/play/dist/play.wasm", import.meta.url);
 /** Larger than any homebrew; an .elf is copied into the module's memory. */
 const MAX_ELF_BYTES = 64 * 1024 * 1024;
+/** The bridge's output rate (cartivo.cpp OUT_RATE). */
+const SAMPLE_RATE = 48000;
 
 let ready: Promise<{ factory: Factory; wasm: WebAssembly.Module }> | undefined;
 let loaded: { factory: Factory; wasm: WebAssembly.Module } | undefined;
@@ -129,6 +132,7 @@ class Ps2Core implements EmulatorCore {
   #sticks: Analog = centered();
   #lost = false;
   #stopped = false;
+  #audio: AudioPace;
   #onLost = (event: Event) => {
     event.preventDefault();
     this.#lost = true;
@@ -139,6 +143,7 @@ class Ps2Core implements EmulatorCore {
     this.#game = game;
     this.#canvas = canvas;
     this.frameRate = em._cartivo_frame_rate(game);
+    this.#audio = new AudioPace(SAMPLE_RATE, this.frameRate);
     canvas.addEventListener("webglcontextlost", this.#onLost);
   }
 
@@ -192,8 +197,9 @@ class Ps2Core implements EmulatorCore {
       em._cartivo_audio(this.#game),
       samples,
     );
-    // A copy: the module's memory is shared and cannot be transferred.
-    return { audio: Float32Array.from(audio), frames: this.frames };
+    // The console's thread delivers sound in blocks: evened out per frame
+    // (a copy too: the module's memory is shared and cannot be transferred).
+    return { audio: this.#audio.step(audio, count), frames: this.frames };
   }
 
   /** No battery RAM (see `battery`). */

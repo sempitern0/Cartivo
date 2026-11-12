@@ -8,7 +8,12 @@ import { openStates } from "./state-index.ts";
 
 export const stateSlots = ["auto", "1", "2", "3"] as const;
 export type StateSlot = (typeof stateSlots)[number];
-export const MAX_STATE_BYTES = 8 * 1024 * 1024;
+/**
+ * The largest snapshot kept. Cartridge consoles need well under 1 MiB; a
+ * PlayStation 2 game's (32 MiB of RAM plus video and sound memory,
+ * compressed by the core) takes tens of MiB.
+ */
+export const MAX_STATE_BYTES = 64 * 1024 * 1024;
 export const PREVIEW_WIDTH = 128;
 export const PREVIEW_HEIGHT = 120;
 
@@ -159,7 +164,9 @@ export class StateStore {
   async put({ meta: info, bytes, sha256 }: StoredState): Promise<StateMeta> {
     // The one write path, so the size limit holds for saves and imports.
     if (!bytes.length || bytes.length > MAX_STATE_BYTES)
-      throw Error("La partida supera el tamaño admitido (8 MB)");
+      throw Error(
+        `La partida ocupa ${Math.ceil(bytes.length / 1048576)} MB y supera el tamaño admitido (${MAX_STATE_BYTES / 1048576} MB).`,
+      );
     const record: StateRecord = { ...info, bytes, sha256 };
     const tx = this.db.transaction(["states", "meta"], "readwrite");
     tx.objectStore("states").put(record, this.key(info.slot));

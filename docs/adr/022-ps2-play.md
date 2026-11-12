@@ -55,6 +55,8 @@ El primer intento, sobre el frontend libretro de Play!, compiló pero no funcion
 
 - **Experimental.** Play! no arranca todos los juegos y el rendimiento con juegos reales no está medido: depende de la GPU y del JIT en cada navegador. Queda para la QA del titular con sus propios discos.
 - **Cámara lenta en vez de pausa** (revisión 2026-11-12, tras la primera prueba del titular con un DVD comercial). En las demás consolas el reproductor se pausa si el dispositivo no mantiene la velocidad; en PS2 (`slowMotion` en `systems.ts`) el juego sigue por debajo de su velocidad, fotograma a fotograma, y la cabecera muestra «Velocidad N %». Nunca se acelera para recuperar.
+- **Partidas de hasta 64 MiB** (revisión 2026-11-12). La de un juego real no cabía en los 8 MiB anteriores (32 MiB de RAM más vídeo y sonido, comprimidos por Play!) y «Guardar y salir» fallaba. `MAX_STATE_BYTES` sube para todos los sistemas; los de cartucho siguen muy por debajo.
+- **Sonido a ritmo constante** (revisión 2026-11-12). El hilo de la consola entrega el sonido en bloques de unos 22 ms, no por fotograma; `AudioPace` (`packages/adapters/src/audio-pace.ts`) lo reparte por fotograma con 60 ms de reserva. Sigue en mono, como el resto de núcleos.
 - **Sin memory card:** un juego que solo guarde en memory card pierde ese guardado al salir; las Partidas lo sustituyen.
 - **Sin multidisco, sin `.cue`/`.bin`, sin mejoras de resolución, sin L3/R3** (no tienen acción en Cartivo) **ni vibración.**
 - **Un PAL a 60 Hz** (los que ofrecen ese modo) se sigue marcando a 50.

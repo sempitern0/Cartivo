@@ -38,7 +38,7 @@ La QA del titular (2026-11-07, Brave en Windows, GPU real) jugó *Super Mario 64
 
 **4. Guardado.**
 - **Batería:** el bloque del núcleo de 296 960 bytes (EEPROM, cuatro controller paks, SRAM y FlashRAM), en el formato `cartivo-n64-sram-v1`. Se escribe tras `n64_load`, que lo formatea. El límite de archivo de copia sube a 2 MiB.
-- **Partidas:** el estado propio del núcleo (≈ 16 MiB) comprimido con zlib en `frontend.c`, ligado a núcleo y versión como en ADR-009. La demo ocupa 75 KB; un juego real cabe bajo `MAX_STATE_BYTES` (8 MiB) si comprime lo suficiente, y si no la Partida se rechaza con un mensaje.
+- **Partidas:** el estado propio del núcleo (≈ 16 MiB) comprimido con zlib en `frontend.c`, ligado a núcleo y versión como en ADR-009. La demo ocupa 75 KB; un juego real cabe bajo `MAX_STATE_BYTES` (8 MiB entonces; 64 MiB desde PS2, ADR-022) si comprime lo suficiente, y si no la Partida se rechaza con un mensaje.
 - Las funciones que cambian de fibra devuelven sus resultados por getters, porque Asyncify pierde el valor de retorno.
 - **Pilas de fibra alineadas a 16 bytes** (`cooperative.c`, revisión 2026-11-08). La QA del titular encontró que las Partidas no cargaban: el núcleo rechazaba el estado por «ROM MD5 does not match».
   - El compilador calcula direcciones del marco con `OR`, porque supone el puntero de pila alineado a 16. `malloc` solo alinea a 8 en WebAssembly, así que la cabecera local quedaba desplazada.

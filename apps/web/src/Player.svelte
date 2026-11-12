@@ -103,7 +103,10 @@
     clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => (toast = ""), 2600);
   }
+  /** Why the last saveSlot failed, for the callers that report it themselves. */
+  let saveFailure = "";
   async function saveSlot(slot: StateSlot, quiet = false) {
+    saveFailure = "";
     if (!client || phase === "loading" || phase === "error") return false;
     try {
       const r = await client.request("state-save", { slot });
@@ -114,8 +117,8 @@
       else if (!quiet) notify(`Partida guardada en ${where}.`);
       return true;
     } catch (e) {
-      if (!quiet)
-        problem = e instanceof Error ? e.message : "No se pudo guardar la partida";
+      saveFailure = e instanceof Error ? e.message : "";
+      if (!quiet) problem = saveFailure || "No se pudo guardar la partida";
       return false;
     }
   }
@@ -557,7 +560,7 @@
     if (phase === "paused" && hasPlayed && !resumeOffer && !noStorage) {
       exitSaveFailed = !(await saveSlot("auto", true));
       if (exitSaveFailed) {
-        problem = "No se pudo guardar la partida al salir. Reintenta Salir o exporta una ranura desde Partidas antes de cerrar.";
+        problem = `No se pudo guardar la partida al salir${saveFailure ? ` (${saveFailure.replace(/\.$/, "")})` : ""}. Reintenta Salir o exporta una ranura desde Partidas antes de cerrar.`;
         return;
       }
     }

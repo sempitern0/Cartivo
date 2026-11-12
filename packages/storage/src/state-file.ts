@@ -12,8 +12,9 @@ import {
 } from "./states.ts";
 
 export const STATE_FILE_FORMAT = "cartivo-state-v1";
-/** Upper bound before parsing: base64 (×4/3) of 8 MB plus the preview. */
-export const MAX_STATE_FILE = 12 * 1024 * 1024;
+/** Upper bound before parsing: base64 (×4/3) of a snapshot plus the preview. */
+export const MAX_STATE_FILE =
+  Math.ceil((MAX_STATE_BYTES * 4) / 3) + 1024 * 1024;
 
 export type StateFile = {
   format: typeof STATE_FILE_FORMAT;
