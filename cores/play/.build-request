@@ -1,2 +1,2 @@
 Bump this file only to build Play! once in CI (core-play.yml).
-Reason: first QA with commercial games (2026-11-12): VM timeouts, sound in short SPU blocks, Play!'s GameConfig.xml embedded.
+Reason: rendering resolution chosen by the host (cartivo_create scale, ADR-023).
