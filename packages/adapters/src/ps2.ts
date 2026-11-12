@@ -271,8 +271,10 @@ export async function createPs2(
   // Its GL objects must go before the next core takes the context.
   drawing.get(canvas)?.dispose();
   const em = await factory({
-    print: () => {},
-    printErr: () => {},
+    // Play!'s own messages (an unsupported module, an abort) are the only
+    // trace of why a game stops: kept in the Worker's console, never shown.
+    print: (text) => console.debug("[Play!]", text),
+    printErr: (text) => console.warn("[Play!]", text),
     instantiateWasm(imports, done) {
       void WebAssembly.instantiate(wasm, imports).then((instance) =>
         done(instance, wasm),
