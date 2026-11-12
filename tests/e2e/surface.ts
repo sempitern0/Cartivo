@@ -10,8 +10,25 @@ import { startDemo } from "./play.ts";
  * WebGL2 inside a Worker; where there is none, the player says why instead
  * of failing silently. Decided by what the app does, not by a Worker made
  * here: the built app's policy refuses blob: workers (ADR-021).
+ *
+ * `scale` fixes the rendering resolution (ADR-023): the original by
+ * default, because «automatic» depends on the runner's screen and its
+ * software GL cannot hold N64 above it.
  */
-export async function demoStarts(page: Page, console: string) {
+export async function demoStarts(page: Page, console: string, scale = 1) {
+  await page.evaluate(
+    ([key, value]) => localStorage.setItem(key, value),
+    [
+      `cartivo:display:${console.toLowerCase()}:v1`,
+      JSON.stringify({
+        v: 1,
+        scale: "fit",
+        aspect: "corrected",
+        smooth: false,
+        resolution: scale,
+      }),
+    ],
+  );
   await startDemo(page, console);
   const refused = page.getByRole("alert").filter({ hasText: "WebGL2" });
   const started = async () =>

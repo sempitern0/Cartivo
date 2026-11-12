@@ -87,3 +87,23 @@ test("a PS2 disc image boots from the player's file, read on demand", async ({
   await expect.poll(() => shows(page, [255, 0, 0])).toBe(true);
   await page.keyboard.up("KeyK");
 });
+
+test("PS2 drawn at twice its resolution fills a canvas of that size", async ({
+  page,
+}) => {
+  await page.goto("/");
+  test.skip(
+    !(await surfaceDemoStarts(page, "PS2", 2)),
+    "No WebGL2 in a Worker here.",
+  );
+  await playing(page);
+  await expect(page.locator("canvas")).toHaveAttribute("width", "1280");
+  await expect(page.locator("canvas")).toHaveAttribute("height", "896");
+  await expect.poll(() => shows(page, [33, 33, 99])).toBe(true);
+  await page.keyboard.down("KeyK");
+  await expect.poll(() => shows(page, [255, 0, 0])).toBe(true);
+  await page.keyboard.up("KeyK");
+  // The preview of a Partida keeps the console's own size.
+  await page.keyboard.press("F5");
+  await expect(page.getByTestId("toast")).toContainText("ranura 1");
+});

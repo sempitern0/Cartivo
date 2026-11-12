@@ -4,6 +4,8 @@ import {
   defaultDisplay,
   parseDisplay,
   readDisplay,
+  readRenderCeiling,
+  writeRenderCeiling,
   writeDisplay,
   displayKey,
 } from "../packages/media/src/display-preferences.ts";
@@ -74,9 +76,7 @@ test("preferences saved before the resolution existed mean automatic", () => {
   );
 });
 
-test("the resolution ceiling of a system is remembered", async () => {
-  const { readRenderCeiling, writeRenderCeiling } =
-    await import("../packages/media/src/display-preferences.ts");
+test("the resolution ceiling of a system is remembered", () => {
   const store = new Memory();
   assert.equal(readRenderCeiling("ps2", store), 4);
   writeRenderCeiling("ps2", 2, store);
