@@ -53,11 +53,11 @@
   "files": [
     {
       "path": "dist/play.js",
-      "sha256": "c70d3a1771bd51cef98640b301143f9b518f7a754d2d2a4e402f727990b69c6f"
+      "sha256": "8a3129bffa02d4fc85e63db42233d5ecef2b1a7197fd1a84328726e0cbc0bd97"
     },
     {
       "path": "dist/play.wasm",
-      "sha256": "5be0e1fe9720c0509c205e224ec5af081848192b035da315943af30bf85cf310"
+      "sha256": "88d957834ec350a3f24072c0c388f56b7daf6da97996812c5383490dc10bde0c"
     }
   ]
 }
