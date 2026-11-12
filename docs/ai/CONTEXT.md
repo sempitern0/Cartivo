@@ -45,7 +45,7 @@ Patrones ya resueltos. Se reutilizan en lugar de reinventarlos:
 |---|---|---|
 | Guardar algo propio de cada jugador (base IndexedDB, clave de `localStorage`, Web Lock) | `scoped(nombre, perfil)` de `packages/storage/src/profiles.ts`. El Worker recibe el perfil en `load.profile`; la UI usa `profiles.key(…)` | ADR-016 |
 | Un sistema de disco (archivos grandes, varias pistas) | `DiscModule` en `contract.ts`, `prepareDisc` y la VFS `cartivo_vfs_*` del puente | ADR-015, `cores/pcsx-rearmed/src/cartivo.c` |
-| Un núcleo que dibuja con la GPU (WebGL2) | `SurfaceModule` en `contract.ts`, `surface: "webgl2"` en `systems.ts`; la UI transfiere el lienzo (`apps/web/src/surface.ts`) | ADR-017, `packages/adapters/src/n64.ts` |
+| Un núcleo que dibuja con la GPU (WebGL2) | `SurfaceModule` en `contract.ts`, `surface: "webgl2"` en `systems.ts`; la UI transfiere el lienzo (`apps/web/src/surface.ts`) | ADR-017, `packages/adapters/src/n64.ts`; resolución de dibujo: ADR-023, `packages/runtime/src/render-scale.ts` |
 | Elegir el juego entre varios archivos abiertos juntos | `gameForFiles` (`systems.ts`); pistas de `.cue` con `cueFiles`/`matchTracks` (`storage/src/cue.ts`) | `tests/systems.test.ts`, `tests/disc.test.ts` |
 | Un botón que inicia un juego | Atributo `data-launch="<único>"`: al salir del juego el foco vuelve a él | `App.svelte` (`returnFocus`) |
 | Que el mando no salga de una zona mientras está abierta | `data-pad-scope` en su contenedor; un `<dialog>` modal ya acota | `pad-navigation.svelte.ts` |

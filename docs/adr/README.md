@@ -26,3 +26,4 @@ La existencia de un ADR no acredita implementación ni elimina un bloqueo de lic
 | [020](020-cross-origin-isolation.md) | Aislamiento de origen cruzado (COOP/COEP) en toda la PWA, también desde el service worker | Aceptado |
 | [021](021-content-security-policy.md) | Content Security Policy (nada sale del origen) e instalación verificada por hash | Aceptado |
 | [022](022-ps2-play.md) | PlayStation 2 con Play!: hilos, superficie WebGL2 y frontend propio | Aceptado (experimental) |
+| [023](023-render-resolution.md) | Resolución de las consolas 3D (N64, PS2): automática para la pantalla del equipo, ajustable | Aceptado |

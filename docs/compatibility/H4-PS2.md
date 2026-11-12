@@ -7,11 +7,11 @@ Estado: **experimental.** PlayStation 2 funciona en la app con Play!: la consola
 | Campo | Evidencia |
 |---|---|
 | Núcleo | Play! `1f27232` (BSD-2-Clause; dependencias BSD, MIT, Zlib y dominio público); expediente [PLAY_CORE_GATE](../research/PLAY_CORE_GATE.md), **accepted (uso privado)** |
-| Build | `core-play.yml` (run 43278203709) sobre `97cd13d`, emsdk 6.0.12; commit del bot `9bb3810`; `dist/play.wasm` SHA-256 `88d957834ec3…` (2 495 898 bytes) y `dist/play.js` `8a3129bffa02…` (136 267 bytes). Build anterior: run 43109997432, `2bbb8f7` |
+| Build | `core-play.yml` (run 43295621238) sobre `363edf7`, emsdk 6.0.12; commit del bot `d07ffee`; `dist/play.wasm` SHA-256 `5394f26248e7…` (2 495 983 bytes) y `dist/play.js` `5e71231ed45a…` (136 267 bytes). Builds anteriores: runs 43278203709 (`9bb3810`) y 43109997432 (`2bbb8f7`) |
 | Firmware | BIOS por HLE del núcleo (kernel del EE y módulos del IOP). Sin BIOS de Sony |
 | Requisitos | Página aislada (COOP/COEP, [ADR-020](../adr/020-cross-origin-isolation.md)), WebGL2 y `OffscreenCanvas` en Workers; se comprueban antes de descargar el núcleo y, si faltan, se explica el motivo |
 | Formatos | Imágenes de un solo archivo: `.iso`, `.chd`, `.cso` e `.isz`, leídas bajo demanda; ejecutables `.elf`. Fuera: `.cue`/`.bin` y multidisco |
-| Vídeo | 640×448 a 4:3; un juego PAL (512 líneas) se ajusta a esa superficie. Resolución 1x |
+| Vídeo | 640×448 a 4:3; un juego PAL (512 líneas) se ajusta a esa superficie. Dibujado de ×1 a ×4: automático para la pantalla del equipo y ajustable (ADR-023) |
 | Cadencia | 59,94 Hz; 50 Hz para discos europeos (`SLES`, `SCES`, `SLED`, `SCED`) |
 | Entrada | DualShock 2 por posición, como PlayStation: Cruz/Círculo en B/A, Cuadrado/Triángulo en Y/X, L1/R1, L2/R2 y los dos sticks. Sin L3/R3 ni vibración |
 | Guardado | Partidas con el estado de Play! (zip comprimido: 18 833 bytes en la demo). **Sin memory card:** lo que el juego guarde en ella se pierde al salir |

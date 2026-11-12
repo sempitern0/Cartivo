@@ -58,7 +58,7 @@ La QA del titular (2026-11-07, Brave en Windows, GPU real) jugó *Super Mario 64
 - Memoria: 256 MiB por instancia. Al cargar con batería existen dos instancias un momento.
 - **Límites:**
   - Transfer Pak, Rumble Pak y 64DD no están;
-  - resolución fija de 640×480, sin mejoras;
+  - resolución fija de 640×480, sin mejoras (hasta ADR-023: ahora de ×1 a ×4);
   - underruns ocasionales de audio cuando el Worker da tirones;
   - compatibilidad solo con lo que ha probado el titular.
 - **Pendiente:** el cuelgue con emsdk 6.0.12 ([N64_CORE_GATE](../research/N64_CORE_GATE.md#emscripten-6012-se-cuelga-investigación-abierta)) y QA con más juegos y equipos.
