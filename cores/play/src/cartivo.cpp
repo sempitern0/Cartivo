@@ -31,6 +31,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -68,8 +70,14 @@ constexpr unsigned MAX_SAMPLES = OUT_RATE; // one second of output
 // The picture the GS presents, whatever the game's video mode (the canvas).
 constexpr unsigned WIDTH = 640;
 constexpr unsigned HEIGHT = 448;
-// A frame that takes longer than this means the VM is not running.
-constexpr auto FRAME_TIMEOUT = std::chrono::seconds(5);
+// A frame that takes longer than this means the VM is not running. Generous:
+// while a game loads, one frame can take seconds of disc reads and JIT.
+constexpr auto FRAME_TIMEOUT = std::chrono::seconds(20);
+// The same for a call on the VM thread (boot, save state) and for stopping it.
+constexpr auto VM_TIMEOUT = std::chrono::seconds(30);
+// SPU blocks (45 samples each, about 1 ms) per write to the sound handler:
+// small, so sound reaches the host every frame instead of in long bursts.
+constexpr int SPU_BLOCKS = 4;
 
 // --- VM ---------------------------------------------------------------------
 
@@ -316,7 +324,8 @@ struct cartivo_t
 	double position = 0;
 	float previous = 0;
 	std::vector<int16> stereo;
-	std::vector<uint8_t> state;
+	// Written on the VM thread, read by the host once the call has finished.
+	std::shared_ptr<std::vector<uint8_t>> state = std::make_shared<std::vector<uint8_t>>();
 };
 
 namespace
@@ -327,56 +336,67 @@ cartivo_t *current;
 /**
  * Runs `call` on the VM thread and waits for it, running the GS meanwhile:
  * the VM may be blocked on a GS call, and would never get to its mailbox.
+ * False if `call` threw or the VM did not get to it in time. A late VM may
+ * still run it after this returns: `call` must own everything it uses.
  */
-void on_vm(cartivo_t *c, const std::function<void()> &call)
+bool on_vm(cartivo_t *c, std::function<void()> call)
 {
-	std::atomic<bool> done{false};
-	c->vm.post([&]() {
-		call();
-		done = true;
-	});
-	while(!done)
+	struct Result
 	{
+		std::atomic<bool> done{false};
+		std::atomic<bool> ok{false};
+	};
+	auto result = std::make_shared<Result>();
+	c->vm.post([call = std::move(call), result]() {
+		try
+		{
+			call();
+			result->ok = true;
+		}
+		catch(...)
+		{
+		}
+		result->done = true;
+	});
+	const auto deadline = std::chrono::steady_clock::now() + VM_TIMEOUT;
+	while(!result->done)
+	{
+		if(std::chrono::steady_clock::now() > deadline) return false;
 		if(c->gs) c->gs->pump();
 		std::this_thread::sleep_for(std::chrono::microseconds(500));
 	}
+	return result->ok;
 }
 
-/** Stops the VM, running the GS calls it may be waiting on. */
-void pause(cartivo_t *c)
+/** Stops the VM, running the GS calls it may be waiting on; false if it does not stop. */
+bool pause(cartivo_t *c)
 {
+	const auto deadline = std::chrono::steady_clock::now() + VM_TIMEOUT;
 	c->vm.PauseAsync();
 	while(c->vm.GetStatus() != CVirtualMachine::PAUSED)
 	{
+		if(std::chrono::steady_clock::now() > deadline) return false;
 		c->gs->pump();
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
+	return true;
 }
 
 /** Boots the game from the start; false if Play! refuses the file. */
 bool boot(cartivo_t *c)
 {
-	bool booted = false;
-	on_vm(c, [&]() {
-		try
-		{
-			if(c->disc) CAppConfig::GetInstance().SetPreferencePath(PREF_PS2_CDROM0_PATH, c->path);
-			c->vm.Reset();
-			if(c->disc)
-				c->vm.m_ee->m_os->BootFromCDROM();
-			else
-				c->vm.m_ee->m_os->BootFromFile(c->path);
-			// European releases (SLES, SCES, SLED, SCED) are PAL.
-			const std::string id = c->vm.m_ee->m_os->GetExecutableName();
-			c->pal = c->disc && (id.rfind("SLE", 0) == 0 || id.rfind("SCE", 0) == 0);
-			c->vm.ResumeImpl();
-			booted = true;
-		}
-		catch(...)
-		{
-		}
+	return on_vm(c, [c]() {
+		if(c->disc) CAppConfig::GetInstance().SetPreferencePath(PREF_PS2_CDROM0_PATH, c->path);
+		c->vm.Reset();
+		if(c->disc)
+			c->vm.m_ee->m_os->BootFromCDROM();
+		else
+			c->vm.m_ee->m_os->BootFromFile(c->path);
+		// European releases (SLES, SCES, SLED, SCED) are PAL.
+		const std::string id = c->vm.m_ee->m_os->GetExecutableName();
+		c->pal = c->disc && (id.rfind("SLE", 0) == 0 || id.rfind("SCE", 0) == 0);
+		c->vm.ResumeImpl();
 	});
-	return booted;
 }
 
 void resample(cartivo_t *c, unsigned rate)
@@ -421,12 +441,15 @@ void cartivo_free(cartivo_t *c);
 cartivo_t *cartivo_create(const char *path, size_t length)
 {
 	if(current) return nullptr; // one game per module, ever
+	// Before the VM exists: its constructor registers its own default (100
+	// blocks, a tenth of a second per write) and reads the value.
+	auto &config = CAppConfig::GetInstance();
+	config.RegisterPreferenceInteger(PREF_AUDIO_SPUBLOCKCOUNT, SPU_BLOCKS);
+	config.SetPreferenceInteger(PREF_AUDIO_SPUBLOCKCOUNT, SPU_BLOCKS);
 	auto *c = new cartivo_t();
 	c->path.assign(path, length);
 	c->disc = !ends_with(c->path, ".elf");
 
-	auto &config = CAppConfig::GetInstance();
-	config.RegisterPreferenceInteger(PREF_AUDIO_SPUBLOCKCOUNT, 22);
 	// The host's clock paces the game (see the header): no limiter of Play!'s
 	// own. Set before the VM thread exists, which reads it when it starts.
 	config.SetPreferenceBoolean(PREF_PS2_LIMIT_FRAMERATE, false);
@@ -494,49 +517,38 @@ void cartivo_set_analog(cartivo_t *c, int lx, int ly, int rx, int ry)
 // cartivo_snapshot_data the bytes, valid until the next snapshot.
 size_t cartivo_snapshot(cartivo_t *c)
 {
-	c->state.clear();
+	// A new buffer each time: a VM that answers late writes to its own.
+	auto state = std::make_shared<std::vector<uint8_t>>();
+	c->state = state;
 	c->gs->sync();
-	on_vm(c, [&]() {
-		try
-		{
-			Framework::CMemStream stream;
-			Framework::CZipArchiveWriter archive;
-			c->vm.m_ee->SaveState(archive);
-			c->vm.m_iop->SaveState(archive);
-			c->vm.m_ee->m_gs->SaveState(archive);
-			archive.Write(stream);
-			c->state.assign(stream.GetBuffer(), stream.GetBuffer() + stream.GetSize());
-		}
-		catch(...)
-		{
-			c->state.clear();
-		}
+	const bool saved = on_vm(c, [c, state]() {
+		Framework::CMemStream stream;
+		Framework::CZipArchiveWriter archive;
+		c->vm.m_ee->SaveState(archive);
+		c->vm.m_iop->SaveState(archive);
+		c->vm.m_ee->m_gs->SaveState(archive);
+		archive.Write(stream);
+		state->assign(stream.GetBuffer(), stream.GetBuffer() + stream.GetSize());
 	});
-	return c->state.size();
+	return saved ? state->size() : 0;
 }
 
 const uint8_t *cartivo_snapshot_data(cartivo_t *c)
 {
-	return c->state.data();
+	return c->state->data();
 }
 
 // 0 if the state was restored; the game is unusable after a failure half-way.
 int cartivo_restore(cartivo_t *c, const uint8_t *data, size_t length)
 {
-	bool restored = false;
-	on_vm(c, [&]() {
-		try
-		{
-			Framework::CPtrStream stream(data, length);
-			Framework::CZipArchiveReader archive(stream);
-			c->vm.m_ee->LoadState(archive);
-			c->vm.m_iop->LoadState(archive);
-			c->vm.m_ee->m_gs->LoadState(archive);
-			restored = true;
-		}
-		catch(...)
-		{
-		}
+	// A copy the call owns: the host frees `data` when this returns.
+	auto bytes = std::make_shared<std::vector<uint8_t>>(data, data + length);
+	const bool restored = on_vm(c, [c, bytes]() {
+		Framework::CPtrStream stream(bytes->data(), bytes->size());
+		Framework::CZipArchiveReader archive(stream);
+		c->vm.m_ee->LoadState(archive);
+		c->vm.m_iop->LoadState(archive);
+		c->vm.m_ee->m_gs->LoadState(archive);
 	});
 	if(restored) c->vm.OnMachineStateChange();
 	return restored ? 0 : 1;
@@ -550,8 +562,8 @@ int cartivo_restore(cartivo_t *c, const uint8_t *data, size_t length)
 void cartivo_free(cartivo_t *c)
 {
 	if(!c) return;
-	pause(c);
-	c->gs->release();
+	// A VM that does not stop is left as it is: the host ends its threads.
+	if(pause(c)) c->gs->release();
 }
 
 } // extern "C"

@@ -80,6 +80,9 @@ target_link_options(play PRIVATE
 	# reads audio and save states from the current buffer, which is shared
 	# and may grow. PThread: to stop the pool on exit.
 	"-sFORCE_FILESYSTEM"
+	# Play!'s per-game fixes (patches, idle loops, FP rounding), where its
+	# GameConfig.cpp looks for them (PathUtils::GetAppResourcesPath).
+	"--embed-file=${PLAY_UPSTREAM}/GameConfig.xml@/usr/local/share/GameConfig.xml"
 	"-sEXPORTED_RUNTIME_METHODS=FS,GL,PThread,wasmMemory,stringToNewUTF8"
 	# Cartivo API plus the JIT proxies that generated code imports by name
 	# (same list as Source/ui_js/CMakeLists.txt, minus _main/_initVm).
